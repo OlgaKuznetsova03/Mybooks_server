@@ -188,6 +188,7 @@ def reading_set_page(request, progress_id):
     if total:
         page = max(0, min(page, total))
     progress.current_page = page
+    progress.save(update_fields=["current_page"])
     progress.recalc_percent()
     messages.success(request, "Текущая страница обновлена.")
     return redirect("reading_track", book_id=progress.book_id)
@@ -204,6 +205,7 @@ def reading_increment(request, progress_id, delta):
     if total:
         new_page = max(0, min(new_page, total))
     progress.current_page = new_page
+    progress.save(update_fields=["current_page"])
     progress.recalc_percent()
     return redirect("reading_track", book_id=progress.book_id)
 
@@ -216,6 +218,7 @@ def reading_mark_finished(request, progress_id):
     total = progress.book.get_total_pages()
     if total:
         progress.current_page = total
+        progress.save(update_fields=["current_page"])
         progress.recalc_percent()
     else:
         # если не знаем total_pages — ставим 100%, страницу не меняем
