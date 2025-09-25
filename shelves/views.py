@@ -1,4 +1,5 @@
 # shelves/views.py
+import json
 from decimal import Decimal, ROUND_HALF_UP
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -6,7 +7,12 @@ from django.views.decorators.http import require_POST
 from django.contrib import messages
 from books.models import Book
 from .models import Shelf, ShelfItem, BookProgress, Event, EventParticipant
-from .forms import ShelfCreateForm, AddToShelfForm, AddToEventForm
+from .forms import (
+    ShelfCreateForm,
+    AddToShelfForm,
+    AddToEventForm,
+    BookProgressNotesForm,
+)
 
 
 def event_list(request):
@@ -174,6 +180,13 @@ def reading_track(request, book_id):
         percent = current_decimal / (total_decimal / Decimal(100))
         calculated_percent = float(percent.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
     daily_logs = progress.logs.order_by("-log_date")
+    notes_form = BookProgressNotesForm(instance=progress)
+    chart_logs = list(progress.logs.order_by("log_date"))
+    chart_labels_json = json.dumps(
+        [log.log_date.strftime("%d.%m.%Y") for log in chart_logs],
+        ensure_ascii=False,
+    )
+    chart_pages_json = json.dumps([log.pages_read for log in chart_logs])
     average_pages_per_day = progress.average_pages_per_day
     estimated_days_remaining = progress.estimated_days_remaining
     return render(request, "reading/track.html", {
@@ -182,9 +195,25 @@ def reading_track(request, book_id):
         "total_pages": total_pages,
         "calculated_percent": calculated_percent,
         "daily_logs": daily_logs,
+        "notes_form": notes_form,
         "average_pages_per_day": average_pages_per_day,
         "estimated_days_remaining": estimated_days_remaining,
+        "chart_labels_json": chart_labels_json,
+        "chart_pages_json": chart_pages_json,
     })
+
+@login_required
+@require_POST
+def reading_update_notes(request, progress_id):
+    """Сохранение заметок по ходу чтения."""
+    progress = get_object_or_404(BookProgress, pk=progress_id, user=request.user)
+    form = BookProgressNotesForm(request.POST, instance=progress)
+    if form.is_valid():
+        form.save()
+        messages.success(request, "Заметки сохранены.")
+    else:
+        messages.error(request, "Не удалось сохранить заметки. Проверьте введённые данные.")
+    return redirect("reading_track", book_id=progress.book_id)
 
 
 @login_required

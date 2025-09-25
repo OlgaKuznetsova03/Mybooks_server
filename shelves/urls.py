@@ -20,4 +20,5 @@ urlpatterns = [
     path("reading/set-page/<int:progress_id>/", views.reading_set_page, name="reading_set_page"),
     path("reading/inc/<int:progress_id>/<int:delta>/", views.reading_increment, name="reading_increment"),
     path("reading/finish/<int:progress_id>/", views.reading_mark_finished, name="reading_mark_finished"),
+    path("reading/notes/<int:progress_id>/", views.reading_update_notes, name="reading_update_notes"),
 ]

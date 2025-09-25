@@ -1,9 +1,9 @@
 from datetime import timedelta
 from decimal import Decimal
 from django.contrib.auth.models import User
-from decimal import Decimal
 from django.test import TestCase
 from django.urls import reverse
+from django.utils.timezone import localdate
 
 from books.models import Book, ISBNModel
 from .models import BookProgress, ReadingLog
@@ -139,3 +139,21 @@ class ReadingTrackViewTests(TestCase):
         logs = list(response.context["daily_logs"])
         self.assertEqual(len(logs), 1)
         self.assertEqual(logs[0].pages_read, 20)
+
+    def test_update_notes_persists_text(self):
+        progress = self._create_progress()
+        payload = {
+            "character_notes": "Гарри — избранный, Гермиона — мозг команды",
+            "reading_notes": "Глава 1: сильные эмоции, цитата про дружбу",
+        }
+
+        response = self.client.post(
+            reverse("reading_update_notes", args=[progress.pk]),
+            payload,
+        )
+
+        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+
+        progress.refresh_from_db()
+        self.assertEqual(progress.character_notes, payload["character_notes"])
+        self.assertEqual(progress.reading_notes, payload["reading_notes"])

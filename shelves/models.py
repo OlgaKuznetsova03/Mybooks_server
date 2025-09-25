@@ -81,6 +81,8 @@ class BookProgress(models.Model):
     percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     current_page = models.PositiveIntegerField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
+    character_notes = models.TextField(blank=True, default="")
+    reading_notes = models.TextField(blank=True, default="")
 
     class Meta:
         constraints = [

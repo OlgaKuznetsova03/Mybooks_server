@@ -1,5 +1,5 @@
 from django import forms
-from .models import Shelf, ShelfItem, Event, EventParticipant
+from .models import Shelf, ShelfItem, Event, EventParticipant, BookProgress
 
 class ShelfCreateForm(forms.ModelForm):
     class Meta:
@@ -31,3 +31,24 @@ class AddToEventForm(forms.Form):
         if user:
             ev_ids = EventParticipant.objects.filter(user=user).values_list("event_id", flat=True)
             self.fields["event"].queryset = Event.objects.filter(id__in=ev_ids).order_by("-start_at")
+
+class BookProgressNotesForm(forms.ModelForm):
+    class Meta:
+        model = BookProgress
+        fields = ["character_notes", "reading_notes"]
+        labels = {
+            "character_notes": "Герои и заметки о них",
+            "reading_notes": "Цитаты, впечатления, реакции",
+        }
+        widgets = {
+            "character_notes": forms.Textarea(attrs={
+                "rows": 4,
+                "class": "form-control",
+                "placeholder": "Добавьте список персонажей и краткие описания, кто есть кто...",
+            }),
+            "reading_notes": forms.Textarea(attrs={
+                "rows": 5,
+                "class": "form-control",
+                "placeholder": "Фиксируйте цитаты, мысли и эмоции по ходу чтения...",
+            }),
+        }
