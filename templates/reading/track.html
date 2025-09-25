@@ -73,7 +73,7 @@
 <div class="mt-4">
   <h2 class="h6 mb-3">История чтения по дням</h2>
   {% if daily_logs %}
-    <div class="reading-chart mb-3" role="img" aria-label="Диаграмма прочитанных страниц по дням">
+    <div class="reading-chart mb-3" role="img" aria-label="Диаграмма прочитанных страниц по дням" style="--reading-chart-scale: {{ chart_scale }}px;">
       {% for log in daily_logs %}
         <div class="reading-chart__item">
           <div class="reading-chart__bar" style="--pages: {{ log.pages_read|default:0 }}" title="{{ log.log_date|date:'d.m.Y' }}: {{ log.pages_read|default:0 }} стр.">

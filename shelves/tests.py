@@ -137,8 +137,10 @@ class ReadingTrackViewTests(TestCase):
         self.assertIn("average_pages_per_day", response.context)
         self.assertIn("estimated_days_remaining", response.context)
         logs = list(response.context["daily_logs"])
+        self.assertIn("chart_scale", response.context)
         self.assertEqual(len(logs), 1)
         self.assertEqual(logs[0].pages_read, 20)
+        self.assertGreater(response.context["chart_scale"], 0)
 
     def test_update_notes_persists_text(self):
         progress = self._create_progress()

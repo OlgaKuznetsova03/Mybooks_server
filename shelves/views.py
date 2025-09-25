@@ -182,6 +182,15 @@ def reading_track(request, book_id):
     daily_logs = progress.logs.order_by("-log_date")
     notes_form = BookProgressNotesForm(instance=progress)
     chart_logs = list(progress.logs.order_by("log_date"))
+    max_pages_for_chart = max((log.pages_read or 0) for log in chart_logs) if chart_logs else 0
+    if max_pages_for_chart:
+        max_chart_height = 160  # px
+        min_scale = 1.0
+        max_scale = 4.0
+        calculated_scale = max_chart_height / max_pages_for_chart
+        chart_scale = max(min_scale, min(max_scale, calculated_scale))
+    else:
+        chart_scale = 1.5
     chart_labels_json = json.dumps(
         [log.log_date.strftime("%d.%m.%Y") for log in chart_logs],
         ensure_ascii=False,
@@ -200,6 +209,7 @@ def reading_track(request, book_id):
         "estimated_days_remaining": estimated_days_remaining,
         "chart_labels_json": chart_labels_json,
         "chart_pages_json": chart_pages_json,
+        "chart_scale": chart_scale,
     })
 
 @login_required
