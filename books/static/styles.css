@@ -9,7 +9,7 @@
 .object-fit-cover{object-fit:cover}
 .navbar .form-control{min-width:260px}
 
-* Диаграмма прогресса чтения */
+/* Диаграмма прогресса чтения */
 .reading-chart{
   --reading-chart-scale:0.01cm; /* 50 страниц ≈ 0.5 см */
   display:flex;

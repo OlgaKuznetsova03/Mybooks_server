@@ -93,11 +93,8 @@
             <th scope="col">Дата</th>
             <th scope="col">Прочитано страниц</th>
           </tr>
-            </div>
-            <div class="reading-chart__date">{{ log.log_date|date:'d.m' }}</div>
-          </div>
         </thead>
-          <tbody>
+        <tbody>
           {% for log in daily_logs %}
             <tr>
               <td>{{ log.log_date|date:"d.m.Y" }}</td>
