@@ -1,3 +1,4 @@
+from decimal import Decimal, ROUND_HALF_UP
 from django.db.models import Sum, F
 from django.db import models
 from django.contrib.auth.models import User
@@ -89,9 +90,13 @@ class BookProgress(models.Model):
     def recalc_percent(self):
         total = self.book.get_total_pages()
         if total and self.current_page is not None:
-            self.percent = min(100, round(self.current_page / total * 100, 2))
+            total_decimal = Decimal(total)
+            current_decimal = Decimal(self.current_page)
+            percent = current_decimal / (total_decimal / Decimal(100))
+            percent = percent.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            self.percent = min(Decimal("100"), percent)
         else:
-            self.percent = 0
+            self.percent = Decimal("0")
         self.save(update_fields=["percent", "updated_at"])
 
     @property

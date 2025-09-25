@@ -1,4 +1,5 @@
 # shelves/views.py
+from decimal import Decimal, ROUND_HALF_UP
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
@@ -166,10 +167,17 @@ def reading_track(request, book_id):
         defaults={"percent": 0, "current_page": 0}
     )
     total_pages = book.get_total_pages()  # из primary_isbn.pages (см. метод в модели Book)
+    calculated_percent = None
+    if total_pages and progress.current_page is not None:
+        total_decimal = Decimal(total_pages)
+        current_decimal = Decimal(progress.current_page)
+        percent = current_decimal / (total_decimal / Decimal(100))
+        calculated_percent = float(percent.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
     return render(request, "reading/track.html", {
         "book": book,
         "progress": progress,
-        "total_pages": total_pages
+        "total_pages": total_pages,
+        "calculated_percent": calculated_percent,
     })
 
 

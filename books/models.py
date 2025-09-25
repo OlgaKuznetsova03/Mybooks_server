@@ -83,12 +83,21 @@ class Book(models.Model):
 
     def get_total_pages(self):
         """
-        Возвращает количество страниц для этой книги.
-        Сначала из primary_isbn.pages; при желании можно расширить логику
-        (например, смотреть первый связанный ISBN, если primary пуст).
+        Источник приоритетов:
+        1. primary_isbn.total_pages, если заполнено.
+        2. Первая привязанная запись ISBN с указанием total_pages.
         """
         if self.primary_isbn and self.primary_isbn.total_pages:
             return self.primary_isbn.total_pages
+        
+        fallback_isbn = (
+            self.isbn.filter(total_pages__isnull=False)
+            .exclude(total_pages=0)
+            .order_by("pk")
+            .first()
+        )
+        if fallback_isbn:
+            return fallback_isbn.total_pages
         return None
 
     def get_average_rating(self):

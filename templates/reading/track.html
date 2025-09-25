@@ -17,11 +17,16 @@
   <div class="col-12 col-md-8 col-lg-9 col-xl-10">
     <h1 class="h5 mb-3">{{ book.title }}</h1>
 
-<div class="mb-2 text-muted">
+    <div class="mb-2 text-muted">
       {% if total_pages %}Всего страниц: {{ total_pages }} · {% endif %}
       Текущая страница: <strong>{{ progress.current_page|default:0 }}</strong>
-      · Прогресс: <strong>{{ progress.percent|floatformat:-2 }}%</strong>
-      {% if progress.pages_left is not None %} · Осталось: {{ progress.pages_left }}{% endif %}
+      · Прогресс: <strong>
+        {% if calculated_percent is not None %}
+          {{ calculated_percent|floatformat:-2 }}%
+        {% else %}
+          {{ progress.percent|floatformat:-2 }}%
+        {% endif %}
+      </strong>
     </div>
 
 <form method="post" action="{% url 'reading_set_page' progress.id %}" class="d-flex flex-wrap gap-2 align-items-end mb-3">
@@ -46,7 +51,7 @@
         <button class="btn btn-outline-secondary">+25 стр.</button>
       </form>
 
-  <form method="post" action="{% url 'reading_mark_finished' progress.id %}">{% csrf_token %}
+        <form method="post" action="{% url 'reading_mark_finished' progress.id %}">{% csrf_token %}
         <button class="btn btn-success">Завершил</button>
       </form>
     </div>

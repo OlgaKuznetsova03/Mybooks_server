@@ -1,5 +1,5 @@
+from django.contrib.auth.models import User
 from decimal import Decimal
-
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
@@ -64,10 +64,30 @@ class ReadingTrackViewTests(TestCase):
 
         response = self.client.post(reverse("reading_mark_finished", args=[progress.pk]))
 
-# Create your tests here.
         self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
         progress.refresh_from_db()
         self.assertEqual(progress.current_page, 200)
         self.assertEqual(progress.percent, Decimal("100"))
 
+    def test_percent_uses_related_isbn_when_no_primary(self):
+        isbn = ISBNModel.objects.create(
+            isbn="9780000000001",
+            isbn13="9780000000001",
+            title="Fallback ISBN",
+            total_pages=120,
+        )
+        book_without_primary = Book.objects.create(title="No Primary", synopsis="")
+        book_without_primary.isbn.add(isbn)
 
+        self.client.get(reverse("reading_track", args=[book_without_primary.pk]))
+        progress = BookProgress.objects.get(user=self.user, book=book_without_primary, event=None)
+
+        response = self.client.post(
+            reverse("reading_set_page", args=[progress.pk]),
+            {"page": 60},
+        )
+
+# Create your tests here.
+        self.assertRedirects(response, reverse("reading_track", args=[book_without_primary.pk]))
+        progress.refresh_from_db()
+        self.assertEqual(progress.percent, Decimal("50"))
