@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Книги · ReadTogether{% endblock %}
+{% block content %}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h1 class="h4 m-0">Книги</h1>
+  <a class="btn btn-outline-primary" href="/admin/books/book/add/"><i class="bi bi-plus-lg me-1"></i>Добавить</a>
+</div>
+
+{% if page_obj.paginator.count %}
+  <div class="row g-3">
+    {% for b in page_obj.object_list %}
+      <div class="col-12 col-sm-6 col-lg-4">
+        <div class="card h-100 shadow-sm border-0 hover-raise">
+          {% if b.cover %}<img src="{{ b.cover.url }}" class="card-img-top object-fit-cover" style="height:220px" alt="">{% endif %}
+          <div class="card-body">
+            <h2 class="h5 card-title mb-1">
+              <a class="text-decoration-none" href="{% url 'book_detail' b.pk %}">{{ b.title }}</a>
+            </h2>
+            <div class="text-muted small">{{ b.authors.all|join:", " }}</div>
+            <div class="mt-2">{% for g in b.genres.all %}<span class="badge text-bg-light me-1">{{ g.name }}</span>{% endfor %}</div>
+          </div>
+          <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+            <span class="text-warning"><i class="bi bi-star-fill"></i> {{ b.get_average_rating }}</span>
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'book_detail' b.pk %}">Подробнее</a>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <nav class="mt-4">
+    <ul class="pagination justify-content-center">
+      {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?q={{ q }}&page={{ page_obj.previous_page_number }}">«</a></li>
+      {% else %}<li class="page-item disabled"><span class="page-link">«</span></li>{% endif %}
+      <li class="page-item disabled"><span class="page-link">Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span></li>
+      {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?q={{ q }}&page={{ page_obj.next_page_number }}">»</a></li>
+      {% else %}<li class="page-item disabled"><span class="page-link">»</span></li>{% endif %}
+    </ul>
+  </nav>
+{% else %}
+  <div class="alert alert-info">Пока нет книг. Добавьте первую в админке.</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Создать полку{% endblock %}
+{% block content %}
+<h1 class="h5 mb-3">Создать полку</h1>
+<form method="post" class="card p-3" style="max-width:520px">
+  {% csrf_token %}
+  <div class="mb-3">
+    <label class="form-label">{{ form.name.label }}</label>
+    {{ form.name }}
+    {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors|striptags }}</div>{% endif %}
+  </div>
+  <div class="form-check mb-3">
+    {{ form.is_public }} <label class="form-check-label" for="{{ form.is_public.id_for_label }}">Публичная</label>
+  </div>
+  <button class="btn btn-primary">Создать</button>
+  <a class="btn btn-link" href="{% url 'my_shelves' %}">К моим полкам</a>
+</form>
+{% endblock %}

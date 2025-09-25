@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% load role_filters %}
+
+{% block title %}Профиль {{ u.username }}{% endblock %}
+
+{% block content %}
+
+<div class="d-flex flex-column flex-md-row gap-4 align-items-start">
+  <!-- Аватар -->
+  <div>
+    {% if u.profile.avatar %}
+      <img src="{{ u.profile.avatar.url }}"
+           class="rounded-circle shadow-sm"
+           style="width:140px;height:140px;object-fit:cover"
+           alt="Аватар {{ u.username }}">
+    {% else %}
+      <div class="rounded-circle bg-secondary-subtle d-flex align-items-center justify-content-center shadow-sm"
+           style="width:140px;height:140px">
+        <span class="text-muted small">Нет аватара</span>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Основная информация -->
+  <div class="flex-grow-1">
+    <h1 class="h4 mb-1">@{{ u.username }}</h1>
+    {% if u.get_full_name %}
+      <div class="text-muted mb-2">{{ u.get_full_name }}</div>
+    {% endif %}
+
+    <!-- Роли -->
+    <div class="mt-2 mb-3">
+      {% for g in u.groups.all %}
+        <span class="badge text-bg-light me-1">{{ g.name|role_display }}</span>
+      {% empty %}
+        <span class="badge text-bg-light">Без роли</span>
+      {% endfor %}
+    </div>
+
+    <!-- Био и сайт -->
+    <div class="mb-3">
+      <p class="mb-1">{{ u.profile.bio|default:"Пока без описания." }}</p>
+      {% if u.profile.website %}
+        <p class="mb-0">
+          <i class="bi bi-link-45deg"></i>
+          <a href="{{ u.profile.website }}" target="_blank" rel="noopener">{{ u.profile.website }}</a>
+        </p>
+      {% endif %}
+    </div>
+
+    <!-- Кнопки действий -->
+    <div class="d-flex gap-2">
+      {% if request.user == u %}
+        <a class="btn btn-outline-primary btn-sm" href="{% url 'profile_edit' %}">
+          <i class="bi bi-pencil me-1"></i>Редактировать
+        </a>
+      {% endif %}
+      <a class="btn btn-outline-secondary btn-sm" href="{% url 'book_list' %}">
+        К книгам
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Вкладки -->
+<ul class="nav nav-tabs mt-4" id="profileTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="overview-tab" data-bs-toggle="tab"
+            data-bs-target="#overview" type="button" role="tab">
+      Обзор
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="shelves-tab" data-bs-toggle="tab"
+            data-bs-target="#shelves" type="button" role="tab">
+      Полки
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="books-tab" data-bs-toggle="tab"
+            data-bs-target="#books" type="button" role="tab">
+      Мои книги
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="reviews-tab" data-bs-toggle="tab"
+            data-bs-target="#reviews" type="button" role="tab">
+      Обзоры
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content mt-3" id="profileTabsContent">
+  <!-- Обзор -->
+  <div class="tab-pane fade show active" id="overview" role="tabpanel">
+    <p class="text-muted">Здесь отображается основная информация пользователя.</p>
+
+    <!-- Соцсети блогера -->
+    {% if is_blogger %}
+      <hr>
+      <h5>Мои соцсети</h5>
+      <ul class="list-unstyled">
+        {% if u.profile.link1 %}<li><a href="{{ u.profile.link1 }}" target="_blank" rel="noopener">{{ u.profile.link1 }}</a></li>{% endif %}
+        {% if u.profile.link2 %}<li><a href="{{ u.profile.link2 }}" target="_blank" rel="noopener">{{ u.profile.link2 }}</a></li>{% endif %}
+        {% if u.profile.link3 %}<li><a href="{{ u.profile.link3 }}" target="_blank" rel="noopener">{{ u.profile.link3 }}</a></li>{% endif %}
+        {% if u.profile.link4 %}<li><a href="{{ u.profile.link4 }}" target="_blank" rel="noopener">{{ u.profile.link4 }}</a></li>{% endif %}
+      </ul>
+    {% endif %}
+  </div>
+
+  <!-- Полки -->
+    <div class="tab-pane fade" id="shelves" role="tabpanel">
+    {% if u.shelves.all %}
+        <div class="accordion" id="shelvesAcc">
+        {% for shelf in u.shelves.all %}
+            <div class="accordion-item">
+            <h2 class="accordion-header" id="sh{{ shelf.id }}">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#shelfBody{{ shelf.id }}">
+                {{ shelf.name }} {% if shelf.is_default %}<span class="badge text-bg-light ms-2">системная</span>{% endif %}
+                {% if not shelf.is_public %}<span class="badge text-bg-secondary ms-2">приватная</span>{% endif %}
+                </button>
+            </h2>
+            <div id="shelfBody{{ shelf.id }}" class="accordion-collapse collapse" data-bs-parent="#shelvesAcc">
+                <div class="accordion-body">
+                {% if shelf.items.all %}
+                    <div class="row g-3">
+                    {% for it in shelf.items.all %}
+                        <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="card h-100 shadow-sm border-0">
+                            {% if it.book.cover %}
+                            <img src="{{ it.book.cover.url }}" class="card-img-top" style="height:180px;object-fit:cover" alt="">
+                            {% endif %}
+                            <div class="card-body">
+                            <h6 class="card-title mb-1">
+                                <a class="text-decoration-none" href="{% url 'book_detail' it.book.pk %}">{{ it.book.title }}</a>
+                            </h6>
+                            <div class="small text-muted">{{ it.book.authors.all|join:", " }}</div>
+                            </div>
+                        </div>
+                        </div>
+                    {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-muted">Пока нет книг.</div>
+                {% endif %}
+                </div>
+            </div>
+            </div>
+        {% endfor %}
+        </div>
+    {% else %}
+        <p>У пользователя нет полок.</p>
+    {% endif %}
+    </div>
+
+
+  <!-- Мои книги -->
+  <div class="tab-pane fade" id="books" role="tabpanel">
+    <p>Если пользователь автор — здесь появится список его книг.</p>
+  </div>
+
+  <!-- Обзоры -->
+  <div class="tab-pane fade" id="reviews" role="tabpanel">
+    <p>Если пользователь блогер — здесь будут его обзоры.</p>
+  </div>
+</div>
+
+{% endblock %}

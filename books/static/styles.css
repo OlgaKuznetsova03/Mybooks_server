@@ -1,0 +1,10 @@
+:root{
+  --bs-primary:#6c5ce7;            /* фиолетовый бренд */
+  --bs-primary-rgb:108,92,231;
+  --rt-card-shadow:0 10px 24px rgba(0,0,0,.06);
+}
+.card{border:0;box-shadow:var(--rt-card-shadow);}
+.hover-raise{transition:.12s transform,.12s box-shadow}
+.hover-raise:hover{transform:translateY(-2px);box-shadow:0 14px 36px rgba(0,0,0,.08)}
+.object-fit-cover{object-fit:cover}
+.navbar .form-control{min-width:260px}

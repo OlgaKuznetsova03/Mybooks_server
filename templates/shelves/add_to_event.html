@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Взять в марафон{% endblock %}
+{% block content %}
+<h1 class="h5 mb-3">Добавить «{{ book.title }}» в марафон</h1>
+
+{% if form.fields.event.queryset.exists %}
+  <form method="post" class="card p-3" style="max-width:520px">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label class="form-label">{{ form.event.label }}</label>
+      {{ form.event }}
+    </div>
+    <button class="btn btn-primary">Добавить</button>
+    <a class="btn btn-link" href="{% url 'event_list' %}">К событиям</a>
+  </form>
+{% else %}
+  <div class="alert alert-light border">
+    Вы пока не участвуете ни в одном событии. Сначала присоединитесь на странице
+    <a href="{% url 'event_list' %}">«Чтения и марафоны»</a>.
+  </div>
+{% endif %}
+{% endblock %}

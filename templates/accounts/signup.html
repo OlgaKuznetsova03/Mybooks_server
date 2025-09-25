@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Регистрация{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Создать аккаунт</h1>
+<form method="post" class="card p-3" style="max-width:520px">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  {% for f in form %}
+    <div class="mb-3">
+      <label class="form-label">{{ f.label }}</label>
+      {{ f }}
+      {% if f.errors %}<div class="text-danger small">{{ f.errors|striptags }}</div>{% endif %}
+    </div>
+  {% endfor %}
+  <button class="btn btn-primary">Зарегистрироваться</button>
+</form>
+{% endblock %}

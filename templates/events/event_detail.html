@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}{{ event.title }}{% endblock %}
+{% block content %}
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-3">
+  <div>
+    <h1 class="h4 mb-1">{{ event.title }}</h1>
+    <div class="text-muted small">
+      {{ event.get_kind_display }} · организатор @{{ event.creator.username }}
+      · старт {{ event.start_at|date:"d.m.Y H:i" }}
+      {% if event.end_at %} · до {{ event.end_at|date:"d.m.Y H:i" }}{% endif %}
+    </div>
+  </div>
+  <div class="mt-2 mt-md-0">
+    {% if request.user.is_authenticated %}
+      {% if is_member %}
+        <a class="btn btn-outline-secondary" href="{% url 'event_leave' event.pk %}">Покинуть</a>
+      {% else %}
+        <a class="btn btn-primary" href="{% url 'event_join' event.pk %}">Присоединиться</a>
+      {% endif %}
+    {% else %}
+      <a class="btn btn-outline-primary" href="{% url 'login' %}?next={{ request.path }}">Войти, чтобы присоединиться</a>
+    {% endif %}
+  </div>
+</div>
+
+<ul class="nav nav-tabs" role="tablist">
+  <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#ov">Обзор</button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#books">Книги</button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#members">Участники</button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#progress">Прогресс</button></li>
+</ul>
+
+<div class="tab-content mt-3">
+  <div id="ov" class="tab-pane fade show active">
+    <p>{{ event.description|default:"Описание пока не добавлено." }}</p>
+  </div>
+
+  <div id="books" class="tab-pane fade">
+    {% if event.shelf and event.shelf.items.all %}
+      <div class="row g-3">
+        {% for it in event.shelf.items.all %}
+          <div class="col-12 col-sm-6 col-lg-4">
+            <div class="card h-100 shadow-sm border-0">
+              {% if it.book.cover %}
+                <img src="{{ it.book.cover.url }}" class="card-img-top" style="height:180px;object-fit:cover" alt="">
+              {% endif %}
+              <div class="card-body">
+                <h6 class="card-title mb-1">
+                  <a class="text-decoration-none" href="{% url 'book_detail' it.book.pk %}">{{ it.book.title }}</a>
+                </h6>
+                <div class="small text-muted">{{ it.book.authors.all|join:", " }}</div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-muted">Книги не прикреплены.</div>
+    {% endif %}
+  </div>
+
+  <div id="members" class="tab-pane fade">
+    {% if event.participants.all %}
+      <ul class="list-group">
+        {% for p in event.participants.all %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <a href="{% url 'profile' p.user.username %}">@{{ p.user.username }}</a>
+            {% if p.is_moderator %}<span class="badge text-bg-light">модератор</span>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="text-muted">Пока нет участников.</div>
+    {% endif %}
+  </div>
+
+  <div id="progress" class="tab-pane fade">
+    <div class="text-muted">Трекер прогресса добавим позже.</div>
+  </div>
+</div>
+
+{% endblock %}

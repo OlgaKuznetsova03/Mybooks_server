@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Чтение: {{ book.title }}{% endblock %}
+
+{% block content %}
+<h1 class="h5 mb-3">{{ book.title }}</h1>
+
+<div class="mb-2 text-muted">
+  {% if total_pages %}Всего страниц: {{ total_pages }} · {% endif %}
+  Текущая страница: <strong>{{ progress.current_page|default:0 }}</strong>
+  · Прогресс: <strong>{{ progress.percent|default:0 }}%</strong>
+  {% if progress.pages_left is not None %} · Осталось: {{ progress.pages_left }}{% endif %}
+</div>
+
+<form method="post" action="{% url 'reading_set_page' progress.id %}" class="d-flex gap-2 align-items-end mb-3">
+  {% csrf_token %}
+  <div>
+    <label class="form-label mb-1">Указать страницу</label>
+    <input type="number" name="page" class="form-control" style="max-width:120px"
+           min="0" {% if total_pages %}max="{{ total_pages }}"{% endif %}
+           value="{{ progress.current_page|default:0 }}">
+  </div>
+  <button class="btn btn-primary">Сохранить</button>
+</form>
+
+<div class="d-flex flex-wrap gap-2">
+  <form method="post" action="{% url 'reading_increment' progress.id 5 %}">{% csrf_token %}
+    <button class="btn btn-outline-secondary">+5 стр.</button>
+  </form>
+  <form method="post" action="{% url 'reading_increment' progress.id 10 %}">{% csrf_token %}
+    <button class="btn btn-outline-secondary">+10 стр.</button>
+  </form>
+  <form method="post" action="{% url 'reading_increment' progress.id 25 %}">{% csrf_token %}
+    <button class="btn btn-outline-secondary">+25 стр.</button>
+  </form>
+
+  <form method="post" action="{% url 'reading_mark_finished' progress.id %}">{% csrf_token %}
+    <button class="btn btn-success">Завершил</button>
+  </form>
+</div>
+{% endblock %}

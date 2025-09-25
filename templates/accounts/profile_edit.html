@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Редактировать профиль{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Редактировать профиль</h1>
+<form method="post" enctype="multipart/form-data" class="card p-3" style="max-width:640px">
+  {% csrf_token %}
+  <h5>Профиль</h5>
+  {% for f in form %}
+    <div class="mb-3">
+      <label class="form-label">{{ f.label }}</label>
+      {{ f }}
+    </div>
+  {% endfor %}
+
+  <h5>Роли</h5>
+  {% for f in role_form %}
+    <div class="form-check">
+      {{ f.tag }} <label class="form-check-label">{{ f.choice_label }}</label>
+    </div>
+  {% endfor %}
+
+  <button class="btn btn-primary mt-3">Сохранить</button>
+</form>
+{% endblock %}

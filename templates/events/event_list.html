@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Чтения и марафоны{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Чтения и марафоны</h1>
+
+{% if events %}
+  <div class="row g-3">
+    {% for e in events %}
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm border-0">
+          <div class="card-body">
+            <span class="badge text-bg-light mb-2">{{ e.get_kind_display }}</span>
+            <h2 class="h5 mb-1">
+              <a class="text-decoration-none" href="{% url 'event_detail' e.pk %}">{{ e.title }}</a>
+            </h2>
+            <div class="small text-muted">
+              Организатор: @{{ e.creator.username }} · старт {{ e.start_at|date:"d.m.Y H:i" }}
+            </div>
+            {% if e.shelf %}
+              <div class="mt-2 small text-muted">Книг в подборке: {{ e.shelf.items.count }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="alert alert-light border">Пока нет событий.</div>
+{% endif %}
+{% endblock %}

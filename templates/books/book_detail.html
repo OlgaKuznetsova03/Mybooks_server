@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}{{ book.title }} · ReadTogether{% endblock %}
+{% block content %}
+
+<div class="row g-4">
+  <div class="col-md-4">
+    {% if book.cover %}
+      <img src="{{ book.cover.url }}" class="rounded shadow-sm w-100" alt="">
+    {% else %}
+      <div class="bg-secondary-subtle rounded d-flex align-items-center justify-content-center" style="height:320px">
+        <span class="text-muted">Нет обложки</span>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="col-md-8">
+    <h1 class="h3 mb-1">{{ book.title }}</h1>
+    <div class="text-muted mb-2">{{ book.authors.all|join:", " }}</div>
+    <div class="mb-2">
+      {% for g in book.genres.all %}
+        <span class="badge text-bg-light me-1">{{ g.name }}</span>
+      {% endfor %}
+    </div>
+    {% if book.publisher.count %}
+      <div class="mb-2">Издательство: {{ book.publisher.all|join:", " }}</div>
+    {% endif %}
+    <p class="mb-3">{{ book.synopsis|default:"Описание пока не добавлено." }}</p>
+
+    <!-- Кнопки действий -->
+    {% if request.user.is_authenticated %}
+         <div class="d-flex flex-wrap gap-2 my-3">
+        <!-- Хочу прочитать -->
+        <form method="post" action="{% url 'quick_add_shelf' book.id 'want' %}">
+            {% csrf_token %}
+            <button class="btn btn-outline-primary btn-sm" type="submit">Хочу прочитать</button>
+        </form>
+
+        <!-- Читаю -->
+        <form method="post" action="{% url 'quick_add_shelf' book.id 'reading' %}">
+            {% csrf_token %}
+            <button class="btn btn-outline-primary btn-sm" type="submit">Читаю</button>
+        </form>
+
+        <!-- Прочитал -->
+        <form method="post" action="{% url 'quick_add_shelf' book.id 'read' %}">
+            {% csrf_token %}
+            <button class="btn btn-outline-primary btn-sm" type="submit">Прочитал</button>
+        </form>
+
+        <!-- Взять в марафон -->
+        <a class="btn btn-primary btn-sm" href="{% url 'add_book_to_event' book.id %}">
+            Взять в марафон
+        </a>
+        </div>
+
+        {% else %}
+        <a class="btn btn-outline-secondary" href="{% url 'login' %}?next={{ request.path }}">
+            Войти, чтобы добавить в полку/марафон
+        </a>
+        {% endif %}
+
+      <div class="d-flex align-items-center gap-2">
+        <div class="text-warning"><i class="bi bi-star-fill"></i> {{ book.get_average_rating }}</div>
+        {% if user.is_authenticated %}
+          <form method="post" action="{% url 'rate_book' book.pk %}" class="d-flex align-items-center gap-2">
+            {% csrf_token %}
+            {{ form.book.as_hidden }}
+            {{ form.score }}
+            <button class="btn btn-primary btn-sm">Оценить</button>
+          </form>
+        {% else %}
+          <a class="btn btn-outline-secondary btn-sm" href="/admin/login/?next={{ request.path }}">Войдите, чтобы оценить</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Раздел: Оценки и отзывы -->
+    <h2 class="h6 mt-4 mb-2">Оценки и отзывы</h2>
+    {% if ratings %}
+      <ul class="list-group mb-3">
+        {% for r in ratings %}
+          <li class="list-group-item d-flex justify-content-between align-items-start">
+            <div class="me-3">
+              <div class="fw-semibold">{{ r.user.get_username }}</div>
+              <div class="small text-muted">{{ r.created_at|date:"d.m.Y H:i" }}.</div> {# placeholder, если нет поля created_at #}
+            </div>
+            <span class="badge text-bg-warning align-self-center">{{ r.score }}★</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="alert alert-light border">Пока нет оценок — станьте первым!</div>
+    {% endif %}
+
+    <!-- (опционально) Мок отзывов — уберём, когда добавим модель Review -->
+    <div class="mt-3 d-none">
+      <div class="alert alert-secondary">Тут будут отзывы/комментарии читателей.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal: Добавить в полку (прототип) -->
+<div class="modal fade" id="addToShelfModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="#">
+      <div class="modal-header">
+        <h5 class="modal-title">Добавить «{{ book.title }}» на полку</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label">Выберите полку</label>
+          <select class="form-select" name="shelf">
+            <option value="" selected disabled>— выбрать —</option>
+            <option>Хочу прочитать</option>
+            <option>Читаю</option>
+            <option>Прочитано</option>
+          </select>
+          <div class="form-text">Позже здесь будут ваши пользовательские полки.</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Или создайте новую</label>
+          <input type="text" class="form-control" name="new_shelf" placeholder="Напр.: Осенний марафон 2025">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" type="button" data-bs-dismiss="modal">Сохранить (мок)</button>
+        <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Отмена</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

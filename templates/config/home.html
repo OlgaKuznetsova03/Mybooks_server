@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Главная · ReadTogether{% endblock %}
+{% block content %}
+
+<div class="row align-items-center g-4">
+  <div class="col-lg-7">
+    <h1 class="display-6 fw-semibold mb-3">Совместные чтения, полки и коллаборации</h1>
+    <p class="lead text-muted">Создавайте клубы чтения, ведите свои книжные полки, находите блогеров, авторов и издательства для совместных проектов.</p>
+    <div class="d-flex gap-2">
+      <a class="btn btn-primary btn-lg" href="/reading/create/"><i class="bi bi-people me-1"></i>Создать чтение</a>
+      <a class="btn btn-outline-secondary btn-lg" href="{% url 'book_list' %}"><i class="bi bi-book me-1"></i>Смотреть книги</a>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="ratio ratio-16x9 rounded shadow-sm bg-body-tertiary d-flex align-items-center justify-content-center">
+      <span class="text-muted">Здесь будет промо-изображение</span>
+    </div>
+  </div>
+</div>
+
+<hr class="my-5">
+
+<h2 class="h5 mb-3">Популярные сейчас</h2>
+<div class="row g-3">
+  {% comment %} Примеры карточек — позже подставим реальные данные {% endcomment %}
+  {% for i in "1236" %}
+    <div class="col-12 col-sm-6 col-lg-3">
+      <div class="card h-100 hover-raise">
+        <div class="card-body">
+          <span class="badge text-bg-light mb-2">Чтение</span>
+          <h3 class="h6 mb-1"><a class="stretched-link text-decoration-none" href="#">Новая встреча клуба</a></h3>
+          <div class="small text-muted">Глава 3 · завтра в 20:00</div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+{% endblock %}
