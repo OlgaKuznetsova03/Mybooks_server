@@ -1,3 +1,4 @@
+from django.db.models import Sum, F
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -100,3 +101,26 @@ class BookProgress(models.Model):
             return None
         return max(0, total - self.current_page)
 
+    @property
+    def avg_sec_per_page(self):
+        qs = self.sessions.filter(
+            end_page__isnull=False,
+            start_page__isnull=False,
+            duration_seconds__gt=0,
+        )
+        agg = qs.aggregate(
+            total_secs=Sum("duration_seconds"),
+            total_pages=Sum(F("end_page") - F("start_page")),
+        )
+        if not agg["total_secs"] or not agg["total_pages"]:
+            return None
+        return agg["total_secs"] / max(1, agg["total_pages"])
+
+    @property
+    def eta_seconds(self):
+        if self.pages_left is None:
+            return None
+        spp = self.avg_sec_per_page
+        if spp is None:
+            return None
+        return int(self.pages_left * spp)

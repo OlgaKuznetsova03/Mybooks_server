@@ -3,14 +3,9 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib import messages
-
-from .models import Shelf, ShelfItem, BookProgress
 from books.models import Book
-
-
 from .models import Shelf, ShelfItem, BookProgress, Event, EventParticipant
 from .forms import ShelfCreateForm, AddToShelfForm, AddToEventForm
-from books.models import Book
 
 
 def event_list(request):

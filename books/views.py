@@ -1,8 +1,7 @@
 from django.db.models import Q
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from django import forms
+from django.contrib.auth.decorators import login_required, permission_required
 from .models import Book
 from .forms import BookForm, RatingForm
 
@@ -39,9 +38,11 @@ def book_detail(request, pk):
         "ratings": ratings,
     })
 
+@login_required
+@permission_required("books.add_book", raise_exception=True)
 def book_create(request):
     if request.method == "POST":
-        form = BookForm(request.POST)
+        form = BookForm(request.POST, request.FILES)
         if form.is_valid():
             book = form.save()
             return redirect("book_detail", pk=book.pk)
@@ -49,10 +50,12 @@ def book_create(request):
         form = BookForm()
     return render(request, "books/book_form.html", {"form": form})
 
+@login_required
+@permission_required("books.change_book", raise_exception=True)
 def book_edit(request, pk):
     book = get_object_or_404(Book, pk=pk)
     if request.method == "POST":
-        form = BookForm(request.POST, instance=book)
+        form = BookForm(request.POST, request.FILES, instance=book)
         if form.is_valid():
             form.save()
             return redirect("book_detail", pk=book.pk)
@@ -66,5 +69,8 @@ def rate_book(request, pk):
     if request.method == "POST":
         form = RatingForm(request.POST, user=request.user)
         if form.is_valid():
-            form.save()
+            rating = form.save(commit=False)
+            rating.book = book
+            rating.user = request.user
+            rating.save()
     return redirect("book_detail", pk=book.pk)

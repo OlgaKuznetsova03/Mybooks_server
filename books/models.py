@@ -102,7 +102,11 @@ class Book(models.Model):
     
 class ReadingSession(models.Model):
     """Одна сессия чтения книги в рамках события/прогресса"""
-    progress = models.ForeignKey("BookProgress", on_delete=models.CASCADE, related_name="sessions")
+    progress = models.ForeignKey(
+        "shelves.BookProgress",
+        on_delete=models.CASCADE,
+        related_name="sessions",
+    )
     started_at = models.DateTimeField(default=timezone.now)
     ended_at   = models.DateTimeField(null=True, blank=True)
     duration_seconds = models.PositiveIntegerField(default=0)  # итоговая длительность
@@ -118,45 +122,45 @@ class ReadingSession(models.Model):
         return 0
     
 
-class BookProgress(models.Model):
-    # event, user, book, percent, current_page, updated_at ...
+# class BookProgress(models.Model):
+#     # event, user, book, percent, current_page, updated_at ...
 
-    def recalc_percent(self):
-        total = self.book.get_total_pages()
-        if total and self.current_page is not None:
-            self.percent = min(100, round(self.current_page / total * 100, 2))
-        else:
-            self.percent = 0
-        self.save(update_fields=["percent", "updated_at"])
+#     def recalc_percent(self):
+#         total = self.book.get_total_pages()
+#         if total and self.current_page is not None:
+#             self.percent = min(100, round(self.current_page / total * 100, 2))
+#         else:
+#             self.percent = 0
+#         self.save(update_fields=["percent", "updated_at"])
 
-    @property
-    def pages_left(self):
-        total = self.book.get_total_pages()
-        if not total or self.current_page is None:
-            return None
-        return max(0, total - self.current_page)
+#     @property
+#     def pages_left(self):
+#         total = self.book.get_total_pages()
+#         if not total or self.current_page is None:
+#             return None
+#         return max(0, total - self.current_page)
     
     
-    @property
-    def avg_sec_per_page(self):
-        qs = self.sessions.exclude(end_page__isnull=True, start_page__isnull=True, duration_seconds=0)
-        agg = qs.aggregate(
-            total_secs=Sum("duration_seconds"),
-            total_pages=Sum(F("end_page") - F("start_page"))
-        )
-        if not agg["total_secs"] or not agg["total_pages"]:
-            return None
-        return agg["total_secs"] / max(1, agg["total_pages"])
+#     @property
+#     def avg_sec_per_page(self):
+#         qs = self.sessions.exclude(end_page__isnull=True, start_page__isnull=True, duration_seconds=0)
+#         agg = qs.aggregate(
+#             total_secs=Sum("duration_seconds"),
+#             total_pages=Sum(F("end_page") - F("start_page"))
+#         )
+#         if not agg["total_secs"] or not agg["total_pages"]:
+#             return None
+#         return agg["total_secs"] / max(1, agg["total_pages"])
 
-    @property
-    def eta_seconds(self):
-        """оценка оставшегося времени"""
-        if self.pages_left is None:
-            return None
-        spp = self.avg_sec_per_page
-        if spp is None:
-            return None
-        return int(self.pages_left * spp)
+#     @property
+#     def eta_seconds(self):
+#         """оценка оставшегося времени"""
+#         if self.pages_left is None:
+#             return None
+#         spp = self.avg_sec_per_page
+#         if spp is None:
+#             return None
+#         return int(self.pages_left * spp)
 
 
 class Rating(models.Model):

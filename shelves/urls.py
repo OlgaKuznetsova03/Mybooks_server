@@ -6,7 +6,7 @@ urlpatterns = [
     path("<int:pk>/join/", views.event_join, name="event_join"),
     path("<int:pk>/leave/", views.event_leave, name="event_leave"),
 
-    полки
+    #полки
     path("me/shelves/", views.my_shelves, name="my_shelves"),
     path("me/shelves/create/", views.shelf_create, name="shelf_create"),
     path("add-to-shelf/<int:book_id>/", views.add_book_to_shelf, name="add_book_to_shelf"),
@@ -20,5 +20,4 @@ urlpatterns = [
     path("reading/set-page/<int:progress_id>/", views.reading_set_page, name="reading_set_page"),
     path("reading/inc/<int:progress_id>/<int:delta>/", views.reading_increment, name="reading_increment"),
     path("reading/finish/<int:progress_id>/", views.reading_mark_finished, name="reading_mark_finished"),
-
 ]
