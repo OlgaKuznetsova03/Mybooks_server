@@ -73,18 +73,109 @@
 <div class="mt-4">
   <h2 class="h6 mb-3">История чтения по дням</h2>
   {% if daily_logs %}
-    <div class="reading-chart mb-3" role="img" aria-label="Диаграмма прочитанных страниц по дням" style="--reading-chart-scale: {{ chart_scale }}px;">
-      {% for log in daily_logs %}
-        <div class="reading-chart__item">
-          <div class="reading-chart__bar" style="--pages: {{ log.pages_read|default:0 }}" title="{{ log.log_date|date:'d.m.Y' }}: {{ log.pages_read|default:0 }} стр.">
-            {% if log.pages_read %}
-              <span class="reading-chart__value">{{ log.pages_read }}</span>
-            {% endif %}
-          </div>
-          <div class="reading-chart__date">{{ log.log_date|date:'d.m' }}</div>
-        </div>
-      {% endfor %}
+    <div class="reading-chart-card mb-3" role="img" aria-label="Диаграмма прочитанных страниц по дням">
+      <div class="reading-chart-card__canvas">
+        <canvas id="readingHistoryChart" aria-label="Прочитанные страницы по дням"></canvas>
+      </div>
     </div>
+
+    {{ chart_labels|json_script:"reading-chart-labels" }}
+    {{ chart_pages|json_script:"reading-chart-pages" }}
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" integrity="sha256-YkbN36bbA6krPNivTEHqL0NmjMSh8SlG73nR8pYK1Y0=" crossorigin="anonymous"></script>
+    <script>
+      (function () {
+        const labelsEl = document.getElementById('reading-chart-labels');
+        const pagesEl = document.getElementById('reading-chart-pages');
+        const canvas = document.getElementById('readingHistoryChart');
+        if (!labelsEl || !pagesEl || !canvas || typeof Chart === 'undefined') {
+          return;
+        }
+
+        const labels = JSON.parse(labelsEl.textContent);
+        const pages = JSON.parse(pagesEl.textContent);
+
+        const getPalette = () => {
+          const root = getComputedStyle(document.documentElement);
+          const primaryRgb = (root.getPropertyValue('--bs-primary-rgb') || '108,92,231').trim();
+          const borderColor = `rgba(${primaryRgb}, 0.85)`;
+          const backgroundColor = `rgba(${primaryRgb}, 0.25)`;
+          const hoverBackgroundColor = `rgba(${primaryRgb}, 0.35)`;
+          const bodyColor = (root.getPropertyValue('--bs-body-color') || '#212529').trim();
+          const border = (root.getPropertyValue('--bs-border-color') || 'rgba(0,0,0,0.1)').trim();
+          return { borderColor, backgroundColor, hoverBackgroundColor, bodyColor, border };
+        };
+
+        let chartInstance;
+
+        const renderChart = () => {
+          const palette = getPalette();
+          if (chartInstance) {
+            chartInstance.destroy();
+          }
+          chartInstance = new Chart(canvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+              labels,
+              datasets: [{
+                data: pages,
+                borderWidth: 1.5,
+                borderRadius: 10,
+                borderColor: palette.borderColor,
+                backgroundColor: palette.backgroundColor,
+                hoverBackgroundColor: palette.hoverBackgroundColor,
+                maxBarThickness: 48,
+              }],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  displayColors: false,
+                  callbacks: {
+                    title: (context) => context[0]?.label ?? '',
+                    label: (context) => `${context.parsed.y ?? 0} стр.`,
+                  },
+                },
+              },
+              layout: {
+                padding: { top: 12, right: 12, bottom: 0, left: 12 },
+              },
+              scales: {
+                x: {
+                  grid: { display: false },
+                  ticks: {
+                    color: palette.bodyColor,
+                    autoSkip: true,
+                    maxRotation: 0,
+                    minRotation: 0,
+                  },
+                },
+                y: {
+                  beginAtZero: true,
+                  grid: {
+                    color: palette.border,
+                    drawBorder: false,
+                  },
+                  ticks: {
+                    color: palette.bodyColor,
+                    precision: 0,
+                    callback: (value) => `${value} стр.`,
+                  },
+                },
+              },
+            },
+          });
+        };
+
+        renderChart();
+        document.getElementById('themeToggle')?.addEventListener('click', () => {
+          requestAnimationFrame(renderChart);
+        });
+      })();
+    </script>
 
     <div class="table-responsive">
       <table class="table table-sm align-middle mb-0">

@@ -1,5 +1,4 @@
 # shelves/views.py
-import json
 from decimal import Decimal, ROUND_HALF_UP
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -182,7 +181,9 @@ def reading_track(request, book_id):
     daily_logs = progress.logs.order_by("-log_date")
     notes_form = BookProgressNotesForm(instance=progress)
     chart_logs = list(progress.logs.order_by("log_date"))
-    max_pages_for_chart = max((log.pages_read or 0) for log in chart_logs) if chart_logs else 0
+    chart_labels = [log.log_date.strftime("%d.%m.%Y") for log in chart_logs]
+    chart_pages = [(log.pages_read or 0) for log in chart_logs]
+    max_pages_for_chart = max(chart_pages) if chart_pages else 0
     if max_pages_for_chart:
         max_chart_height = 160  # px
         min_scale = 1.0
@@ -191,11 +192,6 @@ def reading_track(request, book_id):
         chart_scale = max(min_scale, min(max_scale, calculated_scale))
     else:
         chart_scale = 1.5
-    chart_labels_json = json.dumps(
-        [log.log_date.strftime("%d.%m.%Y") for log in chart_logs],
-        ensure_ascii=False,
-    )
-    chart_pages_json = json.dumps([log.pages_read for log in chart_logs])
     average_pages_per_day = progress.average_pages_per_day
     estimated_days_remaining = progress.estimated_days_remaining
     return render(request, "reading/track.html", {
@@ -207,8 +203,8 @@ def reading_track(request, book_id):
         "notes_form": notes_form,
         "average_pages_per_day": average_pages_per_day,
         "estimated_days_remaining": estimated_days_remaining,
-        "chart_labels_json": chart_labels_json,
-        "chart_pages_json": chart_pages_json,
+        "chart_labels": chart_labels,
+        "chart_pages": chart_pages,
         "chart_scale": chart_scale,
     })
 
