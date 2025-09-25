@@ -36,70 +36,90 @@
       {% if estimated_days_remaining %}
         <div>Примерное время до завершения: <strong>{{ estimated_days_remaining }}</strong> дней</div>
       {% endif %}
-    </div> 
+    </div>
 
-<form method="post" action="{% url 'reading_set_page' progress.id %}" class="d-flex flex-wrap gap-2 align-items-end mb-3">
+    <form method="post" action="{% url 'reading_set_page' progress.id %}" class="d-flex flex-wrap gap-2 align-items-end mb-3">
       {% csrf_token %}
       <div>
-        <label class="form-label mb-1">Указать страницу</label>
-        <input type="number" name="page" class="form-control" style="max-width:160px"
+        <label class="form-label mb-1" for="id_page">Указать страницу</label>
+        <input type="number" id="id_page" name="page" class="form-control" style="max-width:160px"
                min="0" {% if total_pages %}max="{{ total_pages }}"{% endif %}
                value="{{ progress.current_page|default:0 }}">
       </div>
-      <button class="btn btn-primary">Сохранить</button>
+      <button type="submit" class="btn btn-primary">Сохранить</button>
     </form>
 
-<div class="d-flex flex-wrap gap-2">
-      <form method="post" action="{% url 'reading_increment' progress.id 5 %}">{% csrf_token %}
-        <button class="btn btn-outline-secondary">+5 стр.</button>
+    <div class="d-flex flex-wrap gap-2">
+      <form method="post" action="{% url 'reading_increment' progress.id 5 %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-secondary">+5 стр.</button>
       </form>
-      <form method="post" action="{% url 'reading_increment' progress.id 10 %}">{% csrf_token %}
-        <button class="btn btn-outline-secondary">+10 стр.</button>
+      <form method="post" action="{% url 'reading_increment' progress.id 10 %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-secondary">+10 стр.</button>
       </form>
-      <form method="post" action="{% url 'reading_increment' progress.id 25 %}">{% csrf_token %}
-        <button class="btn btn-outline-secondary">+25 стр.</button>
+      <form method="post" action="{% url 'reading_increment' progress.id 25 %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-secondary">+25 стр.</button>
       </form>
-
-        <form method="post" action="{% url 'reading_mark_finished' progress.id %}">{% csrf_token %}
-        <button class="btn btn-success">Завершил</button>
+      <form method="post" action="{% url 'reading_mark_finished' progress.id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success">Завершил</button>
       </form>
     </div>
   </div>
 </div>
 
-    <div class="mt-4">
-    <h2 class="h6 mb-3">История чтения по дням</h2>
-    {% if daily_logs %}
-      <div class="reading-chart mb-3" role="img" aria-label="Диаграмма прочитанных страниц по дням">
-        {% for log in daily_logs %}
-          <div class="reading-chart__item">
-            <div class="reading-chart__bar" style="--pages: {{ log.pages_read|default:0 }}" title="{{ log.log_date|date:'d.m.Y' }}: {{ log.pages_read }} стр.">
-              {% if log.pages_read %}
-                <span class="reading-chart__value">{{ log.pages_read }}</span>
+<div class="mt-4">
+  <h2 class="h6 mb-3">История чтения по дням</h2>
+  {% if daily_logs %}
+    <div class="reading-chart mb-3" role="img" aria-label="Диаграмма прочитанных страниц по дням">
+      {% for log in daily_logs %}
+        <div class="reading-chart__item">
+          <div class="reading-chart__bar" style="--pages: {{ log.pages_read|default:0 }}" title="{{ log.log_date|date:'d.m.Y' }}: {{ log.pages_read|default:0 }} стр.">
+            {% if log.pages_read %}
+              <span class="reading-chart__value">{{ log.pages_read }}</span>
+            {% endif %}
+          </div>
+          <div class="reading-chart__date">{{ log.log_date|date:'d.m' }}</div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead>
+          <tr>
+            <th scope="col">Дата</th>
+            <th scope="col">Прочитано страниц</th>
+          </tr>
             </div>
             <div class="reading-chart__date">{{ log.log_date|date:'d.m' }}</div>
           </div>
         </thead>
           <tbody>
-            {% for log in daily_logs %}
-              <tr>
-                <td>{{ log.log_date|date:"d.m.Y" }}</td>
-                <td>{{ log.pages_read }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <p class="text-muted mb-0">Пока нет записей о прочитанных страницах.</p>
-    {% endif %}
-  </div>
+          {% for log in daily_logs %}
+            <tr>
+              <td>{{ log.log_date|date:"d.m.Y" }}</td>
+              <td>{{ log.pages_read|default:0 }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="text-muted mb-0">Пока нет записей о прочитанных страницах.</p>
+  {% endif %}
+</div>
+
 <div class="mt-5">
   <h2 class="h6 mb-3">Личные заметки по книге</h2>
   <form method="post" action="{% url 'reading_update_notes' progress.id %}" class="row g-3">
     {% csrf_token %}
     <div class="col-12">
-      <label class="form-label" for="{{ notes_form.character_notes.id_for_label }}">{{ notes_form.character_notes.label }}</label>
+      <label class="form-label" for="{{ notes_form.character_notes.id_for_label }}">
+        {{ notes_form.character_notes.label }}
+      </label>
       {{ notes_form.character_notes }}
       {% if notes_form.character_notes.errors %}
         <div class="invalid-feedback d-block">
@@ -108,15 +128,18 @@
       {% endif %}
     </div>
     <div class="col-12">
-      <label class="form-label" for="{{ notes_form.reading_notes.id_for_label }}">{{ notes_form.reading_notes.label }}</label>
+      <label class="form-label" for="{{ notes_form.reading_notes.id_for_label }}">
+        {{ notes_form.reading_notes.label }}
+      </label>
       {{ notes_form.reading_notes }}
       {% if notes_form.reading_notes.errors %}
         <div class="invalid-feedback d-block">
           {{ notes_form.reading_notes.errors|join:", " }}
         </div>
+        {% endif %}
     </div>
     <div class="col-12 d-flex justify-content-end">
-      <button class="btn btn-primary">Сохранить заметки</button>
+      <button type="submit" class="btn btn-primary">Сохранить заметки</button>
     </div>
   </form>
 </div>
