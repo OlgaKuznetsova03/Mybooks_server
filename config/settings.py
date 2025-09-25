@@ -18,6 +18,25 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
+# Provide a minimal Pillow stub for environments where the library is unavailable
+try:  # pragma: no cover - executed conditionally when Pillow is missing
+    import PIL.Image  # type: ignore
+except Exception:  # pragma: no cover
+    import types
+    import sys
+
+    pil_module = types.ModuleType("PIL")
+    image_module = types.ModuleType("PIL.Image")
+
+    class _StubImage:  # minimal stub for ImageField checks
+        pass
+
+    image_module.Image = _StubImage
+    pil_module.Image = _StubImage
+
+    sys.modules.setdefault("PIL", pil_module)
+    sys.modules.setdefault("PIL.Image", image_module)
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/

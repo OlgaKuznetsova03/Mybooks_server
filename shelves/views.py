@@ -173,11 +173,17 @@ def reading_track(request, book_id):
         current_decimal = Decimal(progress.current_page)
         percent = current_decimal / (total_decimal / Decimal(100))
         calculated_percent = float(percent.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+    daily_logs = progress.logs.order_by("-log_date")
+    average_pages_per_day = progress.average_pages_per_day
+    estimated_days_remaining = progress.estimated_days_remaining
     return render(request, "reading/track.html", {
         "book": book,
         "progress": progress,
         "total_pages": total_pages,
         "calculated_percent": calculated_percent,
+        "daily_logs": daily_logs,
+        "average_pages_per_day": average_pages_per_day,
+        "estimated_days_remaining": estimated_days_remaining,
     })
 
 
@@ -186,6 +192,7 @@ def reading_track(request, book_id):
 def reading_set_page(request, progress_id):
     """Ручное выставление текущей страницы."""
     progress = get_object_or_404(BookProgress, pk=progress_id, user=request.user)
+    previous_page = progress.current_page or 0
     try:
         page = int(request.POST.get("page", 0))
     except (TypeError, ValueError):
@@ -198,6 +205,9 @@ def reading_set_page(request, progress_id):
     progress.current_page = page
     progress.save(update_fields=["current_page"])
     progress.recalc_percent()
+    delta = max(0, (progress.current_page or 0) - previous_page)
+    if delta > 0:
+        progress.record_pages(delta)
     messages.success(request, "Текущая страница обновлена.")
     return redirect("reading_track", book_id=progress.book_id)
 
@@ -215,6 +225,9 @@ def reading_increment(request, progress_id, delta):
     progress.current_page = new_page
     progress.save(update_fields=["current_page"])
     progress.recalc_percent()
+    diff = max(0, new_page - cur)
+    if diff > 0:
+        progress.record_pages(diff)
     return redirect("reading_track", book_id=progress.book_id)
 
 
@@ -223,11 +236,15 @@ def reading_increment(request, progress_id, delta):
 def reading_mark_finished(request, progress_id):
     """Отметить книгу как прочитанную."""
     progress = get_object_or_404(BookProgress, pk=progress_id, user=request.user)
+    previous_page = progress.current_page or 0
     total = progress.book.get_total_pages()
     if total:
         progress.current_page = total
         progress.save(update_fields=["current_page"])
         progress.recalc_percent()
+        delta = max(0, (progress.current_page or 0) - previous_page)
+        if delta > 0:
+            progress.record_pages(delta)
     else:
         # если не знаем total_pages — ставим 100%, страницу не меняем
         progress.percent = 100

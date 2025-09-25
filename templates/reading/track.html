@@ -29,6 +29,15 @@
       </strong>
     </div>
 
+    <div class="mb-3">
+      {% if average_pages_per_day %}
+        <div>Средняя скорость чтения: <strong>{{ average_pages_per_day|floatformat:-2 }}</strong> стр./день</div>
+      {% endif %}
+      {% if estimated_days_remaining %}
+        <div>Примерное время до завершения: <strong>{{ estimated_days_remaining }}</strong> дней</div>
+      {% endif %}
+    </div> 
+
 <form method="post" action="{% url 'reading_set_page' progress.id %}" class="d-flex flex-wrap gap-2 align-items-end mb-3">
       {% csrf_token %}
       <div>
@@ -56,5 +65,31 @@
       </form>
     </div>
   </div>
+</div>
+
+<div class="mt-4">
+  <h2 class="h6 mb-3">История чтения по дням</h2>
+  {% if daily_logs %}
+    <div class="table-responsive">
+      <table class="table table-sm align-middle">
+        <thead>
+          <tr>
+            <th scope="col">Дата</th>
+            <th scope="col">Прочитано страниц</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in daily_logs %}
+            <tr>
+              <td>{{ log.log_date|date:"d.m.Y" }}</td>
+              <td>{{ log.pages_read }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="text-muted mb-0">Пока нет записей о прочитанных страницах.</p>
+  {% endif %}
 </div>
 {% endblock %}

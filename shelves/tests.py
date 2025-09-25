@@ -1,11 +1,12 @@
-from django.contrib.auth.models import User
+from datetime import timedelta
 from decimal import Decimal
 from django.contrib.auth.models import User
+from decimal import Decimal
 from django.test import TestCase
 from django.urls import reverse
 
 from books.models import Book, ISBNModel
-from .models import BookProgress
+from .models import BookProgress, ReadingLog
 
 
 class ReadingTrackViewTests(TestCase):
@@ -45,7 +46,7 @@ class ReadingTrackViewTests(TestCase):
         response = self.client.get(reverse("reading_track", args=[self.book.pk]))
         self.assertEqual(response.context["progress"].current_page, 50)
 
-    def test_increment_updates_current_page(self):
+    def test_increment_updates_current_page_and_creates_log(self):
         progress = self._create_progress()
         progress.current_page = 10
         progress.save(update_fields=["current_page"])
@@ -58,8 +59,11 @@ class ReadingTrackViewTests(TestCase):
         progress.refresh_from_db()
         self.assertEqual(progress.current_page, 25)
         self.assertEqual(progress.percent, Decimal("12.5"))
+        log = progress.logs.get()
+        self.assertEqual(log.pages_read, 15)
+        self.assertEqual(log.log_date, localdate())
 
-    def test_mark_finished_sets_to_total_pages(self):
+    def test_mark_finished_sets_to_total_pages_and_logs_delta(self):
         progress = self._create_progress()
 
         response = self.client.post(reverse("reading_mark_finished", args=[progress.pk]))
@@ -68,6 +72,8 @@ class ReadingTrackViewTests(TestCase):
         progress.refresh_from_db()
         self.assertEqual(progress.current_page, 200)
         self.assertEqual(progress.percent, Decimal("100"))
+        log = progress.logs.get()
+        self.assertEqual(log.pages_read, 200)
 
     def test_percent_uses_related_isbn_when_no_primary(self):
         isbn = ISBNModel.objects.create(
@@ -91,3 +97,45 @@ class ReadingTrackViewTests(TestCase):
         self.assertRedirects(response, reverse("reading_track", args=[book_without_primary.pk]))
         progress.refresh_from_db()
         self.assertEqual(progress.percent, Decimal("50"))
+
+    def test_set_page_accumulates_daily_log(self):
+        progress = self._create_progress()
+
+        self.client.post(reverse("reading_set_page", args=[progress.pk]), {"page": 30})
+        self.client.post(reverse("reading_set_page", args=[progress.pk]), {"page": 45})
+
+        progress.refresh_from_db()
+        log = progress.logs.get()
+        self.assertEqual(log.pages_read, 45)
+
+    def test_average_speed_and_estimate(self):
+        progress = self._create_progress()
+        ReadingLog.objects.create(
+            progress=progress,
+            log_date=localdate() - timedelta(days=1),
+            pages_read=40,
+        )
+        ReadingLog.objects.create(
+            progress=progress,
+            log_date=localdate(),
+            pages_read=60,
+        )
+        progress.current_page = 100
+        progress.save(update_fields=["current_page"])
+        progress.recalc_percent()
+
+        self.assertEqual(progress.average_pages_per_day, Decimal("50.00"))
+        self.assertEqual(progress.estimated_days_remaining, 2)
+
+    def test_track_view_context_includes_logs(self):
+        progress = self._create_progress()
+        ReadingLog.objects.create(progress=progress, log_date=localdate(), pages_read=20)
+
+        response = self.client.get(reverse("reading_track", args=[self.book.pk]))
+
+        self.assertIn("daily_logs", response.context)
+        self.assertIn("average_pages_per_day", response.context)
+        self.assertIn("estimated_days_remaining", response.context)
+        logs = list(response.context["daily_logs"])
+        self.assertEqual(len(logs), 1)
+        self.assertEqual(logs[0].pages_read, 20)

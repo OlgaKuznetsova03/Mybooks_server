@@ -1,8 +1,11 @@
 from decimal import Decimal, ROUND_HALF_UP
-from django.db.models import Sum, F
+from math import ceil
+
+from django.db.models import Sum, F, Count
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.utils.timezone import localdate
 from books.models import Book
 
 class Shelf(models.Model):
@@ -129,3 +132,52 @@ class BookProgress(models.Model):
         if spp is None:
             return None
         return int(self.pages_left * spp)
+
+    def record_pages(self, pages_read, log_date=None):
+        """Зафиксировать количество прочитанных страниц за конкретный день."""
+        if not pages_read or pages_read <= 0:
+            return
+        log_date = log_date or localdate()
+        log, created = self.logs.get_or_create(
+            log_date=log_date,
+            defaults={"pages_read": pages_read},
+        )
+        if not created:
+            log.pages_read += pages_read
+            log.save(update_fields=["pages_read"])
+
+    @property
+    def average_pages_per_day(self):
+        stats = self.logs.filter(pages_read__gt=0).aggregate(
+            total_pages=Sum("pages_read"),
+            days=Count("id"),
+        )
+        if not stats["total_pages"] or not stats["days"]:
+            return None
+        avg = Decimal(stats["total_pages"]) / Decimal(stats["days"])
+        return avg.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    @property
+    def estimated_days_remaining(self):
+        pages_left = self.pages_left
+        avg = self.average_pages_per_day
+        if pages_left is None or avg is None or avg <= 0:
+            return None
+        return max(1, ceil(Decimal(pages_left) / avg))
+
+
+class ReadingLog(models.Model):
+    progress = models.ForeignKey(
+        BookProgress,
+        on_delete=models.CASCADE,
+        related_name="logs",
+    )
+    log_date = models.DateField(default=localdate)
+    pages_read = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together = ("progress", "log_date")
+        ordering = ["-log_date"]
+
+    def __str__(self):
+        return f"{self.log_date}: {self.pages_read} стр."
