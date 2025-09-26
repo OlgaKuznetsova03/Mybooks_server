@@ -12,6 +12,29 @@ from shelves.models import BookProgress
 from .models import Book, Rating
 from .forms import BookForm, RatingForm
 
+def _find_books_with_same_title_and_authors(title, authors):
+    """Вернуть книги, у которых совпадает название и состав авторов."""
+
+    normalized_title = (title or "").strip()
+    if not normalized_title or not authors:
+        return []
+
+    author_ids = {author.id for author in authors if author.id is not None}
+    if not author_ids:
+        return []
+
+    candidates = (
+        Book.objects.filter(title__iexact=normalized_title)
+        .prefetch_related("authors", "isbn", "publisher")
+    )
+
+    matches = []
+    for book in candidates:
+        existing_author_ids = set(book.authors.values_list("id", flat=True))
+        if existing_author_ids == author_ids:
+            matches.append(book)
+    return matches
+
 
 def book_list(request):
     q = (request.GET.get("q") or "").strip()
@@ -57,16 +80,123 @@ def book_detail(request, pk):
 
 @login_required
 def book_create(request):
+    duplicate_candidates = []
+    duplicate_resolution = request.POST.get("duplicate_resolution") if request.method == "POST" else None
+
     if request.method == "POST":
         form = BookForm(request.POST, request.FILES)
         if form.is_valid():
-            book = form.save()
-            messages.success(request, "Книга успешно добавлена.")
-            return redirect("book_detail", pk=book.pk)
-        messages.error(request, "Не удалось сохранить книгу. Проверьте форму.")
+            duplicate_candidates = _find_books_with_same_title_and_authors(
+                form.cleaned_data.get("title"),
+                form.cleaned_data.get("authors"),
+            )
+
+            if duplicate_candidates:
+                if not duplicate_resolution:
+                    form.add_error(
+                        None,
+                        "Мы нашли книгу с таким же названием и авторами. Выберите, что сделать.",
+                    )
+                else:
+                    if duplicate_resolution == "new":
+                        book = form.save()
+                        messages.success(request, "Книга успешно добавлена.")
+                        return redirect("book_detail", pk=book.pk)
+
+                    action, _, pk = duplicate_resolution.partition(":")
+                    selected_book = next(
+                        (book for book in duplicate_candidates if str(book.pk) == pk),
+                        None,
+                    )
+
+                    if not selected_book:
+                        form.add_error(None, "Выберите корректный вариант из списка.")
+                    elif action == "same":
+                        messages.info(
+                            request,
+                            "Эта книга уже есть на сайте. Мы перенаправили вас на её страницу.",
+                        )
+                        return redirect("book_detail", pk=selected_book.pk)
+                    elif action == "edition":
+                        new_isbns = form.cleaned_data.get("isbn") or []
+                        existing_isbn_ids = set(
+                            selected_book.isbn.values_list("id", flat=True)
+                        )
+                        unique_isbns = [
+                            isbn for isbn in new_isbns if isbn.pk not in existing_isbn_ids
+                        ]
+                        if not unique_isbns:
+                            form.add_error(
+                                "isbn",
+                                "Все указанные ISBN уже привязаны к этой книге. Укажите новый ISBN для издания.",
+                            )
+                        else:
+                            for isbn in unique_isbns:
+                                selected_book.isbn.add(isbn)
+
+                            publishers = form.cleaned_data.get("publisher") or []
+                            if publishers:
+                                selected_book.publisher.add(*publishers)
+
+                            genres = form.cleaned_data.get("genres") or []
+                            if genres:
+                                selected_book.genres.add(*genres)
+
+                            cover = form.cleaned_data.get("cover")
+                            if cover:
+                                selected_book.cover = cover
+
+                            synopsis = form.cleaned_data.get("synopsis")
+                            if synopsis and not selected_book.synopsis:
+                                selected_book.synopsis = synopsis
+
+                            language = form.cleaned_data.get("language")
+                            if language and not selected_book.language:
+                                selected_book.language = language
+
+                            age_rating = form.cleaned_data.get("age_rating")
+                            if age_rating and not selected_book.age_rating:
+                                selected_book.age_rating = age_rating
+
+                            audio = form.cleaned_data.get("audio")
+                            if audio and not selected_book.audio:
+                                selected_book.audio = audio
+
+                            series = form.cleaned_data.get("series")
+                            if series and not selected_book.series:
+                                selected_book.series = series
+
+                            series_order = form.cleaned_data.get("series_order")
+                            if series_order and not selected_book.series_order:
+                                selected_book.series_order = series_order
+
+                            if not selected_book.primary_isbn:
+                                selected_book.primary_isbn = unique_isbns[0]
+
+                            selected_book.save()
+
+                            messages.success(
+                                request,
+                                "Новое издание добавлено к существующей книге.",
+                            )
+                            return redirect("book_detail", pk=selected_book.pk)
+                    else:
+                        form.add_error(None, "Неизвестный вариант выбора.")
+            else:
+                book = form.save()
+                messages.success(request, "Книга успешно добавлена.")
+                return redirect("book_detail", pk=book.pk)
+
+        else:
+            messages.error(request, "Не удалось сохранить книгу. Проверьте форму.")
     else:
         form = BookForm()
-    return render(request, "books/book_form.html", {"form": form})
+    context = {
+        "form": form,
+        "duplicate_candidates": duplicate_candidates,
+        "duplicate_resolution": duplicate_resolution,
+    }
+    return render(request, "books/book_form.html", context)
 
 @login_required
 @permission_required("books.change_book", raise_exception=True)
