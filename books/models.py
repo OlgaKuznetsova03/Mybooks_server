@@ -241,16 +241,6 @@ class Rating(models.Model):
         null=True,
         blank=True,
     )
-    logic_score = models.PositiveSmallIntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(10)],
-        null=True,
-        blank=True,
-    )
-    language_score = models.PositiveSmallIntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(10)],
-        null=True,
-        blank=True,
-    )
     review = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

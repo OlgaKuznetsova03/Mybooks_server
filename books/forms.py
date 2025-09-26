@@ -138,6 +138,14 @@ class RatingForm(forms.ModelForm):
         widget=forms.HiddenInput(attrs={"data-role": "rating-value"}),
     )
 
+    plot_score = forms.IntegerField(
+        required=False,
+        min_value=1,
+        max_value=10,
+        label=CATEGORY_LABELS["plot_score"],
+        widget=forms.HiddenInput(attrs={"data-role": "rating-value"}),
+    )
+
     characters_score = forms.IntegerField(
         required=False,
         min_value=1,
@@ -172,6 +180,7 @@ class RatingForm(forms.ModelForm):
         fields = [
             "book",
             "score",
+            "plot_score",
             "characters_score",
             "atmosphere_score",
             "art_score",
