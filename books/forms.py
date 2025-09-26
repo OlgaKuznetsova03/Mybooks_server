@@ -128,6 +128,8 @@ class BookForm(forms.ModelForm):
 
 
 class RatingForm(forms.ModelForm):
+    CATEGORY_LABELS = dict(Rating.CATEGORY_FIELDS)
+
     score = forms.IntegerField(
         required=False,
         min_value=1,
@@ -139,42 +141,42 @@ class RatingForm(forms.ModelForm):
         required=False,
         min_value=1,
         max_value=10,
-        label=Rating.CATEGORY_FIELDS[0][1],
+        label=CATEGORY_LABELS["plot_score"],
         widget=forms.HiddenInput(attrs={"data-role": "rating-value"}),
     )
     characters_score = forms.IntegerField(
         required=False,
         min_value=1,
         max_value=10,
-        label=Rating.CATEGORY_FIELDS[1][1],
+        label=CATEGORY_LABELS["characters_score"],
         widget=forms.HiddenInput(attrs={"data-role": "rating-value"}),
     )
     atmosphere_score = forms.IntegerField(
         required=False,
         min_value=1,
         max_value=10,
-        label=Rating.CATEGORY_FIELDS[2][1],
+        label=CATEGORY_LABELS["atmosphere_score"],
         widget=forms.HiddenInput(attrs={"data-role": "rating-value"}),
     )
     art_score = forms.IntegerField(
         required=False,
         min_value=1,
         max_value=10,
-        label=Rating.CATEGORY_FIELDS[3][1],
+        label=CATEGORY_LABELS["art_score"],
         widget=forms.HiddenInput(attrs={"data-role": "rating-value"}),
     )
     logic_score = forms.IntegerField(
         required=False,
         min_value=1,
         max_value=10,
-        label=Rating.CATEGORY_FIELDS[4][1],
+        label=CATEGORY_LABELS["logic_score"],
         widget=forms.HiddenInput(attrs={"data-role": "rating-value"}),
     )
     language_score = forms.IntegerField(
         required=False,
         min_value=1,
         max_value=10,
-        label=Rating.CATEGORY_FIELDS[5][1],
+        label=CATEGORY_LABELS["language_score"],
         widget=forms.HiddenInput(attrs={"data-role": "rating-value"}),
     )
     review = forms.CharField(
@@ -200,32 +202,3 @@ class RatingForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         # ожидаем current_user через kwargs для контроля уникальности
         self.user = kwargs.pop("user", None)
-        super().__init__(*args, **kwargs)
-        if "book" in self.fields:
-            self.fields["book"].widget = forms.HiddenInput()
-
-    def clean(self):
-        cleaned = super().clean()
-        user = self.user or getattr(self.instance, "user", None)
-        book = cleaned.get("book")
-        if user and book:
-            exists = Rating.objects.filter(user=user, book=book)
-            if self.instance.pk:
-                exists = exists.exclude(pk=self.instance.pk)
-            if exists.exists():
-                raise ValidationError("Вы уже оставляли оценку для этой книги.")
-            filled_scores = [
-            cleaned.get(field)
-            for field, _ in Rating.get_score_fields()
-        ]
-        if not any(filled_scores) and not cleaned.get("review"):
-            raise ValidationError("Поставьте оценку хотя бы в одной категории или напишите отзыв.")
-        return cleaned
-
-    def save(self, commit=True):
-        obj = super().save(commit=False)
-        if self.user and not obj.user_id:
-            obj.user = self.user
-        if commit:
-            obj.save()
-        return obj

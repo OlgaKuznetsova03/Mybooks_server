@@ -4,13 +4,49 @@
 
 <div class="row g-4">
   <div class="col-md-4">
-    {% if book.cover %}
-      <img src="{{ book.cover.url }}" class="rounded shadow-sm w-100" alt="">
-    {% else %}
-      <div class="bg-secondary-subtle rounded d-flex align-items-center justify-content-center" style="height:320px">
-        <span class="text-muted">Нет обложки</span>
+    <div class="text-center">
+      {% if book.cover %}
+        <img
+          src="{{ book.cover.url }}"
+          class="rounded shadow-sm img-fluid mx-auto"
+          style="max-width: 240px;"
+          alt="Обложка книги «{{ book.title }}»"
+        >
+      {% else %}
+        <div
+          class="bg-secondary-subtle rounded d-flex align-items-center justify-content-center mx-auto"
+          style="max-width: 240px; min-height: 160px;"
+        >
+          <span class="text-muted">Нет обложки</span>
+        </div>
+      {% endif %}
+    </div>
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-body">
+        <h3 class="h6 mb-3">Средние оценки читателей</h3>
+        {% if ratings %}
+          <ul class="list-unstyled mb-0 small">
+            {% for key, info in rating_summary.items %}
+              <li class="d-flex justify-content-between py-1 border-bottom border-light-subtle">
+                <span class="me-2">{{ info.label }}</span>
+                <span>
+                  {% if info.average %}
+                    <strong>{{ info.average }}</strong><span class="text-muted"> / 10</span>
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                  {% if info.count %}
+                    <span class="text-muted ms-1">({{ info.count }} оцен{{ info.count|pluralize:"ка,ки,ок" }})</span>
+                  {% endif %}
+                </span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted mb-0">Пока нет оценок. Будьте первым, кто поделится впечатлениями.</p>
+        {% endif %}
       </div>
-    {% endif %}
+    </div>
   </div>
 
   <div class="col-md-8">
@@ -28,7 +64,7 @@
 
     <!-- Кнопки действий -->
     {% if request.user.is_authenticated %}
-      <div class="d-flex flex-wrap gap-2 my-3">
+        <div class="d-flex flex-wrap gap-2 my-3" aria-label="Быстрые действия">
         <form method="post" action="{% url 'quick_add_shelf' book.id 'want' %}">
           {% csrf_token %}
           <button class="btn btn-outline-primary btn-sm" type="submit">Хочу прочитать</button>
@@ -73,97 +109,69 @@
         <a class="btn btn-outline-secondary btn-sm ms-auto" href="{% url 'login' %}?next={{ request.path }}">Войдите, чтобы оценить</a>
         {% endif %}
       </div>
-      {% endwith %}
-      <div class="mt-4">
-      <h2 class="h6 mb-3">Оценки и отзывы</h2>
-      <div class="row g-3">
-        <div class="col-lg-6">
-          <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
-              <h3 class="h6 mb-3">Средние оценки читателей</h3>
-              {% if ratings %}
-                <ul class="list-unstyled mb-0 small">
-                  {% for key, info in rating_summary.items %}
-                    <li class="d-flex justify-content-between py-1 border-bottom border-light-subtle">
-                      <span class="me-2">{{ info.label }}</span>
-                      <span>
-                        {% if info.average %}
-                          <strong>{{ info.average }}</strong><span class="text-muted"> / 10</span>
-                        {% else %}
-                          <span class="text-muted">—</span>
-                        {% endif %}
-                        {% if info.count %}
-                          <span class="text-muted ms-1">({{ info.count }} оцен{{ info.count|pluralize:"ка,ки,ок" }})</span>
-                        {% endif %}
-                      </span>
-                    </li>
-                  {% endfor %}
-                </ul>
-              {% else %}
-                <p class="text-muted mb-0">Пока нет оценок. Будьте первым, кто поделится впечатлениями.</p>
-              {% endif %}
-            </div>
-             </div>
-        </div>
-        <div class="col-lg-6">
-          {% if user.is_authenticated %}
-            <div class="card border-0 shadow-sm h-100" id="write-review">
-              <div class="card-body">
-                <h3 class="h6 mb-3">Оставить отзыв</h3>
-                <form method="post" action="{% url 'rate_book' book.pk %}" class="row g-3">
-                  {% csrf_token %}
-                  {{ form.book }}
-                  {% if form.non_field_errors %}
-                    <div class="col-12">
-                      <div class="alert alert-danger mb-0">
-                        {{ form.non_field_errors|join:"<br>"|safe }}
-                      </div>
-                    </div>
-                  {% endif %}
-                  <div class="col-12">
-                    <div class="row g-3">
-                      <div class="col-sm-6 col-lg-4">
-                        <label class="form-label" for="{{ form.score.id_for_label }}">{{ form.score.label }}</label>
-                        {% include "books/includes/star_rating_field.html" with field=form.score scale=rating_scale label_id=form.score.id_for_label %}
-                        {% if form.score.errors %}
-                          <div class="invalid-feedback d-block">{{ form.score.errors|join:", " }}</div>
-                        {% endif %}
-                      </div>
-                      {% for field in rating_category_fields %}
-                        <div class="col-sm-6 col-lg-4">
-                          <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                          {% include "books/includes/star_rating_field.html" with field=field scale=rating_scale label_id=field.id_for_label %}
-                          {% if field.errors %}
-                            <div class="invalid-feedback d-block">{{ field.errors|join:", " }}</div>
-                          {% endif %}
-                        </div>
-                      {% endfor %}
-                    </div>
-                    <div class="form-text mt-1">Вы можете заполнить только те категории, которые вам важны.</div>
+    {% endwith %}
+
+    <div class="mt-4">
+      {% if user.is_authenticated %}
+        <div class="card border-0 shadow-sm" id="write-review" aria-labelledby="write-review-title">
+          <div class="card-body">
+            <h2 class="h6 mb-3" id="write-review-title">Оставить отзыв</h2>
+            <form method="post" action="{% url 'rate_book' book.pk %}" class="row g-3">
+              {% csrf_token %}
+              {{ form.book }}
+              {% if form.non_field_errors %}
+                <div class="col-12">
+                  <div class="alert alert-danger mb-0">
+                    {{ form.non_field_errors|join:"<br>"|safe }}
                   </div>
-                  <div class="col-12">
-                    <label class="form-label" for="{{ form.review.id_for_label }}">{{ form.review.label }}</label>
-                    {{ form.review }}
-                    {% if form.review.errors %}
-                      <div class="invalid-feedback d-block">{{ form.review.errors|join:", " }}</div>
+                </div>
+              {% endif %}
+              <div class="col-12">
+                <div class="d-flex flex-column gap-3">
+                  <div>
+                    <label class="form-label" for="{{ form.score.id_for_label }}">{{ form.score.label }}</label>
+                    {% include "books/includes/star_rating_field.html" with field=form.score scale=rating_scale label_id=form.score.id_for_label %}
+                    {% if form.score.errors %}
+                      <div class="invalid-feedback d-block">{{ form.score.errors|join:", " }}</div>
                     {% endif %}
                   </div>
-                  <div class="col-12 d-flex justify-content-end">
-                    <button class="btn btn-primary" type="submit">Отправить отзыв</button>
-                  </div>
-                </form>
+                  {% for field in rating_category_fields %}
+                    <div>
+                      <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                      {% include "books/includes/star_rating_field.html" with field=field scale=rating_scale label_id=field.id_for_label %}
+                      {% if field.errors %}
+                        <div class="invalid-feedback d-block">{{ field.errors|join:", " }}</div>
+                      {% endif %}
+                    </div>
+                  {% endfor %}
+                </div>
+                <div class="form-text mt-1">Вы можете заполнить только те категории, которые вам важны.</div>
               </div>
-            </div>
-          {% else %}
-            <div class="alert alert-light border h-100 d-flex flex-column justify-content-center">
-              <p class="mb-2">Войдите, чтобы оставить свою оценку и отзыв.</p>
-              <a class="btn btn-primary btn-sm align-self-start" href="{% url 'login' %}?next={{ request.path }}">Войти</a>
-            </div>
-          {% endif %}
+              <div class="col-12">
+                <label class="form-label" for="{{ form.review.id_for_label }}">{{ form.review.label }}</label>
+                {{ form.review }}
+                {% if form.review.errors %}
+                  <div class="invalid-feedback d-block">{{ form.review.errors|join:", " }}</div>
+                {% endif %}
+              </div>
+              <div class="col-12 d-flex justify-content-end">
+                <button class="btn btn-primary" type="submit">Отправить отзыв</button>
+              </div>
+            </form>
+          </div>
         </div>
-      </div>
+      {% else %}
+        <div class="alert alert-light border d-flex flex-column justify-content-center">
+          <p class="mb-2">Войдите, чтобы оставить свою оценку и отзыв.</p>
+          <a class="btn btn-primary btn-sm align-self-start" href="{% url 'login' %}?next={{ request.path }}">Войти</a>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="mt-4">
+      <h2 class="h6 mb-3">Отзывы читателей</h2>
       {% if ratings %}
-        <div class="list-group mt-4">
+        <div class="list-group">
           {% for r in ratings %}
             <div class="list-group-item">
               <div class="d-flex justify-content-between align-items-start">
@@ -191,10 +199,10 @@
           {% endfor %}
         </div>
       {% else %}
-        <div class="alert alert-light border mt-4 mb-0">Пока нет отзывов — станьте первым!</div>
+        <div class="alert alert-light border mb-0">Пока нет отзывов — станьте первым!</div>
       {% endif %}
     </div>
-    </div>
+  </div>
 </div>
 
 <!-- Modal: Добавить в полку (прототип) -->
@@ -273,7 +281,6 @@
         });
       });
 
-       
       if (clearButton) {
         clearButton.addEventListener('click', () => update(null));
       }
@@ -281,4 +288,3 @@
   });
 </script>
 {% endblock %}
-       

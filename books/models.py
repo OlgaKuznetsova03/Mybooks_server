@@ -206,7 +206,8 @@ class Rating(models.Model):
 
     SCORE_FIELD = ("score", "Общая оценка")
     CATEGORY_FIELDS = [
-        ("plot_score", "Насколько захватывающим был сюжет"),
+        ("logic_score", "Общая ценность"),
+        ("plot_score", "Сюжет"),
         ("characters_score", "Персонажи"),
         ("atmosphere_score", "Атмосфера"),
         ("art_score", "Художественная ценность"),

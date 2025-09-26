@@ -1,8 +1,14 @@
-from django.db.models import Q
+from django.db.models import Q, Min, Max
 from django.core.paginator import Paginator
+from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
+from django.template.loader import render_to_string
+from django.urls import reverse
+from django.utils.html import mark_safe
+from django.utils.text import slugify
+from shelves.models import BookProgress
 from .models import Book, Rating
 from .forms import BookForm, RatingForm
 
@@ -84,7 +90,69 @@ def rate_book(request, pk):
             rating.book = book
             rating.user = request.user
             rating.save()
-            messages.success(request, "Спасибо! Ваш отзыв сохранён.")
+            print_url = reverse("book_review_print", args=[book.pk])
+            messages.success(
+                request,
+                mark_safe(
+                    "Спасибо! Ваш отзыв сохранён. "
+                    f"<a class=\"btn btn-sm btn-outline-light ms-2\" href=\"{print_url}\">Распечатать отзыв</a>"
+                ),
+            )
         else:
             messages.error(request, "Не удалось сохранить отзыв. Проверьте форму.")
     return redirect("book_detail", pk=book.pk)
+
+@login_required
+def book_review_print(request, pk):
+    book = get_object_or_404(
+        Book.objects.prefetch_related("authors", "genres", "publisher"),
+        pk=pk,
+    )
+    rating = get_object_or_404(Rating, book=book, user=request.user)
+
+    progress = (
+        BookProgress.objects.filter(user=request.user, book=book, event__isnull=True)
+        .order_by("-updated_at")
+        .first()
+    )
+    if not progress:
+        progress = (
+            BookProgress.objects.filter(user=request.user, book=book)
+            .order_by("-updated_at")
+            .first()
+        )
+
+    reading_start = None
+    reading_end = None
+    notes = ""
+    characters = []
+
+    if progress:
+        period = progress.logs.aggregate(start=Min("log_date"), end=Max("log_date"))
+        reading_start = period.get("start")
+        reading_end = period.get("end")
+        if not reading_start and progress.updated_at:
+            reading_start = progress.updated_at.date()
+        if not reading_end and progress.updated_at:
+            reading_end = progress.updated_at.date()
+        notes = progress.reading_notes
+        characters = list(progress.character_entries.all())
+
+    cover_url = request.build_absolute_uri(book.cover.url) if book.cover else None
+
+    context = {
+        "book": book,
+        "rating": rating,
+        "cover_url": cover_url,
+        "authors": book.authors.all(),
+        "reading_start": reading_start,
+        "reading_end": reading_end,
+        "notes": notes,
+        "characters": characters,
+    }
+
+    html = render_to_string("books/review_print.html", context)
+    filename = slugify(book.title) or "book-review"
+    response = HttpResponse(html, content_type="text/html; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="{filename}-review.html"'
+    return response

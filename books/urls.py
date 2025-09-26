@@ -16,6 +16,7 @@ urlpatterns = [
 
     # добавление оценки
     path("<int:pk>/rate/", views.rate_book, name="rate_book"),
+    path("<int:pk>/print-review/", views.book_review_print, name="book_review_print"),
 
     # если оставляем добавление одного ISBN к книге
     #path("<int:pk>/add-isbn/", views.add_one_isbn_to_book, name="add_one_isbn_to_book"),

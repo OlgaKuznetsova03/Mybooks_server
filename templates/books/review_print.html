@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Отзыв о книге «{{ book.title }}»</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Roboto, sans-serif;
+      margin: 40px;
+      color: #222;
+      line-height: 1.6;
+    }
+    header {
+      display: flex;
+      align-items: flex-start;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+    header img {
+      max-width: 180px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+    h2 {
+      margin-top: 32px;
+      font-size: 20px;
+      border-bottom: 1px solid #d9d9d9;
+      padding-bottom: 6px;
+    }
+    .meta {
+      margin: 4px 0;
+      color: #555;
+    }
+    .section {
+      margin-top: 16px;
+    }
+    .notes, .review {
+      white-space: pre-wrap;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      padding: 16px;
+      border: 1px solid #e2e3e5;
+    }
+    ul.characters {
+      list-style: disc;
+      padding-left: 24px;
+    }
+    ul.characters li {
+      margin-bottom: 6px;
+    }
+    .muted {
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    {% if cover_url %}
+      <img src="{{ cover_url }}" alt="Обложка {{ book.title }}">
+    {% endif %}
+    <div>
+      <h1>«{{ book.title }}»</h1>
+      <div class="meta"><strong>Автор(ы):</strong> {{ authors|join:", " }}</div>
+      {% if book.synopsis %}
+        <div class="meta"><strong>Описание:</strong> {{ book.synopsis }}</div>
+      {% endif %}
+      {% if reading_start or reading_end %}
+        <div class="meta">
+          <strong>Период чтения:</strong>
+          {% if reading_start and reading_end %}
+            {{ reading_start|date:"d.m.Y" }} — {{ reading_end|date:"d.m.Y" }}
+          {% elif reading_start %}
+            с {{ reading_start|date:"d.m.Y" }}
+          {% elif reading_end %}
+            до {{ reading_end|date:"d.m.Y" }}
+          {% endif %}
+        </div>
+      {% else %}
+        <div class="meta"><strong>Период чтения:</strong> данные не зафиксированы</div>
+      {% endif %}
+    </div>
+  </header>
+
+  <section class="section">
+    <h2>Сохранённые заметки</h2>
+    {% if notes %}
+      <div class="notes">{{ notes|linebreaksbr }}</div>
+    {% else %}
+      <p class="muted">Заметки для этой книги отсутствуют.</p>
+    {% endif %}
+  </section>
+
+  <section class="section">
+    <h2>Главные герои</h2>
+    {% if characters %}
+      <ul class="characters">
+        {% for character in characters %}
+          <li>
+            <strong>{{ character.name }}</strong>
+            {% if character.description %}
+              — {{ character.description }}
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">Список персонажей пока пуст.</p>
+    {% endif %}
+  </section>
+
+  <section class="section">
+    <h2>Отзыв</h2>
+    {% if rating.review %}
+      <div class="review">{{ rating.review|linebreaksbr }}</div>
+    {% else %}
+      <p class="muted">Текст отзыва отсутствует.</p>
+    {% endif %}
+  </section>
+</body>
+</html>
