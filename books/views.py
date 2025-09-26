@@ -46,6 +46,7 @@ def book_detail(request, pk):
         "ratings": ratings,
         "rating_summary": rating_summary,
         "rating_category_fields": rating_category_fields,
+        "rating_scale": range(1, 11),
     })
 
 @login_required

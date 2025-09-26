@@ -133,49 +133,49 @@ class RatingForm(forms.ModelForm):
         min_value=1,
         max_value=10,
         label=Rating.SCORE_FIELD[1],
-        widget=forms.NumberInput(attrs={"step": 1, "placeholder": "1–10", "class": "form-control"}),
+        widget=forms.HiddenInput(attrs={"data-role": "rating-value"}),
     )
     plot_score = forms.IntegerField(
         required=False,
         min_value=1,
         max_value=10,
         label=Rating.CATEGORY_FIELDS[0][1],
-        widget=forms.NumberInput(attrs={"step": 1, "class": "form-control"}),
+        widget=forms.HiddenInput(attrs={"data-role": "rating-value"}),
     )
     characters_score = forms.IntegerField(
         required=False,
         min_value=1,
         max_value=10,
         label=Rating.CATEGORY_FIELDS[1][1],
-        widget=forms.NumberInput(attrs={"step": 1, "class": "form-control"}),
+        widget=forms.HiddenInput(attrs={"data-role": "rating-value"}),
     )
     atmosphere_score = forms.IntegerField(
         required=False,
         min_value=1,
         max_value=10,
         label=Rating.CATEGORY_FIELDS[2][1],
-        widget=forms.NumberInput(attrs={"step": 1, "class": "form-control"}),
+        widget=forms.HiddenInput(attrs={"data-role": "rating-value"}),
     )
     art_score = forms.IntegerField(
         required=False,
         min_value=1,
         max_value=10,
         label=Rating.CATEGORY_FIELDS[3][1],
-        widget=forms.NumberInput(attrs={"step": 1, "class": "form-control"}),
+        widget=forms.HiddenInput(attrs={"data-role": "rating-value"}),
     )
     logic_score = forms.IntegerField(
         required=False,
         min_value=1,
         max_value=10,
         label=Rating.CATEGORY_FIELDS[4][1],
-        widget=forms.NumberInput(attrs={"step": 1, "class": "form-control"}),
+        widget=forms.HiddenInput(attrs={"data-role": "rating-value"}),
     )
     language_score = forms.IntegerField(
         required=False,
         min_value=1,
         max_value=10,
         label=Rating.CATEGORY_FIELDS[5][1],
-        widget=forms.NumberInput(attrs={"step": 1, "class": "form-control"}),
+        widget=forms.HiddenInput(attrs={"data-role": "rating-value"}),
     )
     review = forms.CharField(
         required=False,

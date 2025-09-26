@@ -35,3 +35,38 @@
   white-space:nowrap;
 }
 
+/* Виджет оценок звёздами */
+.star-rating-field{
+  display:inline-flex;
+  flex-direction:column;
+  gap:0.25rem;
+}
+.star-rating{
+  display:inline-flex;
+  gap:0.35rem;
+}
+.star-rating-btn{
+  appearance:none;
+  background:none;
+  border:0;
+  color:var(--bs-border-color);
+  cursor:pointer;
+  padding:0;
+  font-size:1.35rem;
+  line-height:1;
+  transition:transform .15s ease,color .15s ease;
+}
+.star-rating-btn:is(:hover,:focus-visible){
+  transform:scale(1.1);
+  color:var(--bs-warning);
+}
+.star-rating-btn.is-active{
+  color:var(--bs-warning);
+}
+.star-rating-btn:focus-visible{
+  outline:2px solid var(--bs-primary);
+  outline-offset:2px;
+}
+.star-rating-field [data-rating-display]{
+  min-width:7rem;
+}

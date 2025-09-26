@@ -124,7 +124,7 @@
                     <div class="row g-3">
                       <div class="col-sm-6 col-lg-4">
                         <label class="form-label" for="{{ form.score.id_for_label }}">{{ form.score.label }}</label>
-                        {{ form.score }}
+                        {% include "books/includes/star_rating_field.html" with field=form.score scale=rating_scale label_id=form.score.id_for_label %}
                         {% if form.score.errors %}
                           <div class="invalid-feedback d-block">{{ form.score.errors|join:", " }}</div>
                         {% endif %}
@@ -132,7 +132,7 @@
                       {% for field in rating_category_fields %}
                         <div class="col-sm-6 col-lg-4">
                           <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                          {{ field }}
+                          {% include "books/includes/star_rating_field.html" with field=field scale=rating_scale label_id=field.id_for_label %}
                           {% if field.errors %}
                             <div class="invalid-feedback d-block">{{ field.errors|join:", " }}</div>
                           {% endif %}
@@ -219,5 +219,66 @@
         </div>
         <div class="mb-3">
           <label class="form-label">Или создайте новую</label>
+          <input type="text" class="form-control" name="new_shelf" placeholder="Например, Любимые фэнтези">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Закрыть</button>
+        <button type="submit" class="btn btn-primary">Добавить</button>
+      </div>
+    </form>
+  </div>
+</div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const ratingFields = document.querySelectorAll('[data-rating-field]');
+    ratingFields.forEach((field) => {
+      const input = field.querySelector('input[type="hidden"], input[data-role="rating-value"]');
+      const buttons = field.querySelectorAll('[data-rating-value]');
+      const display = field.querySelector('[data-rating-display]');
+      const clearButton = field.querySelector('[data-rating-clear]');
+      const max = buttons.length;
+
+      const parseValue = (value) => {
+        const parsed = parseInt(value, 10);
+        return Number.isNaN(parsed) ? null : parsed;
+      };
+
+      const update = (value) => {
+        if (input) {
+          input.value = value ?? '';
+        }
+        buttons.forEach((btn) => {
+          const btnValue = parseInt(btn.dataset.ratingValue, 10);
+          btn.classList.toggle('is-active', !!value && btnValue <= value);
+          btn.setAttribute('aria-pressed', value ? String(btnValue <= value) : 'false');
+        });
+        if (display) {
+          display.textContent = value ? `Оценка: ${value} / ${max}` : 'Нет оценки';
+        }
+      };
+
+      const initial = input ? parseValue(input.value) : null;
+      update(initial);
+
+      buttons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const current = parseValue(input ? input.value : null);
+          const value = parseInt(btn.dataset.ratingValue, 10);
+          update(current === value ? null : value);
+        });
+      });
+
+       
+      if (clearButton) {
+        clearButton.addEventListener('click', () => update(null));
+      }
+    });
+  });
+</script>
+{% endblock %}
        
