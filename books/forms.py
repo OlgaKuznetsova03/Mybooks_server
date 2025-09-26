@@ -54,6 +54,13 @@ class GenreForm(forms.ModelForm):
 
 
 class ISBNModelForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        authors_field = self.fields.get("authors")
+        if authors_field:
+            authors_field.queryset = authors_field.queryset.order_by("name")
+            authors_field.widget.attrs.setdefault("data-enhanced-multi", "true")
+            authors_field.widget.attrs.setdefault("data-clear-label", "Очистить выбор")
     class Meta:
         model = ISBNModel
         fields = [
@@ -61,6 +68,20 @@ class ISBNModelForm(forms.ModelForm):
             "publish_date", "binding", "total_pages", "synopsis",
             "language", "subjects", "image"
         ]
+        labels = {
+            "isbn": "ISBN-10",
+            "isbn13": "ISBN-13",
+            "title": "Название издания",
+            "authors": "Авторы",
+            "publisher": "Издательство",
+            "publish_date": "Дата публикации",
+            "binding": "Переплёт",
+            "total_pages": "Количество страниц",
+            "synopsis": "Краткое описание",
+            "language": "Язык",
+            "subjects": "Темы и жанры",
+            "image": "Ссылка на обложку",
+        }
         widgets = {
             "synopsis": forms.Textarea(attrs={"rows": 5}),
             "subjects": forms.Textarea(attrs={"rows": 3, "placeholder": "Жанры/темы через запятую"}),
@@ -111,6 +132,20 @@ class BookForm(forms.ModelForm):
             "series_order", "genres", "age_rating", "language",
             "cover", "audio", "publisher"
         ]
+        labels = {
+            "title": "Название",
+            "authors": "Авторы",
+            "isbn": "Связанные ISBN",
+            "synopsis": "Описание",
+            "series": "Серия",
+            "series_order": "Номер в серии",
+            "genres": "Жанры",
+            "age_rating": "Возрастной рейтинг",
+            "language": "Язык",
+            "cover": "Обложка",
+            "audio": "Аудиоверсия",
+            "publisher": "Издательства",
+        }
         widgets = {
             "synopsis": forms.Textarea(attrs={"rows": 6}),
             "cover": forms.ClearableFileInput(),   # виджет для загрузки файла
@@ -122,6 +157,22 @@ class BookForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        multi_fields = {
+            "authors": "name",
+            "genres": "name",
+            "publisher": "name",
+            "isbn": "title",
+        }
+        for field_name, order_by in multi_fields.items():
+            field = self.fields[field_name]
+            field.queryset = field.queryset.order_by(order_by)
+            field.widget.attrs.setdefault("data-enhanced-multi", "true")
+            field.widget.attrs.setdefault("data-clear-label", "Очистить выбор")
+
+        self.fields["isbn"].label_from_instance = (
+            lambda obj: f"{obj.title or 'Без названия'} — {obj.isbn}"
+        )
         for field in self.fields.values():
             widget = field.widget
             if isinstance(widget, (forms.TextInput, forms.NumberInput, forms.URLInput, forms.Textarea, forms.ClearableFileInput)):

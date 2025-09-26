@@ -70,3 +70,17 @@
 .star-rating-field [data-rating-display]{
   min-width:7rem;
 }
+/* Улучшенный выбор множественных полей */
+.multi-select-enhanced{
+  max-height:20rem;
+}
+.multi-select-enhanced__list{
+  max-height:14rem;
+  overflow-y:auto;
+}
+.multi-select-enhanced__list .form-check{
+  margin-bottom:0.25rem;
+}
+.multi-select-enhanced__list .form-check:last-child{
+  margin-bottom:0;
+}

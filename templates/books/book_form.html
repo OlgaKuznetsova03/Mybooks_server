@@ -9,18 +9,10 @@
       <a class="btn btn-outline-secondary" href="{% url 'book_list' %}"><i class="bi bi-arrow-left"></i> Ко всем книгам</a>
     </div>
 
-    {% if messages %}
-      <div class="mb-3">
-        {% for message in messages %}
-          <div class="alert alert-{{ message.tags|default:'info' }} mb-2" role="alert">{{ message }}</div>
-        {% endfor %}
-      </div>
-    {% endif %}
-
     <div class="card shadow-sm border-0">
       <div class="card-body">
         <p class="text-muted small">Заполните форму ниже, чтобы поделиться книгой с сообществом. Поля со звёздочкой обязательны.</p>
-        <form method="post" enctype="multipart/form-data" novalidate>
+        <form method="post" enctype="multipart/form-data" autocomplete="off" novalidate>
           {% csrf_token %}
           {{ form.media }}
 
@@ -32,7 +24,7 @@
 
           {% for field in form %}
             <div class="mb-3">
-              <label class="form-label" for="id_{{ field.name }}">
+              <label class="form-label" id="id_{{ field.name }}_label" for="id_{{ field.name }}">
                 {{ field.label }}{% if field.field.required %}<span class="text-danger">*</span>{% endif %}
               </label>
               {{ field }}

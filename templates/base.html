@@ -51,6 +51,34 @@
 </nav>
 
 <main class="container py-4">
+    {% if messages %}
+    <div class="mb-4">
+      {% for message in messages %}
+        {% with tag=message.level_tag %}
+          {% if tag == 'error' %}
+            {% with alert_class='danger' %}
+              <div class="alert alert-{{ alert_class }} alert-dismissible fade show" role="alert">
+                {{ message|safe }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button>
+              </div>
+            {% endwith %}
+          {% elif tag == 'debug' %}
+            {% with alert_class='secondary' %}
+              <div class="alert alert-{{ alert_class }} alert-dismissible fade show" role="alert">
+                {{ message|safe }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button>
+              </div>
+            {% endwith %}
+          {% else %}
+            <div class="alert alert-{{ tag }} alert-dismissible fade show" role="alert">
+              {{ message|safe }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button>
+            </div>
+          {% endif %}
+        {% endwith %}
+      {% endfor %}
+    </div>
+  {% endif %}
   {% block content %}{% endblock %}
 </main>
 
@@ -71,6 +99,90 @@
     const current = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
     html.setAttribute('data-bs-theme', current);
     localStorage.setItem('theme', current);
+  });
+
+  // Улучшенный выбор для select[multiple]
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('select[data-enhanced-multi]').forEach((select) => {
+      if (select.dataset.enhancedMultiApplied === '1') {
+        return;
+      }
+      select.dataset.enhancedMultiApplied = '1';
+
+      if (!select.multiple) {
+        return;
+      }
+
+      const options = Array.from(select.options);
+      if (!options.length) {
+        return;
+      }
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'multi-select-enhanced border rounded-3 bg-body-tertiary p-3 mt-2';
+      const list = document.createElement('div');
+      list.className = 'multi-select-enhanced__list d-flex flex-column gap-2';
+
+      options.forEach((option, index) => {
+        const checkboxId = `${select.id || select.name}-choice-${index}`;
+        const item = document.createElement('div');
+        item.className = 'form-check';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'form-check-input';
+        checkbox.id = checkboxId;
+        checkbox.dataset.optionIndex = String(index);
+        checkbox.checked = option.selected;
+        checkbox.disabled = option.disabled;
+        checkbox.addEventListener('change', () => {
+          option.selected = checkbox.checked;
+        });
+
+        const label = document.createElement('label');
+        label.className = 'form-check-label';
+        label.setAttribute('for', checkboxId);
+        label.textContent = option.textContent;
+
+        item.appendChild(checkbox);
+        item.appendChild(label);
+        list.appendChild(item);
+      });
+
+      wrapper.appendChild(list);
+
+      const controls = document.createElement('div');
+      controls.className = 'd-flex justify-content-end mt-3';
+      const clearButton = document.createElement('button');
+      clearButton.type = 'button';
+      clearButton.className = 'btn btn-outline-secondary btn-sm';
+      clearButton.textContent = select.dataset.clearLabel || 'Очистить выбор';
+      clearButton.addEventListener('click', () => {
+        list.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
+          const idx = Number(checkbox.dataset.optionIndex || -1);
+          if (idx >= 0) {
+            options[idx].selected = false;
+          }
+          checkbox.checked = false;
+        });
+      });
+      controls.appendChild(clearButton);
+      wrapper.appendChild(controls);
+
+      const originalId = select.id;
+      if (originalId) {
+        wrapper.id = `${originalId}__enhanced`;
+        const labelEl = document.getElementById(`${originalId}_label`);
+        if (labelEl) {
+          labelEl.setAttribute('for', list.querySelector('input[type="checkbox"]')?.id || originalId);
+          wrapper.setAttribute('aria-labelledby', labelEl.id);
+        }
+      }
+
+      select.classList.add('visually-hidden');
+      select.setAttribute('tabindex', '-1');
+      select.insertAdjacentElement('afterend', wrapper);
+    });
   });
 </script>
 {% block extra_js %}{% endblock %}
