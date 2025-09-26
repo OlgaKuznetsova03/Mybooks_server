@@ -120,6 +120,17 @@ class BookForm(forms.ModelForm):
             "publisher": "Можно указать несколько издательств.",
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            widget = field.widget
+            if isinstance(widget, (forms.TextInput, forms.NumberInput, forms.URLInput, forms.Textarea, forms.ClearableFileInput)):
+                widget.attrs.setdefault("class", "form-control")
+            elif isinstance(widget, (forms.Select, forms.SelectMultiple)):
+                widget.attrs.setdefault("class", "form-select")
+            elif isinstance(widget, forms.CheckboxInput):
+                widget.attrs.setdefault("class", "form-check-input")
+
     def clean_series_order(self):
         order = self.cleaned_data.get("series_order")
         if order is not None and order <= 0:

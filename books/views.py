@@ -56,13 +56,14 @@ def book_detail(request, pk):
     })
 
 @login_required
-@permission_required("books.add_book", raise_exception=True)
 def book_create(request):
     if request.method == "POST":
         form = BookForm(request.POST, request.FILES)
         if form.is_valid():
             book = form.save()
+            messages.success(request, "Книга успешно добавлена.")
             return redirect("book_detail", pk=book.pk)
+        messages.error(request, "Не удалось сохранить книгу. Проверьте форму.")
     else:
         form = BookForm()
     return render(request, "books/book_form.html", {"form": form})
