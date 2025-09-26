@@ -68,6 +68,58 @@ def book_detail(request, pk):
         for field_name, _ in Rating.get_category_fields()
     ]
 
+    cover_variants = []
+    if book.cover:
+        cover_variants.append({
+            "key": "book-cover",
+            "image": book.cover.url,
+            "alt": f"Обложка книги «{book.title}»",
+            "label": "Текущее издание",
+            "is_primary": True,
+            "is_active": True,
+        })
+
+    isbn_entries = list(book.isbn.all())
+    isbn_entries.sort(
+        key=lambda item: (
+            0 if item.pk == book.primary_isbn_id else 1,
+            item.pk or 0,
+        )
+    )
+
+    has_primary_cover = bool(book.cover)
+
+    for isbn in isbn_entries:
+        image_url = (isbn.image or "").strip()
+        if not image_url:
+            continue
+
+        title = (isbn.title or "").strip()
+        isbn_display = isbn.isbn13 or isbn.isbn
+        label_parts = []
+        if title:
+            label_parts.append(title)
+        if isbn_display:
+            label_parts.append(f"ISBN {isbn_display}")
+        label = " · ".join(label_parts) if label_parts else "Дополнительное издание"
+
+        is_primary_isbn = isbn.pk == book.primary_isbn_id
+        cover_variants.append({
+            "key": f"isbn-{isbn.pk}",
+            "image": image_url,
+            "alt": f"Обложка издания «{title or book.title}»",
+            "label": label,
+            "is_primary": is_primary_isbn,
+            "is_active": is_primary_isbn and not has_primary_cover,
+        })
+
+    active_cover = next((variant for variant in cover_variants if variant.get("is_active")), None)
+    if not active_cover and cover_variants:
+        cover_variants[0]["is_active"] = True
+        active_cover = cover_variants[0]
+
+    show_cover_thumbnails = any(not variant.get("is_primary") for variant in cover_variants)
+    cover_label = active_cover.get("label") if active_cover else None
 
     return render(request, "books/book_detail.html", {
         "book": book,
@@ -76,6 +128,10 @@ def book_detail(request, pk):
         "rating_summary": rating_summary,
         "rating_category_fields": rating_category_fields,
         "rating_scale": range(1, 11),
+        "cover_variants": cover_variants,
+        "active_cover": active_cover,
+        "cover_label": cover_label,
+        "show_cover_thumbnails": show_cover_thumbnails,
     })
 
 @login_required
