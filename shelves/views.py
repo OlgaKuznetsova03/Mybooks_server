@@ -11,6 +11,7 @@ from .forms import (
     AddToShelfForm,
     AddToEventForm,
     BookProgressNotesForm,
+    CharacterNoteForm,
 )
 
 
@@ -160,17 +161,7 @@ def reading_now(request):
     return render(request, "reading/reading_now.html", {"shelf": shelf, "items": items})
 
 
-@login_required
-def reading_track(request, book_id):
-    """
-    Трекер чтения одной книги (личный прогресс без привязки к событию).
-    ETA/таймер не используем — только ручное обновление и быстрые кнопки.
-    """
-    book = get_object_or_404(Book, pk=book_id)
-    progress, _ = BookProgress.objects.get_or_create(
-        event=None, user=request.user, book=book,
-        defaults={"percent": 0, "current_page": 0}
-    )
+def _build_reading_track_context(progress, book, *, character_form=None):
     total_pages = book.get_total_pages()  # из primary_isbn.pages (см. метод в модели Book)
     calculated_percent = None
     if total_pages and progress.current_page is not None:
@@ -194,19 +185,54 @@ def reading_track(request, book_id):
         chart_scale = 1.5
     average_pages_per_day = progress.average_pages_per_day
     estimated_days_remaining = progress.estimated_days_remaining
-    return render(request, "reading/track.html", {
+    character_form = character_form or CharacterNoteForm()
+    characters = progress.character_entries.all()
+    return {
         "book": book,
         "progress": progress,
         "total_pages": total_pages,
         "calculated_percent": calculated_percent,
         "daily_logs": daily_logs,
         "notes_form": notes_form,
+        "character_form": character_form,
+        "characters": characters,
         "average_pages_per_day": average_pages_per_day,
         "estimated_days_remaining": estimated_days_remaining,
         "chart_labels": chart_labels,
         "chart_pages": chart_pages,
         "chart_scale": chart_scale,
-    })
+    }
+
+def reading_track(request, book_id):
+    """
+    Трекер чтения одной книги (личный прогресс без привязки к событию).
+    ETA/таймер не используем — только ручное обновление и быстрые кнопки.
+    """
+    book = get_object_or_404(Book, pk=book_id)
+    progress, _ = BookProgress.objects.get_or_create(
+        event=None, user=request.user, book=book,
+        defaults={"percent": 0, "current_page": 0}
+    )
+    context = _build_reading_track_context(progress, book)
+    return render(request, "reading/track.html", context)
+
+
+@login_required
+@require_POST
+def reading_add_character(request, progress_id):
+    progress = get_object_or_404(BookProgress, pk=progress_id, user=request.user)
+    form = CharacterNoteForm(request.POST)
+    if form.is_valid():
+        character = form.save(commit=False)
+        character.progress = progress
+        character.save()
+        messages.success(request, "Герой добавлен.")
+        return redirect("reading_track", book_id=progress.book_id)
+
+    book = progress.book
+    context = _build_reading_track_context(progress, book, character_form=form)
+    messages.error(request, "Не удалось добавить героя. Исправьте ошибки и попробуйте снова.")
+    return render(request, "reading/track.html", context)
 
 @login_required
 @require_POST

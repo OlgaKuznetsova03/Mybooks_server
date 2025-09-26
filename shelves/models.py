@@ -81,7 +81,6 @@ class BookProgress(models.Model):
     percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     current_page = models.PositiveIntegerField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
-    character_notes = models.TextField(blank=True, default="")
     reading_notes = models.TextField(blank=True, default="")
 
     class Meta:
@@ -183,3 +182,20 @@ class ReadingLog(models.Model):
 
     def __str__(self):
         return f"{self.log_date}: {self.pages_read} стр."
+   
+
+class CharacterNote(models.Model):
+    progress = models.ForeignKey(
+        BookProgress,
+        on_delete=models.CASCADE,
+        related_name="character_entries",
+    )
+    name = models.CharField(max_length=120)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+
+    def __str__(self):
+        return f"{self.name} — {self.progress.book.title}"

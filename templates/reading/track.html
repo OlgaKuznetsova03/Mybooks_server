@@ -201,20 +201,84 @@
 </div>
 
 <div class="mt-5">
+  <h2 class="h6 mb-3">Герои книги</h2>
+  {% if characters %}
+    <div class="table-responsive mb-3">
+      <table class="table table-sm align-middle mb-0">
+        <thead>
+          <tr>
+            <th scope="col" style="width: 200px;">Имя</th>
+            <th scope="col">Описание</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for character in characters %}
+            <tr>
+              <td class="fw-semibold">{{ character.name }}</td>
+              <td>{{ character.description|linebreaksbr }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="text-muted">Пока нет добавленных персонажей.</p>
+  {% endif %}
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-body">
+      <h3 class="h6 mb-3">Добавить героя</h3>
+      <form method="post" action="{% url 'reading_add_character' progress.id %}" class="row g-3">
+        {% csrf_token %}
+        {% if character_form.non_field_errors %}
+          <div class="col-12">
+            <div class="alert alert-danger mb-0">
+              {{ character_form.non_field_errors|join:"<br>"|safe }}
+            </div>
+          </div>
+        {% endif %}
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="{{ character_form.name.id_for_label }}">
+            {{ character_form.name.label }}
+          </label>
+          {{ character_form.name }}
+          {% if character_form.name.errors %}
+            <div class="invalid-feedback d-block">
+              {{ character_form.name.errors|join:", " }}
+            </div>
+          {% endif %}
+        </div>
+        <div class="col-12 col-md-8">
+          <label class="form-label" for="{{ character_form.description.id_for_label }}">
+            {{ character_form.description.label }}
+          </label>
+          {{ character_form.description }}
+          {% if character_form.description.errors %}
+            <div class="invalid-feedback d-block">
+              {{ character_form.description.errors|join:", " }}
+            </div>
+          {% endif %}
+        </div>
+        <div class="col-12 d-flex justify-content-end">
+          <button type="submit" class="btn btn-outline-primary">Добавить героя</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<div class="mt-5">
   <h2 class="h6 mb-3">Личные заметки по книге</h2>
   <form method="post" action="{% url 'reading_update_notes' progress.id %}" class="row g-3">
     {% csrf_token %}
-    <div class="col-12">
-      <label class="form-label" for="{{ notes_form.character_notes.id_for_label }}">
-        {{ notes_form.character_notes.label }}
-      </label>
-      {{ notes_form.character_notes }}
-      {% if notes_form.character_notes.errors %}
-        <div class="invalid-feedback d-block">
-          {{ notes_form.character_notes.errors|join:", " }}
+    {% if notes_form.non_field_errors %}
+      <div class="col-12">
+        <div class="alert alert-danger mb-0">
+          {{ notes_form.non_field_errors|join:"<br>"|safe }}
         </div>
-      {% endif %}
-    </div>
+      </div>
+    {% endif %}
     <div class="col-12">
       <label class="form-label" for="{{ notes_form.reading_notes.id_for_label }}">
         {{ notes_form.reading_notes.label }}
@@ -224,7 +288,7 @@
         <div class="invalid-feedback d-block">
           {{ notes_form.reading_notes.errors|join:", " }}
         </div>
-        {% endif %}
+    {% endif %}
     </div>
     <div class="col-12 d-flex justify-content-end">
       <button type="submit" class="btn btn-primary">Сохранить заметки</button>

@@ -1,5 +1,12 @@
 from django import forms
-from .models import Shelf, ShelfItem, Event, EventParticipant, BookProgress
+from .models import (
+    Shelf,
+    ShelfItem,
+    Event,
+    EventParticipant,
+    BookProgress,
+    CharacterNote,
+)
 
 class ShelfCreateForm(forms.ModelForm):
     class Meta:
@@ -35,20 +42,40 @@ class AddToEventForm(forms.Form):
 class BookProgressNotesForm(forms.ModelForm):
     class Meta:
         model = BookProgress
-        fields = ["character_notes", "reading_notes"]
+        fields = ["reading_notes"]
         labels = {
-            "character_notes": "Герои и заметки о них",
             "reading_notes": "Цитаты, впечатления, реакции",
         }
         widgets = {
-            "character_notes": forms.Textarea(attrs={
-                "rows": 4,
-                "class": "form-control",
-                "placeholder": "Добавьте список персонажей и краткие описания, кто есть кто...",
-            }),
-            "reading_notes": forms.Textarea(attrs={
-                "rows": 5,
-                "class": "form-control",
-                "placeholder": "Фиксируйте цитаты, мысли и эмоции по ходу чтения...",
-            }),
+            "reading_notes": forms.Textarea(
+                attrs={
+                    "rows": 5,
+                    "class": "form-control",
+                    "placeholder": "Фиксируйте цитаты, мысли и эмоции по ходу чтения...",
+                }
+            ),
+        }
+
+class CharacterNoteForm(forms.ModelForm):
+    class Meta:
+        model = CharacterNote
+        fields = ["name", "description"]
+        labels = {
+            "name": "Имя героя",
+            "description": "Описание",
+        }
+        widgets = {
+            "name": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Как зовут персонажа?",
+                }
+            ),
+            "description": forms.Textarea(
+                attrs={
+                    "rows": 3,
+                    "class": "form-control",
+                    "placeholder": "Кем является герой, как связан с сюжетом...",
+                }
+            ),
         }

@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils.timezone import localdate
 
 from books.models import Book, ISBNModel
-from .models import BookProgress, ReadingLog
+from .models import BookProgress, ReadingLog, CharacterNote
 
 
 class ReadingTrackViewTests(TestCase):
@@ -145,7 +145,6 @@ class ReadingTrackViewTests(TestCase):
     def test_update_notes_persists_text(self):
         progress = self._create_progress()
         payload = {
-            "character_notes": "Гарри — избранный, Гермиона — мозг команды",
             "reading_notes": "Глава 1: сильные эмоции, цитата про дружбу",
         }
 
@@ -157,5 +156,30 @@ class ReadingTrackViewTests(TestCase):
         self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
 
         progress.refresh_from_db()
-        self.assertEqual(progress.character_notes, payload["character_notes"])
         self.assertEqual(progress.reading_notes, payload["reading_notes"])
+
+    def test_add_character_creates_entry(self):
+        progress = self._create_progress()
+
+        response = self.client.post(
+            reverse("reading_add_character", args=[progress.pk]),
+            {"name": "Гарри Поттер", "description": "Главный герой, волшебник"},
+        )
+
+        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        character = CharacterNote.objects.get(progress=progress)
+        self.assertEqual(character.name, "Гарри Поттер")
+        self.assertEqual(character.description, "Главный герой, волшебник")
+
+    def test_add_character_invalid_shows_errors(self):
+        progress = self._create_progress()
+
+        response = self.client.post(
+            reverse("reading_add_character", args=[progress.pk]),
+            {"name": "", "description": ""},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "reading/track.html")
+        form = response.context["character_form"]
+        self.assertTrue(form.errors)
