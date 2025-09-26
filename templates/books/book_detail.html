@@ -28,76 +28,175 @@
 
     <!-- Кнопки действий -->
     {% if request.user.is_authenticated %}
-         <div class="d-flex flex-wrap gap-2 my-3">
-        <!-- Хочу прочитать -->
+      <div class="d-flex flex-wrap gap-2 my-3">
         <form method="post" action="{% url 'quick_add_shelf' book.id 'want' %}">
-            {% csrf_token %}
-            <button class="btn btn-outline-primary btn-sm" type="submit">Хочу прочитать</button>
+          {% csrf_token %}
+          <button class="btn btn-outline-primary btn-sm" type="submit">Хочу прочитать</button>
         </form>
-
-        <!-- Читаю -->
         <form method="post" action="{% url 'quick_add_shelf' book.id 'reading' %}">
-            {% csrf_token %}
-            <button class="btn btn-outline-primary btn-sm" type="submit">Читаю</button>
+          {% csrf_token %}
+          <button class="btn btn-outline-primary btn-sm" type="submit">Читаю</button>
         </form>
-
-        <!-- Прочитал -->
-        <form method="post" action="{% url 'quick_add_shelf' book.id 'read' %}">
-            {% csrf_token %}
-            <button class="btn btn-outline-primary btn-sm" type="submit">Прочитал</button>
-        </form>
-
-        <!-- Взять в марафон -->
-        <a class="btn btn-primary btn-sm" href="{% url 'add_book_to_event' book.id %}">
-            Взять в марафон
-        </a>
-        </div>
-
-        {% else %}
-        <a class="btn btn-outline-secondary" href="{% url 'login' %}?next={{ request.path }}">
-            Войти, чтобы добавить в полку/марафон
-        </a>
-        {% endif %}
-
-      <div class="d-flex align-items-center gap-2">
-        <div class="text-warning"><i class="bi bi-star-fill"></i> {{ book.get_average_rating }}</div>
-        {% if user.is_authenticated %}
-          <form method="post" action="{% url 'rate_book' book.pk %}" class="d-flex align-items-center gap-2">
-            {% csrf_token %}
-            {{ form.book.as_hidden }}
-            {{ form.score }}
-            <button class="btn btn-primary btn-sm">Оценить</button>
-          </form>
-        {% else %}
-          <a class="btn btn-outline-secondary btn-sm" href="/admin/login/?next={{ request.path }}">Войдите, чтобы оценить</a>
-        {% endif %}
+        <a class="btn btn-primary btn-sm" href="{% url 'add_book_to_event' book.id %}">Взять в марафон</a>
       </div>
-    </div>
-
-    <!-- Раздел: Оценки и отзывы -->
-    <h2 class="h6 mt-4 mb-2">Оценки и отзывы</h2>
-    {% if ratings %}
-      <ul class="list-group mb-3">
-        {% for r in ratings %}
-          <li class="list-group-item d-flex justify-content-between align-items-start">
-            <div class="me-3">
-              <div class="fw-semibold">{{ r.user.get_username }}</div>
-              <div class="small text-muted">{{ r.created_at|date:"d.m.Y H:i" }}.</div> {# placeholder, если нет поля created_at #}
-            </div>
-            <span class="badge text-bg-warning align-self-center">{{ r.score }}★</span>
-          </li>
-        {% endfor %}
-      </ul>
     {% else %}
-      <div class="alert alert-light border">Пока нет оценок — станьте первым!</div>
+      <a class="btn btn-outline-secondary" href="{% url 'login' %}?next={{ request.path }}">
+        Войти, чтобы добавить в полку/марафон
+      </a>
     {% endif %}
 
-    <!-- (опционально) Мок отзывов — уберём, когда добавим модель Review -->
-    <div class="mt-3 d-none">
-      <div class="alert alert-secondary">Тут будут отзывы/комментарии читателей.</div>
+    {% with overall=rating_summary.score %}
+      <div class="d-flex flex-wrap align-items-baseline gap-2 mt-3">
+        <div class="d-flex align-items-baseline gap-2 text-warning">
+          <i class="bi bi-star-fill"></i>
+          <span class="fw-semibold fs-5">
+            {% if overall.average %}
+              {{ overall.average }}
+            {% else %}
+              —
+            {% endif %}
+          </span>
+          {% if overall.average %}
+            <span class="text-muted small">из 10</span>
+          {% endif %}
+        </div>
+        <div class="text-muted small">
+          {% if overall.count %}
+            {{ overall.count }} оцен{{ overall.count|pluralize:"ка,ки,ок" }}
+          {% else %}
+            Пока нет оценок
+          {% endif %}
+        </div>
+        {% if user.is_authenticated %}
+        <a class="btn btn-primary btn-sm ms-auto" href="#write-review">Оставить отзыв</a>
+        {% else %}
+        <a class="btn btn-outline-secondary btn-sm ms-auto" href="{% url 'login' %}?next={{ request.path }}">Войдите, чтобы оценить</a>
+        {% endif %}
+      </div>
+      {% endwith %}
+      <div class="mt-4">
+      <h2 class="h6 mb-3">Оценки и отзывы</h2>
+      <div class="row g-3">
+        <div class="col-lg-6">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <h3 class="h6 mb-3">Средние оценки читателей</h3>
+              {% if ratings %}
+                <ul class="list-unstyled mb-0 small">
+                  {% for key, info in rating_summary.items %}
+                    <li class="d-flex justify-content-between py-1 border-bottom border-light-subtle">
+                      <span class="me-2">{{ info.label }}</span>
+                      <span>
+                        {% if info.average %}
+                          <strong>{{ info.average }}</strong><span class="text-muted"> / 10</span>
+                        {% else %}
+                          <span class="text-muted">—</span>
+                        {% endif %}
+                        {% if info.count %}
+                          <span class="text-muted ms-1">({{ info.count }} оцен{{ info.count|pluralize:"ка,ки,ок" }})</span>
+                        {% endif %}
+                      </span>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <p class="text-muted mb-0">Пока нет оценок. Будьте первым, кто поделится впечатлениями.</p>
+              {% endif %}
+            </div>
+             </div>
+        </div>
+        <div class="col-lg-6">
+          {% if user.is_authenticated %}
+            <div class="card border-0 shadow-sm h-100" id="write-review">
+              <div class="card-body">
+                <h3 class="h6 mb-3">Оставить отзыв</h3>
+                <form method="post" action="{% url 'rate_book' book.pk %}" class="row g-3">
+                  {% csrf_token %}
+                  {{ form.book }}
+                  {% if form.non_field_errors %}
+                    <div class="col-12">
+                      <div class="alert alert-danger mb-0">
+                        {{ form.non_field_errors|join:"<br>"|safe }}
+                      </div>
+                    </div>
+                  {% endif %}
+                  <div class="col-12">
+                    <div class="row g-3">
+                      <div class="col-sm-6 col-lg-4">
+                        <label class="form-label" for="{{ form.score.id_for_label }}">{{ form.score.label }}</label>
+                        {{ form.score }}
+                        {% if form.score.errors %}
+                          <div class="invalid-feedback d-block">{{ form.score.errors|join:", " }}</div>
+                        {% endif %}
+                      </div>
+                      {% for field_name, label in rating_categories %}
+                        {% with field=form[field_name] %}
+                          <div class="col-sm-6 col-lg-4">
+                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.errors %}
+                              <div class="invalid-feedback d-block">{{ field.errors|join:", " }}</div>
+                            {% endif %}
+                          </div>
+                        {% endwith %}
+                      {% endfor %}
+                    </div>
+                    <div class="form-text mt-1">Вы можете заполнить только те категории, которые вам важны.</div>
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label" for="{{ form.review.id_for_label }}">{{ form.review.label }}</label>
+                    {{ form.review }}
+                    {% if form.review.errors %}
+                      <div class="invalid-feedback d-block">{{ form.review.errors|join:", " }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="col-12 d-flex justify-content-end">
+                    <button class="btn btn-primary" type="submit">Отправить отзыв</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          {% else %}
+            <div class="alert alert-light border h-100 d-flex flex-column justify-content-center">
+              <p class="mb-2">Войдите, чтобы оставить свою оценку и отзыв.</p>
+              <a class="btn btn-primary btn-sm align-self-start" href="{% url 'login' %}?next={{ request.path }}">Войти</a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      {% if ratings %}
+        <div class="list-group mt-4">
+          {% for r in ratings %}
+            <div class="list-group-item">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <div class="fw-semibold">{{ r.user.get_username }}</div>
+                  <div class="small text-muted">{{ r.created_at|date:"d.m.Y H:i" }}</div>
+                </div>
+                {% if r.score %}
+                  <span class="badge text-bg-warning">{{ r.score }} / 10</span>
+                {% endif %}
+              </div>
+              {% with category_scores=r.get_category_scores %}
+                {% if category_scores %}
+                  <ul class="list-inline small mt-2 mb-0">
+                    {% for label, value in category_scores %}
+                      <li class="list-inline-item me-3">{{ label }}: <strong>{{ value }}</strong></li>
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+              {% endwith %}
+              {% if r.review %}
+                <p class="mt-2 mb-0">{{ r.review|linebreaksbr }}</p>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="alert alert-light border mt-4 mb-0">Пока нет отзывов — станьте первым!</div>
+      {% endif %}
     </div>
-
-  </div>
+    </div>
 </div>
 
 <!-- Modal: Добавить в полку (прототип) -->
@@ -122,15 +221,5 @@
         </div>
         <div class="mb-3">
           <label class="form-label">Или создайте новую</label>
-          <input type="text" class="form-control" name="new_shelf" placeholder="Напр.: Осенний марафон 2025">
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-primary" type="button" data-bs-dismiss="modal">Сохранить (мок)</button>
-        <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Отмена</button>
-      </div>
-    </form>
-  </div>
-</div>
 
-{% endblock %}
+       

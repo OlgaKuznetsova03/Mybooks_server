@@ -129,18 +129,80 @@ class BookForm(forms.ModelForm):
 
 class RatingForm(forms.ModelForm):
     score = forms.IntegerField(
-        min_value=1, max_value=5,
-        widget=forms.NumberInput(attrs={"step": 1})
+        required=False,
+        min_value=1,
+        max_value=10,
+        label=Rating.SCORE_FIELD[1],
+        widget=forms.NumberInput(attrs={"step": 1, "placeholder": "1–10", "class": "form-control"}),
+    )
+    plot_score = forms.IntegerField(
+        required=False,
+        min_value=1,
+        max_value=10,
+        label=Rating.CATEGORY_FIELDS[0][1],
+        widget=forms.NumberInput(attrs={"step": 1, "class": "form-control"}),
+    )
+    characters_score = forms.IntegerField(
+        required=False,
+        min_value=1,
+        max_value=10,
+        label=Rating.CATEGORY_FIELDS[1][1],
+        widget=forms.NumberInput(attrs={"step": 1, "class": "form-control"}),
+    )
+    atmosphere_score = forms.IntegerField(
+        required=False,
+        min_value=1,
+        max_value=10,
+        label=Rating.CATEGORY_FIELDS[2][1],
+        widget=forms.NumberInput(attrs={"step": 1, "class": "form-control"}),
+    )
+    art_score = forms.IntegerField(
+        required=False,
+        min_value=1,
+        max_value=10,
+        label=Rating.CATEGORY_FIELDS[3][1],
+        widget=forms.NumberInput(attrs={"step": 1, "class": "form-control"}),
+    )
+    logic_score = forms.IntegerField(
+        required=False,
+        min_value=1,
+        max_value=10,
+        label=Rating.CATEGORY_FIELDS[4][1],
+        widget=forms.NumberInput(attrs={"step": 1, "class": "form-control"}),
+    )
+    language_score = forms.IntegerField(
+        required=False,
+        min_value=1,
+        max_value=10,
+        label=Rating.CATEGORY_FIELDS[5][1],
+        widget=forms.NumberInput(attrs={"step": 1, "class": "form-control"}),
+    )
+    review = forms.CharField(
+        required=False,
+        label="Текст отзыва",
+        widget=forms.Textarea(attrs={"rows": 4, "placeholder": "Поделитесь впечатлениями...", "class": "form-control"}),
     )
 
     class Meta:
         model = Rating
-        fields = ["book", "score"]
+        fields = [
+            "book",
+            "score",
+            "plot_score",
+            "characters_score",
+            "atmosphere_score",
+            "art_score",
+            "logic_score",
+            "language_score",
+            "review",
+        ]
 
     def __init__(self, *args, **kwargs):
         # ожидаем current_user через kwargs для контроля уникальности
         self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
+        if "book" in self.fields:
+            self.fields["book"].widget = forms.HiddenInput()
 
     def clean(self):
         cleaned = super().clean()
@@ -152,6 +214,12 @@ class RatingForm(forms.ModelForm):
                 exists = exists.exclude(pk=self.instance.pk)
             if exists.exists():
                 raise ValidationError("Вы уже оставляли оценку для этой книги.")
+            filled_scores = [
+            cleaned.get(field)
+            for field, _ in Rating.get_score_fields()
+        ]
+        if not any(filled_scores) and not cleaned.get("review"):
+            raise ValidationError("Поставьте оценку хотя бы в одной категории или напишите отзыв.")
         return cleaned
 
     def save(self, commit=True):
@@ -160,3 +228,4 @@ class RatingForm(forms.ModelForm):
             obj.user = self.user
         if commit:
             obj.save()
+        return obj

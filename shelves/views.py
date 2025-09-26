@@ -4,6 +4,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib import messages
+from django.urls import reverse
+from django.utils.html import format_html
 from books.models import Book
 from .models import Shelf, ShelfItem, BookProgress, Event, EventParticipant
 from .forms import (
@@ -311,6 +313,14 @@ def reading_mark_finished(request, progress_id):
         progress.percent = 100
         progress.save(update_fields=["percent", "updated_at"])
     messages.success(request, "Книга отмечена как прочитанная.")
+    review_link = reverse("book_detail", args=[progress.book_id]) + "#write-review"
+    messages.info(
+        request,
+        format_html(
+            "Готовы поделиться впечатлениями? <a class=\"alert-link\" href=\"{}\">Напишите отзыв о книге</a>.",
+            review_link,
+        ),
+    )
     return redirect("reading_track", book_id=progress.book_id)
 
 

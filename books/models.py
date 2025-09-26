@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
-from django.db.models import Sum, F
+from django.db.models import Sum, F, Avg, Count
 
 
 class Author(models.Model):
@@ -100,11 +100,35 @@ class Book(models.Model):
             return fallback_isbn.total_pages
         return None
 
+    def get_rating_summary(self):
+        """Средние оценки по каждой категории и общее количество голосов."""
+
+        aggregates = self.ratings.aggregate(
+            **{
+                f"{field}_avg": Avg(field)
+                for field, _ in Rating.get_score_fields()
+            },
+            **{
+                f"{field}_count": Count(field)
+                for field, _ in Rating.get_score_fields()
+            },
+        )
+
+        summary = {}
+        for field, label in Rating.get_score_fields():
+            summary[field] = {
+                "label": label,
+                "average": _round_rating(aggregates.get(f"{field}_avg")),
+                "count": aggregates.get(f"{field}_count", 0),
+            }
+        return summary
+
     def get_average_rating(self):
-        ratings = self.ratings.all()
-        if ratings.exists():
-            return round(ratings.aggregate(models.Avg('score'))['score__avg'], 2)
-        return 0
+        """Короткое значение средней оценки для списков и админки."""
+
+        summary = self.get_rating_summary()
+        overall = summary.get("score", {})
+        return overall.get("average")
 
     def __str__(self):
         return self.title
@@ -171,14 +195,90 @@ class ReadingSession(models.Model):
 #             return None
 #         return int(self.pages_left * spp)
 
+def _round_rating(value):
+    if value is None:
+        return None
+    return round(float(value), 1)
+
 
 class Rating(models.Model):
-    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name='ratings')
+    """Пользовательский отзыв об основной книге."""
+
+    SCORE_FIELD = ("score", "Общая оценка")
+    CATEGORY_FIELDS = [
+        ("plot_score", "Насколько захватывающим был сюжет"),
+        ("characters_score", "Персонажи"),
+        ("atmosphere_score", "Атмосфера"),
+        ("art_score", "Художественная ценность"),
+        ("logic_score", "Логика"),
+        ("language_score", "Язык повествования"),
+    ]
+    SCORE_FIELDS = [SCORE_FIELD, *CATEGORY_FIELDS]
+
+    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="ratings")
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     score = models.PositiveSmallIntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(5)]
+        validators=[MinValueValidator(1), MaxValueValidator(10)],
+        null=True,
+        blank=True,
+        help_text="Общая оценка книги от 1 до 10",
     )
-    created_at = models.DateTimeField(auto_now_add=True)  # <-- добавь
+    plot_score = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(10)],
+        null=True,
+        blank=True,
+    )
+    characters_score = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(10)],
+        null=True,
+        blank=True,
+    )
+    atmosphere_score = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(10)],
+        null=True,
+        blank=True,
+    )
+    art_score = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(10)],
+        null=True,
+        blank=True,
+    )
+    logic_score = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(10)],
+        null=True,
+        blank=True,
+    )
+    language_score = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(10)],
+        null=True,
+        blank=True,
+    )
+    review = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('book', 'user')
+        unique_together = ("book", "user")
+
+    @classmethod
+    def get_score_fields(cls):
+        return cls.SCORE_FIELDS
+
+    @classmethod
+    def get_category_fields(cls):
+        return cls.CATEGORY_FIELDS
+
+    def iter_category_scores(self):
+        for field_name, label in self.CATEGORY_FIELDS:
+            value = getattr(self, field_name)
+            if value is not None:
+                yield label, value
+
+    def has_any_scores(self):
+        return any(getattr(self, field, None) is not None for field, _ in self.SCORE_FIELDS)
+
+    def get_category_scores(self):
+        return [
+            (label, getattr(self, field_name))
+            for field_name, label in self.CATEGORY_FIELDS
+            if getattr(self, field_name) is not None
+        ]

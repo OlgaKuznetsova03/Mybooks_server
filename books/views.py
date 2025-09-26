@@ -1,8 +1,9 @@
 from django.db.models import Q
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
-from .models import Book
+from .models import Book, Rating
 from .forms import BookForm, RatingForm
 
 
@@ -26,6 +27,7 @@ def book_detail(request, pk):
         pk=pk
     )
     ratings = book.ratings.select_related("user").order_by("-id")  # последние сверху
+    rating_summary = book.get_rating_summary()
 
     form = RatingForm(
         user=request.user if request.user.is_authenticated else None,
@@ -36,6 +38,8 @@ def book_detail(request, pk):
         "book": book,
         "form": form,
         "ratings": ratings,
+        "rating_summary": rating_summary,
+        "rating_categories": Rating.get_category_fields(),
     })
 
 @login_required
@@ -73,4 +77,7 @@ def rate_book(request, pk):
             rating.book = book
             rating.user = request.user
             rating.save()
+            messages.success(request, "Спасибо! Ваш отзыв сохранён.")
+        else:
+            messages.error(request, "Не удалось сохранить отзыв. Проверьте форму.")
     return redirect("book_detail", pk=book.pk)
