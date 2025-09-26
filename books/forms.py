@@ -125,6 +125,29 @@ class AudioBookForm(forms.ModelForm):
 
 
 class BookForm(forms.ModelForm):
+    authors = forms.CharField(
+        label="Авторы",
+        help_text="Укажите имена через запятую.",
+        widget=forms.TextInput(attrs={"placeholder": "Имя автора, Ещё один автор"}),
+    )
+    isbn = forms.CharField(
+        label="Связанные ISBN",
+        required=False,
+        help_text="Введите ISBN-10 или ISBN-13 через запятую.",
+        widget=forms.TextInput(attrs={"placeholder": "9785000000001, 5-02-013850-9"}),
+    )
+    genres = forms.CharField(
+        label="Жанры",
+        help_text="Перечислите жанры через запятую.",
+        widget=forms.TextInput(attrs={"placeholder": "Фэнтези, Приключения"}),
+    )
+    publisher = forms.CharField(
+        label="Издательства",
+        required=False,
+        help_text="Можно указать несколько издательств через запятую.",
+        widget=forms.TextInput(attrs={"placeholder": "Эксмо, Азбука"}),
+    )
+
     class Meta:
         model = Book
         fields = [
@@ -134,45 +157,36 @@ class BookForm(forms.ModelForm):
         ]
         labels = {
             "title": "Название",
-            "authors": "Авторы",
-            "isbn": "Связанные ISBN",
             "synopsis": "Описание",
             "series": "Серия",
             "series_order": "Номер в серии",
-            "genres": "Жанры",
             "age_rating": "Возрастной рейтинг",
             "language": "Язык",
             "cover": "Обложка",
             "audio": "Аудиоверсия",
-            "publisher": "Издательства",
         }
         widgets = {
             "synopsis": forms.Textarea(attrs={"rows": 6}),
             "cover": forms.ClearableFileInput(),   # виджет для загрузки файла
         }
-        help_texts = {
-            "authors": "Можно выбрать нескольких авторов.",
-            "publisher": "Можно указать несколько издательств.",
-        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        multi_fields = {
-            "authors": "name",
-            "genres": "name",
-            "publisher": "name",
-            "isbn": "title",
-        }
-        for field_name, order_by in multi_fields.items():
-            field = self.fields[field_name]
-            field.queryset = field.queryset.order_by(order_by)
-            field.widget.attrs.setdefault("data-enhanced-multi", "true")
-            field.widget.attrs.setdefault("data-clear-label", "Очистить выбор")
+        if not self.is_bound and self.instance.pk:
+            self.fields["authors"].initial = ", ".join(
+                self.instance.authors.order_by("name").values_list("name", flat=True)
+            )
+            self.fields["genres"].initial = ", ".join(
+                self.instance.genres.order_by("name").values_list("name", flat=True)
+            )
+            self.fields["publisher"].initial = ", ".join(
+                self.instance.publisher.order_by("name").values_list("name", flat=True)
+            )
+            self.fields["isbn"].initial = ", ".join(
+                self.instance.isbn.order_by("title").values_list("isbn", flat=True)
+            )
 
-        self.fields["isbn"].label_from_instance = (
-            lambda obj: f"{obj.title or 'Без названия'} — {obj.isbn}"
-        )
         for field in self.fields.values():
             widget = field.widget
             if isinstance(widget, (forms.TextInput, forms.NumberInput, forms.URLInput, forms.Textarea, forms.ClearableFileInput)):
@@ -181,6 +195,75 @@ class BookForm(forms.ModelForm):
                 widget.attrs.setdefault("class", "form-select")
             elif isinstance(widget, forms.CheckboxInput):
                 widget.attrs.setdefault("class", "form-check-input")
+    def _split_list(self, value: str):
+        if not value:
+            return []
+        parts = [part.strip() for part in value.replace("\n", ",").split(",")]
+        return [part for part in parts if part]
+
+    def clean_authors(self):
+        value = self.cleaned_data.get("authors", "")
+        names = self._split_list(value)
+        if not names:
+            raise ValidationError("Укажите хотя бы одного автора.")
+        authors = []
+        for name in names:
+            author, _ = Author.objects.get_or_create(name=name)
+            authors.append(author)
+        return authors
+
+    def clean_genres(self):
+        value = self.cleaned_data.get("genres", "")
+        names = self._split_list(value)
+        if not names:
+            raise ValidationError("Укажите хотя бы один жанр.")
+        genres = []
+        for name in names:
+            genre, _ = Genre.objects.get_or_create(name=name)
+            genres.append(genre)
+        return genres
+
+    def clean_publisher(self):
+        value = self.cleaned_data.get("publisher", "")
+        names = self._split_list(value)
+        publishers = []
+        for name in names:
+            publisher, _ = Publisher.objects.get_or_create(name=name)
+            publishers.append(publisher)
+        return publishers
+
+    def clean_isbn(self):
+        value = self.cleaned_data.get("isbn", "")
+        numbers = self._split_list(value)
+        isbn_objects = []
+        errors = []
+        seen = set()
+        for raw in numbers:
+            digits = _isbn_digits(raw)
+            if len(digits) not in (10, 13):
+                errors.append(f"ISBN '{raw}' должен содержать 10 или 13 символов.")
+                continue
+            if len(digits) == 10 and not _is_valid_isbn10(digits):
+                errors.append(f"ISBN-10 '{raw}' некорректен.")
+                continue
+            if len(digits) == 13 and not _is_valid_isbn13(digits):
+                errors.append(f"ISBN-13 '{raw}' некорректен.")
+                continue
+            if digits in seen:
+                continue
+            seen.add(digits)
+            isbn_obj, _ = ISBNModel.objects.get_or_create(
+                isbn=digits,
+                defaults={"isbn13": digits if len(digits) == 13 else None},
+            )
+            if len(digits) == 13 and not isbn_obj.isbn13:
+                isbn_obj.isbn13 = digits
+                isbn_obj.save(update_fields=["isbn13"])
+            isbn_objects.append(isbn_obj)
+        if errors:
+            raise ValidationError(errors)
+        return isbn_objects
+
 
     def clean_series_order(self):
         order = self.cleaned_data.get("series_order")
