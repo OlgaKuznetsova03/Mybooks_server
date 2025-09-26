@@ -34,12 +34,18 @@ def book_detail(request, pk):
         initial={"book": book.pk}
     )
 
+    rating_category_fields = [
+        form[field_name]
+        for field_name, _ in Rating.get_category_fields()
+    ]
+
+
     return render(request, "books/book_detail.html", {
         "book": book,
         "form": form,
         "ratings": ratings,
         "rating_summary": rating_summary,
-        "rating_categories": Rating.get_category_fields(),
+        "rating_category_fields": rating_category_fields,
     })
 
 @login_required

@@ -129,16 +129,14 @@
                           <div class="invalid-feedback d-block">{{ form.score.errors|join:", " }}</div>
                         {% endif %}
                       </div>
-                      {% for field_name, label in rating_categories %}
-                        {% with field=form[field_name] %}
-                          <div class="col-sm-6 col-lg-4">
-                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                            {{ field }}
-                            {% if field.errors %}
-                              <div class="invalid-feedback d-block">{{ field.errors|join:", " }}</div>
-                            {% endif %}
-                          </div>
-                        {% endwith %}
+                      {% for field in rating_category_fields %}
+                        <div class="col-sm-6 col-lg-4">
+                          <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                          {{ field }}
+                          {% if field.errors %}
+                            <div class="invalid-feedback d-block">{{ field.errors|join:", " }}</div>
+                          {% endif %}
+                        </div>
                       {% endfor %}
                     </div>
                     <div class="form-text mt-1">Вы можете заполнить только те категории, которые вам важны.</div>
