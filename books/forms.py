@@ -200,5 +200,34 @@ class RatingForm(forms.ModelForm):
         ]
 
     def __init__(self, *args, **kwargs):
+        """Accept the current user and lock the book field to the target book."""
         # ожидаем current_user через kwargs для контроля уникальности
         self.user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+
+        book_field = self.fields["book"]
+        book_field.widget = forms.HiddenInput()
+        book_field.empty_label = None
+
+        book_pk = self.initial.get("book") or getattr(self.instance, "book_id", None)
+        if book_pk:
+            try:
+                book_pk = int(book_pk)
+            except (TypeError, ValueError):
+                book_pk = None
+
+        if book_pk:
+            book_field.initial = book_pk
+            book_field.queryset = Book.objects.filter(pk=book_pk)
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        book = cleaned_data.get("book")
+        if not book:
+            return cleaned_data
+
+        if self.user and Rating.objects.filter(book=book, user=self.user).exclude(pk=self.instance.pk).exists():
+            raise ValidationError("Вы уже оставляли отзыв на эту книгу.")
+
+        return cleaned_data
