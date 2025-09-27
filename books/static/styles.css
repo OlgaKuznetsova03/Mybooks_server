@@ -83,4 +83,63 @@
 }
 .multi-select-enhanced__list .form-check:last-child{
   margin-bottom:0;
+@@ -61,26 +61,58 @@
+  color:var(--bs-warning);
+}
+.star-rating-btn.is-active{
+  color:var(--bs-warning);
+}
+.star-rating-btn:focus-visible{
+  outline:2px solid var(--bs-primary);
+  outline-offset:2px;
+}
+.star-rating-field [data-rating-display]{
+  min-width:7rem;
+}
+/* Улучшенный выбор множественных полей */
+.multi-select-enhanced{
+  max-height:20rem;
+}
+.multi-select-enhanced__list{
+  max-height:14rem;
+  overflow-y:auto;
+}
+.multi-select-enhanced__list .form-check{
+  margin-bottom:0.25rem;
+}
+.multi-select-enhanced__list .form-check:last-child{
+  margin-bottom:0;
+}
+}
+
+/* Обложки и другие издания */
+.cover-thumb.active,
+.cover-thumb:focus-visible{
+  border-color:var(--bs-primary);
+  color:var(--bs-primary);
+  background-color:rgba(108,92,231,.08);
+}
+
+.book-editions .book-edition{
+  border:1px solid var(--bs-border-color);
+  background-color:var(--bs-body-bg);
+  transition:border-color .15s ease,box-shadow .15s ease,background-color .15s ease;
+}
+
+.book-editions .book-edition.is-active{
+  border-color:var(--bs-primary);
+  box-shadow:0 0 0 0.2rem rgba(108,92,231,.15);
+}
+
+.book-edition__meta dt{
+  font-weight:600;
+  color:var(--bs-secondary-color);
+}
+
+.book-edition__meta dd{
+  margin-bottom:0.25rem;
+}
+
+.book-edition__meta dd:last-child{
+  margin-bottom:0;
 }

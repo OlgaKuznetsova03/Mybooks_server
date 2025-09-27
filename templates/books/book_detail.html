@@ -4,7 +4,7 @@
 
 <div class="row g-4">
   <div class="col-md-4">
-   <div class="text-center" data-role="book-cover-display">
+   <div class="text-center" data-role="book-cover-display" data-default-alt="Обложка книги «{{ book.title }}»" data-default-label="{{ cover_label|default_if_none:''|escape }}">
       <img
         src="{% if active_cover and active_cover.image %}{{ active_cover.image }}{% endif %}"
         class="rounded shadow-sm img-fluid mx-auto{% if not active_cover or not active_cover.image %} d-none{% endif %}"
@@ -33,10 +33,11 @@
               type="button"
               class="btn btn-outline-secondary btn-sm p-1 cover-thumb{% if variant.is_active %} active{% endif %}"
               data-cover-src="{{ variant.image }}"
-              data-cover-alt="{{ variant.alt }}"
-              data-cover-label="{{ variant.label }}"
+              data-cover-alt="{{ variant.alt|escape }}"
+              data-cover-label="{{ variant.label|escape }}"
               aria-pressed="{% if variant.is_active %}true{% else %}false{% endif %}"
               title="{{ variant.label }}"
+              {% if variant.edition_id %}data-edition-id="{{ variant.edition_id }}"{% endif %}
               data-role="book-cover-thumb"
             >
               <img
@@ -95,6 +96,47 @@
       <div class="mb-2">Издательство: {{ book.publisher.all|join:", " }}</div>
     {% endif %}
     <p class="mb-3">{{ book.synopsis|default:"Описание пока не добавлено." }}</p>
+
+    {% if isbn_editions %}
+      <div class="card border-0 shadow-sm mt-4" aria-labelledby="book-editions-title">
+        <div class="card-body">
+          <h2 class="h6 mb-3" id="book-editions-title">Издания и ISBN</h2>
+          <div class="vstack gap-3 book-editions" data-role="book-editions">
+            {% for edition in isbn_editions %}
+              <article class="book-edition p-3 rounded-3{% if edition.is_primary %} is-active{% endif %}" data-role="book-edition"{% if edition.id %} data-edition-id="{{ edition.id }}"{% endif %}{% if edition.is_primary %} aria-current="true"{% endif %}>
+                <div class="d-flex flex-wrap align-items-baseline gap-2">
+                  <h3 class="h6 mb-0">{{ edition.display_title }}</h3>
+                  {% if edition.is_primary %}
+                    <span class="badge text-bg-primary">Основное издание</span>
+                  {% endif %}
+                </div>
+                {% if edition.authors_display %}
+                  <div class="text-muted small mt-1">{{ edition.authors_display }}</div>
+                {% endif %}
+                {% if edition.header_text %}
+                  <div class="text-muted small mt-1">{{ edition.header_text }}</div>
+                {% endif %}
+                {% if edition.meta %}
+                  <dl class="row small text-muted mt-2 mb-0 book-edition__meta">
+                    {% for item in edition.meta %}
+                      <dt class="col-sm-4 col-lg-3">{{ item.label }}</dt>
+                      <dd class="col-sm-8 col-lg-9 text-body">{{ item.value }}</dd>
+                    {% endfor %}
+                  </dl>
+                {% endif %}
+                {% if edition.subjects %}
+                  <div class="mt-2 d-flex flex-wrap gap-2">
+                    {% for subject in edition.subjects %}
+                      <span class="badge text-bg-light">{{ subject }}</span>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </article>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
 
     <!-- Кнопки действий -->
     {% if request.user.is_authenticated %}
@@ -324,13 +366,34 @@
       const coverImage = coverContainer.querySelector('[data-role="book-cover-image"]');
       const coverPlaceholder = coverContainer.querySelector('[data-role="book-cover-placeholder"]');
       const coverLabel = coverContainer.querySelector('[data-role="book-cover-label"]');
+      const defaultAlt = coverContainer.dataset.defaultAlt || '';
+      const defaultLabel = coverContainer.dataset.defaultLabel || '';
       const thumbnailsRoot = coverContainer.parentElement || coverContainer;
-      const coverButtons = thumbnailsRoot.querySelectorAll('[data-role="book-cover-thumb"]');
+      const coverButtons = Array.from(thumbnailsRoot.querySelectorAll('[data-role="book-cover-thumb"]'));
+      const editionBlocks = Array.from(document.querySelectorAll('[data-role="book-edition"]'));
 
+      const setActiveEdition = (editionId) => {
+        if (!editionBlocks.length) {
+          return;
+        }
+        editionBlocks.forEach((block) => {
+          const isMatch = editionId && block.dataset.editionId === editionId;
+          if (isMatch) {
+            block.classList.add('is-active');
+            block.setAttribute('aria-current', 'true');
+          } else {
+            block.classList.remove('is-active');
+            block.removeAttribute('aria-current');
+          }
+        });
+      };
+
+      
       const updateCover = (button) => {
-        const src = button.getAttribute('data-cover-src');
-        const alt = button.getAttribute('data-cover-alt') || '';
-        const label = button.getAttribute('data-cover-label') || '';
+        const src = button.dataset.coverSrc || '';
+        const alt = button.dataset.coverAlt || defaultAlt;
+        const label = button.dataset.coverLabel || defaultLabel;
+        const editionId = button.dataset.editionId || '';
 
         coverButtons.forEach((item) => {
           const isActive = item === button;
@@ -341,28 +404,40 @@
         if (coverImage) {
           if (src) {
             coverImage.src = src;
-            coverImage.alt = alt;
+            coverImage.alt = alt || defaultAlt;
             coverImage.classList.remove('d-none');
           } else {
             coverImage.src = '';
-            coverImage.alt = alt;
+            overImage.alt = defaultAlt;
             coverImage.classList.add('d-none');
           }
         }
 
         if (coverPlaceholder) {
-          coverPlaceholder.classList.toggle('d-none', !!src);
+          coverPlaceholder.classList.toggle('d-none', Boolean(src));
         }
 
         if (coverLabel) {
-          coverLabel.textContent = label;
-          coverLabel.classList.toggle('d-none', !label);
+          if (label) {
+            coverLabel.textContent = label;
+            coverLabel.classList.remove('d-none');
+          } else {
+            coverLabel.textContent = '';
+            coverLabel.classList.add('d-none');
+          }
         }
+
+        setActiveEdition(editionId);
       };
 
       coverButtons.forEach((button) => {
         button.addEventListener('click', () => updateCover(button));
       });
+
+      const activeButton = coverButtons.find((button) => button.classList.contains('active'));
+      if (activeButton) {
+        setActiveEdition(activeButton.dataset.editionId || '');
+      }
     }
   });
 </script>

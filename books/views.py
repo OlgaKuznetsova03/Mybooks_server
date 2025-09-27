@@ -1,4 +1,4 @@
-from django.db.models import Q, Min, Max
+from django.db.models import Q, Min, Max, Prefetch
 from django.core.paginator import Paginator
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.utils.html import mark_safe
 from django.utils.text import slugify
 from shelves.models import BookProgress
-from .models import Book, Rating
+from .models import Book, Rating, ISBNModel
 from .forms import BookForm, RatingForm
 
 def _find_books_with_same_title_and_authors(title, authors):
@@ -52,7 +52,13 @@ def book_list(request):
 
 def book_detail(request, pk):
     book = get_object_or_404(
-        Book.objects.prefetch_related("authors", "genres", "publisher", "isbn", "ratings__user"),
+        Book.objects.prefetch_related(
+            "authors",
+            "genres",
+            "publisher",
+            "ratings__user",
+            Prefetch("isbn", queryset=ISBNModel.objects.prefetch_related("authors")),
+        ),
         pk=pk
     )
     ratings = book.ratings.select_related("user").order_by("-id")  # последние сверху
@@ -69,15 +75,7 @@ def book_detail(request, pk):
     ]
 
     cover_variants = []
-    if book.cover:
-        cover_variants.append({
-            "key": "book-cover",
-            "image": book.cover.url,
-            "alt": f"Обложка книги «{book.title}»",
-            "label": "Текущее издание",
-            "is_primary": True,
-            "is_active": True,
-        })
+    display_primary_isbn_id = book.primary_isbn_id
 
     isbn_entries = list(book.isbn.all())
     isbn_entries.sort(
@@ -86,6 +84,20 @@ def book_detail(request, pk):
             item.pk or 0,
         )
     )
+
+    if not display_primary_isbn_id and isbn_entries:
+        display_primary_isbn_id = isbn_entries[0].pk
+
+    if book.cover:
+        cover_variants.append({
+            "key": "book-cover",
+            "image": book.cover.url,
+            "alt": f"Обложка книги «{book.title}»",
+            "label": "Текущее издание",
+            "is_primary": True,
+            "is_active": True,
+            "edition_id": str(display_primary_isbn_id or ""),
+        })
 
     has_primary_cover = bool(book.cover)
 
@@ -103,7 +115,7 @@ def book_detail(request, pk):
             label_parts.append(f"ISBN {isbn_display}")
         label = " · ".join(label_parts) if label_parts else "Дополнительное издание"
 
-        is_primary_isbn = isbn.pk == book.primary_isbn_id
+        is_primary_isbn = isbn.pk == display_primary_isbn_id
         cover_variants.append({
             "key": f"isbn-{isbn.pk}",
             "image": image_url,
@@ -111,6 +123,7 @@ def book_detail(request, pk):
             "label": label,
             "is_primary": is_primary_isbn,
             "is_active": is_primary_isbn and not has_primary_cover,
+            "edition_id": str(isbn.pk),
         })
 
     active_cover = next((variant for variant in cover_variants if variant.get("is_active")), None)
@@ -120,6 +133,47 @@ def book_detail(request, pk):
 
     show_cover_thumbnails = any(not variant.get("is_primary") for variant in cover_variants)
     cover_label = active_cover.get("label") if active_cover else None
+    isbn_editions = []
+
+    for index, isbn in enumerate(isbn_entries):
+        subjects = []
+        if isbn.subjects:
+            subjects = [subject.strip() for subject in isbn.subjects.split(",") if subject.strip()]
+
+        authors_qs = isbn.authors.all()
+        authors_display = ", ".join(author.name for author in authors_qs if author.name)
+
+        header_parts = []
+        publisher = (isbn.publisher or "").strip()
+        publish_date = (isbn.publish_date or "").strip()
+        binding = (isbn.binding or "").strip()
+
+        if publisher:
+            header_parts.append(publisher)
+        if publish_date:
+            header_parts.append(publish_date)
+        if binding:
+            header_parts.append(binding)
+
+        meta = []
+        if isbn.isbn:
+            meta.append({"label": "ISBN-10", "value": isbn.isbn})
+        if isbn.isbn13:
+            meta.append({"label": "ISBN-13", "value": isbn.isbn13})
+        if isbn.total_pages:
+            meta.append({"label": "Страниц", "value": f"{isbn.total_pages} стр."})
+        if isbn.language:
+            meta.append({"label": "Язык", "value": isbn.language})
+
+        isbn_editions.append({
+            "id": str(isbn.pk),
+            "display_title": (isbn.title or "").strip() or book.title,
+            "header_text": " · ".join(header_parts),
+            "subjects": subjects,
+            "authors_display": authors_display,
+            "meta": meta,
+            "is_primary": isbn.pk == display_primary_isbn_id,
+        })
 
     return render(request, "books/book_detail.html", {
         "book": book,
@@ -132,6 +186,7 @@ def book_detail(request, pk):
         "active_cover": active_cover,
         "cover_label": cover_label,
         "show_cover_thumbnails": show_cover_thumbnails,
+        "isbn_editions": isbn_editions,
     })
 
 @login_required
