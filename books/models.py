@@ -49,7 +49,7 @@ class ISBNModel(models.Model):
     def __str__(self):
         return f"{self.title} ({self.isbn})"
 
-def get_image_url(self) -> str:
+    def get_image_url(self) -> str:
         """Вернуть пригодный для использования URL обложки издания."""
 
         image_value = self.image

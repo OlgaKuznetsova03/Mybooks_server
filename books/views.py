@@ -316,8 +316,10 @@ def book_create(request):
                                 selected_book.genres.add(*genres)
 
                             cover = form.cleaned_data.get("cover")
+                            cover_uploaded = False
                             if cover:
                                 selected_book.cover = cover
+                                cover_uploaded = True
 
                             synopsis = form.cleaned_data.get("synopsis")
                             if synopsis and not selected_book.synopsis:
@@ -347,6 +349,16 @@ def book_create(request):
                                 selected_book.primary_isbn = unique_isbns[0]
 
                             selected_book.save()
+
+                            cover_reference = ""
+                            if selected_book.cover:
+                                cover_reference = selected_book.cover.name or ""
+
+                            if cover_reference:
+                                for isbn in unique_isbns:
+                                    if cover_uploaded or not isbn.image:
+                                        isbn.image = cover_reference
+                                        isbn.save(update_fields=["image"])
 
                             messages.success(
                                 request,
