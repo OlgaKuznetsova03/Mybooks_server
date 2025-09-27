@@ -1,3 +1,6 @@
+from urllib.parse import urljoin
+
+from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -45,6 +48,35 @@ class ISBNModel(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.isbn})"
+
+def get_image_url(self) -> str:
+        """Вернуть пригодный для использования URL обложки издания."""
+
+        image_value = self.image
+        if not image_value:
+            return ""
+
+        # File/ImageField instances expose ``url`` — попробуем использовать его
+        try:
+            file_url = image_value.url  # type: ignore[attr-defined]
+        except (ValueError, AttributeError):
+            file_url = None
+        else:
+            if file_url:
+                return file_url
+
+        image_str = str(image_value).strip()
+        if not image_str:
+            return ""
+
+        if image_str.startswith(("http://", "https://", "//")):
+            return image_str
+
+        if image_str.startswith("/"):
+            return image_str
+
+        media_url = getattr(settings, "MEDIA_URL", "/media/") or "/media/"
+        return urljoin(media_url if media_url.endswith("/") else f"{media_url}/", image_str)
 
 
 class AudioBook(models.Model):

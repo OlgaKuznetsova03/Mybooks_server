@@ -115,7 +115,7 @@ def book_detail(request, pk):
         })
 
     for isbn in isbn_entries:
-        image_url = (isbn.image or "").strip()
+        image_url = isbn.get_image_url()
         if not image_url:
             continue
 

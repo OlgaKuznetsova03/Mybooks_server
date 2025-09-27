@@ -5,8 +5,16 @@
 <div class="row g-4 align-items-start">
   <div class="col-12 col-md-4 col-lg-3 col-xl-2">
     {% if book.cover %}
-      <img src="{{ book.cover.url }}" class="img-fluid rounded shadow-sm" alt="Обложка книги {{ book.title }}">
-    {% elif book.primary_isbn and book.primary_isbn.image %}
+      {% elif book.primary_isbn %}
+      {% with primary_cover=book.primary_isbn.get_image_url %}
+        {% if primary_cover %}
+          <img src="{{ primary_cover }}" class="img-fluid rounded shadow-sm" alt="Обложка книги {{ book.title }}">
+        {% else %}
+          <div class="bg-light border rounded d-flex align-items-center justify-content-center" style="height: 240px;">
+            <span class="text-muted small text-center px-3">Нет обложки</span>
+          </div>
+        {% endif %}
+      {% endwith %}
       <img src="{{ book.primary_isbn.image }}" class="img-fluid rounded shadow-sm" alt="Обложка книги {{ book.title }}">
     {% else %}
       <div class="bg-light border rounded d-flex align-items-center justify-content-center" style="height: 240px;">
