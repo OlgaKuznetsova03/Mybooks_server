@@ -76,6 +76,11 @@ def book_detail(request, pk):
 
     cover_variants = []
     display_primary_isbn_id = book.primary_isbn_id
+    requested_edition_id = request.GET.get("edition")
+    if requested_edition_id:
+        requested_edition_id = requested_edition_id.strip()
+        if not requested_edition_id.isdigit():
+            requested_edition_id = None
 
     isbn_entries = list(book.isbn.all())
     isbn_entries.sort(
@@ -84,6 +89,16 @@ def book_detail(request, pk):
             item.pk or 0,
         )
     )
+
+    available_edition_ids = {
+        str(isbn.pk)
+        for isbn in isbn_entries
+        if isbn.pk is not None
+    }
+
+    selected_edition_id = None
+    if requested_edition_id and requested_edition_id in available_edition_ids:
+        selected_edition_id = requested_edition_id
 
     if not display_primary_isbn_id and isbn_entries:
         display_primary_isbn_id = isbn_entries[0].pk
@@ -95,11 +110,9 @@ def book_detail(request, pk):
             "alt": f"Обложка книги «{book.title}»",
             "label": "Текущее издание",
             "is_primary": True,
-            "is_active": True,
+            "is_active": False,
             "edition_id": str(display_primary_isbn_id or ""),
         })
-
-    has_primary_cover = bool(book.cover)
 
     for isbn in isbn_entries:
         image_url = (isbn.image or "").strip()
@@ -122,14 +135,61 @@ def book_detail(request, pk):
             "alt": f"Обложка издания «{title or book.title}»",
             "label": label,
             "is_primary": is_primary_isbn,
-            "is_active": is_primary_isbn and not has_primary_cover,
+            "is_active": False,
             "edition_id": str(isbn.pk),
+            "page_count": isbn.total_pages,
         })
 
-    active_cover = next((variant for variant in cover_variants if variant.get("is_active")), None)
+    active_cover = None
+    active_cover_edition_id = None
+    if selected_edition_id:
+        for preferred_key in ("non-primary", "any"):
+            for variant in cover_variants:
+                if preferred_key == "non-primary" and variant.get("key") == "book-cover":
+                    continue
+                if variant.get("edition_id") == selected_edition_id and variant.get("image"):
+                    variant["is_active"] = True
+                    active_cover = variant
+                    active_cover_edition_id = variant.get("edition_id") or None
+                else:
+                    variant["is_active"] = False
+                if active_cover:
+                    break
+            if active_cover:
+                break
+
+    if not active_cover:
+        for variant in cover_variants:
+            if variant.get("is_primary") and (variant.get("image") or not active_cover):
+                variant["is_active"] = True
+                active_cover = variant
+                active_cover_edition_id = variant.get("edition_id") or None
+                break
+
     if not active_cover and cover_variants:
         cover_variants[0]["is_active"] = True
         active_cover = cover_variants[0]
+        active_cover_edition_id = active_cover.get("edition_id") or None
+
+    edition_active_id = selected_edition_id or active_cover_edition_id
+    if not edition_active_id and display_primary_isbn_id:
+        edition_active_id = str(display_primary_isbn_id)
+    if not edition_active_id:
+        edition_active_id = next(
+            (
+                str(isbn.pk)
+                for isbn in isbn_entries
+                if isbn.pk is not None
+            ),
+            None,
+        )
+
+    active_edition = None
+    if edition_active_id:
+        active_edition = next(
+            (isbn for isbn in isbn_entries if str(isbn.pk) == edition_active_id),
+            None,
+        )
 
     show_cover_thumbnails = any(not variant.get("is_primary") for variant in cover_variants)
     cover_label = active_cover.get("label") if active_cover else None
@@ -173,6 +233,7 @@ def book_detail(request, pk):
             "authors_display": authors_display,
             "meta": meta,
             "is_primary": isbn.pk == display_primary_isbn_id,
+            "is_active": str(isbn.pk) == (edition_active_id or ""),
         })
 
     return render(request, "books/book_detail.html", {
@@ -187,6 +248,7 @@ def book_detail(request, pk):
         "cover_label": cover_label,
         "show_cover_thumbnails": show_cover_thumbnails,
         "isbn_editions": isbn_editions,
+        "active_edition": active_edition,
     })
 
 @login_required

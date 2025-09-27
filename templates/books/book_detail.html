@@ -23,31 +23,39 @@
       <div class="small text-muted mt-2{% if not cover_label %} d-none{% endif %}" data-role="book-cover-label">
         {{ cover_label|default_if_none:"" }}
       </div>
+      {% if active_edition and active_edition.total_pages is not None %}
+        <div class="small text-muted" data-role="book-cover-pages">
+          Страниц: {{ active_edition.total_pages }}
+        </div>
+      {% endif %}
     </div>
 
     {% if show_cover_thumbnails %}
+    {% url 'book_detail' book.pk as book_detail_url %}
       <div class="mt-3">
         <div class="d-flex flex-wrap justify-content-center gap-2" data-role="book-cover-thumbnails">
           {% for variant in cover_variants %}
-            <button
-              type="button"
-              class="btn btn-outline-secondary btn-sm p-1 cover-thumb{% if variant.is_active %} active{% endif %}"
-              data-cover-src="{{ variant.image }}"
-              data-cover-alt="{{ variant.alt|escape }}"
-              data-cover-label="{{ variant.label|escape }}"
-              aria-pressed="{% if variant.is_active %}true{% else %}false{% endif %}"
-              title="{{ variant.label }}"
-              {% if variant.edition_id %}data-edition-id="{{ variant.edition_id }}"{% endif %}
-              data-role="book-cover-thumb"
-            >
-              <img
-                src="{{ variant.image }}"
-                alt="{{ variant.alt }}"
-                class="rounded"
-                style="width: 56px; height: auto;"
-                loading="lazy"
+            {% if variant.key != 'book-cover' %}
+              <a
+                href="{{ book_detail_url }}{% if variant.edition_id %}?edition={{ variant.edition_id }}{% endif %}"
+                class="btn btn-outline-secondary btn-sm p-1 cover-thumb{% if variant.is_active %} active{% endif %}"
+                data-cover-src="{{ variant.image }}"
+                data-cover-alt="{{ variant.alt|escape }}"
+                data-cover-label="{{ variant.label|escape }}"
+                {% if variant.edition_id %}data-edition-id="{{ variant.edition_id }}"{% endif %}
+                data-role="book-cover-thumb"
+                title="{{ variant.label }}"
+                {% if variant.is_active %}aria-current="true"{% endif %}
               >
-            </button>
+            <img
+                  src="{{ variant.image }}"
+                  alt="{{ variant.alt }}"
+                  class="rounded"
+                  style="width: 56px; height: auto;"
+                  loading="lazy"
+                >
+              </a>
+            {% endif %}
           {% endfor %}
         </div>
         <div class="small text-muted mt-2 text-center">
@@ -103,7 +111,7 @@
           <h2 class="h6 mb-3" id="book-editions-title">Издания и ISBN</h2>
           <div class="vstack gap-3 book-editions" data-role="book-editions">
             {% for edition in isbn_editions %}
-              <article class="book-edition p-3 rounded-3{% if edition.is_primary %} is-active{% endif %}" data-role="book-edition"{% if edition.id %} data-edition-id="{{ edition.id }}"{% endif %}{% if edition.is_primary %} aria-current="true"{% endif %}>
+              <article class="book-edition p-3 rounded-3{% if edition.is_active %} is-active{% endif %}" data-role="book-edition"{% if edition.id %} data-edition-id="{{ edition.id }}"{% endif %}{% if edition.is_active %} aria-current="true"{% endif %}>
                 <div class="d-flex flex-wrap align-items-baseline gap-2">
                   <h3 class="h6 mb-0">{{ edition.display_title }}</h3>
                   {% if edition.is_primary %}
@@ -408,7 +416,7 @@
             coverImage.classList.remove('d-none');
           } else {
             coverImage.src = '';
-            overImage.alt = defaultAlt;
+            coverImage.alt = defaultAlt;
             coverImage.classList.add('d-none');
           }
         }
