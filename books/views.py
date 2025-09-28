@@ -210,8 +210,30 @@ def book_detail(request, pk):
             None,
         )
 
-    show_cover_thumbnails = any(not variant.get("is_primary") for variant in cover_variants)
     cover_label = active_cover.get("label") if active_cover else None
+    additional_cover_variants = []
+    for variant in cover_variants:
+        if variant.get("key") == "book-cover" or variant.get("is_primary"):
+            continue
+
+        image_url = variant.get("image")
+        edition_id = variant.get("edition_id")
+        if not image_url or not edition_id:
+            continue
+
+        alt_text = variant.get("alt") or variant.get("label") or f"Обложка книги «{book.title}»"
+
+        additional_cover_variants.append(
+            {
+                "image": image_url,
+                "alt": alt_text,
+                "label": variant.get("label"),
+                "edition_id": edition_id,
+                "is_active": variant.get("is_active"),
+            }
+        )
+
+    show_cover_thumbnails = bool(additional_cover_variants)
     isbn_editions = []
 
     for index, isbn in enumerate(isbn_entries):
@@ -263,6 +285,7 @@ def book_detail(request, pk):
         "rating_category_fields": rating_category_fields,
         "rating_scale": range(1, 11),
         "cover_variants": cover_variants,
+        "additional_cover_variants": additional_cover_variants,
         "active_cover": active_cover,
         "cover_label": cover_label,
         "show_cover_thumbnails": show_cover_thumbnails,
