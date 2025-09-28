@@ -1,4 +1,5 @@
 from django.db.models import Q, Min, Max, Prefetch
+from django.core.files.uploadedfile import UploadedFile
 from django.core.paginator import Paginator
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
@@ -34,6 +35,24 @@ def _find_books_with_same_title_and_authors(title, authors):
         if existing_author_ids == author_ids:
             matches.append(book)
     return matches
+
+
+def _store_additional_cover(book: Book, uploaded_file: UploadedFile) -> str:
+    """Сохранить обложку для дополнительного издания и вернуть путь к файлу."""
+
+    if not uploaded_file:
+        return ""
+
+    # ensure we start reading from the beginning before handing off to storage
+    try:
+        uploaded_file.seek(0)
+    except (AttributeError, ValueError):
+        # InMemoryUploadedFile поддерживает seek; если нет — оставим как есть
+        pass
+
+    field_file = book.cover
+    filename = field_file.field.generate_filename(book, uploaded_file.name)
+    return field_file.storage.save(filename, uploaded_file)
 
 
 def book_list(request):
@@ -316,10 +335,13 @@ def book_create(request):
                                 selected_book.genres.add(*genres)
 
                             cover = form.cleaned_data.get("cover")
-                            cover_uploaded = False
+                            new_cover_uploaded = bool(cover)
+                            cover_reference = ""
                             if cover:
-                                selected_book.cover = cover
-                                cover_uploaded = True
+                                if selected_book.cover:
+                                    cover_reference = _store_additional_cover(selected_book, cover)
+                                else:
+                                    selected_book.cover = cover
 
                             synopsis = form.cleaned_data.get("synopsis")
                             if synopsis and not selected_book.synopsis:
@@ -350,13 +372,12 @@ def book_create(request):
 
                             selected_book.save()
 
-                            cover_reference = ""
-                            if selected_book.cover:
+                            if not cover_reference and selected_book.cover:
                                 cover_reference = selected_book.cover.name or ""
 
                             if cover_reference:
                                 for isbn in unique_isbns:
-                                    if cover_uploaded or not isbn.image:
+                                    if new_cover_uploaded or not isbn.image:
                                         isbn.image = cover_reference
                                         isbn.save(update_fields=["image"])
 

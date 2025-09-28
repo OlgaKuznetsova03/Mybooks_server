@@ -3,7 +3,12 @@ from django.test import TestCase
 from django.urls import reverse
 
 # Create your tests here.
-from .models import Author, Genre, Publisher, Book
+import tempfile
+
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
+
+from .models import Author, Genre, Publisher, Book, ISBNModel
 
 
 class BookCreateViewTests(TestCase):
@@ -39,3 +44,59 @@ class BookCreateViewTests(TestCase):
         self.assertRedirects(response, reverse("book_detail", args=[book.pk]))
         self.assertContains(response, "Новая книга")
 
+def test_adding_new_edition_preserves_existing_cover(self):
+        user = User.objects.create_user(username="editor", password="pass12345")
+        self.client.login(username="editor", password="pass12345")
+
+        author = Author.objects.create(name="Автор")
+        genre = Genre.objects.create(name="Жанр")
+        publisher = Publisher.objects.create(name="Издательство")
+        existing_isbn = ISBNModel.objects.create(
+            isbn="9785171020590",
+            isbn13="9785171020590",
+            title="Первое издание",
+            image="book_covers/original.jpg",
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir, override_settings(MEDIA_ROOT=tmpdir):
+            book = Book.objects.create(title="Книга", synopsis="Описание", language="ru")
+            book.authors.add(author)
+            book.genres.add(genre)
+            book.publisher.add(publisher)
+            book.isbn.add(existing_isbn)
+            book.primary_isbn = existing_isbn
+            book.cover.save(
+                "orig.jpg",
+                SimpleUploadedFile("orig.jpg", b"old-cover", content_type="image/jpeg"),
+                save=True,
+            )
+
+            response = self.client.post(
+                reverse("book_create"),
+                data={
+                    "title": "Книга",
+                    "authors": "Автор",
+                    "genres": "Жанр",
+                    "publisher": "Издательство",
+                    "isbn": "9785171020590, 9785171209162",
+                    "duplicate_resolution": f"edition:{book.pk}",
+                    "cover": SimpleUploadedFile(
+                        "new.jpg",
+                        b"new-cover",
+                        content_type="image/jpeg",
+                    ),
+                },
+                follow=True,
+            )
+
+            self.assertEqual(response.status_code, 200)
+
+            book.refresh_from_db()
+            self.assertTrue(book.cover.name.endswith("orig.jpg"))
+
+            new_isbn = ISBNModel.objects.get(isbn="9785171209162")
+            self.assertTrue(new_isbn.image)
+            self.assertTrue(new_isbn.image.endswith("new.jpg"))
+
+            existing_isbn.refresh_from_db()
+            self.assertEqual(existing_isbn.image, "book_covers/original.jpg")
