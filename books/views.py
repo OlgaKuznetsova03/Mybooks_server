@@ -19,6 +19,7 @@ from django.urls import reverse
 from django.utils.html import mark_safe
 from django.utils.text import slugify
 from shelves.models import BookProgress
+from shelves.services import move_book_to_read_shelf
 from .models import Book, Rating, ISBNModel
 from .forms import BookForm, RatingForm
 from .services import EditionRegistrationResult, register_book_edition
@@ -499,6 +500,7 @@ def rate_book(request, pk):
             rating.book = book
             rating.user = request.user
             rating.save()
+            move_book_to_read_shelf(request.user, book)
             print_url = reverse("book_review_print", args=[book.pk])
             messages.success(
                 request,

@@ -6,6 +6,8 @@ from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 
+from shelves.models import Shelf, ShelfItem
+
 from .models import Author, Genre, Publisher, Book, ISBNModel
 from .services import register_book_edition
 
@@ -189,3 +191,32 @@ class RegisterBookEditionTests(TestCase):
         self.assertTrue(result.created)
         self.assertNotEqual(result.book.pk, existing.pk)
         self.assertEqual(result.added_isbns, [isbn_new])
+
+
+class RateBookMovesShelfTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="reader", password="pass12345")
+        self.client.login(username="reader", password="pass12345")
+        self.book = Book.objects.create(title="Shelfed Book", synopsis="")
+
+    def test_rating_moves_book_from_reading_to_read_shelf(self):
+        reading_shelf = Shelf.objects.get(user=self.user, name="Читаю")
+        read_shelf = Shelf.objects.get(user=self.user, name="Прочитал")
+        ShelfItem.objects.get_or_create(shelf=reading_shelf, book=self.book)
+
+        response = self.client.post(
+            reverse("rate_book", args=[self.book.pk]),
+            {
+                "book": self.book.pk,
+                "score": 8,
+                "review": "Отличная книга!",
+            },
+        )
+
+        self.assertRedirects(response, reverse("book_detail", args=[self.book.pk]))
+        self.assertFalse(
+            ShelfItem.objects.filter(shelf=reading_shelf, book=self.book).exists()
+        )
+        self.assertTrue(
+            ShelfItem.objects.filter(shelf=read_shelf, book=self.book).exists()
+        )

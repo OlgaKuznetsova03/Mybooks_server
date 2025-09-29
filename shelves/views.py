@@ -8,6 +8,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 from books.models import Book
 from .models import Shelf, ShelfItem, BookProgress, Event, EventParticipant
+from .services import move_book_to_read_shelf
 from .forms import (
     ShelfCreateForm,
     AddToShelfForm,
@@ -335,6 +336,7 @@ def reading_mark_finished(request, progress_id):
         else:
             progress.percent = Decimal("100")
             progress.save(update_fields=["percent", "updated_at"])
+    move_book_to_read_shelf(request.user, progress.book)
     messages.success(request, "Книга отмечена как прочитанная.")
     review_link = reverse("book_detail", args=[progress.book_id]) + "#write-review"
     messages.info(

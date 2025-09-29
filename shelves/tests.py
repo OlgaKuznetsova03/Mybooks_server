@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils.timezone import localdate
 
 from books.models import Book, ISBNModel
-from .models import BookProgress, ReadingLog, CharacterNote
+from .models import BookProgress, ReadingLog, CharacterNote, Shelf, ShelfItem
 
 
 class ReadingTrackViewTests(TestCase):
@@ -74,6 +74,21 @@ class ReadingTrackViewTests(TestCase):
         self.assertEqual(progress.percent, Decimal("100"))
         log = progress.logs.get()
         self.assertEqual(log.pages_read, 200)
+
+    def test_mark_finished_moves_book_between_default_shelves(self):
+        progress = self._create_progress()
+        reading_shelf = Shelf.objects.get(user=self.user, name="Читаю")
+        read_shelf = Shelf.objects.get(user=self.user, name="Прочитал")
+        ShelfItem.objects.get_or_create(shelf=reading_shelf, book=self.book)
+
+        self.client.post(reverse("reading_mark_finished", args=[progress.pk]))
+
+        self.assertFalse(
+            ShelfItem.objects.filter(shelf=reading_shelf, book=self.book).exists()
+        )
+        self.assertTrue(
+            ShelfItem.objects.filter(shelf=read_shelf, book=self.book).exists()
+        )
 
     def test_percent_uses_related_isbn_when_no_primary(self):
         isbn = ISBNModel.objects.create(
