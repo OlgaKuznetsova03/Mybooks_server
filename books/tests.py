@@ -11,6 +11,42 @@ from django.test import override_settings
 from .models import Author, Genre, Publisher, Book, ISBNModel
 
 
+class ISBNModelGetImageURLTests(TestCase):
+    def _create_isbn(self, suffix: int, image: str = "book_covers/sample.jpg") -> ISBNModel:
+        return ISBNModel.objects.create(
+            isbn=f"123456789{suffix}",
+            isbn13=f"123456789012{suffix}",
+            title=f"Edition {suffix}",
+            image=image,
+        )
+
+    @override_settings(MEDIA_URL="/media/")
+    def test_returns_absolute_path_with_default_media_url(self):
+        isbn = self._create_isbn(0)
+        self.assertEqual(isbn.get_image_url(), "/media/book_covers/sample.jpg")
+
+    @override_settings(MEDIA_URL="media/")
+    def test_relative_media_url_is_prefixed_with_slash(self):
+        isbn = self._create_isbn(1)
+        self.assertEqual(isbn.get_image_url(), "/media/book_covers/sample.jpg")
+
+    @override_settings(MEDIA_URL="https://cdn.example.com/media")
+    def test_absolute_media_url_kept_absolute(self):
+        isbn = self._create_isbn(2)
+        self.assertEqual(
+            isbn.get_image_url(),
+            "https://cdn.example.com/media/book_covers/sample.jpg",
+        )
+
+    @override_settings(MEDIA_URL="//cdn.example.com/media/")
+    def test_protocol_relative_media_url_kept_protocol_relative(self):
+        isbn = self._create_isbn(3)
+        self.assertEqual(
+            isbn.get_image_url(),
+            "//cdn.example.com/media/book_covers/sample.jpg",
+        )
+
+
 class BookCreateViewTests(TestCase):
     def setUp(self):
         self.author = Author.objects.create(name="Тестовый автор")

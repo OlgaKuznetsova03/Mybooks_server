@@ -76,7 +76,21 @@ class ISBNModel(models.Model):
             return image_str
 
         media_url = getattr(settings, "MEDIA_URL", "/media/") or "/media/"
-        return urljoin(media_url if media_url.endswith("/") else f"{media_url}/", image_str)
+        media_url = str(media_url).strip()
+        normalized_path = image_str.lstrip("/")
+
+        if media_url.startswith(("http://", "https://", "//")):
+            base = media_url if media_url.endswith("/") else f"{media_url}/"
+            return urljoin(base, normalized_path)
+
+        if not media_url:
+            media_url = "/media/"
+        if not media_url.endswith("/"):
+            media_url = f"{media_url}/"
+        if not media_url.startswith("/"):
+            media_url = f"/{media_url.lstrip('/')}"
+
+        return f"{media_url}{normalized_path}"
 
 
 class AudioBook(models.Model):
