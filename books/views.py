@@ -277,6 +277,27 @@ def book_detail(request, pk):
         )
 
     show_cover_thumbnails = bool(additional_cover_variants)
+
+    cover_thumbnail_pages = []
+    active_thumbnail_page_index = 0
+    if additional_cover_variants:
+        thumbnails_per_page = 3
+        for start in range(0, len(additional_cover_variants), thumbnails_per_page):
+            page_variants = additional_cover_variants[start : start + thumbnails_per_page]
+            cover_thumbnail_pages.append(
+                {
+                    "variants": page_variants,
+                    "is_active": any(variant.get("is_active") for variant in page_variants),
+                }
+            )
+
+        if cover_thumbnail_pages and not any(page["is_active"] for page in cover_thumbnail_pages):
+            cover_thumbnail_pages[0]["is_active"] = True
+
+        for index, page in enumerate(cover_thumbnail_pages):
+            if page.get("is_active"):
+                active_thumbnail_page_index = index
+                break
     active_publisher_name = ""
     active_edition_details = None
 
@@ -340,6 +361,8 @@ def book_detail(request, pk):
         "rating_scale": range(1, 11),
         "cover_variants": cover_variants,
         "additional_cover_variants": additional_cover_variants,
+        "cover_thumbnail_pages": cover_thumbnail_pages,
+        "active_thumbnail_page_index": active_thumbnail_page_index,
         "active_cover": active_cover,
         "cover_label": cover_label,
         "show_cover_thumbnails": show_cover_thumbnails,
