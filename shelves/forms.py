@@ -1,4 +1,11 @@
+from typing import Optional
+from datetime import timedelta
+from decimal import Decimal
+
 from django import forms
+from django.core.exceptions import ValidationError
+
+from books.models import Book
 from .models import (
     Shelf,
     ShelfItem,
@@ -79,3 +86,115 @@ class CharacterNoteForm(forms.ModelForm):
                 }
             ),
         }
+
+
+class BookProgressFormatForm(forms.ModelForm):
+    audio_length_input = forms.CharField(
+        required=False,
+        label="Длительность аудиокниги",
+        help_text="Формат ЧЧ:ММ:СС",
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Например, 12:45:00",
+            }
+        ),
+    )
+
+    audio_playback_speed = forms.DecimalField(
+        required=False,
+        min_value=Decimal("0.5"),
+        max_value=Decimal("3.0"),
+        decimal_places=1,
+        label="Скорость прослушивания",
+        widget=forms.NumberInput(
+            attrs={
+                "class": "form-control",
+                "step": "0.1",
+                "min": "0.5",
+                "max": "3.0",
+            }
+        ),
+    )
+
+    class Meta:
+        model = BookProgress
+        fields = ["format", "custom_total_pages", "audio_playback_speed"]
+        labels = {
+            "format": "Формат чтения",
+            "custom_total_pages": "Количество страниц",
+        }
+        widgets = {
+            "format": forms.Select(attrs={"class": "form-select"}),
+            "custom_total_pages": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "min": "1",
+                }
+            ),
+        }
+
+    def __init__(self, *args, book: Optional[Book] = None, **kwargs):
+        instance = kwargs.get("instance")
+        self.book = book or (instance.book if instance is not None else None)  # type: ignore[assignment]
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.audio_length:
+            total_seconds = int(self.instance.audio_length.total_seconds())
+            hours, remainder = divmod(total_seconds, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            self.initial["audio_length_input"] = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        if not self.instance.custom_total_pages and self.book:
+            total = self.book.get_total_pages()
+            if total:
+                self.fields["custom_total_pages"].widget.attrs.setdefault("placeholder", str(total))
+
+    def clean_audio_length_input(self):
+        raw = self.cleaned_data.get("audio_length_input")
+        if not raw:
+            return None
+        parts = raw.split(":")
+        if len(parts) != 3:
+            raise ValidationError("Используйте формат ЧЧ:ММ:СС")
+        try:
+            hours, minutes, seconds = (int(part) for part in parts)
+        except ValueError:
+            raise ValidationError("Часы, минуты и секунды должны быть числами") from None
+        if minutes < 0 or minutes >= 60 or seconds < 0 or seconds >= 60 or hours < 0:
+            raise ValidationError("Неверное значение времени")
+        return timedelta(hours=hours, minutes=minutes, seconds=seconds)
+
+    def clean(self):
+        cleaned = super().clean()
+        fmt = cleaned.get("format") or BookProgress.FORMAT_PAPER
+        custom_pages = cleaned.get("custom_total_pages")
+        audio_length = self.cleaned_data.get("audio_length_input")
+        speed = cleaned.get("audio_playback_speed")
+
+        if fmt == BookProgress.FORMAT_AUDIO:
+            if not audio_length:
+                raise ValidationError("Укажите длительность аудиокниги")
+            if speed is None:
+                cleaned["audio_playback_speed"] = Decimal("1.0")
+        else:
+            cleaned["audio_playback_speed"] = None
+            if not custom_pages:
+                total = self.book.get_total_pages() if self.book else None
+                if not total:
+                    raise ValidationError("Введите количество страниц для этой книги")
+                cleaned["custom_total_pages"] = None
+            self.cleaned_data["audio_length_input"] = None
+        return cleaned
+
+    def save(self, commit=True):
+        progress = super().save(commit=False)
+        audio_length = self.cleaned_data.get("audio_length_input")
+        if progress.format == BookProgress.FORMAT_AUDIO:
+            progress.audio_length = audio_length
+            if progress.audio_playback_speed is None:
+                progress.audio_playback_speed = Decimal("1.0")
+            progress.custom_total_pages = None
+        else:
+            progress.audio_length = None
+        if commit:
+            progress.save()
+        return progress

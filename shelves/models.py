@@ -1,3 +1,4 @@
+from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from math import ceil
 
@@ -74,6 +75,15 @@ class EventParticipant(models.Model):
 
 # shelves/models.py
 class BookProgress(models.Model):
+    FORMAT_PAPER = "paper"
+    FORMAT_EBOOK = "ebook"
+    FORMAT_AUDIO = "audiobook"
+    FORMAT_CHOICES = [
+        (FORMAT_PAPER, "Бумажная книга"),
+        (FORMAT_EBOOK, "Электронная книга"),
+        (FORMAT_AUDIO, "Аудиокнига"),
+    ]
+
     event  = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="book_progress",
                                null=True, blank=True)
     user   = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -82,6 +92,29 @@ class BookProgress(models.Model):
     current_page = models.PositiveIntegerField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
     reading_notes = models.TextField(blank=True, default="")
+    format = models.CharField(
+        max_length=20,
+        choices=FORMAT_CHOICES,
+        default=FORMAT_PAPER,
+        help_text="Формат, в котором пользователь читает книгу",
+    )
+    custom_total_pages = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Количество страниц, указанное пользователем, если нет данных об издании",
+    )
+    audio_length = models.DurationField(
+        null=True,
+        blank=True,
+        help_text="Полная длительность аудиокниги",
+    )
+    audio_playback_speed = models.DecimalField(
+        max_digits=3,
+        decimal_places=1,
+        null=True,
+        blank=True,
+        help_text="Скорость прослушивания аудиокниги",
+    )
 
     class Meta:
         constraints = [
@@ -91,8 +124,16 @@ class BookProgress(models.Model):
                                     name='uniq_progress_no_event'),
         ]
 
+    def get_effective_total_pages(self):
+        """Количество страниц для расчёта прогресса с учётом пользовательских данных."""
+        if self.format == self.FORMAT_AUDIO:
+            return None
+        if self.custom_total_pages:
+            return self.custom_total_pages
+        return self.book.get_total_pages()
+
     def recalc_percent(self):
-        total = self.book.get_total_pages()
+        total = self.get_effective_total_pages()
         if total and self.current_page is not None:
             total_decimal = Decimal(total)
             current_decimal = Decimal(self.current_page)
@@ -105,7 +146,7 @@ class BookProgress(models.Model):
 
     @property
     def pages_left(self):
-        total = self.book.get_total_pages()
+        total = self.get_effective_total_pages()
         if not total or self.current_page is None:
             return None
         return max(0, total - self.current_page)
@@ -126,6 +167,20 @@ class BookProgress(models.Model):
         return agg["total_secs"] / max(1, agg["total_pages"])
 
     @property
+    def is_audiobook(self):
+        return self.format == self.FORMAT_AUDIO
+
+    def get_audio_adjusted_length(self):
+        if not self.audio_length:
+            return None
+        speed = self.audio_playback_speed or Decimal("1.0")
+        if speed <= 0:
+            return self.audio_length
+        total_seconds = Decimal(self.audio_length.total_seconds())
+        adjusted_seconds = total_seconds / speed
+        return timedelta(seconds=float(adjusted_seconds))
+    
+    @property
     def eta_seconds(self):
         if self.pages_left is None:
             return None
@@ -136,6 +191,8 @@ class BookProgress(models.Model):
 
     def record_pages(self, pages_read, log_date=None):
         """Зафиксировать количество прочитанных страниц за конкретный день."""
+        if self.is_audiobook:
+            return
         if not pages_read or pages_read <= 0:
             return
         log_date = log_date or localdate()

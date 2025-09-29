@@ -14,6 +14,7 @@ from .forms import (
     AddToEventForm,
     BookProgressNotesForm,
     CharacterNoteForm,
+    BookProgressFormatForm,
 )
 
 
@@ -121,6 +122,9 @@ def quick_add_default_shelf(request, book_id, code):
     )
     ShelfItem.objects.get_or_create(shelf=shelf, book=book)
     messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")
+    if code == "reading":
+        messages.info(request, "Уточните формат чтения и данные книги на странице прогресса.")
+        return redirect("reading_track", book_id=book.pk)
     return redirect("book_detail", pk=book.pk)
 
 
@@ -163,8 +167,8 @@ def reading_now(request):
     return render(request, "reading/reading_now.html", {"shelf": shelf, "items": items})
 
 
-def _build_reading_track_context(progress, book, *, character_form=None):
-    total_pages = book.get_total_pages()  # из primary_isbn.pages (см. метод в модели Book)
+def _build_reading_track_context(progress, book, *, character_form=None, format_form=None):
+    total_pages = progress.get_effective_total_pages()
     calculated_percent = None
     if total_pages and progress.current_page is not None:
         total_decimal = Decimal(total_pages)
@@ -188,6 +192,13 @@ def _build_reading_track_context(progress, book, *, character_form=None):
     average_pages_per_day = progress.average_pages_per_day
     estimated_days_remaining = progress.estimated_days_remaining
     character_form = character_form or CharacterNoteForm()
+    format_form = format_form or BookProgressFormatForm(instance=progress, book=book)
+    audio_length_display = None
+    if progress.audio_length:
+        total_seconds = int(progress.audio_length.total_seconds())
+        hours, remainder = divmod(total_seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        audio_length_display = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
     characters = progress.character_entries.all()
     return {
         "book": book,
@@ -203,6 +214,8 @@ def _build_reading_track_context(progress, book, *, character_form=None):
         "chart_labels": chart_labels,
         "chart_pages": chart_pages,
         "chart_scale": chart_scale,
+        "format_form": format_form,
+        "audio_length_display": audio_length_display,
     }
 
 def reading_track(request, book_id):
@@ -215,7 +228,8 @@ def reading_track(request, book_id):
         event=None, user=request.user, book=book,
         defaults={"percent": 0, "current_page": 0}
     )
-    context = _build_reading_track_context(progress, book)
+    format_form = BookProgressFormatForm(instance=progress, book=book)
+    context = _build_reading_track_context(progress, book, format_form=format_form)
     return render(request, "reading/track.html", context)
 
 
@@ -255,6 +269,9 @@ def reading_update_notes(request, progress_id):
 def reading_set_page(request, progress_id):
     """Ручное выставление текущей страницы."""
     progress = get_object_or_404(BookProgress, pk=progress_id, user=request.user)
+    if progress.is_audiobook:
+        messages.error(request, "Для аудиокниги не нужно указывать страницы.")
+        return redirect("reading_track", book_id=progress.book_id)
     previous_page = progress.current_page or 0
     try:
         page = int(request.POST.get("page", 0))
@@ -280,6 +297,9 @@ def reading_set_page(request, progress_id):
 def reading_increment(request, progress_id, delta):
     """Быстрые кнопки +N страниц."""
     progress = get_object_or_404(BookProgress, pk=progress_id, user=request.user)
+    if progress.is_audiobook:
+        messages.error(request, "Для аудиокниги не нужно указывать страницы.")
+        return redirect("reading_track", book_id=progress.book_id)
     cur = progress.current_page or 0
     total = progress.book.get_total_pages()
     new_page = cur + int(delta)
@@ -299,19 +319,22 @@ def reading_increment(request, progress_id, delta):
 def reading_mark_finished(request, progress_id):
     """Отметить книгу как прочитанную."""
     progress = get_object_or_404(BookProgress, pk=progress_id, user=request.user)
-    previous_page = progress.current_page or 0
-    total = progress.book.get_total_pages()
-    if total:
-        progress.current_page = total
-        progress.save(update_fields=["current_page"])
-        progress.recalc_percent()
-        delta = max(0, (progress.current_page or 0) - previous_page)
-        if delta > 0:
-            progress.record_pages(delta)
-    else:
-        # если не знаем total_pages — ставим 100%, страницу не меняем
-        progress.percent = 100
+    if progress.is_audiobook:
+        progress.percent = Decimal("100")
         progress.save(update_fields=["percent", "updated_at"])
+    else:
+        previous_page = progress.current_page or 0
+        total = progress.get_effective_total_pages()
+        if total:
+            progress.current_page = total
+            progress.save(update_fields=["current_page"])
+            progress.recalc_percent()
+            delta = max(0, (progress.current_page or 0) - previous_page)
+            if delta > 0:
+                progress.record_pages(delta)
+        else:
+            progress.percent = Decimal("100")
+            progress.save(update_fields=["percent", "updated_at"])
     messages.success(request, "Книга отмечена как прочитанная.")
     review_link = reverse("book_detail", args=[progress.book_id]) + "#write-review"
     messages.info(
@@ -324,3 +347,17 @@ def reading_mark_finished(request, progress_id):
     return redirect("reading_track", book_id=progress.book_id)
 
 
+@login_required
+@require_POST
+def reading_update_format(request, progress_id):
+    progress = get_object_or_404(BookProgress, pk=progress_id, user=request.user)
+    book = progress.book
+    form = BookProgressFormatForm(request.POST, instance=progress, book=book)
+    if form.is_valid():
+        form.save()
+        messages.success(request, "Формат чтения обновлён.")
+        return redirect("reading_track", book_id=book.pk)
+
+    context = _build_reading_track_context(progress, book, format_form=form)
+    messages.error(request, "Не удалось сохранить формат чтения. Проверьте данные и попробуйте снова.")
+    return render(request, "reading/track.html", context)

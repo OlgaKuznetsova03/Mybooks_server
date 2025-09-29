@@ -63,22 +63,29 @@
 </div>
 
 <!-- Вкладки -->
+ {% with current_tab=active_tab|default:"overview" %}
 <ul class="nav nav-tabs mt-4" id="profileTabs" role="tablist">
   <li class="nav-item" role="presentation">
-    <button class="nav-link active" id="overview-tab" data-bs-toggle="tab"
-            data-bs-target="#overview" type="button" role="tab">
+    <button class="nav-link{% if current_tab == 'overview' %} active{% endif %}" id="overview-tab" data-bs-toggle="tab"
+            data-bs-target="#overview" type="button" role="tab" aria-selected="{% if current_tab == 'overview' %}true{% else %}false{% endif %}">
       Обзор
     </button>
   </li>
   <li class="nav-item" role="presentation">
-    <button class="nav-link" id="shelves-tab" data-bs-toggle="tab"
-            data-bs-target="#shelves" type="button" role="tab">
+    <button class="nav-link{% if current_tab == 'stats' %} active{% endif %}" id="stats-tab" data-bs-toggle="tab"
+            data-bs-target="#stats" type="button" role="tab" aria-selected="{% if current_tab == 'stats' %}true{% else %}false{% endif %}">
+      Статистика
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link{% if current_tab == 'shelves' %} active{% endif %}" id="shelves-tab" data-bs-toggle="tab"
+            data-bs-target="#shelves" type="button" role="tab" aria-selected="{% if current_tab == 'shelves' %}true{% else %}false{% endif %}">
       Полки
     </button>
   </li>
   <li class="nav-item" role="presentation">
-    <button class="nav-link" id="books-tab" data-bs-toggle="tab"
-            data-bs-target="#books" type="button" role="tab">
+    <button class="nav-link{% if current_tab == 'books' %} active{% endif %}" id="books-tab" data-bs-toggle="tab"
+            data-bs-target="#books" type="button" role="tab" aria-selected="{% if current_tab == 'books' %}true{% else %}false{% endif %}">
       Мои книги
     </button>
   </li>
@@ -92,7 +99,7 @@
 
 <div class="tab-content mt-3" id="profileTabsContent">
   <!-- Обзор -->
-  <div class="tab-pane fade show active" id="overview" role="tabpanel">
+  <div class="tab-pane fade{% if current_tab == 'overview' %} show active{% endif %}" id="overview" role="tabpanel">
     <p class="text-muted">Здесь отображается основная информация пользователя.</p>
 
     <!-- Соцсети блогера -->
@@ -108,62 +115,227 @@
     {% endif %}
   </div>
 
+  <!-- Статистика -->
+  <div class="tab-pane fade{% if current_tab == 'stats' %} show active{% endif %}" id="stats" role="tabpanel">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+          <input type="hidden" name="tab" value="stats">
+          <div class="col-12 col-md-4">
+            <label class="form-label" for="id_period">Период</label>
+            <select class="form-select" id="id_period" name="period">
+              <option value="week"{% if stats_period.period == 'week' %} selected{% endif %}>Последние 7 дней</option>
+              <option value="month"{% if stats_period.period == 'month' %} selected{% endif %}>Месяц</option>
+              <option value="year"{% if stats_period.period == 'year' %} selected{% endif %}>Год</option>
+            </select>
+          </div>
+          {% if stats_period.available_years %}
+            <div class="col-6 col-md-4">
+              <label class="form-label" for="id_year">Год</label>
+              <select class="form-select" id="id_year" name="year">
+                {% for year in stats_period.available_years %}
+                  <option value="{{ year }}"{% if year == stats_period.selected_year %} selected{% endif %}>{{ year }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          {% endif %}
+          {% if stats_period.period == 'month' and stats_period.available_months %}
+            <div class="col-6 col-md-4">
+              <label class="form-label" for="id_month">Месяц</label>
+              <select class="form-select" id="id_month" name="month">
+                {% for month_value, month_name in stats_period.available_months %}
+                  <option value="{{ month_value }}"{% if month_value == stats_period.selected_month %} selected{% endif %}>{{ month_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          {% endif %}
+          <div class="col-12 col-md-auto">
+            <button type="submit" class="btn btn-primary">Показать</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <p class="text-muted">Период: {{ stats_period.label }} ({{ stats_period.start|date:"d.m.Y" }} — {{ stats_period.end|date:"d.m.Y" }})</p>
+
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <h3 class="h6 mb-2">Прочитано страниц</h3>
+            <p class="display-6 mb-0">{{ stats.pages_total }}</p>
+            {% if stats.pages_average %}
+              <p class="text-muted mb-0">В среднем {{ stats.pages_average }} стр./день</p>
+            {% else %}
+              <p class="text-muted mb-0">Нет данных о страницах в выбранный период.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <h3 class="h6 mb-2">Аудиокниги</h3>
+            {% if stats.audio_total_display %}
+              <p class="mb-1">Общая длительность: <strong>{{ stats.audio_total_display }}</strong></p>
+              <p class="text-muted mb-0">С учётом скорости: {{ stats.audio_adjusted_display }}</p>
+            {% else %}
+              <p class="text-muted mb-0">Аудиокниги в этот период не учитывались.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <h3 class="h6 mb-2">Жанры</h3>
+            {% if stats.genre_labels %}
+              <div class="ratio ratio-1x1">
+                <canvas id="genreChart"></canvas>
+              </div>
+            {% else %}
+              <p class="text-muted mb-0">Пока нет данных для диаграммы.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <h3 class="h6 mb-3">Прочитанные книги</h3>
+      {% if stats.books %}
+        <div class="row g-3">
+          {% for entry in stats.books %}
+            <div class="col-6 col-md-4 col-lg-3">
+              <div class="card h-100 border-0 shadow-sm">
+                {% if entry.cover_url %}
+                  <img src="{{ entry.cover_url }}" class="card-img-top" style="height:180px;object-fit:cover" alt="Обложка книги {{ entry.book.title }}">
+                {% else %}
+                  <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height:180px;">
+                    <span class="text-muted small">Нет обложки</span>
+                  </div>
+                {% endif %}
+                <div class="card-body d-flex flex-column">
+                  <h6 class="card-title mb-1">
+                    <a class="text-decoration-none" href="{% url 'book_detail' entry.book.pk %}">{{ entry.book.title }}</a>
+                  </h6>
+                  <p class="small text-muted flex-grow-1 mb-2">{{ entry.format|default:"Формат не выбран" }}</p>
+                  {% if entry.has_review %}
+                    <a class="btn btn-outline-primary btn-sm mt-auto" href="{{ entry.review_url }}">Читать отзыв</a>
+                  {% elif request.user == u %}
+                    <a class="btn btn-primary btn-sm mt-auto" href="{{ entry.review_url }}">Написать отзыв</a>
+                  {% else %}
+                    <span class="badge text-bg-light mt-auto align-self-start">Отзыв ещё не написан</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-muted mb-0">За выбранный период прочитанных книг нет.</p>
+      {% endif %}
+    </div>
+
+    {% if stats.genre_labels %}
+      {{ stats.genre_labels|json_script:"genre-chart-labels" }}
+      {{ stats.genre_values|json_script:"genre-chart-values" }}
+      <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+      <script>
+        (function () {
+          const labelsEl = document.getElementById('genre-chart-labels');
+          const valuesEl = document.getElementById('genre-chart-values');
+          const canvas = document.getElementById('genreChart');
+          if (!labelsEl || !valuesEl || !canvas || typeof Chart === 'undefined') {
+            return;
+          }
+          const labels = JSON.parse(labelsEl.textContent);
+          const values = JSON.parse(valuesEl.textContent);
+          const palette = labels.map((_, index) => {
+            const hue = (index * 57) % 360;
+            return `hsl(${hue}, 70%, 55%)`;
+          });
+          new Chart(canvas.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+              labels,
+              datasets: [{
+                data: values,
+                backgroundColor: palette,
+                borderColor: '#ffffff',
+                borderWidth: 2,
+              }],
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: {
+                  position: 'bottom',
+                },
+              },
+            },
+          });
+        })();
+      </script>
+    {% endif %}
+  </div>
+
   <!-- Полки -->
-    <div class="tab-pane fade" id="shelves" role="tabpanel">
+    <div class="tab-pane fade{% if current_tab == 'shelves' %} show active{% endif %}" id="shelves" role="tabpanel">
     {% if u.shelves.all %}
         <div class="accordion" id="shelvesAcc">
         {% for shelf in u.shelves.all %}
-            <div class="accordion-item">
+          <div class="accordion-item">
             <h2 class="accordion-header" id="sh{{ shelf.id }}">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#shelfBody{{ shelf.id }}">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                      data-bs-target="#shelfBody{{ shelf.id }}">
                 {{ shelf.name }} {% if shelf.is_default %}<span class="badge text-bg-light ms-2">системная</span>{% endif %}
                 {% if not shelf.is_public %}<span class="badge text-bg-secondary ms-2">приватная</span>{% endif %}
-                </button>
+              </button>
             </h2>
             <div id="shelfBody{{ shelf.id }}" class="accordion-collapse collapse" data-bs-parent="#shelvesAcc">
-                <div class="accordion-body">
+              <div class="accordion-body">
                 {% if shelf.items.all %}
-                    <div class="row g-3">
+                  <div class="row g-3">
                     {% for it in shelf.items.all %}
                         <div class="col-12 col-sm-6 col-lg-4">
                         <div class="card h-100 shadow-sm border-0">
-                            {% if it.book.cover %}
+                          {% if it.book.cover %}
                             <img src="{{ it.book.cover.url }}" class="card-img-top" style="height:180px;object-fit:cover" alt="">
-                            {% endif %}
-                            <div class="card-body">
+                          {% endif %}
+                          <div class="card-body">
                             <h6 class="card-title mb-1">
-                                <a class="text-decoration-none" href="{% url 'book_detail' it.book.pk %}">{{ it.book.title }}</a>
+                              <a class="text-decoration-none" href="{% url 'book_detail' it.book.pk %}">{{ it.book.title }}</a>
                             </h6>
                             <div class="small text-muted">{{ it.book.authors.all|join:", " }}</div>
                             </div>
-                        </div>
-                        </div>
+                          </div>
+                        </div> 
                     {% endfor %}
-                    </div>
+                  </div>
                 {% else %}
-                    <div class="text-muted">Пока нет книг.</div>
+                  <div class="text-muted">Пока нет книг.</div>
                 {% endif %}
-                </div>
+              </div>
             </div>
-            </div>
+          </div>
         {% endfor %}
         </div>
     {% else %}
-        <p>У пользователя нет полок.</p>
+      <p>У пользователя нет полок.</p>
     {% endif %}
     </div>
 
-
   <!-- Мои книги -->
-  <div class="tab-pane fade" id="books" role="tabpanel">
+  <div class="tab-pane fade{% if current_tab == 'books' %} show active{% endif %}" id="books" role="tabpanel">
     <p>Если пользователь автор — здесь появится список его книг.</p>
   </div>
 
   <!-- Обзоры -->
-  <div class="tab-pane fade" id="reviews" role="tabpanel">
+  <div class="tab-pane fade{% if current_tab == 'reviews' %} show active{% endif %}" id="reviews" role="tabpanel">
     <p>Если пользователь блогер — здесь будут его обзоры.</p>
   </div>
 </div>
+{% endwith %}
 
 {% endblock %}
