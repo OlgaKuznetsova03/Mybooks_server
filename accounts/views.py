@@ -284,6 +284,7 @@ def profile(request, username=None):
         "stats_period": stats_payload["stats_period"],
         "active_tab": active_tab,
         "user_shelves": user_shelves,
+        "allow_shelf_management": request.user == user_obj,
     }
     return render(request, "accounts/profile.html", context)
 

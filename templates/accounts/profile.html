@@ -116,9 +116,7 @@
         </a>
       {% endif %}
     </div>
-    {% with allow_manage=request.user == u %}
-      {% include "shelves/_shelf_cards.html" with shelves=user_shelves allow_manage=allow_manage empty_message=allow_manage|yesno:"У вас пока нет полок.,Пока нет полок.,Пока нет полок." next_url=request.get_full_path %}
-    {% endwith %}
+    {% include "shelves/_shelf_cards.html" with shelves=user_shelves allow_manage=allow_shelf_management empty_message=allow_shelf_management|yesno:"У вас пока нет полок.,Пока нет полок.,Пока нет полок." next_url=request.get_full_path %}
   </div>
 
   <!-- Статистика -->
