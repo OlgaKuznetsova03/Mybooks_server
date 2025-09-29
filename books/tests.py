@@ -1,14 +1,13 @@
+import tempfile
+
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
-
-# Create your tests here.
-import tempfile
-
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 
 from .models import Author, Genre, Publisher, Book, ISBNModel
+from .services import register_book_edition
 
 
 class ISBNModelGetImageURLTests(TestCase):
@@ -66,9 +65,9 @@ class BookCreateViewTests(TestCase):
             reverse("book_create"),
             {
                 "title": "Новая книга",
-                "authors": [str(self.author.pk)],
-                "genres": [str(self.genre.pk)],
-                "publisher": [str(self.publisher.pk)],
+                "authors": "Тестовый автор",
+                "genres": "Фантастика",
+                "publisher": "Тестовое издательство",
                 "synopsis": "Краткое описание",
             },
             follow=True,
@@ -80,7 +79,7 @@ class BookCreateViewTests(TestCase):
         self.assertRedirects(response, reverse("book_detail", args=[book.pk]))
         self.assertContains(response, "Новая книга")
 
-def test_adding_new_edition_preserves_existing_cover(self):
+    def test_adding_new_edition_preserves_existing_cover(self):
         user = User.objects.create_user(username="editor", password="pass12345")
         self.client.login(username="editor", password="pass12345")
 
@@ -136,3 +135,57 @@ def test_adding_new_edition_preserves_existing_cover(self):
 
             existing_isbn.refresh_from_db()
             self.assertEqual(existing_isbn.image, "book_covers/original.jpg")
+
+
+class RegisterBookEditionTests(TestCase):
+    def setUp(self):
+        self.author = Author.objects.create(name="Автор")
+        self.genre = Genre.objects.create(name="Жанр")
+        self.publisher = Publisher.objects.create(name="Издательство")
+
+    def test_attaches_new_isbn_to_existing_book(self):
+        book = Book.objects.create(title="Книга", synopsis="Описание")
+        book.authors.add(self.author)
+        book.genres.add(self.genre)
+        book.publisher.add(self.publisher)
+
+        isbn = ISBNModel.objects.create(isbn="1234567890", title="Старое издание")
+        book.isbn.add(isbn)
+        book.primary_isbn = isbn
+        book.save(update_fields=["primary_isbn"])
+
+        new_isbn = ISBNModel.objects.create(isbn="1234567890123", title="Новое издание")
+
+        result = register_book_edition(
+            title="Книга",
+            authors=[self.author],
+            genres=[self.genre],
+            publishers=[self.publisher],
+            isbn_entries=[new_isbn],
+            synopsis="Описание",
+        )
+
+        self.assertFalse(result.created)
+        self.assertEqual(result.book.pk, book.pk)
+        self.assertEqual(result.added_isbns, [new_isbn])
+        self.assertEqual(book.isbn.count(), 2)
+
+    def test_force_new_creates_separate_book(self):
+        existing = Book.objects.create(title="Книга", synopsis="Описание")
+        existing.authors.add(self.author)
+
+        isbn_existing = ISBNModel.objects.create(isbn="0000000000", title="Издание")
+        existing.isbn.add(isbn_existing)
+
+        isbn_new = ISBNModel.objects.create(isbn="0000000000000", title="Новое издание")
+
+        result = register_book_edition(
+            title="Книга",
+            authors=[self.author],
+            isbn_entries=[isbn_new],
+            force_new=True,
+        )
+
+        self.assertTrue(result.created)
+        self.assertNotEqual(result.book.pk, existing.pk)
+        self.assertEqual(result.added_isbns, [isbn_new])

@@ -12,6 +12,7 @@ media/
 # Environment
 .env
 venv/
+.venv/
 *.log
 
 # VSCode / PyCharm

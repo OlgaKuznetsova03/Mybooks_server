@@ -1,5 +1,14 @@
-from django.db.models import Q, Min, Max, Prefetch
-from django.core.files.uploadedfile import UploadedFile
+from django.db.models import (
+    Q,
+    F,
+    Min,
+    Max,
+    Prefetch,
+    Case,
+    When,
+    OuterRef,
+    Subquery,
+)
 from django.core.paginator import Paginator
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
@@ -12,6 +21,7 @@ from django.utils.text import slugify
 from shelves.models import BookProgress
 from .models import Book, Rating, ISBNModel
 from .forms import BookForm, RatingForm
+from .services import EditionRegistrationResult, register_book_edition
 
 def _find_books_with_same_title_and_authors(title, authors):
     """Вернуть книги, у которых совпадает название и состав авторов."""
@@ -37,33 +47,49 @@ def _find_books_with_same_title_and_authors(title, authors):
     return matches
 
 
-def _store_additional_cover(book: Book, uploaded_file: UploadedFile) -> str:
-    """Сохранить обложку для дополнительного издания и вернуть путь к файлу."""
-
-    if not uploaded_file:
-        return ""
-
-    # ensure we start reading from the beginning before handing off to storage
-    try:
-        uploaded_file.seek(0)
-    except (AttributeError, ValueError):
-        # InMemoryUploadedFile поддерживает seek; если нет — оставим как есть
-        pass
-
-    field_file = book.cover
-    filename = field_file.field.generate_filename(book, uploaded_file.name)
-    return field_file.storage.save(filename, uploaded_file)
+def _notify_about_registration(request, result: EditionRegistrationResult) -> None:
+    if result.created:
+        messages.success(request, "Книга успешно добавлена.")
+    elif result.added_isbns:
+        messages.success(request, "Новое издание добавлено к существующей книге.")
+    else:
+        messages.info(
+            request,
+            "Книга уже была на сайте. Мы обновили связанные данные издания.",
+        )
 
 
 def book_list(request):
     q = (request.GET.get("q") or "").strip()
-    qs = Book.objects.all().select_related("audio").prefetch_related("authors", "genres", "publisher", "isbn")
+    qs = (
+        Book.objects.all()
+        .select_related("audio")
+        .prefetch_related("authors", "genres", "publisher", "isbn")
+    )
     if q:
         qs = qs.filter(
             Q(title__icontains=q) |
             Q(authors__name__icontains=q) |
             Q(genres__name__icontains=q)
         ).distinct()
+
+    group_leader_subquery = (
+        Book.objects.filter(edition_group_key=OuterRef("edition_group_key"))
+        .order_by("pk")
+        .values("pk")[:1]
+    )
+
+    qs = (
+        qs.order_by("edition_group_key", "pk")
+        .annotate(
+            edition_leader=Case(
+                When(edition_group_key="", then=F("pk")),
+                default=Subquery(group_leader_subquery),
+            )
+        )
+        .filter(pk=F("edition_leader"))
+    )
+
     paginator = Paginator(qs, 12)
     page = request.GET.get("page")
     page_obj = paginator.get_page(page)
@@ -331,9 +357,23 @@ def book_create(request):
                     )
                 else:
                     if duplicate_resolution == "new":
-                        book = form.save()
-                        messages.success(request, "Книга успешно добавлена.")
-                        return redirect("book_detail", pk=book.pk)
+                        result = register_book_edition(
+                            title=form.cleaned_data.get("title"),
+                            authors=form.cleaned_data.get("authors"),
+                            genres=form.cleaned_data.get("genres"),
+                            publishers=form.cleaned_data.get("publisher"),
+                            isbn_entries=form.cleaned_data.get("isbn"),
+                            synopsis=form.cleaned_data.get("synopsis"),
+                            series=form.cleaned_data.get("series"),
+                            series_order=form.cleaned_data.get("series_order"),
+                            age_rating=form.cleaned_data.get("age_rating"),
+                            language=form.cleaned_data.get("language"),
+                            audio=form.cleaned_data.get("audio"),
+                            cover_file=form.cleaned_data.get("cover"),
+                            force_new=True,
+                        )
+                        _notify_about_registration(request, result)
+                        return redirect("book_detail", pk=result.book.pk)
 
                     action, _, pk = duplicate_resolution.partition(":")
                     selected_book = next(
@@ -350,88 +390,45 @@ def book_create(request):
                         )
                         return redirect("book_detail", pk=selected_book.pk)
                     elif action == "edition":
-                        new_isbns = form.cleaned_data.get("isbn") or []
-                        existing_isbn_ids = set(
-                            selected_book.isbn.values_list("id", flat=True)
+                        result = register_book_edition(
+                            title=form.cleaned_data.get("title"),
+                            authors=form.cleaned_data.get("authors"),
+                            genres=form.cleaned_data.get("genres"),
+                            publishers=form.cleaned_data.get("publisher"),
+                            isbn_entries=form.cleaned_data.get("isbn"),
+                            synopsis=form.cleaned_data.get("synopsis"),
+                            series=form.cleaned_data.get("series"),
+                            series_order=form.cleaned_data.get("series_order"),
+                            age_rating=form.cleaned_data.get("age_rating"),
+                            language=form.cleaned_data.get("language"),
+                            audio=form.cleaned_data.get("audio"),
+                            cover_file=form.cleaned_data.get("cover"),
+                            target_book=selected_book,
                         )
-                        unique_isbns = [
-                            isbn for isbn in new_isbns if isbn.pk not in existing_isbn_ids
-                        ]
-                        if not unique_isbns:
-                            form.add_error(
-                                "isbn",
-                                "Все указанные ISBN уже привязаны к этой книге. Укажите новый ISBN для издания.",
-                            )
-                        else:
-                            for isbn in unique_isbns:
-                                selected_book.isbn.add(isbn)
-
-                            publishers = form.cleaned_data.get("publisher") or []
-                            if publishers:
-                                selected_book.publisher.add(*publishers)
-
-                            genres = form.cleaned_data.get("genres") or []
-                            if genres:
-                                selected_book.genres.add(*genres)
-
-                            cover = form.cleaned_data.get("cover")
-                            new_cover_uploaded = bool(cover)
-                            cover_reference = ""
-                            if cover:
-                                if selected_book.cover:
-                                    cover_reference = _store_additional_cover(selected_book, cover)
-                                else:
-                                    selected_book.cover = cover
-
-                            synopsis = form.cleaned_data.get("synopsis")
-                            if synopsis and not selected_book.synopsis:
-                                selected_book.synopsis = synopsis
-
-                            language = form.cleaned_data.get("language")
-                            if language and not selected_book.language:
-                                selected_book.language = language
-
-                            age_rating = form.cleaned_data.get("age_rating")
-                            if age_rating and not selected_book.age_rating:
-                                selected_book.age_rating = age_rating
-
-                            audio = form.cleaned_data.get("audio")
-                            if audio and not selected_book.audio:
-                                selected_book.audio = audio
-
-                            series = form.cleaned_data.get("series")
-                            if series and not selected_book.series:
-                                selected_book.series = series
-
-                            series_order = form.cleaned_data.get("series_order")
-                            if series_order and not selected_book.series_order:
-                                selected_book.series_order = series_order
-
-                            if not selected_book.primary_isbn:
-                                selected_book.primary_isbn = unique_isbns[0]
-
-                            selected_book.save()
-
-                            if not cover_reference and selected_book.cover:
-                                cover_reference = selected_book.cover.name or ""
-
-                            if cover_reference:
-                                for isbn in unique_isbns:
-                                    if new_cover_uploaded or not isbn.image:
-                                        isbn.image = cover_reference
-                                        isbn.save(update_fields=["image"])
-
-                            messages.success(
-                                request,
-                                "Новое издание добавлено к существующей книге.",
-                            )
-                            return redirect("book_detail", pk=selected_book.pk)
+                        
+                        _notify_about_registration(request, result)
+                        return redirect("book_detail", pk=result.book.pk)
                     else:
                         form.add_error(None, "Неизвестный вариант выбора.")
             else:
-                book = form.save()
-                messages.success(request, "Книга успешно добавлена.")
-                return redirect("book_detail", pk=book.pk)
+                result = register_book_edition(
+                    title=form.cleaned_data.get("title"),
+                    authors=form.cleaned_data.get("authors"),
+                    genres=form.cleaned_data.get("genres"),
+                    publishers=form.cleaned_data.get("publisher"),
+                    isbn_entries=form.cleaned_data.get("isbn"),
+                    synopsis=form.cleaned_data.get("synopsis"),
+                    series=form.cleaned_data.get("series"),
+                    series_order=form.cleaned_data.get("series_order"),
+                    age_rating=form.cleaned_data.get("age_rating"),
+                    language=form.cleaned_data.get("language"),
+                    audio=form.cleaned_data.get("audio"),
+                    cover_file=form.cleaned_data.get("cover"),
+                    force_new=False,
+                )
+
+                _notify_about_registration(request, result)
+                return redirect("book_detail", pk=result.book.pk)
 
         else:
             messages.error(request, "Не удалось сохранить книгу. Проверьте форму.")

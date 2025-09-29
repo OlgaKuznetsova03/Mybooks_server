@@ -6,6 +6,10 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 from django.db.models import Sum, F, Avg, Count
+from django.db.models.signals import m2m_changed
+from django.dispatch import receiver
+
+from .utils import build_edition_group_key
 
 
 class Author(models.Model):
@@ -122,6 +126,13 @@ class Book(models.Model):
         null=True, blank=True,
         related_name="primary_for_books"
     )
+    edition_group_key = models.CharField(
+        max_length=512,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Служебный ключ для объединения изданий одной книги.",
+    )
 
 
     # новое поле для обложки
@@ -179,6 +190,29 @@ class Book(models.Model):
     def __str__(self):
         return self.title
     
+    def refresh_edition_group_key(self, save: bool = True) -> str:
+        """Recalculate and optionally persist the edition grouping key."""
+
+        author_names = list(
+            self.authors.order_by("name").values_list("name", flat=True)
+        )
+        if author_names:
+            new_key = build_edition_group_key(self.title, author_names)
+        else:
+            new_key = ""
+        if self.edition_group_key != new_key:
+            self.edition_group_key = new_key
+            if save and self.pk:
+                type(self).objects.filter(pk=self.pk).update(
+                    edition_group_key=new_key
+                )
+        return new_key
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.pk:
+            self.refresh_edition_group_key()
+    
 class ReadingSession(models.Model):
     """Одна сессия чтения книги в рамках события/прогресса"""
     progress = models.ForeignKey(
@@ -198,7 +232,12 @@ class ReadingSession(models.Model):
     def pages_read(self):
         if self.start_page is not None and self.end_page is not None:
             return max(0, self.end_page - self.start_page)
-        return 0
+
+
+@receiver(m2m_changed, sender=Book.authors.through)
+def _book_authors_changed(sender, instance: Book, action, **kwargs):
+    if action in {"post_add", "post_remove", "post_clear"}:
+        instance.refresh_edition_group_key()
     
 
 # class BookProgress(models.Model):
