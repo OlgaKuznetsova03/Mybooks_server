@@ -213,7 +213,15 @@ def book_detail(request, pk):
     cover_label = active_cover.get("label") if active_cover else None
     additional_cover_variants = []
     for variant in cover_variants:
-        if variant.get("key") == "book-cover" or variant.get("is_primary"):
+        # ``book-cover`` — это «сырое» поле Book.cover. Его не показываем в списке
+        # миниатюр, чтобы не дублировать ту же картинку, которая уже выведена сверху.
+        #
+        # Раньше мы также отбрасывали варианты с ``is_primary``. Однако если новое
+        # издание стало основным (primary ISBN), оно исчезало из миниатюр, хотя у
+        # него могла быть собственная обложка. В результате пользователи видели
+        # только старые издания или вообще пустой блок. Теперь мы оставляем такие
+        # варианты, чтобы миниатюра основного издания тоже отображалась.
+        if variant.get("key") == "book-cover":
             continue
 
         image_url = variant.get("image")
