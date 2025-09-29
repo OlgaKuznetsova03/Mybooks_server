@@ -79,12 +79,17 @@ class ReadingTrackViewTests(TestCase):
         progress = self._create_progress()
         reading_shelf = Shelf.objects.get(user=self.user, name="Читаю")
         read_shelf = Shelf.objects.get(user=self.user, name="Прочитал")
+        want_shelf = Shelf.objects.get(user=self.user, name="Хочу прочитать")
         ShelfItem.objects.get_or_create(shelf=reading_shelf, book=self.book)
+        ShelfItem.objects.get_or_create(shelf=want_shelf, book=self.book)
 
         self.client.post(reverse("reading_mark_finished", args=[progress.pk]))
 
         self.assertFalse(
             ShelfItem.objects.filter(shelf=reading_shelf, book=self.book).exists()
+        )
+        self.assertFalse(
+            ShelfItem.objects.filter(shelf=want_shelf, book=self.book).exists()
         )
         self.assertTrue(
             ShelfItem.objects.filter(shelf=read_shelf, book=self.book).exists()
@@ -198,3 +203,63 @@ class ReadingTrackViewTests(TestCase):
         self.assertTemplateUsed(response, "reading/track.html")
         form = response.context["character_form"]
         self.assertTrue(form.errors)
+
+
+class ShelfDefaultActionsTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="owner", password="pass1234")
+        self.client.login(username="owner", password="pass1234")
+        self.book = Book.objects.create(title="Default Book", synopsis="")
+
+    def test_quick_add_reading_removes_from_want(self):
+        want_shelf = Shelf.objects.get(user=self.user, name="Хочу прочитать")
+        reading_shelf = Shelf.objects.get(user=self.user, name="Читаю")
+        ShelfItem.objects.create(shelf=want_shelf, book=self.book)
+
+        response = self.client.post(reverse("quick_add_shelf", args=[self.book.pk, "reading"]))
+
+        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        self.assertTrue(
+            ShelfItem.objects.filter(shelf=reading_shelf, book=self.book).exists()
+        )
+        self.assertFalse(
+            ShelfItem.objects.filter(shelf=want_shelf, book=self.book).exists()
+        )
+
+    def test_quick_add_read_removes_from_other_defaults(self):
+        want_shelf = Shelf.objects.get(user=self.user, name="Хочу прочитать")
+        reading_shelf = Shelf.objects.get(user=self.user, name="Читаю")
+        read_shelf = Shelf.objects.get(user=self.user, name="Прочитал")
+        ShelfItem.objects.create(shelf=want_shelf, book=self.book)
+        ShelfItem.objects.create(shelf=reading_shelf, book=self.book)
+
+        response = self.client.post(reverse("quick_add_shelf", args=[self.book.pk, "read"]))
+
+        self.assertRedirects(response, reverse("book_detail", args=[self.book.pk]))
+        self.assertTrue(
+            ShelfItem.objects.filter(shelf=read_shelf, book=self.book).exists()
+        )
+        self.assertFalse(
+            ShelfItem.objects.filter(shelf=reading_shelf, book=self.book).exists()
+        )
+        self.assertFalse(
+            ShelfItem.objects.filter(shelf=want_shelf, book=self.book).exists()
+        )
+
+    def test_add_to_reading_form_removes_from_want(self):
+        want_shelf = Shelf.objects.get(user=self.user, name="Хочу прочитать")
+        reading_shelf = Shelf.objects.get(user=self.user, name="Читаю")
+        ShelfItem.objects.create(shelf=want_shelf, book=self.book)
+
+        response = self.client.post(
+            reverse("add_book_to_shelf", args=[self.book.pk]),
+            {"shelf": reading_shelf.id},
+        )
+
+        self.assertRedirects(response, reverse("book_detail", args=[self.book.pk]))
+        self.assertTrue(
+            ShelfItem.objects.filter(shelf=reading_shelf, book=self.book).exists()
+        )
+        self.assertFalse(
+            ShelfItem.objects.filter(shelf=want_shelf, book=self.book).exists()
+        )

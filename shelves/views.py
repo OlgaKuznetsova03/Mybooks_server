@@ -6,9 +6,16 @@ from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.urls import reverse
 from django.utils.html import format_html
+from django.utils.http import url_has_allowed_host_and_scheme
 from books.models import Book
 from .models import Shelf, ShelfItem, BookProgress, Event, EventParticipant
-from .services import move_book_to_read_shelf
+from .services import (
+    move_book_to_read_shelf,
+    remove_book_from_want_shelf,
+    DEFAULT_WANT_SHELF,
+    DEFAULT_READING_SHELF,
+    DEFAULT_READ_SHELF,
+)
 from .forms import (
     ShelfCreateForm,
     AddToShelfForm,
@@ -81,7 +88,12 @@ def add_book_to_shelf(request, book_id):
             if shelf.user_id != request.user.id:
                 messages.error(request, "Нельзя добавлять книги в чужую полку.")
                 return redirect("book_detail", pk=book.pk)
-            ShelfItem.objects.get_or_create(shelf=shelf, book=book)
+            if shelf.name == DEFAULT_READ_SHELF:
+                move_book_to_read_shelf(request.user, book)
+            else:
+                ShelfItem.objects.get_or_create(shelf=shelf, book=book)
+                if shelf.name == DEFAULT_READING_SHELF:
+                    remove_book_from_want_shelf(request.user, book)
             messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")
             return redirect("book_detail", pk=book.pk)
     else:
@@ -97,14 +109,23 @@ def remove_book_from_shelf(request, shelf_id, book_id):
     if item:
         item.delete()
         messages.info(request, "Книга удалена с полки.")
+    next_url = request.GET.get("next")
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+    if request.user.is_authenticated:
+        return redirect("profile", username=request.user.username)
     return redirect("my_shelves")
 
 
 # Быстрое добавление в дефолтные полки
 DEFAULT_SHELF_MAP = {
-    "want": "Хочу прочитать",
-    "reading": "Читаю",
-    "read": "Прочитал",
+    "want": DEFAULT_WANT_SHELF,
+    "reading": DEFAULT_READING_SHELF,
+    "read": DEFAULT_READ_SHELF,
 }
 
 @login_required
@@ -121,7 +142,12 @@ def quick_add_default_shelf(request, book_id, code):
         name=shelf_name,
         defaults={"is_default": True, "is_public": True},
     )
-    ShelfItem.objects.get_or_create(shelf=shelf, book=book)
+    if code == "read":
+        move_book_to_read_shelf(request.user, book)
+    else:
+        ShelfItem.objects.get_or_create(shelf=shelf, book=book)
+        if code == "reading":
+            remove_book_from_want_shelf(request.user, book)
     messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")
     if code == "reading":
         messages.info(request, "Уточните формат чтения и данные книги на странице прогресса.")

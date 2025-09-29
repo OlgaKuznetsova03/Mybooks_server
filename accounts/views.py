@@ -264,6 +264,16 @@ def profile(request, username=None):
     )
     stats_payload = _collect_profile_stats(user_obj, request.GET)
     active_tab = request.GET.get("tab", "overview")
+    if active_tab == "shelves":
+        active_tab = "overview"
+    if active_tab not in {"overview", "stats", "books", "reviews"}:
+        active_tab = "overview"
+
+    user_shelves = (
+        user_obj.shelves
+        .prefetch_related("items__book__authors")
+        .order_by("-is_default", "name")
+    )
 
     context = {
         "u": user_obj,
@@ -273,6 +283,7 @@ def profile(request, username=None):
         "stats": stats_payload["stats"],
         "stats_period": stats_payload["stats_period"],
         "active_tab": active_tab,
+        "user_shelves": user_shelves,
     }
     return render(request, "accounts/profile.html", context)
 

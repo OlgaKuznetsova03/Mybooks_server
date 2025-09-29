@@ -9,6 +9,7 @@ from books.models import Book
 from .models import Shelf, ShelfItem
 
 
+DEFAULT_WANT_SHELF = "Хочу прочитать"
 DEFAULT_READING_SHELF = "Читаю"
 DEFAULT_READ_SHELF = "Прочитал"
 
@@ -22,15 +23,27 @@ def _get_default_shelf(user: User, name: str) -> Shelf:
     return shelf
 
 
+def _remove_book_from_named_shelf(user: User, book: Book, shelf_name: str) -> None:
+    shelf = Shelf.objects.filter(user=user, name=shelf_name).first()
+    if shelf:
+        ShelfItem.objects.filter(shelf=shelf, book=book).delete()
+
+
+def remove_book_from_want_shelf(user: User, book: Book) -> None:
+    """Ensure the book is not present on the "Хочу прочитать" shelf."""
+    if not user.is_authenticated:
+        return
+    _remove_book_from_named_shelf(user, book, DEFAULT_WANT_SHELF)
+
+
 def move_book_to_read_shelf(user: User, book: Book) -> None:
     """Move the book from the "Читаю" shelf to "Прочитал" for the user."""
     if not user.is_authenticated:
         return
 
     with transaction.atomic():
-        reading_shelf = Shelf.objects.filter(user=user, name=DEFAULT_READING_SHELF).first()
-        if reading_shelf:
-            ShelfItem.objects.filter(shelf=reading_shelf, book=book).delete()
+        _remove_book_from_named_shelf(user, book, DEFAULT_READING_SHELF)
+        _remove_book_from_named_shelf(user, book, DEFAULT_WANT_SHELF)
 
         read_shelf = _get_default_shelf(user, DEFAULT_READ_SHELF)
         ShelfItem.objects.get_or_create(shelf=read_shelf, book=book)
