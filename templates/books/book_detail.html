@@ -3,19 +3,19 @@
 {% block content %}
 
 <div class="row g-4">
-  <div class="col-md-4">
+  <div class="col-md-4" style="--book-cover-width: 240px;">
    <div class="text-center" data-role="book-cover-display" data-default-alt="Обложка книги «{{ book.title }}»" data-default-label="{{ cover_label|default_if_none:''|escape }}">
       <img
         src="{% if active_cover and active_cover.image %}{{ active_cover.image }}{% endif %}"
         class="rounded shadow-sm img-fluid mx-auto{% if not active_cover or not active_cover.image %} d-none{% endif %}"
-        style="max-width: 240px;"
+        style="max-width: var(--book-cover-width, 240px);"
         alt="{% if active_cover and active_cover.alt %}{{ active_cover.alt }}{% else %}Обложка книги «{{ book.title }}»{% endif %}"
         loading="lazy"
         data-role="book-cover-image"
       >
       <div
         class="bg-secondary-subtle rounded d-flex align-items-center justify-content-center mx-auto{% if active_cover and active_cover.image %} d-none{% endif %}"
-        style="max-width: 240px; min-height: 160px;"
+        style="max-width: var(--book-cover-width, 240px); min-height: calc(var(--book-cover-width, 240px) * 2 / 3);"
         data-role="book-cover-placeholder"
       >
         <span class="text-muted">Нет обложки</span>
@@ -37,13 +37,14 @@
         <div class="d-flex flex-wrap justify-content-center gap-3" data-role="book-cover-thumbnails">
           {% for variant in additional_cover_variants %}
             <a
-              href="{{ book_detail_url }}?edition={{ variant.edition_id }}"
+              href="{{ book_detail_url }}{{ variant.url_query }}"
               class="additional-edition-cover{% if variant.is_active %} is-active{% endif %}"
               data-cover-src="{{ variant.image }}"
               data-cover-alt="{{ variant.alt|escape }}"
               data-cover-label="{{ variant.label|default_if_none:''|escape }}"
               data-edition-id="{{ variant.edition_id }}"
               data-role="book-cover-thumb"
+              aria-pressed="{% if variant.is_active %}true{% else %}false{% endif %}"
               title="{{ variant.label|default_if_none:'Дополнительное издание' }}"
               {% if variant.is_active %}aria-current="true"{% endif %}
             >
@@ -437,7 +438,18 @@
       };
 
       coverButtons.forEach((button) => {
-        button.addEventListener('click', () => updateCover(button));
+        button.addEventListener('click', (event) => {
+          const href = button.getAttribute('href');
+          const isStandardClick = event.button === 0 && !event.defaultPrevented && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+
+          if (href && isStandardClick) {
+            event.preventDefault();
+            window.location.assign(href);
+            return;
+          }
+
+          updateCover(button);
+        });
       });
 
       const activeButton = coverButtons.find((button) => button.classList.contains('is-active'));

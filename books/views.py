@@ -212,24 +212,32 @@ def book_detail(request, pk):
 
     cover_label = active_cover.get("label") if active_cover else None
     additional_cover_variants = []
+    active_cover_key = active_cover.get("key") if active_cover else None
+    primary_edition_id = str(display_primary_isbn_id) if display_primary_isbn_id else ""
+
     for variant in cover_variants:
-        # ``book-cover`` — это «сырое» поле Book.cover. Его не показываем в списке
-        # миниатюр, чтобы не дублировать ту же картинку, которая уже выведена сверху.
-        #
-        # Раньше мы также отбрасывали варианты с ``is_primary``. Однако если новое
-        # издание стало основным (primary ISBN), оно исчезало из миниатюр, хотя у
-        # него могла быть собственная обложка. В результате пользователи видели
-        # только старые издания или вообще пустой блок. Теперь мы оставляем такие
-        # варианты, чтобы миниатюра основного издания тоже отображалась.
-        if variant.get("key") == "book-cover":
+        key = variant.get("key")
+        image_url = variant.get("image")
+        if not image_url:
             continue
 
-        image_url = variant.get("image")
-        edition_id = variant.get("edition_id")
-        if not image_url or not edition_id:
+        edition_id = variant.get("edition_id") or ""
+        if key == "book-cover":
+            # Показываем обложку основного издания среди миниатюр, чтобы можно было
+            # быстро вернуться к нему после выбора другого издания.
+            if not book.cover:
+                continue
+            if not edition_id and primary_edition_id:
+                edition_id = primary_edition_id
+            if active_cover_key == "book-cover":
+                # Когда основная обложка активна, миниатюра не нужна — иначе будет
+                # дублирование одной и той же картинки.
+                continue
+        elif not edition_id:
             continue
 
         alt_text = variant.get("alt") or variant.get("label") or f"Обложка книги «{book.title}»"
+        query_suffix = f"?edition={edition_id}" if edition_id else ""
 
         additional_cover_variants.append(
             {
@@ -238,6 +246,7 @@ def book_detail(request, pk):
                 "label": variant.get("label"),
                 "edition_id": edition_id,
                 "is_active": variant.get("is_active"),
+                "url_query": query_suffix,
             }
         )
 
