@@ -34,7 +34,7 @@
     {% url 'book_detail' book.pk as book_detail_url %}
       <div class="mt-3" aria-labelledby="additional-editions-heading">
         <h3 class="visually-hidden" id="additional-editions-heading">Дополнительные издания</h3>
-        <div class="d-flex flex-wrap justify-content-center gap-3" data-role="book-cover-thumbnails">
+        <div class="d-flex flex-wrap justify-content-center gap-2 book-cover-thumbnails" data-role="book-cover-thumbnails">
           {% for variant in additional_cover_variants %}
             <a
               href="{{ book_detail_url }}{{ variant.url_query }}"
@@ -46,6 +46,7 @@
               data-role="book-cover-thumb"
               aria-pressed="{% if variant.is_active %}true{% else %}false{% endif %}"
               title="{{ variant.label|default_if_none:'Дополнительное издание' }}"
+              aria-label="{{ variant.label|default_if_none:'Дополнительное издание' }}"
               {% if variant.is_active %}aria-current="true"{% endif %}
             >
               <img
@@ -54,9 +55,7 @@
                 class="additional-edition-cover__image"
                 loading="lazy"
               >
-            {% if variant.label %}
-                <div class="additional-edition-cover__label">{{ variant.label }}</div>
-              {% endif %}
+            <span class="visually-hidden">{{ variant.label|default_if_none:'Дополнительное издание' }}</span>
             </a>
           {% endfor %}
         </div>
@@ -99,48 +98,39 @@
         <span class="badge text-bg-light me-1">{{ g.name }}</span>
       {% endfor %}
     </div>
-    {% if book.publisher.count %}
-      <div class="mb-2">Издательство: {{ book.publisher.all|join:", " }}</div>
+    {% if active_publisher_name %}
+      <div class="mb-2">Издательство: {{ active_publisher_name }}</div>
     {% endif %}
     <p class="mb-3">{{ book.synopsis|default:"Описание пока не добавлено." }}</p>
 
-    {% if isbn_editions %}
-      <div class="card border-0 shadow-sm mt-4" aria-labelledby="book-editions-title">
+    {% if active_edition_details %}
+      <div class="card border-0 shadow-sm mt-4" aria-labelledby="current-edition-title">
         <div class="card-body">
-          <h2 class="h6 mb-3" id="book-editions-title">Издания и ISBN</h2>
-          <div class="vstack gap-3 book-editions" data-role="book-editions">
-            {% for edition in isbn_editions %}
-              <article class="book-edition p-3 rounded-3{% if edition.is_active %} is-active{% endif %}" data-role="book-edition"{% if edition.id %} data-edition-id="{{ edition.id }}"{% endif %}{% if edition.is_active %} aria-current="true"{% endif %}>
-                <div class="d-flex flex-wrap align-items-baseline gap-2">
-                  <h3 class="h6 mb-0">{{ edition.display_title }}</h3>
-                  {% if edition.is_primary %}
-                    <span class="badge text-bg-primary">Основное издание</span>
-                  {% endif %}
-                </div>
-                {% if edition.authors_display %}
-                  <div class="text-muted small mt-1">{{ edition.authors_display }}</div>
-                {% endif %}
-                {% if edition.header_text %}
-                  <div class="text-muted small mt-1">{{ edition.header_text }}</div>
-                {% endif %}
-                {% if edition.meta %}
-                  <dl class="row small text-muted mt-2 mb-0 book-edition__meta">
-                    {% for item in edition.meta %}
-                      <dt class="col-sm-4 col-lg-3">{{ item.label }}</dt>
-                      <dd class="col-sm-8 col-lg-9 text-body">{{ item.value }}</dd>
-                    {% endfor %}
-                  </dl>
-                {% endif %}
-                {% if edition.subjects %}
-                  <div class="mt-2 d-flex flex-wrap gap-2">
-                    {% for subject in edition.subjects %}
-                      <span class="badge text-bg-light">{{ subject }}</span>
-                    {% endfor %}
-                  </div>
-                {% endif %}
-              </article>
-            {% endfor %}
-          </div>
+          <h2 class="h6 mb-3" id="current-edition-title">Текущее издание</h2>
+          {% if active_edition_details.title and active_edition_details.title != book.title %}
+            <div class="fw-semibold">{{ active_edition_details.title }}</div>
+          {% endif %}
+          {% if active_edition_details.authors_display %}
+            <div class="text-muted small mt-1">{{ active_edition_details.authors_display }}</div>
+          {% endif %}
+          {% if active_edition_details.header_text %}
+            <div class="text-muted small mt-2">{{ active_edition_details.header_text }}</div>
+          {% endif %}
+          {% if active_edition_details.meta %}
+            <dl class="row small text-muted mt-3 mb-0 edition-meta">
+              {% for item in active_edition_details.meta %}
+                <dt class="col-sm-4 col-lg-3">{{ item.label }}</dt>
+                <dd class="col-sm-8 col-lg-9 text-body">{{ item.value }}</dd>
+              {% endfor %}
+            </dl>
+          {% endif %}
+          {% if active_edition_details.subjects %}
+            <div class="mt-3 d-flex flex-wrap gap-2">
+              {% for subject in active_edition_details.subjects %}
+                <span class="badge text-bg-light">{{ subject }}</span>
+              {% endfor %}
+            </div>
+          {% endif %}
         </div>
       </div>
     {% endif %}
@@ -377,23 +367,6 @@
       const defaultLabel = coverContainer.dataset.defaultLabel || '';
       const thumbnailsRoot = coverContainer.parentElement || coverContainer;
       const coverButtons = Array.from(thumbnailsRoot.querySelectorAll('[data-role="book-cover-thumb"]'));
-      const editionBlocks = Array.from(document.querySelectorAll('[data-role="book-edition"]'));
-
-      const setActiveEdition = (editionId) => {
-        if (!editionBlocks.length) {
-          return;
-        }
-        editionBlocks.forEach((block) => {
-          const isMatch = editionId && block.dataset.editionId === editionId;
-          if (isMatch) {
-            block.classList.add('is-active');
-            block.setAttribute('aria-current', 'true');
-          } else {
-            block.classList.remove('is-active');
-            block.removeAttribute('aria-current');
-          }
-        });
-      };
 
       
       const updateCover = (button) => {
@@ -406,6 +379,11 @@
           const isActive = item === button;
           item.classList.toggle('is-active', isActive);
           item.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+          if (isActive) {
+            item.setAttribute('aria-current', 'true');
+          } else {
+            item.removeAttribute('aria-current');
+          }
         });
 
         if (coverImage) {
@@ -434,7 +412,6 @@
           }
         }
 
-        setActiveEdition(editionId);
       };
 
       coverButtons.forEach((button) => {
@@ -454,7 +431,7 @@
 
       const activeButton = coverButtons.find((button) => button.classList.contains('is-active'));
       if (activeButton) {
-        setActiveEdition(activeButton.dataset.editionId || '');
+        activeButton.setAttribute('aria-current', 'true');
       }
     }
   });

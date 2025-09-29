@@ -277,21 +277,27 @@ def book_detail(request, pk):
         )
 
     show_cover_thumbnails = bool(additional_cover_variants)
-    isbn_editions = []
+    active_publisher_name = ""
+    active_edition_details = None
 
-    for index, isbn in enumerate(isbn_entries):
+    if active_edition:
         subjects = []
-        if isbn.subjects:
-            subjects = [subject.strip() for subject in isbn.subjects.split(",") if subject.strip()]
+        if active_edition.subjects:
+            subjects = [
+                subject.strip()
+                for subject in active_edition.subjects.split(",")
+                if subject.strip()
+            ]
 
-        authors_qs = isbn.authors.all()
+        authors_qs = active_edition.authors.all()
         authors_display = ", ".join(author.name for author in authors_qs if author.name)
 
-        header_parts = []
-        publisher = (isbn.publisher or "").strip()
-        publish_date = (isbn.publish_date or "").strip()
-        binding = (isbn.binding or "").strip()
+        publisher = (active_edition.publisher or "").strip()
+        publish_date = (active_edition.publish_date or "").strip()
+        binding = (active_edition.binding or "").strip()
+        language = (active_edition.language or "").strip()
 
+        header_parts = []
         if publisher:
             header_parts.append(publisher)
         if publish_date:
@@ -300,25 +306,30 @@ def book_detail(request, pk):
             header_parts.append(binding)
 
         meta = []
-        if isbn.isbn:
-            meta.append({"label": "ISBN-10", "value": isbn.isbn})
-        if isbn.isbn13:
-            meta.append({"label": "ISBN-13", "value": isbn.isbn13})
-        if isbn.total_pages:
-            meta.append({"label": "Страниц", "value": f"{isbn.total_pages} стр."})
-        if isbn.language:
-            meta.append({"label": "Язык", "value": isbn.language})
+        if active_edition.isbn:
+            meta.append({"label": "ISBN-10", "value": active_edition.isbn})
+        if active_edition.isbn13:
+            meta.append({"label": "ISBN-13", "value": active_edition.isbn13})
+        if active_edition.total_pages:
+            meta.append({"label": "Страниц", "value": f"{active_edition.total_pages} стр."})
+        if language:
+            meta.append({"label": "Язык", "value": language})
 
-        isbn_editions.append({
-            "id": str(isbn.pk),
-            "display_title": (isbn.title or "").strip() or book.title,
+        active_edition_details = {
+            "title": (active_edition.title or "").strip() or book.title,
             "header_text": " · ".join(header_parts),
             "subjects": subjects,
             "authors_display": authors_display,
             "meta": meta,
-            "is_primary": isbn.pk == display_primary_isbn_id,
-            "is_active": str(isbn.pk) == (edition_active_id or ""),
-        })
+            }
+
+        active_publisher_name = publisher
+    else:
+        publisher_names = list(
+            book.publisher.order_by("name").values_list("name", flat=True)
+        )
+        if publisher_names:
+            active_publisher_name = ", ".join(publisher_names)
 
     return render(request, "books/book_detail.html", {
         "book": book,
@@ -332,8 +343,9 @@ def book_detail(request, pk):
         "active_cover": active_cover,
         "cover_label": cover_label,
         "show_cover_thumbnails": show_cover_thumbnails,
-        "isbn_editions": isbn_editions,
         "active_edition": active_edition,
+        "active_edition_details": active_edition_details,
+        "active_publisher_name": active_publisher_name,
     })
 
 @login_required
