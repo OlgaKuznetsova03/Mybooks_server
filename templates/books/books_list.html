@@ -12,11 +12,13 @@
 </div>
 
 {% if page_obj.paginator.count %}
-  <div class="row g-3">
+  <div class="book-gallery">
     {% for b in page_obj.object_list %}
-      <div class="col-12 col-sm-6 col-lg-4">
-        <div class="card h-100 shadow-sm border-0 hover-raise">
-          {% if b.cover %}<img src="{{ b.cover.url }}" class="card-img-top object-fit-cover" style="height:220px" alt="">{% endif %}
+      <article class="book-gallery__item">
+        <div class="card h-100 shadow-sm border-0 hover-raise book-gallery-card">
+          {% if b.cover %}
+            <img src="{{ b.cover.url }}" class="card-img-top object-fit-cover book-gallery-card__cover" alt="Обложка книги {{ b.title }}">
+          {% endif %}
           <div class="card-body">
             <h2 class="h5 card-title mb-1">
               <a class="text-decoration-none" href="{% url 'book_detail' b.pk %}">{{ b.title }}</a>
@@ -29,7 +31,7 @@
             <a class="btn btn-sm btn-outline-primary" href="{% url 'book_detail' b.pk %}">Подробнее</a>
           </div>
         </div>
-      </div>
+      </article>
     {% endfor %}
   </div>
 

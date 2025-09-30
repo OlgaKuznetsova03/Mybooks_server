@@ -7,6 +7,37 @@
 .hover-raise{transition:.12s transform,.12s box-shadow}
 .hover-raise:hover{transform:translateY(-2px);box-shadow:0 14px 36px rgba(0,0,0,.08)}
 .object-fit-cover{object-fit:cover}
+.book-gallery{
+  --book-card-cover-width:148px;
+  --book-card-gap:1.25rem;
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:var(--book-card-gap);
+  max-width:calc(var(--book-card-cover-width) * 5 + var(--book-card-gap) * 4);
+  margin:0 auto;
+  padding:0;
+}
+.book-gallery__item{
+  flex:0 0 var(--book-card-cover-width);
+}
+.book-gallery-card{
+  width:var(--book-card-cover-width);
+}
+.book-gallery-card__cover{
+  width:100%;
+  height:calc(var(--book-card-cover-width) * 3 / 2);
+  object-fit:cover;
+}
+.book-gallery-card .card-body{
+  padding:0.75rem;
+}
+.book-gallery-card .card-footer{
+  padding:0.75rem;
+}
+.book-gallery-card .badge{
+  font-weight:500;
+}
 .navbar .form-control{min-width:260px}
 
 /* Диаграмма прогресса чтения */
