@@ -74,7 +74,13 @@ class GameShelfPurchase(models.Model):
         on_delete=models.CASCADE,
         related_name="purchases",
     )
-    book = models.ForeignKey("books.Book", on_delete=models.CASCADE, related_name="game_purchases")
+    book = models.ForeignKey(
+        "books.Book",
+        on_delete=models.CASCADE,
+        related_name="game_purchases",
+        null=True,
+        blank=True,
+    )
     points_spent = models.PositiveIntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -82,4 +88,5 @@ class GameShelfPurchase(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self) -> str:  # pragma: no cover - simple representation
-        return f"{self.book.title} — {self.points_spent} баллов"
+        title = self.book.title if self.book else "Покупка"
+        return f"{title} — {self.points_spent} баллов"

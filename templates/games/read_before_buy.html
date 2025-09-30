@@ -82,12 +82,34 @@
                   <div class="small text-muted">Доступных покупок</div>
                 </div>
               </div>
+              <form method="post" class="mt-3 d-flex flex-wrap gap-2 align-items-center">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="bulk_purchase">
+                <input type="hidden" name="state_id" value="{{ state.id }}">
+                <div class="input-group input-group-sm" style="max-width: 220px;">
+                  <span class="input-group-text">Куплено книг</span>
+                  <input type="number" name="count" min="1" value="1" class="form-control" {% if item.available_purchases %}max="{{ item.available_purchases }}"{% else %}disabled{% endif %}>
+                </div>
+                <button class="btn btn-sm btn-outline-primary" type="submit" {% if not item.available_purchases %}disabled{% endif %}>
+                  <i class="bi bi-bag-check me-1"></i>Списать баллы
+                </button>
+                {% if not item.available_purchases %}
+                  <div class="small text-muted">Недостаточно баллов для покупки.</div>
+                {% endif %}
+              </form>
               {% if state.purchases.all %}
               <div class="mt-3">
                 <div class="small text-muted text-uppercase">Последние покупки</div>
                 <ul class="list-unstyled mb-0 small">
                   {% for purchase in state.purchases.all|slice:":3" %}
-                    <li>{{ purchase.book.title }} — {{ purchase.points_spent }} баллов ({{ purchase.created_at|date:"d.m.Y" }})</li>
+                    <li>
+                      {% if purchase.book %}
+                        {{ purchase.book.title }}
+                      {% else %}
+                        Покупка без указания книги
+                      {% endif %}
+                      — {{ purchase.points_spent }} баллов ({{ purchase.created_at|date:"d.m.Y" }})
+                    </li>
                   {% endfor %}
                 </ul>
               </div>

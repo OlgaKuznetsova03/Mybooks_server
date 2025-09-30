@@ -42,17 +42,40 @@ def read_before_buy_dashboard(request):
     }
 
     enroll_form = ReadBeforeBuyEnrollForm(user=request.user)
-    if request.method == "POST" and request.POST.get("action") == "enroll":
-        enroll_form = ReadBeforeBuyEnrollForm(request.POST, user=request.user)
-        if enroll_form.is_valid():
-            shelf = enroll_form.cleaned_data["shelf"]
-            ReadBeforeBuyGame.enable_for_shelf(request.user, shelf)
-            messages.success(
-                request,
-                f"Полка «{shelf.name}» подключена к игре «{game.title}».",
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "enroll":
+            enroll_form = ReadBeforeBuyEnrollForm(request.POST, user=request.user)
+            if enroll_form.is_valid():
+                shelf = enroll_form.cleaned_data["shelf"]
+                ReadBeforeBuyGame.enable_for_shelf(request.user, shelf)
+                messages.success(
+                    request,
+                    f"Полка «{shelf.name}» подключена к игре «{game.title}».",
+                )
+                return redirect("games:read_before_buy")
+            messages.error(request, "Не удалось подключить полку. Проверьте форму.")
+        elif action == "bulk_purchase":
+            try:
+                state_id = int(request.POST.get("state_id", "0"))
+            except (TypeError, ValueError):
+                messages.error(request, "Не удалось определить полку для списания баллов.")
+                return redirect("games:read_before_buy")
+            state = ReadBeforeBuyGame.get_state_by_id(request.user, state_id)
+            if not state:
+                messages.error(request, "Полка не найдена или не подключена к игре.")
+                return redirect("games:read_before_buy")
+            try:
+                count = int(request.POST.get("count", "0"))
+            except (TypeError, ValueError):
+                messages.error(request, "Укажите количество купленных книг.")
+                return redirect("games:read_before_buy")
+            success, message_text, level = ReadBeforeBuyGame.spend_points_for_bulk_purchase(
+                state, count
             )
+            message_handler = getattr(messages, level, messages.info)
+            message_handler(request, message_text)
             return redirect("games:read_before_buy")
-        messages.error(request, "Не удалось подключить полку. Проверьте форму.")
 
     context = {
         "game": game,

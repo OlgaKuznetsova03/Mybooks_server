@@ -5,7 +5,7 @@ from django.urls import reverse
 from books.models import Book, ISBNModel
 from shelves.models import Shelf, ShelfItem
 
-from .models import GameShelfBook, GameShelfState
+from .models import GameShelfBook, GameShelfPurchase, GameShelfState
 from .services.read_before_buy import ReadBeforeBuyGame
 
 
@@ -60,6 +60,30 @@ class ReadBeforeBuyGameTests(TestCase):
         state = GameShelfState.objects.get(pk=self.state.pk)
         self.assertEqual(state.books_purchased, 1)
 
+    def test_ensure_completion_awarded_adds_missing_pages(self):
+        # книга уже находится на полке, но страницы ещё не засчитаны
+        ReadBeforeBuyGame.ensure_completion_awarded(self.user, self.shelf, self.book)
+        state = GameShelfState.objects.get(pk=self.state.pk)
+        self.assertEqual(state.points_balance, self.isbn.total_pages)
+
+        # повторный вызов не должен менять баланс
+        ReadBeforeBuyGame.ensure_completion_awarded(self.user, self.shelf, self.book)
+        state.refresh_from_db()
+        self.assertEqual(state.points_balance, self.isbn.total_pages)
+
+    def test_bulk_purchase_spends_points_and_creates_records(self):
+        ReadBeforeBuyGame.award_pages(self.user, self.book, ReadBeforeBuyGame.PURCHASE_COST * 2)
+        state = GameShelfState.objects.get(pk=self.state.pk)
+
+        success, _, level = ReadBeforeBuyGame.spend_points_for_bulk_purchase(state, 2)
+
+        self.assertTrue(success)
+        self.assertEqual(level, "success")
+        state.refresh_from_db()
+        self.assertEqual(state.points_balance, 0)
+        self.assertEqual(state.books_purchased, 2)
+        self.assertEqual(GameShelfPurchase.objects.filter(state=state).count(), 2)
+
     def test_purchase_via_view_blocks_without_points(self):
         other_book = Book.objects.create(title="Недостаточно баллов", synopsis="")
         response = self.client.post(
@@ -68,6 +92,21 @@ class ReadBeforeBuyGameTests(TestCase):
         )
         self.assertRedirects(response, reverse("book_detail", args=[other_book.pk]))
         self.assertFalse(ShelfItem.objects.filter(shelf=self.shelf, book=other_book).exists())
+
+    def test_bulk_purchase_action_via_dashboard(self):
+        ReadBeforeBuyGame.award_pages(self.user, self.book, ReadBeforeBuyGame.PURCHASE_COST * 2)
+        state = GameShelfState.objects.get(pk=self.state.pk)
+
+        response = self.client.post(
+            reverse("games:read_before_buy"),
+            {"action": "bulk_purchase", "state_id": state.pk, "count": 2},
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        state.refresh_from_db()
+        self.assertEqual(state.points_balance, 0)
+        self.assertEqual(state.books_purchased, 2)
 
     def test_dashboard_view_renders(self):
         response = self.client.get(reverse("games:read_before_buy"))

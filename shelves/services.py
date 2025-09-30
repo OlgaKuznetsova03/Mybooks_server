@@ -47,3 +47,10 @@ def move_book_to_read_shelf(user: User, book: Book) -> None:
 
         read_shelf = _get_default_shelf(user, DEFAULT_READ_SHELF)
         ShelfItem.objects.get_or_create(shelf=read_shelf, book=book)
+
+    try:
+        from games.services.read_before_buy import ReadBeforeBuyGame
+    except ImportError:
+        return
+
+    ReadBeforeBuyGame.ensure_completion_awarded(user, read_shelf, book)

@@ -76,6 +76,14 @@ class ReadBeforeBuyGame:
                 return cls.enable_for_shelf(user, shelf)
             return None
 
+    @classmethod
+    def get_state_by_id(cls, user: User, state_id: int) -> Optional[GameShelfState]:
+        game = cls.get_game()
+        try:
+            return GameShelfState.objects.get(pk=state_id, user=user, game=game)
+        except GameShelfState.DoesNotExist:
+            return None
+
     # --- начисление баллов ---
     @classmethod
     def award_pages(cls, user: User, book: Book, pages_read: int) -> None:
@@ -134,6 +142,24 @@ class ReadBeforeBuyGame:
                 GameShelfBook.objects.filter(pk=entry.pk).update(**updates)
 
     @classmethod
+    def ensure_completion_awarded(cls, user: User, shelf: Shelf, book: Book) -> None:
+        state = cls.get_state_for_shelf(user, shelf)
+        if not state:
+            return
+        total_pages = book.get_total_pages()
+        if not total_pages:
+            return
+        entry, _ = GameShelfBook.objects.get_or_create(state=state, book=book)
+        missing = max(0, total_pages - entry.pages_logged)
+        if missing <= 0:
+            return
+        cls._increment_points(state, missing)
+        GameShelfBook.objects.filter(pk=entry.pk).update(
+            pages_logged=F("pages_logged") + missing,
+            updated_at=timezone.now(),
+        )
+
+    @classmethod
     def add_book_to_shelf(
         cls, user: User, shelf: Shelf, book: Book
     ) -> Tuple[bool, str, str]:
@@ -181,6 +207,47 @@ class ReadBeforeBuyGame:
         return True, (
             f"Книга «{book.title}» куплена за {cls.PURCHASE_COST} баллов и добавлена в «{shelf.name}»."
         ), "success"
+
+    @classmethod
+    def spend_points_for_bulk_purchase(
+        cls, state: GameShelfState, count: int
+    ) -> Tuple[bool, str, str]:
+        if count <= 0:
+            return False, "Укажите количество купленных книг.", "error"
+
+        total_cost = cls.PURCHASE_COST * count
+        with transaction.atomic():
+            locked_state = GameShelfState.objects.select_for_update().get(pk=state.pk)
+            if locked_state.points_balance < total_cost:
+                need = total_cost - locked_state.points_balance
+                return (
+                    False,
+                    f"Недостаточно баллов: требуется ещё {need} для покупки {count} книг.",
+                    "error",
+                )
+            locked_state.points_balance -= total_cost
+            locked_state.books_purchased += count
+            locked_state.save(
+                update_fields=[
+                    "points_balance",
+                    "books_purchased",
+                    "updated_at",
+                ]
+            )
+            purchases = [
+                GameShelfPurchase(
+                    state=locked_state,
+                    book=None,
+                    points_spent=cls.PURCHASE_COST,
+                )
+                for _ in range(count)
+            ]
+            GameShelfPurchase.objects.bulk_create(purchases)
+
+        message = (
+            f"Списано {total_cost} баллов за {count} купленных книг."
+        )
+        return True, message, "success"
 
     # --- внутренние утилиты ---
     @classmethod
