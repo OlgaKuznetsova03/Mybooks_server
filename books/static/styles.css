@@ -8,10 +8,10 @@
 .hover-raise:hover{transform:translateY(-2px);box-shadow:0 14px 36px rgba(0,0,0,.08)}
 .object-fit-cover{object-fit:cover}
 .book-gallery{
-  --book-card-cell-width:92px;
-  --book-card-gap:0.75rem;
+  --book-card-width:210px;
+  --book-card-gap:1rem;
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(var(--book-card-cell-width),1fr));
+  grid-template-columns:repeat(1,minmax(0,var(--book-card-width)));
   justify-content:center;
   gap:var(--book-card-gap);
   margin:0 auto;
@@ -23,7 +23,7 @@
 }
 .book-gallery-card{
   width:100%;
-  max-width:var(--book-card-cell-width);
+  max-width:var(--book-card-width);
 }
 .book-gallery-card__cover{
   width:100%;
@@ -49,10 +49,27 @@
   font-size:0.7rem;
   padding:0.25rem 0.5rem;
 }
+@media (min-width: 576px){
+  .book-gallery{
+    grid-template-columns:repeat(2,minmax(0,var(--book-card-width)));
+  }
+}
+
+@media (min-width: 768px){
+  .book-gallery{
+    grid-template-columns:repeat(3,minmax(0,var(--book-card-width)));
+  }
+}
+
 @media (min-width: 992px){
   .book-gallery{
-    grid-template-columns:repeat(5,minmax(0,1fr));
-    max-width:calc(var(--book-card-cell-width) * 5 + var(--book-card-gap) * 4);
+    grid-template-columns:repeat(4,minmax(0,var(--book-card-width)));
+  }
+}
+
+@media (min-width: 1200px){
+  .book-gallery{
+    grid-template-columns:repeat(5,minmax(0,var(--book-card-width)));
   }
 }
 .navbar .form-control{min-width:260px}
@@ -129,32 +146,7 @@
 .multi-select-enhanced__list .form-check{
   margin-bottom:0.25rem;
 }
-.multi-select-enhanced__list .form-check:last-child{
-  margin-bottom:0;
-@@ -61,26 +61,58 @@
-  color:var(--bs-warning);
-}
-.star-rating-btn.is-active{
-  color:var(--bs-warning);
-}
-.star-rating-btn:focus-visible{
-  outline:2px solid var(--bs-primary);
-  outline-offset:2px;
-}
-.star-rating-field [data-rating-display]{
-  min-width:7rem;
-}
-/* Улучшенный выбор множественных полей */
-.multi-select-enhanced{
-  max-height:20rem;
-}
-.multi-select-enhanced__list{
-  max-height:14rem;
-  overflow-y:auto;
-}
-.multi-select-enhanced__list .form-check{
-  margin-bottom:0.25rem;
-}
+
 .multi-select-enhanced__list .form-check:last-child{
   margin-bottom:0;
 }
