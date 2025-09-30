@@ -104,6 +104,7 @@ class ExternalBookData:
     cover_url: Optional[str] = None
     source_url: Optional[str] = None
     olid: Optional[str] = None
+    external_id: Optional[str] = None
 
     def combined_isbns(self) -> List[str]:
         seen = set()
