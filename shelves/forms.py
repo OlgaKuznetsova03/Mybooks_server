@@ -46,6 +46,19 @@ class AddToEventForm(forms.Form):
             ev_ids = EventParticipant.objects.filter(user=user).values_list("event_id", flat=True)
             self.fields["event"].queryset = Event.objects.filter(id__in=ev_ids).order_by("-start_at")
 
+
+class HomeLibraryQuickAddForm(forms.Form):
+    purchase_date = forms.DateField(
+        required=False,
+        label="Дата покупки",
+        help_text="Необязательно: когда книга появилась у вас дома",
+        widget=forms.DateInput(
+            attrs={
+                "type": "date",
+                "class": "form-control form-control-sm",
+            }
+        ),
+    )
 class BookProgressNotesForm(forms.ModelForm):
     class Meta:
         model = BookProgress

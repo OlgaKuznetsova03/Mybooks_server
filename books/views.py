@@ -23,8 +23,9 @@ from django.urls import reverse
 from django.utils.html import mark_safe
 from django.utils.text import slugify
 from django.views.decorators.http import require_GET, require_POST
-from shelves.models import BookProgress
-from shelves.services import move_book_to_read_shelf
+from shelves.forms import HomeLibraryQuickAddForm
+from shelves.models import BookProgress, ShelfItem, HomeLibraryEntry
+from shelves.services import move_book_to_read_shelf, get_home_library_shelf
 from games.services.read_before_buy import ReadBeforeBuyGame
 from .models import Book, Rating, ISBNModel
 from .forms import BookForm, RatingForm
@@ -327,6 +328,61 @@ def book_detail(request, pk):
     ratings = book.ratings.select_related("user").order_by("-id")  # последние сверху
     rating_summary = book.get_rating_summary()
 
+    home_library_form: HomeLibraryQuickAddForm | None = None
+    home_library_item: ShelfItem | None = None
+    home_library_entry: HomeLibraryEntry | None = None
+    home_library_edit_url: str | None = None
+
+    if request.user.is_authenticated:
+        home_library_shelf = get_home_library_shelf(request.user)
+        home_library_item = (
+            ShelfItem.objects
+            .filter(shelf=home_library_shelf, book=book)
+            .select_related("home_entry")
+            .first()
+        )
+        home_library_entry = getattr(home_library_item, "home_entry", None) if home_library_item else None
+        if home_library_item and home_library_entry is None:
+            home_library_entry = HomeLibraryEntry.objects.filter(shelf_item=home_library_item).first()
+
+        is_home_library_action = request.method == "POST" and request.POST.get("action") == "home-library-add"
+        if is_home_library_action:
+            home_library_form = HomeLibraryQuickAddForm(request.POST)
+            if home_library_form.is_valid():
+                purchase_date = home_library_form.cleaned_data.get("purchase_date")
+                home_library_item, created = ShelfItem.objects.get_or_create(
+                    shelf=home_library_shelf,
+                    book=book,
+                )
+                entry, entry_created = HomeLibraryEntry.objects.get_or_create(shelf_item=home_library_item)
+                home_library_entry = entry
+                updated = False
+                if purchase_date and entry.acquired_at != purchase_date:
+                    entry.acquired_at = purchase_date
+                    entry.save(update_fields=["acquired_at", "updated_at"])
+                    updated = True
+
+                if created or entry_created:
+                    messages.success(
+                        request,
+                        f"«{book.title}» добавлена в полку «{home_library_shelf.name}».",
+                    )
+                elif updated:
+                    messages.success(request, "Дата покупки обновлена для этой книги.")
+                else:
+                    messages.info(
+                        request,
+                        f"«{book.title}» уже находится на полке «{home_library_shelf.name}».",
+                    )
+                return redirect("book_detail", pk=book.pk)
+        if home_library_form is None:
+            initial: dict[str, object] = {}
+            if home_library_entry and home_library_entry.acquired_at:
+                initial["purchase_date"] = home_library_entry.acquired_at
+            home_library_form = HomeLibraryQuickAddForm(initial=initial)
+        if home_library_item:
+            home_library_edit_url = reverse("home_library_edit", args=[home_library_item.pk])
+
     form = RatingForm(
         user=request.user if request.user.is_authenticated else None,
         initial={"book": book.pk}
@@ -587,6 +643,10 @@ def book_detail(request, pk):
         "active_edition": active_edition,
         "active_edition_details": active_edition_details,
         "active_publisher_name": active_publisher_name,
+        "home_library_form": home_library_form,
+        "home_library_item": home_library_item,
+        "home_library_entry": home_library_entry,
+        "home_library_edit_url": home_library_edit_url,
     })
 
 @login_required
