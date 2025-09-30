@@ -268,7 +268,7 @@ class BookLookupViewTests(TestCase):
         self.assertEqual(data["local_results"][0]["title"], "Поисковая книга")
         self.assertEqual(data["external_results"], [])
 
-    @mock.patch("books.views.open_library_client")
+    @mock.patch("books.views.google_books_client")
     def test_fetches_external_results_when_forced(self, mock_client):
         mock_client.search.return_value = [
             ExternalBookData(
@@ -284,7 +284,7 @@ class BookLookupViewTests(TestCase):
                 isbn_13=["1234567890123"],
                 description="Описание", 
                 cover_url="https://example.com/cover.jpg",
-                source_url="https://openlibrary.org/books/OL123",
+                source_url="https://books.google.com/books?id=123",
             )
         ]
 

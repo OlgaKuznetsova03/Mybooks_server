@@ -25,7 +25,7 @@
           <div id="book-lookup" class="mb-4" data-lookup-url="{% url 'book_lookup' %}">
             <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
               <h2 class="h5 mb-0">Поиск книги</h2>
-              <span class="text-muted small">Сначала ищем на сайте, затем при необходимости через Open Library.</span>
+              <span class="text-muted small">Сначала ищем на сайте, затем при необходимости через Google Books.</span>
             </div>
             <div class="row g-3 align-items-end">
               <div class="col-md-4">
@@ -55,12 +55,12 @@
                 <div class="vstack gap-3" data-role="local-results"></div>
               </div>
               <div id="book-lookup-external-suggestion" class="alert alert-warning d-flex justify-content-between align-items-center" hidden>
-                <span>Не нашли нужное издание? Попробуйте поискать через Open Library.</span>
-                <button type="button" class="btn btn-sm btn-outline-primary" id="book-lookup-load-external">Искать в Open Library</button>
+                <span>Не нашли нужное издание? Попробуйте поискать через Google Books.</span>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="book-lookup-load-external">Искать в Google Books</button>
               </div>
               <div class="mb-3" data-role="external-section" hidden>
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                  <h3 class="h6 mb-0">Найдено через Open Library</h3>
+                  <h3 class="h6 mb-0">Найдено через Google Books</h3>
                   <span class="text-muted small">Выберите подходящее издание, чтобы заполнить форму автоматически.</span>
                 </div>
                 <div class="vstack gap-3" data-role="external-results"></div>
@@ -277,7 +277,7 @@
         applyMetadata(item.metadata || {});
 
         if (feedback) {
-          feedback.textContent = 'Данные заполнены из Open Library. Проверьте и дополните при необходимости.';
+          feedback.textContent = 'Данные заполнены из Google Books. Проверьте и дополните при необходимости.';
           feedback.classList.remove('text-muted');
         }
       }
@@ -356,7 +356,7 @@
             sourceLink.target = '_blank';
             sourceLink.rel = 'noopener';
             sourceLink.className = 'btn btn-sm btn-outline-secondary';
-            sourceLink.textContent = 'Открыть в Open Library';
+            sourceLink.textContent = 'Открыть в Google Books';
             header.appendChild(sourceLink);
           }
 
@@ -448,7 +448,7 @@
             feedback.textContent = 'Эти книги уже есть на сайте. Убедитесь, что вы добавляете другое издание или книгу.';
             feedback.classList.remove('text-muted');
           } else if (feedback) {
-            feedback.textContent = 'Мы не нашли книгу на сайте. Можете добавить её вручную или воспользоваться данными из Open Library.';
+            feedback.textContent = 'Мы не нашли книгу на сайте. Можете добавить её вручную или воспользоваться данными из Google Books.';
             feedback.classList.remove('text-muted');
           }
         } catch (err) {

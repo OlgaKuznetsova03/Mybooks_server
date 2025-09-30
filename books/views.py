@@ -28,7 +28,7 @@ from games.services.read_before_buy import ReadBeforeBuyGame
 from .models import Book, Rating, ISBNModel
 from .forms import BookForm, RatingForm
 from .services import EditionRegistrationResult, register_book_edition
-from .api_clients import open_library_client
+from .api_clients import google_books_client
 from .utils import normalize_isbn
 
 
@@ -84,16 +84,16 @@ def book_lookup(request):
     external_error = None
     if force_external or not local_results:
         try:
-            search_results = open_library_client.search(
+            search_results = google_books_client.search(
                 title=title or None,
                 author=author or None,
                 isbn=isbn or None,
                 limit=5,
             )
         except Exception as exc:  # pragma: no cover - defensive logging
-            logger.exception("Open Library lookup failed: %s", exc)
+            logger.exception("Google Books lookup failed: %s", exc)
             search_results = []
-            external_error = "Не удалось получить данные от Open Library. Попробуйте позже."
+            external_error = "Не удалось получить данные от Google Books. Попробуйте позже."
 
         for item in search_results:
             metadata = item.to_metadata_mapping()

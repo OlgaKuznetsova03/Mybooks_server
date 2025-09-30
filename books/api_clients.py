@@ -12,11 +12,8 @@ from urllib import parse, request, error
 logger = logging.getLogger(__name__)
 
 
-OPEN_LIBRARY_SEARCH_URL = "https://openlibrary.org/search.json"
-OPEN_LIBRARY_EDITION_URL_TEMPLATE = "https://openlibrary.org/books/{olid}.json"
-OPEN_LIBRARY_BASE_URL = "https://openlibrary.org"
-OPEN_LIBRARY_COVER_URL_TEMPLATE = "https://covers.openlibrary.org/b/{kind}/{value}-L.jpg"
-OPEN_LIBRARY_AUTHOR_URL_TEMPLATE = "https://openlibrary.org{key}.json"
+GOOGLE_BOOKS_SEARCH_URL = "https://www.googleapis.com/books/v1/volumes"
+GOOGLE_BOOKS_USER_AGENT = "MyBooksLibraryBot/1.0 (+https://github.com)"
 
 
 def _normalize_isbn(value: str) -> str:
@@ -143,19 +140,20 @@ class ExternalBookData:
         return result
 
 
-class OpenLibraryClient:
-    """Lightweight client for the Open Library public API."""
+class GoogleBooksClient:
+    """Lightweight client for the Google Books public API."""
 
-    user_agent = "MyBooksLibraryBot/1.0 (https://openlibrary.org)"
-
-    def __init__(self, timeout: float = 10.0):
+    def __init__(self, *, api_key: Optional[str] = None, timeout: float = 10.0):
+        self.api_key = api_key
         self.timeout = timeout
 
-    def _fetch_json(self, url: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        if params:
-            query = parse.urlencode({k: v for k, v in params.items() if v not in (None, "")})
-            url = f"{url}?{query}"
-        req = request.Request(url, headers={"User-Agent": self.user_agent})
+    def _fetch_json(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        query_params = {k: v for k, v in params.items() if v not in (None, "")}
+        if self.api_key:
+            query_params["key"] = self.api_key
+        query = parse.urlencode(query_params)
+        url = f"{GOOGLE_BOOKS_SEARCH_URL}?{query}"
+        req = request.Request(url, headers={"User-Agent": GOOGLE_BOOKS_USER_AGENT})
         try:
             with request.urlopen(req, timeout=self.timeout) as response:
                 payload = response.read().decode("utf-8")
@@ -169,18 +167,118 @@ class OpenLibraryClient:
             return {}
         return data if isinstance(data, dict) else {}
 
-    def _edition_details(self, olid: str) -> Dict[str, Any]:
-        url = OPEN_LIBRARY_EDITION_URL_TEMPLATE.format(olid=olid)
-        return self._fetch_json(url)
+    def _build_query(
+        self,
+        *,
+        title: Optional[str] = None,
+        author: Optional[str] = None,
+        isbn: Optional[str] = None,
+    ) -> Optional[str]:
+        terms: List[str] = []
 
-    def _author_name(self, author_key: str) -> Optional[str]:
-        if not author_key:
+        def _quoted(value: str) -> str:
+            return "\"" + value.replace("\"", " ").strip() + "\""
+
+        if title:
+            terms.append(f"intitle:{_quoted(str(title))}")
+        if author:
+            terms.append(f"inauthor:{_quoted(str(author))}")
+        normalized_isbn = _normalize_isbn(isbn or "") if isbn else ""
+        if normalized_isbn:
+            terms.append(f"isbn:{normalized_isbn}")
+
+        fallback = str(title or author or normalized_isbn or "").strip()
+        if not terms and fallback:
+            terms.append(fallback)
+
+        if not terms:
             return None
-        data = self._fetch_json(OPEN_LIBRARY_AUTHOR_URL_TEMPLATE.format(key=author_key))
-        name = data.get("name") if isinstance(data, dict) else None
-        if not name:
+        return " ".join(terms)
+
+    def _pick_cover_url(self, volume_info: Dict[str, Any]) -> Optional[str]:
+        links = volume_info.get("imageLinks")
+        if not isinstance(links, dict):
             return None
-        return str(name).strip() or None
+        for key in [
+            "extraLarge",
+            "large",
+            "medium",
+            "small",
+            "thumbnail",
+            "smallThumbnail",
+        ]:
+            value = links.get(key)
+            if value:
+                return str(value).strip() or None
+        return None
+
+    def _parse_volume(self, item: Dict[str, Any]) -> Optional[ExternalBookData]:
+        volume_info = item.get("volumeInfo")
+        if not isinstance(volume_info, dict):
+            return None
+
+        title = str(volume_info.get("title") or "").strip()
+        if not title:
+            return None
+        
+        subtitle = str(volume_info.get("subtitle") or "").strip() or None
+        authors = _deduplicate(_coerce_list(volume_info.get("authors")))
+        publishers = _deduplicate(_coerce_list(volume_info.get("publisher")))
+        publish_date = str(volume_info.get("publishedDate") or "").strip() or None
+        number_of_pages = _coerce_int(volume_info.get("pageCount"))
+        physical_format = str(volume_info.get("printType") or "").strip() or None
+        subjects = _deduplicate(_coerce_list(volume_info.get("categories")))
+        language = str(volume_info.get("language") or "").strip()
+        languages = [language] if language else []
+        description = _extract_description(volume_info.get("description"))
+
+        isbn_10: List[str] = []
+        isbn_13: List[str] = []
+        identifiers = volume_info.get("industryIdentifiers")
+        if isinstance(identifiers, list):
+            for entry in identifiers:
+                if not isinstance(entry, dict):
+                    continue
+                identifier = str(entry.get("identifier") or "").strip()
+                normalized = _normalize_isbn(identifier)
+                if not normalized:
+                    continue
+                identifier_type = str(entry.get("type") or "").upper()
+                if identifier_type == "ISBN_10" and normalized not in isbn_10:
+                    isbn_10.append(normalized)
+                elif identifier_type == "ISBN_13" and normalized not in isbn_13:
+                    isbn_13.append(normalized)
+                elif not identifier_type:
+                    if len(normalized) == 10 and normalized not in isbn_10:
+                        isbn_10.append(normalized)
+                    elif len(normalized) == 13 and normalized not in isbn_13:
+                        isbn_13.append(normalized)
+
+        cover_url = self._pick_cover_url(volume_info)
+        source_url = (
+            str(volume_info.get("infoLink") or "").strip()
+            or str(volume_info.get("canonicalVolumeLink") or "").strip()
+            or str(item.get("selfLink") or "").strip()
+            or None
+        )
+
+        return ExternalBookData(
+            title=title,
+            subtitle=subtitle,
+            authors=authors,
+            publishers=publishers,
+            publish_date=publish_date,
+            number_of_pages=number_of_pages,
+            physical_format=physical_format,
+            subjects=subjects,
+            languages=languages,
+            isbn_10=isbn_10,
+            isbn_13=isbn_13,
+            description=description,
+            cover_url=cover_url,
+            source_url=source_url,
+            external_id=str(item.get("id") or "").strip() or None,
+        )
 
     def search(
         self,
@@ -190,141 +288,32 @@ class OpenLibraryClient:
         isbn: Optional[str] = None,
         limit: int = 5,
     ) -> List[ExternalBookData]:
+        query = self._build_query(title=title, author=author, isbn=isbn)
+        if not query:
+            return []
+        
         params = {
-            "title": title or None,
-            "author": author or None,
-            "isbn": _normalize_isbn(isbn or "") or None,
-            "limit": max(1, min(limit, 20)),
+            "q": query,
+            "maxResults": max(1, min(limit, 40)),
+            "printType": "books",
+            "orderBy": "relevance",
         }
 
-        search_data = self._fetch_json(OPEN_LIBRARY_SEARCH_URL, params)
-        docs = search_data.get("docs") if isinstance(search_data, dict) else None
-        if not docs:
+        data = self._fetch_json(params)
+        items = data.get("items") if isinstance(data, dict) else None
+        if not items or not isinstance(items, list):
             return []
 
         results: List[ExternalBookData] = []
-        for doc in docs[:limit]:
-            edition_keys = doc.get("edition_key") or []
-            edition_details: Dict[str, Any] = {}
-            olid: Optional[str] = None
-            for key in edition_keys:
-                details = self._edition_details(key)
-                if details:
-                    edition_details = details
-                    olid = key
-                    break
-
-            title_value = (
-                edition_details.get("title")
-                or doc.get("title")
-                or doc.get("title_suggest")
-                or ""
-            )
-            if not title_value:
+        for item in items:
+            parsed = self._parse_volume(item) if isinstance(item, dict) else None
+            if not parsed:
                 continue
 
-            subtitle = edition_details.get("subtitle") or doc.get("subtitle")
-
-            doc_authors = _coerce_list(doc.get("author_name"))
-            authors = doc_authors or []
-            if not authors:
-                edition_authors = edition_details.get("authors")
-                author_keys: List[str] = []
-                if isinstance(edition_authors, list):
-                    for entry in edition_authors:
-                        if isinstance(entry, dict) and entry.get("key"):
-                            author_keys.append(str(entry["key"]))
-                fetched_authors: List[str] = []
-                for key in author_keys[:5]:
-                    name = self._author_name(key)
-                    if name:
-                        fetched_authors.append(name)
-                if fetched_authors:
-                    authors = fetched_authors
-            authors = _deduplicate(authors)
-
-            publishers = _coerce_list(
-                edition_details.get("publishers") or doc.get("publisher")
-            )
-            publishers = _deduplicate(publishers)
-
-            subjects = _coerce_list(
-                edition_details.get("subjects") or doc.get("subject")
-            )
-            subjects = _deduplicate(subjects)
-
-            languages = _deduplicate(_coerce_list(edition_details.get("languages")))
-
-            isbn_10 = _deduplicate(_coerce_list(edition_details.get("isbn_10")))
-            isbn_13 = _deduplicate(_coerce_list(edition_details.get("isbn_13")))
-            if not isbn_10 and not isbn_13:
-                isbn_10 = _deduplicate(_coerce_list(doc.get("isbn")))
-
-            number_of_pages = _coerce_int(edition_details.get("number_of_pages"))
-            if number_of_pages is None:
-                number_of_pages = _coerce_int(edition_details.get("number_of_pages_median"))
-            if number_of_pages is None:
-                number_of_pages = _coerce_int(doc.get("number_of_pages_median"))
-
-            physical_format = (
-                edition_details.get("physical_format")
-                or edition_details.get("physical_format_display")
-            )
-
-            description = _extract_description(
-                edition_details.get("description") or doc.get("description")
-            )
-
-            publish_date = edition_details.get("publish_date")
-            if not publish_date:
-                publish_date = doc.get("first_publish_year")
-                if publish_date:
-                    publish_date = str(publish_date)
-
-            cover_url = None
-            cover_ids = edition_details.get("covers")
-            if isinstance(cover_ids, list) and cover_ids:
-                cover_url = OPEN_LIBRARY_COVER_URL_TEMPLATE.format(
-                    kind="id", value=cover_ids[0]
-                )
-            elif doc.get("cover_i"):
-                cover_url = OPEN_LIBRARY_COVER_URL_TEMPLATE.format(
-                    kind="id", value=doc["cover_i"]
-                )
-            else:
-                candidate_isbns = isbn_13 or isbn_10
-                if candidate_isbns:
-                    cover_url = OPEN_LIBRARY_COVER_URL_TEMPLATE.format(
-                        kind="isbn", value=_normalize_isbn(candidate_isbns[0])
-                    )
-
-            source_url = None
-            if olid:
-                source_url = f"{OPEN_LIBRARY_BASE_URL}/books/{olid}"
-            elif doc.get("key"):
-                source_url = f"{OPEN_LIBRARY_BASE_URL}{doc['key']}"
-
-            results.append(
-                ExternalBookData(
-                    title=title_value,
-                    subtitle=subtitle or None,
-                    authors=authors,
-                    publishers=publishers,
-                    publish_date=publish_date or None,
-                    number_of_pages=number_of_pages,
-                    physical_format=str(physical_format).strip() if physical_format else None,
-                    subjects=subjects,
-                    languages=languages,
-                    isbn_10=[_normalize_isbn(val) for val in isbn_10],
-                    isbn_13=[_normalize_isbn(val) for val in isbn_13],
-                    description=description,
-                    cover_url=cover_url,
-                    source_url=source_url,
-                    olid=olid,
-                )
-            )
-
+            results.append(parsed)
+            if len(results) >= limit:
+                break
         return results
 
 
-open_library_client = OpenLibraryClient()
+google_books_client = GoogleBooksClient()
