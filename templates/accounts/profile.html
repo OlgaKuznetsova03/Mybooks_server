@@ -84,8 +84,8 @@
     </button>
   </li>
   <li class="nav-item" role="presentation">
-    <button class="nav-link" id="reviews-tab" data-bs-toggle="tab"
-            data-bs-target="#reviews" type="button" role="tab">
+    <button class="nav-link{% if current_tab == 'reviews' %} active{% endif %}" id="reviews-tab" data-bs-toggle="tab"
+            data-bs-target="#reviews" type="button" role="tab" aria-selected="{% if current_tab == 'reviews' %}true{% else %}false{% endif %}">
       Обзоры
     </button>
   </li>
@@ -376,9 +376,95 @@
 
   <!-- Обзоры -->
   <div class="tab-pane fade{% if current_tab == 'reviews' %} show active{% endif %}" id="reviews" role="tabpanel">
-    <p>Если пользователь блогер — здесь будут его обзоры.</p>
+    {% if user_reviews %}
+      <div class="d-flex flex-column gap-3">
+        {% for review in user_reviews %}
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <div class="d-flex flex-column flex-md-row gap-3 align-items-start">
+                <div id="review-print-{{ review.id }}" class="flex-grow-1">
+                  <div class="d-flex flex-wrap align-items-baseline gap-2 mb-1">
+                    <h3 class="h6 mb-0">
+                      <a class="text-decoration-none" href="{% url 'book_detail' review.book.pk %}">{{ review.book.title }}</a>
+                    </h3>
+                    {% with authors=review.book.authors.all %}
+                      {% if authors %}
+                        <span class="text-muted small">{{ authors|join:", " }}</span>
+                      {% endif %}
+                    {% endwith %}
+                    {% if review.score %}
+                      <span class="badge text-bg-warning ms-md-auto">{{ review.score }} / 10</span>
+                    {% endif %}
+                  </div>
+                  <div class="small text-muted mb-2">Опубликован {{ review.created_at|date:"d.m.Y H:i" }}</div>
+                  {% with category_scores=review.get_category_scores %}
+                    {% if category_scores %}
+                      <ul class="list-inline small text-muted mb-2">
+                        {% for label, value in category_scores %}
+                          <li class="list-inline-item me-3">{{ label }}: <strong>{{ value }}</strong></li>
+                        {% endfor %}
+                      </ul>
+                    {% endif %}
+                  {% endwith %}
+                  {% if review.review %}
+                    <div class="mt-2">{{ review.review|linebreaksbr }}</div>
+                  {% endif %}
+                </div>
+                <div class="ms-md-auto">
+                  <button type="button" class="btn btn-outline-secondary btn-sm" onclick="printReview('review-print-{{ review.id }}')">
+                    <i class="bi bi-printer me-1"></i>Распечатать
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="alert alert-light border mb-0">Пока нет написанных отзывов.</div>
+    {% endif %}
   </div>
 </div>
 {% endwith %}
 
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  <script>
+    (function () {
+      if (window.printReview) {
+        return;
+      }
+      window.printReview = function (elementId) {
+        const sourceEl = document.getElementById(elementId);
+        if (!sourceEl) {
+          return;
+        }
+        const printWindow = window.open('', '', 'width=900,height=650');
+        if (!printWindow) {
+          return;
+        }
+        const doc = printWindow.document;
+        doc.write('<!doctype html><html lang="ru"><head><title>Печать отзыва</title>');
+        document.querySelectorAll('link[rel="stylesheet"]').forEach((link) => {
+          doc.write(link.outerHTML);
+        });
+        doc.write('<style>body{margin:1.5rem;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;}</style>');
+        doc.write('</head><body>');
+        doc.write(sourceEl.innerHTML);
+        doc.write('</body></html>');
+        doc.close();
+        printWindow.focus();
+        setTimeout(() => {
+          printWindow.print();
+        }, 200);
+        if (printWindow.addEventListener) {
+          printWindow.addEventListener('afterprint', () => {
+            printWindow.close();
+          }, { once: true });
+        }
+      };
+    })();
+  </script>
 {% endblock %}

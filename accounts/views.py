@@ -316,6 +316,15 @@ def profile(request, username=None):
         .order_by("-is_default", "name")
     )
 
+    user_reviews = (
+        Rating.objects.filter(user=user_obj)
+        .exclude(review__isnull=True)
+        .exclude(review__exact="")
+        .select_related("book")
+        .prefetch_related("book__authors")
+        .order_by("-created_at")
+    )
+
     context = {
         "u": user_obj,
         "is_blogger": user_obj.groups.filter(name="blogger").exists(),
@@ -326,6 +335,7 @@ def profile(request, username=None):
         "active_tab": active_tab,
         "user_shelves": user_shelves,
         "allow_shelf_management": request.user == user_obj,
+        "user_reviews": user_reviews,
     }
     return render(request, "accounts/profile.html", context)
 
