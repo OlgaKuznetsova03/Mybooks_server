@@ -43,32 +43,7 @@ def _isbn_query(value: Optional[str]) -> str:
 def _book_cover_url(book: Book) -> str:
     """Вернуть URL обложки для отображения в подборках."""
 
-    cover = getattr(book, "cover", None)
-    if cover:
-        try:
-            url = cover.url
-        except (ValueError, AttributeError):
-            url = ""
-        else:
-            if url:
-                return url
-
-    primary = getattr(book, "primary_isbn", None)
-    if primary:
-        cover_url = primary.get_image_url()
-        if cover_url:
-            return cover_url
-
-    fallback_isbn = (
-        book.isbn.exclude(image__isnull=True)
-        .exclude(image="")
-        .first()
-    )
-    if fallback_isbn:
-        cover_url = fallback_isbn.get_image_url()
-        if cover_url:
-            return cover_url
-    return ""
+    return book.get_cover_url()
 
 
 def _matching_books_for_isbns(isbn_values: list[str]) -> list[dict[str, object]]:

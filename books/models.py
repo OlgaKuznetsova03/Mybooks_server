@@ -138,6 +138,37 @@ class Book(models.Model):
     # новое поле для обложки
     cover = models.ImageField(upload_to="book_covers/", blank=True, null=True)
 
+    def get_cover_url(self) -> str:
+        """Вернуть подходящий URL обложки книги с учётом источника."""
+
+        cover_file = getattr(self, "cover", None)
+        if cover_file:
+            try:
+                url = cover_file.url
+            except (ValueError, AttributeError):
+                url = ""
+            else:
+                if url:
+                    return url
+
+        primary = getattr(self, "primary_isbn", None)
+        if primary:
+            cover_url = primary.get_image_url()
+            if cover_url:
+                return cover_url
+
+        fallback_isbn = (
+            self.isbn.exclude(image__isnull=True)
+            .exclude(image="")
+            .first()
+        )
+        if fallback_isbn:
+            cover_url = fallback_isbn.get_image_url()
+            if cover_url:
+                return cover_url
+
+        return ""
+
     def get_total_pages(self):
         """
         Источник приоритетов:

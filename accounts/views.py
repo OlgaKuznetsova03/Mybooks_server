@@ -41,21 +41,7 @@ def _format_duration(value):
 
 
 def _resolve_cover(book: Book) -> str:
-    if book.cover:
-        try:
-            return book.cover.url
-        except ValueError:
-            pass
-    if book.primary_isbn:
-        url = book.primary_isbn.get_image_url()
-        if url:
-            return url
-    first_isbn = book.isbn.first()
-    if first_isbn:
-        url = first_isbn.get_image_url()
-        if url:
-            return url
-    return ""
+    return book.get_cover_url()
 
 
 def _resolve_stats_period(params, read_items):
