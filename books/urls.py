@@ -4,6 +4,8 @@ from . import views
 urlpatterns = [
     # пример: страница со списком книг
     path("book_list", views.book_list, name="book_list"),
+
+    path("lookup/", views.book_lookup, name="book_lookup"),
     
     # детальная страница книги
     path("<int:pk>/", views.book_detail, name="book_detail"),

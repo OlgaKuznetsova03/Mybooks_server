@@ -32,3 +32,9 @@ def store_additional_cover(book: "Book", uploaded_file: UploadedFile) -> str:
     field_file = book.cover
     filename = field_file.field.generate_filename(book, uploaded_file.name)
     return field_file.storage.save(filename, uploaded_file)
+
+
+def normalize_isbn(value: str | None) -> str:
+    if not value:
+        return ""
+    return "".join(ch for ch in str(value).upper() if ch.isdigit() or ch == "X")

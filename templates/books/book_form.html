@@ -22,6 +22,52 @@
             </div>
           {% endif %}
 
+          <div id="book-lookup" class="mb-4" data-lookup-url="{% url 'book_lookup' %}">
+            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+              <h2 class="h5 mb-0">Поиск книги</h2>
+              <span class="text-muted small">Сначала ищем на сайте, затем при необходимости через Open Library.</span>
+            </div>
+            <div class="row g-3 align-items-end">
+              <div class="col-md-4">
+                <label class="form-label" for="book-lookup-title">Название</label>
+                <input type="text" class="form-control" id="book-lookup-title" placeholder="Например, Ведьмак">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label" for="book-lookup-author">Автор</label>
+                <input type="text" class="form-control" id="book-lookup-author" placeholder="Анджей Сапковский">
+              </div>
+              <div class="col-md-3 col-sm-6">
+                <label class="form-label" for="book-lookup-isbn">ISBN</label>
+                <input type="text" class="form-control" id="book-lookup-isbn" placeholder="978-5-699-XXXXXX">
+              </div>
+              <div class="col-md-1 col-sm-6 d-grid">
+                <button type="button" class="btn btn-outline-primary" id="book-lookup-submit">
+                  <i class="bi bi-search"></i>
+                  <span class="visually-hidden">Искать</span>
+                </button>
+              </div>
+            </div>
+            <div id="book-lookup-feedback" class="form-text mt-2 text-muted">Введите данные и нажмите поиск, чтобы убедиться, что книги ещё нет на сайте.</div>
+
+            <div id="book-lookup-results" class="mt-4" hidden>
+              <div class="mb-3" data-role="local-section" hidden>
+                <h3 class="h6">Результаты на сайте</h3>
+                <div class="vstack gap-3" data-role="local-results"></div>
+              </div>
+              <div id="book-lookup-external-suggestion" class="alert alert-warning d-flex justify-content-between align-items-center" hidden>
+                <span>Не нашли нужное издание? Попробуйте поискать через Open Library.</span>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="book-lookup-load-external">Искать в Open Library</button>
+              </div>
+              <div class="mb-3" data-role="external-section" hidden>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <h3 class="h6 mb-0">Найдено через Open Library</h3>
+                  <span class="text-muted small">Выберите подходящее издание, чтобы заполнить форму автоматически.</span>
+                </div>
+                <div class="vstack gap-3" data-role="external-results"></div>
+              </div>
+            </div>
+          </div>
+
            {% if duplicate_candidates %}
             <div class="alert alert-warning">
               <h2 class="h5 mb-3">Мы нашли похожие книги</h2>
@@ -66,8 +112,12 @@
               </div>
             </div>
           {% endif %}
-          
-          {% for field in form %}
+
+          {% for hidden_field in form.hidden_fields %}
+            {{ hidden_field }}
+          {% endfor %}
+
+          {% for field in form.visible_fields %}
             <div class="mb-3">
               <label class="form-label" id="id_{{ field.name }}_label" for="id_{{ field.name }}">
                 {{ field.label }}{% if field.field.required %}<span class="text-danger">*</span>{% endif %}
@@ -91,4 +141,334 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const lookupRoot = document.getElementById('book-lookup');
+      if (!lookupRoot) {
+        return;
+      }
+
+      const lookupUrl = lookupRoot.dataset.lookupUrl;
+      const titleInput = document.getElementById('book-lookup-title');
+      const authorInput = document.getElementById('book-lookup-author');
+      const isbnInput = document.getElementById('book-lookup-isbn');
+      const submitButton = document.getElementById('book-lookup-submit');
+      const feedback = document.getElementById('book-lookup-feedback');
+      const resultsRoot = document.getElementById('book-lookup-results');
+      const localSection = resultsRoot?.querySelector('[data-role="local-section"]');
+      const localResults = resultsRoot?.querySelector('[data-role="local-results"]');
+      const externalSection = resultsRoot?.querySelector('[data-role="external-section"]');
+      const externalResults = resultsRoot?.querySelector('[data-role="external-results"]');
+      const externalButton = document.getElementById('book-lookup-load-external');
+      const externalSuggestion = document.getElementById('book-lookup-external-suggestion');
+      const isbnField = document.getElementById('id_isbn');
+      const titleField = document.getElementById('id_title');
+      const authorsField = document.getElementById('id_authors');
+      const genresField = document.getElementById('id_genres');
+      const publisherField = document.getElementById('id_publisher');
+      const languageField = document.getElementById('id_language');
+      const synopsisField = document.getElementById('id_synopsis');
+      const metadataField = document.getElementById('id_isbn_metadata');
+
+
+      function setLoading(isLoading) {
+        if (!submitButton) {
+          return;
+        }
+        submitButton.disabled = isLoading;
+        submitButton.innerHTML = isLoading ? '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>' : '<i class="bi bi-search"></i><span class="visually-hidden">Искать</span>';
+      }
+
+      function clearResults() {
+        if (localResults) {
+          localResults.innerHTML = '';
+        }
+        if (externalResults) {
+          externalResults.innerHTML = '';
+        }
+        if (localSection) {
+          localSection.hidden = true;
+        }
+        if (externalSection) {
+          externalSection.hidden = true;
+        }
+        if (resultsRoot) {
+          resultsRoot.hidden = true;
+        }
+        if (externalSuggestion) {
+          externalSuggestion.hidden = true;
+        }
+      }
+
+      function renderLocal(results) {
+        if (!localSection || !localResults) {
+          return;
+        }
+        if (!results.length) {
+          localSection.hidden = true;
+          return;
+        }
+        localSection.hidden = false;
+        localResults.innerHTML = '';
+        results.forEach((item) => {
+          const card = document.createElement('div');
+          card.className = 'border rounded p-3';
+          const title = document.createElement('h4');
+          title.className = 'h6 mb-1';
+          title.textContent = item.title;
+          const authors = document.createElement('p');
+          authors.className = 'text-muted small mb-2';
+          authors.textContent = item.authors.length ? `Авторы: ${item.authors.join(', ')}` : 'Авторы не указаны';
+          const editions = document.createElement('p');
+          editions.className = 'text-muted small mb-2';
+          editions.textContent = `Изданий на сайте: ${item.edition_count}`;
+          const link = document.createElement('a');
+          link.href = item.detail_url;
+          link.target = '_blank';
+          link.rel = 'noopener';
+          link.className = 'btn btn-sm btn-outline-secondary';
+          link.textContent = 'Открыть страницу';
+
+          card.appendChild(title);
+          card.appendChild(authors);
+          card.appendChild(editions);
+          card.appendChild(link);
+          localResults.appendChild(card);
+        });
+      }
+
+      function applyMetadata(metadata) {
+        if (!metadataField) {
+          return;
+        }
+        try {
+          metadataField.value = JSON.stringify(metadata || {});
+        } catch (err) {
+          console.warn('Не удалось сохранить данные из API', err);
+        }
+      }
+
+      function applyExternalResult(item) {
+        if (titleField && item.title) {
+          titleField.value = item.title;
+        }
+        if (authorsField && item.authors?.length) {
+          authorsField.value = item.authors.join(', ');
+        }
+        if (genresField && item.subjects?.length) {
+          genresField.value = item.subjects.join(', ');
+        }
+        if (publisherField && item.publishers?.length) {
+          publisherField.value = item.publishers.join(', ');
+        }
+        if (languageField && item.languages?.length) {
+          languageField.value = item.languages.join(', ');
+        }
+        if (synopsisField && item.description && !synopsisField.value) {
+          synopsisField.value = item.description;
+        }
+        if (isbnField && item.isbn_list?.length) {
+          isbnField.value = item.isbn_list.join(', ');
+        }
+        applyMetadata(item.metadata || {});
+
+        if (feedback) {
+          feedback.textContent = 'Данные заполнены из Open Library. Проверьте и дополните при необходимости.';
+          feedback.classList.remove('text-muted');
+        }
+      }
+
+      function renderExternal(results, errorMessage) {
+        if (!externalSection || !externalResults) {
+          return;
+        }
+        externalResults.innerHTML = '';
+        if (errorMessage) {
+          externalSection.hidden = false;
+          const alert = document.createElement('div');
+          alert.className = 'alert alert-danger mb-0';
+          alert.textContent = errorMessage;
+          externalResults.appendChild(alert);
+          return;
+        }
+        if (!results.length) {
+          externalSection.hidden = false;
+          const alert = document.createElement('div');
+          alert.className = 'alert alert-info mb-0';
+          alert.textContent = 'Подходящих изданий не найдено. Попробуйте уточнить запрос.';
+          externalResults.appendChild(alert);
+          return;
+        }
+        externalSection.hidden = false;
+        results.forEach((item) => {
+          const card = document.createElement('div');
+          card.className = 'border rounded p-3';
+          const header = document.createElement('div');
+          header.className = 'd-flex justify-content-between align-items-start flex-wrap gap-2';
+          const textContainer = document.createElement('div');
+
+          const title = document.createElement('h4');
+          title.className = 'h6 mb-1';
+          title.textContent = item.title;
+          textContainer.appendChild(title);
+
+          if (item.subtitle) {
+            const subtitle = document.createElement('p');
+            subtitle.className = 'text-muted small mb-1';
+            subtitle.textContent = item.subtitle;
+            textContainer.appendChild(subtitle);
+          }
+
+          if (item.authors?.length) {
+            const authors = document.createElement('p');
+            authors.className = 'text-muted small mb-1';
+            authors.textContent = `Авторы: ${item.authors.join(', ')}`;
+            textContainer.appendChild(authors);
+          }
+
+          if (item.publish_date || item.physical_format) {
+            const meta = document.createElement('p');
+            meta.className = 'text-muted small mb-1';
+            const parts = [];
+            if (item.publish_date) parts.push(`Дата: ${item.publish_date}`);
+            if (item.number_of_pages) parts.push(`Страниц: ${item.number_of_pages}`);
+            if (item.physical_format) parts.push(`Тип: ${item.physical_format}`);
+            meta.textContent = parts.join(' · ');
+            textContainer.appendChild(meta);
+          }
+
+          if (item.isbn_list?.length) {
+            const isbnText = document.createElement('p');
+            isbnText.className = 'text-muted small mb-1';
+            isbnText.textContent = `ISBN: ${item.isbn_list.join(', ')}`;
+            textContainer.appendChild(isbnText);
+          }
+
+          header.appendChild(textContainer);
+
+          if (item.source_url) {
+            const sourceLink = document.createElement('a');
+            sourceLink.href = item.source_url;
+            sourceLink.target = '_blank';
+            sourceLink.rel = 'noopener';
+            sourceLink.className = 'btn btn-sm btn-outline-secondary';
+            sourceLink.textContent = 'Открыть в Open Library';
+            header.appendChild(sourceLink);
+          }
+
+          card.appendChild(header);
+
+          if (item.description) {
+            const description = document.createElement('p');
+            description.className = 'mt-2 mb-3 small';
+            description.textContent = item.description.length > 320 ? `${item.description.slice(0, 317)}…` : item.description;
+            card.appendChild(description);
+          }
+
+          const actions = document.createElement('div');
+          actions.className = 'd-flex gap-2 flex-wrap';
+
+          const applyButton = document.createElement('button');
+          applyButton.type = 'button';
+          applyButton.className = 'btn btn-primary btn-sm';
+          applyButton.textContent = 'Использовать эти данные';
+          applyButton.addEventListener('click', () => applyExternalResult(item));
+          actions.appendChild(applyButton);
+
+          if (item.cover_url) {
+            const coverLink = document.createElement('a');
+            coverLink.href = item.cover_url;
+            coverLink.target = '_blank';
+            coverLink.rel = 'noopener';
+            coverLink.className = 'btn btn-outline-secondary btn-sm';
+            coverLink.textContent = 'Открыть обложку';
+            actions.appendChild(coverLink);
+          }
+
+          card.appendChild(actions);
+          externalResults.appendChild(card);
+        });
+      }
+
+      async function performSearch(options = { forceExternal: false }) {
+        if (!lookupUrl) {
+          return;
+        }
+        const params = new URLSearchParams();
+        const title = titleInput?.value.trim();
+        const author = authorInput?.value.trim();
+        const isbn = isbnInput?.value.trim();
+
+        if (title) params.set('title', title);
+        if (author) params.set('author', author);
+        if (isbn) params.set('isbn', isbn);
+        if (options.forceExternal) params.set('force_external', '1');
+
+        clearResults();
+        setLoading(true);
+        applyMetadata({});
+
+        try {
+          const response = await fetch(`${lookupUrl}?${params.toString()}`, { headers: { 'Accept': 'application/json' } });
+          if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            if (feedback) {
+              feedback.textContent = payload.error || 'Не удалось выполнить поиск. Попробуйте позже.';
+              feedback.classList.remove('text-muted');
+            }
+            return;
+          }
+
+          const data = await response.json();
+          if (resultsRoot) {
+            resultsRoot.hidden = false;
+          }
+          renderLocal(data.local_results || []);
+
+          if (externalSuggestion) {
+            externalSuggestion.hidden = !!options.forceExternal;
+          }
+
+          if (options.forceExternal || (data.external_results && data.external_results.length)) {
+            if (externalSuggestion) {
+              externalSuggestion.hidden = true;
+            }
+            renderExternal(data.external_results || [], data.external_error);
+          } else if (!data.local_results?.length) {
+            if (externalSuggestion) {
+              externalSuggestion.hidden = false;
+            }
+          }
+
+          if (feedback && data.local_results?.length) {
+            feedback.textContent = 'Эти книги уже есть на сайте. Убедитесь, что вы добавляете другое издание или книгу.';
+            feedback.classList.remove('text-muted');
+          } else if (feedback) {
+            feedback.textContent = 'Мы не нашли книгу на сайте. Можете добавить её вручную или воспользоваться данными из Open Library.';
+            feedback.classList.remove('text-muted');
+          }
+        } catch (err) {
+          console.error('Lookup failed', err);
+          if (feedback) {
+            feedback.textContent = 'Произошла ошибка при поиске. Проверьте подключение и повторите попытку.';
+            feedback.classList.remove('text-muted');
+          }
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      submitButton?.addEventListener('click', () => {
+        performSearch({ forceExternal: false });
+      });
+
+      externalButton?.addEventListener('click', () => {
+        performSearch({ forceExternal: true });
+      });
+    });
+  </script>
 {% endblock %}

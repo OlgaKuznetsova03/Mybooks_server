@@ -1,4 +1,5 @@
 import tempfile
+from unittest import mock
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -10,6 +11,7 @@ from shelves.models import Shelf, ShelfItem
 
 from .models import Author, Genre, Publisher, Book, ISBNModel
 from .services import register_book_edition
+from .api_clients import ExternalBookData
 
 
 class ISBNModelGetImageURLTests(TestCase):
@@ -191,6 +193,113 @@ class RegisterBookEditionTests(TestCase):
         self.assertTrue(result.created)
         self.assertNotEqual(result.book.pk, existing.pk)
         self.assertEqual(result.added_isbns, [isbn_new])
+
+    def test_applies_isbn_metadata(self):
+        isbn = ISBNModel.objects.create(isbn="1234567890")
+
+        metadata = {
+            "1234567890": {
+                "title": "API Title",
+                "authors": ["Новый Автор"],
+                "publishers": ["API Publisher"],
+                "publish_date": "2021",
+                "number_of_pages": 320,
+                "physical_format": "Hardcover",
+                "subjects": ["Фэнтези", "Приключения"],
+                "languages": ["rus"],
+                "description": "Описание из API",
+                "cover_url": "https://example.org/cover.jpg",
+                "isbn_13_list": ["9781234567897"],
+            }
+        }
+
+        result = register_book_edition(
+            title="API Title",
+            authors=[self.author],
+            isbn_entries=[isbn],
+            isbn_metadata=metadata,
+        )
+
+        self.assertIn(isbn, result.added_isbns)
+
+        isbn.refresh_from_db()
+        self.assertEqual(isbn.title, "API Title")
+        self.assertEqual(isbn.publisher, "API Publisher")
+        self.assertEqual(isbn.publish_date, "2021")
+        self.assertEqual(isbn.total_pages, 320)
+        self.assertEqual(isbn.binding, "Hardcover")
+        self.assertEqual(isbn.subjects, "Фэнтези, Приключения")
+        self.assertEqual(isbn.language, "rus")
+        self.assertEqual(isbn.synopsis, "Описание из API")
+        self.assertEqual(isbn.image, "https://example.org/cover.jpg")
+        self.assertEqual(isbn.isbn13, "9781234567897")
+        self.assertIn("Новый Автор", list(isbn.authors.values_list("name", flat=True)))
+
+
+class BookLookupViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="lookup", password="pass12345")
+        self.client.login(username="lookup", password="pass12345")
+        self.author = Author.objects.create(name="Автор Поиска")
+        self.book = Book.objects.create(title="Поисковая книга", synopsis="")
+        self.book.authors.add(self.author)
+        self.isbn = ISBNModel.objects.create(
+            isbn="1234567890",
+            isbn13="1234567890123",
+            title="Существующее издание",
+        )
+        self.book.isbn.add(self.isbn)
+
+    def test_requires_login(self):
+        self.client.logout()
+        response = self.client.get(reverse("book_lookup"), {"title": "Поисковая"})
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("login"), response.url)
+
+    def test_rejects_empty_query(self):
+        response = self.client.get(reverse("book_lookup"))
+        self.assertEqual(response.status_code, 400)
+
+    def test_returns_local_results(self):
+        response = self.client.get(reverse("book_lookup"), {"title": "Поисковая"})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["local_results"]), 1)
+        self.assertEqual(data["local_results"][0]["title"], "Поисковая книга")
+        self.assertEqual(data["external_results"], [])
+
+    @mock.patch("books.views.open_library_client")
+    def test_fetches_external_results_when_forced(self, mock_client):
+        mock_client.search.return_value = [
+            ExternalBookData(
+                title="API Книга",
+                authors=["API Автор"],
+                publishers=["API Издательство"],
+                publish_date="2020",
+                number_of_pages=250,
+                physical_format="Paperback",
+                subjects=["Приключения"],
+                languages=["eng"],
+                isbn_10=["1234567890"],
+                isbn_13=["1234567890123"],
+                description="Описание", 
+                cover_url="https://example.com/cover.jpg",
+                source_url="https://openlibrary.org/books/OL123",
+            )
+        ]
+
+        response = self.client.get(
+            reverse("book_lookup"),
+            {"title": "Неизвестная", "force_external": "1"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["local_results"], [])
+        self.assertEqual(len(data["external_results"]), 1)
+        self.assertEqual(data["external_results"][0]["title"], "API Книга")
+        self.assertIn("metadata", data["external_results"][0])
+        mock_client.search.assert_called_once()
 
 
 class RateBookMovesShelfTests(TestCase):

@@ -1,4 +1,6 @@
 # apps/books/forms.py
+import json
+
 from django import forms
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -6,11 +8,12 @@ from .models import (
     Author, Publisher, Genre, ISBNModel,
     AudioBook, Book, Rating
 )
+from .utils import normalize_isbn
 
 
 def _isbn_digits(value: str) -> str:
     """Оставить только цифры и X, привести к верхнему регистру."""
-    return "".join(ch for ch in value.upper() if ch.isdigit() or ch == "X")
+    return normalize_isbn(value)
 
 def _is_valid_isbn10(v: str) -> bool:
     # алгоритм проверки контрольной суммы ISBN-10
@@ -136,6 +139,7 @@ class BookForm(forms.ModelForm):
         help_text="Введите ISBN-10 или ISBN-13 через запятую.",
         widget=forms.TextInput(attrs={"placeholder": "9785000000001, 5-02-013850-9"}),
     )
+    isbn_metadata = forms.CharField(required=False, widget=forms.HiddenInput())
     genres = forms.CharField(
         label="Жанры",
         help_text="Перечислите жанры через запятую.",
@@ -270,6 +274,20 @@ class BookForm(forms.ModelForm):
         if order is not None and order <= 0:
             raise ValidationError("Номер в серии должен быть больше нуля.")
         return order
+
+    def clean_isbn_metadata(self):
+        value = self.cleaned_data.get("isbn_metadata")
+        if not value:
+            return {}
+        if isinstance(value, dict):
+            return value
+        try:
+            parsed = json.loads(value)
+        except (TypeError, json.JSONDecodeError):
+            raise ValidationError("Не удалось обработать данные об издании из API.")
+        if not isinstance(parsed, dict):
+            raise ValidationError("Получены некорректные данные из API.")
+        return parsed
 
 
 class RatingForm(forms.ModelForm):

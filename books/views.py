@@ -1,3 +1,5 @@
+import logging
+
 from django.db.models import (
     Q,
     F,
@@ -9,8 +11,9 @@ from django.db.models import (
     OuterRef,
     Subquery,
 )
+from typing import Optional
 from django.core.paginator import Paginator
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
@@ -18,12 +21,109 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.html import mark_safe
 from django.utils.text import slugify
+from django.views.decorators.http import require_GET
 from shelves.models import BookProgress
 from shelves.services import move_book_to_read_shelf
 from games.services.read_before_buy import ReadBeforeBuyGame
 from .models import Book, Rating, ISBNModel
 from .forms import BookForm, RatingForm
 from .services import EditionRegistrationResult, register_book_edition
+from .api_clients import open_library_client
+from .utils import normalize_isbn
+
+
+logger = logging.getLogger(__name__)
+
+
+def _isbn_query(value: Optional[str]) -> str:
+    return normalize_isbn(value)
+
+
+@login_required
+@require_GET
+def book_lookup(request):
+    title = (request.GET.get("title") or "").strip()
+    author = (request.GET.get("author") or "").strip()
+    isbn_raw = request.GET.get("isbn")
+    isbn = _isbn_query(isbn_raw)
+    force_external = str(request.GET.get("force_external", "")).lower() in {"1", "true", "yes"}
+
+    if not any([title, author, isbn]):
+        return JsonResponse({"error": "Укажите название, автора или ISBN."}, status=400)
+
+    qs = Book.objects.all().prefetch_related("authors", "isbn")
+    if title:
+        qs = qs.filter(title__icontains=title)
+    if author:
+        qs = qs.filter(authors__name__icontains=author)
+    if isbn:
+        qs = qs.filter(Q(isbn__isbn__iexact=isbn) | Q(isbn__isbn13__iexact=isbn))
+
+    local_results = []
+    for book in qs.distinct()[:10]:
+        isbn_values = list(book.isbn.values("isbn", "isbn13"))
+        isbn_candidates = []
+        for entry in isbn_values:
+            primary = normalize_isbn(entry.get("isbn")) if entry.get("isbn") else ""
+            secondary = normalize_isbn(entry.get("isbn13")) if entry.get("isbn13") else ""
+            isbn_candidates.extend([primary, secondary])
+        seen_isbns = []
+        for candidate in isbn_candidates:
+            if candidate and candidate not in seen_isbns:
+                seen_isbns.append(candidate)
+        local_results.append({
+            "id": book.pk,
+            "title": book.title,
+            "authors": list(book.authors.order_by("name").values_list("name", flat=True)),
+            "isbn_list": seen_isbns,
+            "detail_url": reverse("book_detail", args=[book.pk]),
+            "edition_count": len(isbn_values),
+        })
+
+    external_results = []
+    external_error = None
+    if force_external or not local_results:
+        try:
+            search_results = open_library_client.search(
+                title=title or None,
+                author=author or None,
+                isbn=isbn or None,
+                limit=5,
+            )
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.exception("Open Library lookup failed: %s", exc)
+            search_results = []
+            external_error = "Не удалось получить данные от Open Library. Попробуйте позже."
+
+        for item in search_results:
+            metadata = item.to_metadata_mapping()
+            combined_isbns = item.combined_isbns()
+            external_results.append({
+                "title": item.title,
+                "subtitle": item.subtitle,
+                "authors": item.authors,
+                "publishers": item.publishers,
+                "publish_date": item.publish_date,
+                "number_of_pages": item.number_of_pages,
+                "physical_format": item.physical_format,
+                "subjects": item.subjects,
+                "languages": item.languages,
+                "description": item.description,
+                "cover_url": item.cover_url,
+                "source_url": item.source_url,
+                "isbn_list": combined_isbns,
+                "metadata": metadata,
+            })
+
+    return JsonResponse(
+        {
+            "query": {"title": title, "author": author, "isbn": isbn, "raw_isbn": isbn_raw},
+            "local_results": local_results,
+            "external_results": external_results,
+            "external_error": external_error,
+            "force_external": force_external,
+        }
+    )
 
 def _find_books_with_same_title_and_authors(title, authors):
     """Вернуть книги, у которых совпадает название и состав авторов."""
@@ -381,6 +481,7 @@ def book_create(request):
     if request.method == "POST":
         form = BookForm(request.POST, request.FILES)
         if form.is_valid():
+            isbn_metadata = form.cleaned_data.get("isbn_metadata") or {}
             duplicate_candidates = _find_books_with_same_title_and_authors(
                 form.cleaned_data.get("title"),
                 form.cleaned_data.get("authors"),
@@ -408,6 +509,7 @@ def book_create(request):
                             audio=form.cleaned_data.get("audio"),
                             cover_file=form.cleaned_data.get("cover"),
                             force_new=True,
+                            isbn_metadata=isbn_metadata,
                         )
                         _notify_about_registration(request, result)
                         return redirect("book_detail", pk=result.book.pk)
@@ -441,6 +543,7 @@ def book_create(request):
                             audio=form.cleaned_data.get("audio"),
                             cover_file=form.cleaned_data.get("cover"),
                             target_book=selected_book,
+                            isbn_metadata=isbn_metadata,
                         )
                         
                         _notify_about_registration(request, result)
@@ -462,6 +565,7 @@ def book_create(request):
                     audio=form.cleaned_data.get("audio"),
                     cover_file=form.cleaned_data.get("cover"),
                     force_new=False,
+                    isbn_metadata=isbn_metadata,
                 )
 
                 _notify_about_registration(request, result)
