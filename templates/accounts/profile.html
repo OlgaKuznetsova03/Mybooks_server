@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load role_filters %}
+{% load role_filters shelf_extras %}
 
 {% block title %}Профиль {{ u.username }}{% endblock %}
 
@@ -289,7 +289,7 @@
       </div>
     {% endwith %}
 
-    
+
     <div class="mb-4">
       <h3 class="h6 mb-3">Прочитанные книги</h3>
       {% if stats.books %}
