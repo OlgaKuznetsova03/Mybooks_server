@@ -201,11 +201,13 @@
             {% for it in shelf_books %}
               <div class="book-item">
                 <a class="book-cover" href="{% url 'book_detail' it.book.pk %}">
-                  {% if it.book.cover %}
-                    <img src="{{ it.book.cover.url }}" alt="Обложка {{ it.book.title }}">
-                  {% else %}
-                    <div class="book-cover__placeholder">{{ it.book.title|default_if_none:"?"|slice:":1"|upper }}</div>
-                  {% endif %}
+                  {% with cover_url=it.book.get_cover_url %}
+                    {% if cover_url %}
+                      <img src="{{ cover_url }}" alt="Обложка {{ it.book.title }}">
+                    {% else %}
+                      <div class="book-cover__placeholder">{{ it.book.title|default_if_none:"?"|slice:":1"|upper }}</div>
+                    {% endif %}
+                  {% endwith %}
                 </a>
                 {% if allow_manage %}
                   <div class="book-remove">

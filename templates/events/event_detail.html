@@ -42,9 +42,11 @@
         {% for it in event.shelf.items.all %}
           <div class="col-12 col-sm-6 col-lg-4">
             <div class="card h-100 shadow-sm border-0">
-              {% if it.book.cover %}
-                <img src="{{ it.book.cover.url }}" class="card-img-top" style="height:180px;object-fit:cover" alt="">
-              {% endif %}
+              {% with cover_url=it.book.get_cover_url %}
+                {% if cover_url %}
+                  <img src="{{ cover_url }}" class="card-img-top" style="height:180px;object-fit:cover" alt="Обложка книги {{ it.book.title }}">
+                {% endif %}
+              {% endwith %}
               <div class="card-body">
                 <h6 class="card-title mb-1">
                   <a class="text-decoration-none" href="{% url 'book_detail' it.book.pk %}">{{ it.book.title }}</a>
