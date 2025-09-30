@@ -411,9 +411,9 @@
                   {% endif %}
                 </div>
                 <div class="ms-md-auto">
-                  <button type="button" class="btn btn-outline-secondary btn-sm" onclick="printReview('review-print-{{ review.id }}')">
+                  <a class="btn btn-outline-secondary btn-sm" href="{% url 'book_review_print' review.book.pk %}" target="_blank" rel="noopener">
                     <i class="bi bi-printer me-1"></i>Распечатать
-                  </button>
+                  </a>
                 </div>
               </div>
             </div>
@@ -431,40 +431,4 @@
 
 {% block extra_js %}
   {{ block.super }}
-  <script>
-    (function () {
-      if (window.printReview) {
-        return;
-      }
-      window.printReview = function (elementId) {
-        const sourceEl = document.getElementById(elementId);
-        if (!sourceEl) {
-          return;
-        }
-        const printWindow = window.open('', '', 'width=900,height=650');
-        if (!printWindow) {
-          return;
-        }
-        const doc = printWindow.document;
-        doc.write('<!doctype html><html lang="ru"><head><title>Печать отзыва</title>');
-        document.querySelectorAll('link[rel="stylesheet"]').forEach((link) => {
-          doc.write(link.outerHTML);
-        });
-        doc.write('<style>body{margin:1.5rem;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;}</style>');
-        doc.write('</head><body>');
-        doc.write(sourceEl.innerHTML);
-        doc.write('</body></html>');
-        doc.close();
-        printWindow.focus();
-        setTimeout(() => {
-          printWindow.print();
-        }, 200);
-        if (printWindow.addEventListener) {
-          printWindow.addEventListener('afterprint', () => {
-            printWindow.close();
-          }, { once: true });
-        }
-      };
-    })();
-  </script>
 {% endblock %}
