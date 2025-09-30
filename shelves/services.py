@@ -12,15 +12,22 @@ from .models import Shelf, ShelfItem
 DEFAULT_WANT_SHELF = "Хочу прочитать"
 DEFAULT_READING_SHELF = "Читаю"
 DEFAULT_READ_SHELF = "Прочитал"
+DEFAULT_HOME_LIBRARY_SHELF = "Моя домашняя библиотека"
 
 
-def _get_default_shelf(user: User, name: str) -> Shelf:
+def _get_default_shelf(user: User, name: str, *, is_public: bool = True) -> Shelf:
     shelf, _ = Shelf.objects.get_or_create(
         user=user,
         name=name,
-        defaults={"is_default": True, "is_public": True},
+        defaults={"is_default": True, "is_public": is_public},
     )
     return shelf
+
+
+def get_home_library_shelf(user: User) -> Shelf:
+    """Получить (или создать) стандартную полку домашней библиотеки пользователя."""
+
+    return _get_default_shelf(user, DEFAULT_HOME_LIBRARY_SHELF, is_public=False)
 
 
 def _remove_book_from_named_shelf(user: User, book: Book, shelf_name: str) -> None:

@@ -1,5 +1,8 @@
 # shelves/views.py
 from decimal import Decimal, ROUND_HALF_UP
+from datetime import date
+
+from django.db.models import Count, Sum
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
@@ -8,13 +11,14 @@ from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.http import url_has_allowed_host_and_scheme
 from books.models import Book
-from .models import Shelf, ShelfItem, BookProgress, Event, EventParticipant
+from .models import Shelf, ShelfItem, BookProgress, Event, EventParticipant, HomeLibraryEntry
 from .services import (
     move_book_to_read_shelf,
     remove_book_from_want_shelf,
     DEFAULT_WANT_SHELF,
     DEFAULT_READING_SHELF,
     DEFAULT_READ_SHELF,
+    get_home_library_shelf,
 )
 from .forms import (
     ShelfCreateForm,
@@ -23,6 +27,7 @@ from .forms import (
     BookProgressNotesForm,
     CharacterNoteForm,
     BookProgressFormatForm,
+    HomeLibraryEntryForm,
 )
 from games.services.read_before_buy import ReadBeforeBuyGame
 
@@ -59,6 +64,123 @@ def my_shelves(request):
     )
     return render(request, "shelves/my_shelves.html", {"shelves": shelves})
 
+
+@login_required
+def home_library(request):
+    """Подробный учёт книг из полки «Моя домашняя библиотека» пользователя."""
+
+    shelf = get_home_library_shelf(request.user)
+    items = list(
+        shelf.items
+        .select_related("book")
+        .prefetch_related("book__authors")
+        .order_by("book__title")
+    )
+    item_ids = [item.id for item in items]
+    entry_map = {
+        entry.shelf_item_id: entry
+        for entry in HomeLibraryEntry.objects
+        .filter(shelf_item_id__in=item_ids)
+        .select_related("shelf_item__book")
+    }
+    entries = []
+    for item in items:
+        entry = entry_map.get(item.id)
+        if entry is None:
+            entry = HomeLibraryEntry.objects.create(shelf_item=item)
+        entries.append(entry)
+
+    entries_qs = HomeLibraryEntry.objects.filter(shelf_item__shelf=shelf)
+
+    format_stats = {
+        row["format"]: row["total"]
+        for row in entries_qs.values("format").annotate(total=Count("id"))
+    }
+    format_counts = [
+        {
+            "key": key,
+            "label": label,
+            "count": format_stats.get(key, 0),
+        }
+        for key, label in HomeLibraryEntry.Format.choices
+        if format_stats.get(key, 0)
+    ]
+
+    location_counts = list(
+        entries_qs
+        .exclude(location="")
+        .values("location")
+        .annotate(total=Count("id"))
+        .order_by("-total", "location")[:5]
+    )
+    status_counts = list(
+        entries_qs
+        .exclude(status="")
+        .values("status")
+        .annotate(total=Count("id"))
+        .order_by("-total", "status")[:5]
+    )
+    gift_count = entries_qs.filter(is_gift=True).count()
+    total_value = entries_qs.aggregate(total=Sum("price"))["total"]
+
+    def _sort_key(entry: HomeLibraryEntry):
+        acquired = entry.acquired_at or date.min
+        added = entry.shelf_item.added_at.date() if entry.shelf_item.added_at else date.min
+        return (acquired, added, entry.shelf_item_id)
+
+    recent_entries = sorted(entries, key=_sort_key, reverse=True)[:5]
+
+    summary = {
+        "total": len(items),
+        "format_counts": format_counts,
+        "locations": location_counts,
+        "statuses": status_counts,
+        "gift_count": gift_count,
+        "estimated_value": total_value,
+        "recent_entries": recent_entries,
+    }
+
+    context = {
+        "shelf": shelf,
+        "entries": entries,
+        "summary": summary,
+    }
+    return render(request, "shelves/home_library.html", context)
+
+
+@login_required
+def home_library_edit(request, item_id):
+    """Редактирование сведений о конкретном экземпляре книги."""
+
+    shelf = get_home_library_shelf(request.user)
+    item = get_object_or_404(
+        ShelfItem.objects.select_related("book", "shelf"),
+        pk=item_id,
+        shelf=shelf,
+    )
+    entry, _ = HomeLibraryEntry.objects.get_or_create(shelf_item=item)
+
+    if request.method == "POST":
+        form = HomeLibraryEntryForm(request.POST, instance=entry)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Данные обновлены.")
+            next_url = request.POST.get("next") or reverse("home_library")
+            return redirect(next_url)
+    else:
+        form = HomeLibraryEntryForm(instance=entry)
+
+    next_url = request.GET.get("next") or reverse("home_library")
+    return render(
+        request,
+        "shelves/home_library_edit.html",
+        {
+            "form": form,
+            "item": item,
+            "entry": entry,
+            "next_url": next_url,
+        },
+    )
 
 @login_required
 def shelf_create(request):

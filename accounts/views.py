@@ -6,12 +6,13 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from .forms import SignUpForm, ProfileForm, RoleForm
-from django.db.models import Count
+from django.db.models import Count, Sum
 from django.urls import reverse
 from django.utils import timezone
 
 
-from shelves.models import Shelf, BookProgress
+from shelves.models import Shelf, BookProgress, HomeLibraryEntry
+from shelves.services import DEFAULT_HOME_LIBRARY_SHELF
 from books.models import Rating, Book
 
 MONTH_NAMES = [
@@ -107,7 +108,59 @@ def _resolve_stats_period(params, read_items):
     }
 
 
+def _collect_home_library_summary(user: User):
+    shelf = Shelf.objects.filter(user=user, name=DEFAULT_HOME_LIBRARY_SHELF).first()
+    summary = {
+        "total": 0,
+        "estimated_value": None,
+        "gift_count": 0,
+        "format_counts": [],
+        "top_locations": [],
+        "top_statuses": [],
+    }
+    if not shelf:
+        return summary
+
+    entries_qs = HomeLibraryEntry.objects.filter(shelf_item__shelf=shelf)
+    total_items = shelf.items.count()
+    summary["total"] = total_items
+    summary["gift_count"] = entries_qs.filter(is_gift=True).count()
+    total_value = entries_qs.aggregate(total=Sum("price"))["total"]
+    summary["estimated_value"] = total_value
+
+    format_map = {
+        row["format"]: row["total"]
+        for row in entries_qs.values("format").annotate(total=Count("id"))
+    }
+    summary["format_counts"] = [
+        {
+            "label": label,
+            "count": format_map.get(key, 0),
+        }
+        for key, label in HomeLibraryEntry.Format.choices
+        if format_map.get(key, 0)
+    ]
+
+    summary["top_locations"] = list(
+        entries_qs
+        .exclude(location="")
+        .values("location")
+        .annotate(total=Count("id"))
+        .order_by("-total", "location")[:5]
+    )
+    summary["top_statuses"] = list(
+        entries_qs
+        .exclude(status="")
+        .values("status")
+        .annotate(total=Count("id"))
+        .order_by("-total", "status")[:5]
+    )
+
+    return summary
+
+
 def _collect_profile_stats(user: User, params):
+    home_summary = _collect_home_library_summary(user)
     read_shelf = Shelf.objects.filter(user=user, name="Прочитал").first()
     today = timezone.localdate()
     if not read_shelf:
@@ -130,6 +183,7 @@ def _collect_profile_stats(user: User, params):
                 "pages_average": None,
                 "audio_total_display": None,
                 "audio_adjusted_display": None,
+                "home_library": home_summary,
             },
             "stats_period": period_meta,
         }
@@ -222,6 +276,7 @@ def _collect_profile_stats(user: User, params):
         "pages_average": pages_average,
         "audio_total_display": _format_duration(audio_total),
         "audio_adjusted_display": _format_duration(audio_adjusted),
+        "home_library": home_summary,
     }
 
     return {

@@ -8,6 +8,8 @@ urlpatterns = [
 
     #полки
     path("me/shelves/", views.my_shelves, name="my_shelves"),
+    path("me/home-library/", views.home_library, name="home_library"),
+    path("me/home-library/item/<int:item_id>/", views.home_library_edit, name="home_library_edit"),
     path("me/shelves/create/", views.shelf_create, name="shelf_create"),
     path("add-to-shelf/<int:book_id>/", views.add_book_to_shelf, name="add_book_to_shelf"),
     path("remove-from-shelf/<int:shelf_id>/<int:book_id>/", views.remove_book_from_shelf, name="remove_book_from_shelf"),

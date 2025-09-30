@@ -13,6 +13,7 @@ from .models import (
     EventParticipant,
     BookProgress,
     CharacterNote,
+    HomeLibraryEntry,
 )
 class ShelfCreateForm(forms.ModelForm):
     class Meta:
@@ -197,3 +198,50 @@ class BookProgressFormatForm(forms.ModelForm):
         if commit:
             progress.save()
         return progress
+
+
+class HomeLibraryEntryForm(forms.ModelForm):
+    class Meta:
+        model = HomeLibraryEntry
+        fields = [
+            "edition",
+            "language",
+            "format",
+            "status",
+            "location",
+            "shelf_section",
+            "condition",
+            "acquired_from",
+            "acquired_at",
+            "price",
+            "is_gift",
+            "notes",
+        ]
+        labels = {
+            "edition": "Издание",
+            "language": "Язык экземпляра",
+            "format": "Формат",
+            "status": "Статус",
+            "location": "Где хранится",
+            "shelf_section": "Секция/полка",
+            "condition": "Состояние",
+            "acquired_from": "Источник",
+            "acquired_at": "Дата приобретения",
+            "price": "Стоимость",
+            "is_gift": "Подарок",
+            "notes": "Заметки",
+        }
+        widgets = {
+            "edition": forms.TextInput(attrs={"class": "form-control"}),
+            "language": forms.TextInput(attrs={"class": "form-control"}),
+            "format": forms.Select(attrs={"class": "form-select"}),
+            "status": forms.TextInput(attrs={"class": "form-control"}),
+            "location": forms.TextInput(attrs={"class": "form-control"}),
+            "shelf_section": forms.TextInput(attrs={"class": "form-control"}),
+            "condition": forms.TextInput(attrs={"class": "form-control"}),
+            "acquired_from": forms.TextInput(attrs={"class": "form-control"}),
+            "acquired_at": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+            "price": forms.NumberInput(attrs={"class": "form-control", "min": "0", "step": "0.01"}),
+            "is_gift": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "notes": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+        }

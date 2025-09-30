@@ -205,6 +205,91 @@
       </div>
     </div>
 
+    {% with home=stats.home_library %}
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-3">
+            <div>
+              <h3 class="h6 mb-1">Домашняя библиотека</h3>
+              <p class="text-muted mb-0">Отражает книги на полке «Моя домашняя библиотека».</p>
+            </div>
+            <a class="btn btn-outline-primary btn-sm" href="{% url 'home_library' %}">
+              <i class="bi bi-box-seam me-1"></i>Открыть полку
+            </a>
+          </div>
+          {% if home.total %}
+            <div class="row g-3">
+              <div class="col-12 col-md-3">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                  <p class="text-muted text-uppercase small mb-1">Всего экземпляров</p>
+                  <p class="fs-3 fw-semibold mb-1">{{ home.total }}</p>
+                  <p class="small text-muted mb-0">{{ home.gift_count }} {{ home.gift_count|ru_pluralize:"подарок,подарка,подарков" }}</p>
+                </div>
+              </div>
+              <div class="col-12 col-md-3">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                  <p class="text-muted text-uppercase small mb-1">Оценочная стоимость</p>
+                  {% if home.estimated_value %}
+                    <p class="fs-3 fw-semibold mb-1">{{ home.estimated_value }} ₽</p>
+                    <p class="small text-muted mb-0">Сумма по заполненным ценам.</p>
+                  {% else %}
+                    <p class="text-muted mb-0">Укажите стоимость книг, чтобы увидеть оценку коллекции.</p>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-12 col-md-3">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                  <p class="text-muted text-uppercase small mb-2">Популярные форматы</p>
+                  {% if home.format_counts %}
+                    <ul class="list-unstyled mb-0 small">
+                      {% for fmt in home.format_counts %}
+                        <li class="d-flex justify-content-between">
+                          <span>{{ fmt.label }}</span>
+                          <span class="fw-semibold">{{ fmt.count }}</span>
+                        </li>
+                      {% endfor %}
+                    </ul>
+                  {% else %}
+                    <p class="text-muted mb-0 small">Пока нет данных.</p>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-12 col-md-3">
+                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                  <p class="text-muted text-uppercase small mb-2">Где хранятся</p>
+                  {% if home.top_locations %}
+                    <ul class="list-unstyled mb-0 small">
+                      {% for loc in home.top_locations %}
+                        <li class="d-flex justify-content-between">
+                          <span>{{ loc.location }}</span>
+                          <span class="fw-semibold">{{ loc.total }}</span>
+                        </li>
+                      {% endfor %}
+                    </ul>
+                  {% else %}
+                    <p class="text-muted mb-0 small">Заполните поле «Где хранится».</p>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            {% if home.top_statuses %}
+              <div class="mt-4">
+                <h4 class="h6 mb-2">Статусы экземпляров</h4>
+                <div class="d-flex flex-wrap gap-2">
+                  {% for status in home.top_statuses %}
+                    <span class="badge text-bg-light">{{ status.status }} — {{ status.total }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+          {% else %}
+            <p class="text-muted mb-0">Добавьте книги в полку «Моя домашняя библиотека», чтобы отслеживать их состояние.</p>
+          {% endif %}
+        </div>
+      </div>
+    {% endwith %}
+
+    
     <div class="mb-4">
       <h3 class="h6 mb-3">Прочитанные книги</h3>
       {% if stats.books %}

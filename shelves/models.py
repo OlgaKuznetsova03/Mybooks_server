@@ -3,6 +3,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from math import ceil
 
 from django.db.models import Sum, F, Count
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -261,3 +262,94 @@ class CharacterNote(models.Model):
 
     def __str__(self):
         return f"{self.name} — {self.progress.book.title}"
+
+
+class HomeLibraryEntry(models.Model):
+    """Дополнительные сведения о книге на полке «Моя домашняя библиотека».
+
+    Пользователь может фиксировать информацию о конкретном экземпляре книги.
+    """
+
+    class Format(models.TextChoices):
+        PAPER = "paper", "Бумажная"
+        EBOOK = "ebook", "Электронная"
+        AUDIO = "audio", "Аудио"
+        OTHER = "other", "Другое"
+
+    shelf_item = models.OneToOneField(
+        ShelfItem,
+        on_delete=models.CASCADE,
+        related_name="home_entry",
+    )
+    edition = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Издание, тираж или дополнительная информация",
+    )
+    language = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Язык конкретного экземпляра",
+    )
+    format = models.CharField(
+        max_length=20,
+        choices=Format.choices,
+        default=Format.PAPER,
+    )
+    status = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Например: в коллекции, отдана другу, зарезервирована",
+    )
+    location = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Где хранится книга: комната, шкаф, полка",
+    )
+    shelf_section = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Дополнительная пометка: ряд, коробка, секция",
+    )
+    condition = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Состояние экземпляра, например «как новая»",
+    )
+    acquired_from = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Где куплена или получена книга",
+    )
+    acquired_at = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Дата покупки или получения",
+    )
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal("0"))],
+        help_text="Стоимость экземпляра в выбранной валюте",
+    )
+    is_gift = models.BooleanField(
+        default=False,
+        help_text="Получена ли книга в подарок",
+    )
+    notes = models.TextField(
+        blank=True,
+        help_text="Особые пометки: автограф, кому дать почитать и т.д.",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-shelf_item__added_at", "shelf_item__id"]
+
+    def __str__(self):
+        return f"Домашняя библиотека: {self.shelf_item.book.title}"
+
+    @property
+    def book(self):
+        return self.shelf_item.book

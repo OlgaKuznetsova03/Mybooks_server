@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Экземпляр: {{ item.book.title }}{% endblock %}
+{% block content %}
+<a class="btn btn-link btn-sm px-0" href="{{ next_url }}">
+  <i class="bi bi-arrow-left"></i> Вернуться к библиотеке
+</a>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body">
+    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 mb-4">
+      <div>
+        <h1 class="h4 mb-1">{{ item.book.title }}</h1>
+        <p class="text-muted mb-0">{{ item.book.authors.all|join:", "|default:"Автор неизвестен" }}</p>
+      </div>
+      <div class="text-muted small">
+        Добавлена в полку {{ item.added_at|date:"d.m.Y" }}
+      </div>
+    </div>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next_url }}">
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+      {% endif %}
+      <div class="row g-3">
+        <div class="col-12 col-md-6">
+          <label class="form-label" for="id_edition">{{ form.edition.label }}</label>
+          {{ form.edition }}
+          {% if form.edition.help_text %}<div class="form-text">{{ form.edition.help_text }}</div>{% endif %}
+          {{ form.edition.errors }}
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label" for="id_language">{{ form.language.label }}</label>
+          {{ form.language }}
+          {% if form.language.help_text %}<div class="form-text">{{ form.language.help_text }}</div>{% endif %}
+          {{ form.language.errors }}
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="id_format">{{ form.format.label }}</label>
+          {{ form.format }}
+          {{ form.format.errors }}
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="id_status">{{ form.status.label }}</label>
+          {{ form.status }}
+          {% if form.status.help_text %}<div class="form-text">{{ form.status.help_text }}</div>{% endif %}
+          {{ form.status.errors }}
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="id_condition">{{ form.condition.label }}</label>
+          {{ form.condition }}
+          {% if form.condition.help_text %}<div class="form-text">{{ form.condition.help_text }}</div>{% endif %}
+          {{ form.condition.errors }}
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label" for="id_location">{{ form.location.label }}</label>
+          {{ form.location }}
+          {% if form.location.help_text %}<div class="form-text">{{ form.location.help_text }}</div>{% endif %}
+          {{ form.location.errors }}
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label" for="id_shelf_section">{{ form.shelf_section.label }}</label>
+          {{ form.shelf_section }}
+          {% if form.shelf_section.help_text %}<div class="form-text">{{ form.shelf_section.help_text }}</div>{% endif %}
+          {{ form.shelf_section.errors }}
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label" for="id_acquired_from">{{ form.acquired_from.label }}</label>
+          {{ form.acquired_from }}
+          {% if form.acquired_from.help_text %}<div class="form-text">{{ form.acquired_from.help_text }}</div>{% endif %}
+          {{ form.acquired_from.errors }}
+        </div>
+        <div class="col-12 col-md-3">
+          <label class="form-label" for="id_acquired_at">{{ form.acquired_at.label }}</label>
+          {{ form.acquired_at }}
+          {% if form.acquired_at.help_text %}<div class="form-text">{{ form.acquired_at.help_text }}</div>{% endif %}
+          {{ form.acquired_at.errors }}
+        </div>
+        <div class="col-12 col-md-3">
+          <label class="form-label" for="id_price">{{ form.price.label }}</label>
+          {{ form.price }}
+          {% if form.price.help_text %}<div class="form-text">{{ form.price.help_text }}</div>{% endif %}
+          {{ form.price.errors }}
+        </div>
+        <div class="col-12">
+          <div class="form-check mb-3">
+            {{ form.is_gift }}
+            <label class="form-check-label" for="id_is_gift">{{ form.is_gift.label }}</label>
+            {% if form.is_gift.help_text %}<div class="form-text">{{ form.is_gift.help_text }}</div>{% endif %}
+          </div>
+          {{ form.is_gift.errors }}
+        </div>
+        <div class="col-12">
+          <label class="form-label" for="id_notes">{{ form.notes.label }}</label>
+          {{ form.notes }}
+          {% if form.notes.help_text %}<div class="form-text">{{ form.notes.help_text }}</div>{% endif %}
+          {{ form.notes.errors }}
+        </div>
+      </div>
+      <div class="d-flex justify-content-end gap-2 mt-4">
+        <a class="btn btn-outline-secondary" href="{{ next_url }}">Отмена</a>
+        <button class="btn btn-primary" type="submit">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
