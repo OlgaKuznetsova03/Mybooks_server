@@ -1,6 +1,7 @@
 from django import forms
 
 from shelves.models import Shelf
+from shelves.services import get_home_library_shelf
 
 from .services.read_before_buy import ReadBeforeBuyGame
 
@@ -17,12 +18,15 @@ class ReadBeforeBuyEnrollForm(forms.Form):
         if not user:
             self.fields["shelf"].queryset = Shelf.objects.none()
             return
-        enrolled_ids = ReadBeforeBuyGame.iter_participating_shelves(user).values_list(
-            "shelf_id", flat=True
-        )
-        self.fields["shelf"].queryset = (
-            Shelf.objects.filter(user=user)
-            .exclude(id__in=enrolled_ids)
-            .order_by("-is_default", "name")
-        )
+        home_shelf = get_home_library_shelf(user)
+        state_exists = ReadBeforeBuyGame.get_state_for_shelf(user, home_shelf)
+        if state_exists:
+            queryset = Shelf.objects.none()
+        else:
+            queryset = Shelf.objects.filter(pk=home_shelf.pk)
+        self.fields["shelf"].queryset = queryset
         self.fields["shelf"].widget.attrs.setdefault("class", "form-select")
+        if not state_exists:
+            self.fields["shelf"].label = f"Полка «{home_shelf.name}»"
+
+        # self.fields["shelf"].widget.attrs.setdefault("class", "form-select")

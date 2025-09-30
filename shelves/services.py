@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from django.contrib.auth.models import User
 from django.db import transaction
+from django.utils import timezone
+
 
 from books.models import Book
 from .models import Shelf, ShelfItem
@@ -60,4 +62,10 @@ def move_book_to_read_shelf(user: User, book: Book) -> None:
     except ImportError:
         return
 
-    ReadBeforeBuyGame.ensure_completion_awarded(user, read_shelf, book)
+    home_shelf = get_home_library_shelf(user)
+    ReadBeforeBuyGame.ensure_completion_awarded(
+        user,
+        home_shelf,
+        book,
+        occurred_at=timezone.now(),
+    )

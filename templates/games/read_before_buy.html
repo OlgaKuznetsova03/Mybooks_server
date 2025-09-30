@@ -20,7 +20,7 @@
   <div class="col-lg-4">
     <div class="card h-100 shadow-sm">
       <div class="card-body">
-        <h2 class="h6 mb-3">Подключить полку</h2>
+        <h2 class="h6 mb-3">Подключить полку «Домашняя библиотека»</h2>
         {% if enroll_form.fields.shelf.queryset %}
         <form method="post" class="vstack gap-3">
           {% csrf_token %}
@@ -37,7 +37,7 @@
           </button>
         </form>
         {% else %}
-          <p class="text-muted mb-0">Все ваши полки уже участвуют в игре. Создайте новую полку или освободите одну из текущих.</p>
+          <p class="text-muted mb-0">Полка «Домашняя библиотека» уже подключена к игре.</p>
         {% endif %}
       </div>
     </div>
@@ -122,8 +122,8 @@
     {% else %}
       <div class="card shadow-sm">
         <div class="card-body text-center text-muted py-5">
-          <p class="mb-2">Вы ещё не подключили ни одну полку к игре.</p>
-          <p class="mb-0">Создайте новую полку со своими книгами или используйте «Хочу прочитать», чтобы начать.</p>
+          <p class="mb-2">Вы ещё не подключили «Домашнюю библиотеку» к игре.</p>
+          <p class="mb-0">Добавьте книги в полку «Домашняя библиотека» и активируйте игру, чтобы получать баллы за прочитанные книги.</p>
         </div>
       </div>
     {% endif %}

@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, time
 from decimal import Decimal, ROUND_HALF_UP
 from math import ceil
 
@@ -208,8 +208,15 @@ class BookProgress(models.Model):
         if pages_read > 0:
             from games.services.read_before_buy import ReadBeforeBuyGame
 
-            ReadBeforeBuyGame.award_pages(self.user, self.book, pages_read)
-
+            occurred_at = datetime.combine(log_date, time.max)
+            if timezone.is_naive(occurred_at):
+                occurred_at = timezone.make_aware(occurred_at)
+            ReadBeforeBuyGame.award_pages(
+                self.user,
+                self.book,
+                pages_read,
+                occurred_at=occurred_at,
+            )
     @property
     def average_pages_per_day(self):
         stats = self.logs.filter(pages_read__gt=0).aggregate(

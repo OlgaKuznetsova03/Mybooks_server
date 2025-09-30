@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from datetime import date, datetime, time
 from typing import Iterable, Optional, Tuple
 
 from django.contrib.auth.models import User
@@ -15,6 +16,7 @@ from django.utils import timezone
 
 from books.models import Book
 from shelves.models import Shelf, ShelfItem
+from shelves.services import get_home_library_shelf
 
 from ..models import Game, GameShelfBook, GameShelfPurchase, GameShelfState
 
@@ -47,10 +49,15 @@ class ReadBeforeBuyGame:
     def enable_for_shelf(cls, user: User, shelf: Shelf) -> GameShelfState:
         if shelf.user_id != user.id:
             raise ValueError("Нельзя подключить к игре чужую полку")
+        home_shelf = get_home_library_shelf(user)
+        if shelf.pk != home_shelf.pk:
+            raise ValueError(
+                f"К игре можно подключить только полку «{home_shelf.name}»."
+            )
         game = cls.get_game()
         state, created = GameShelfState.objects.get_or_create(
             game=game,
-            shelf=shelf,
+            shelf=home_shelf,
             defaults={"user": user},
         )
         if created:
@@ -60,7 +67,12 @@ class ReadBeforeBuyGame:
 
     @classmethod
     def is_game_shelf(cls, shelf: Shelf) -> bool:
-        return GameShelfState.objects.filter(game=cls.get_game(), shelf=shelf).exists()
+        if shelf.user_id is None:
+            return False
+        home_shelf = get_home_library_shelf(shelf.user)
+        if shelf.pk != home_shelf.pk:
+            return False
+        return GameShelfState.objects.filter(game=cls.get_game(), shelf=home_shelf).exists()
 
     @classmethod
     def get_state_for_shelf(
@@ -68,43 +80,62 @@ class ReadBeforeBuyGame:
     ) -> Optional[GameShelfState]:
         if shelf.user_id != user.id:
             return None
+        home_shelf = get_home_library_shelf(user)
+        if shelf.pk != home_shelf.pk:
+            return None
         game = cls.get_game()
         try:
-            return GameShelfState.objects.get(game=game, shelf=shelf)
+            return GameShelfState.objects.get(game=game, shelf=home_shelf)
         except GameShelfState.DoesNotExist:
             if create:
-                return cls.enable_for_shelf(user, shelf)
+                return cls.enable_for_shelf(user, home_shelf)
             return None
 
     @classmethod
     def get_state_by_id(cls, user: User, state_id: int) -> Optional[GameShelfState]:
         game = cls.get_game()
         try:
-            return GameShelfState.objects.get(pk=state_id, user=user, game=game)
+            state = GameShelfState.objects.get(pk=state_id, user=user, game=game)
         except GameShelfState.DoesNotExist:
             return None
+        home_shelf = get_home_library_shelf(user)
+        if state.shelf_id != home_shelf.pk:
+            return None
+        return state
 
     # --- начисление баллов ---
     @classmethod
-    def award_pages(cls, user: User, book: Book, pages_read: int) -> None:
+    def award_pages(
+        cls,
+        user: User,
+        book: Book,
+        pages_read: int,
+        *,
+        occurred_at: datetime | date | None = None,
+    ) -> None:
         if pages_read <= 0:
             return
         game = cls.get_game()
+        moment = cls._normalize_timestamp(occurred_at)
+        home_shelf = get_home_library_shelf(user)
         states = (
             GameShelfState.objects.filter(
                 game=game,
                 user=user,
+                shelf=home_shelf,
                 shelf__items__book=book,
             )
             .select_related("shelf")
             .distinct()
         )
         for state in states:
-            cls._increment_points(state, pages_read)
+            if moment < state.started_at:
+                continue
+            cls._increment_points(state, pages_read, timestamp=moment)
             entry, _ = GameShelfBook.objects.get_or_create(state=state, book=book)
             GameShelfBook.objects.filter(pk=entry.pk).update(
                 pages_logged=F("pages_logged") + pages_read,
-                updated_at=timezone.now(),
+                updated_at=moment,
             )
 
     @classmethod
@@ -112,10 +143,12 @@ class ReadBeforeBuyGame:
         if not review_text or not review_text.strip():
             return
         game = cls.get_game()
+        home_shelf = get_home_library_shelf(user)
         states = (
             GameShelfState.objects.filter(
                 game=game,
                 user=user,
+                shelf=home_shelf,
                 shelf__items__book=book,
             )
             .select_related("shelf")
@@ -124,27 +157,44 @@ class ReadBeforeBuyGame:
         if not states:
             return
         bonus = cls._calculate_bonus(book)
-        now = timezone.now()
+        moment = cls._normalize_timestamp(None)
         for state in states:
+            if moment < state.started_at:
+                continue
             entry, _ = GameShelfBook.objects.get_or_create(state=state, book=book)
             updates = {}
             if not entry.reviewed_at:
-                updates["reviewed_at"] = now
+                updates["reviewed_at"] = moment
                 GameShelfState.objects.filter(pk=state.pk).update(
                     books_reviewed=F("books_reviewed") + 1,
-                    updated_at=now,
+                    updated_at=moment,
                 )
             if bonus and not entry.bonus_awarded:
                 updates["bonus_awarded"] = True
-                cls._increment_points(state, bonus)
+                cls._increment_points(state, bonus, timestamp=moment)
             if updates:
-                updates["updated_at"] = now
+                updates["updated_at"] = moment
                 GameShelfBook.objects.filter(pk=entry.pk).update(**updates)
 
     @classmethod
-    def ensure_completion_awarded(cls, user: User, shelf: Shelf, book: Book) -> None:
-        state = cls.get_state_for_shelf(user, shelf)
+    def ensure_completion_awarded(
+        cls,
+        user: User,
+        shelf: Shelf,
+        book: Book,
+        *,
+        occurred_at: datetime | date | None = None,
+    ) -> None:
+        home_shelf = get_home_library_shelf(user)
+        if shelf.pk != home_shelf.pk:
+            return
+        state = cls.get_state_for_shelf(user, home_shelf)
         if not state:
+            return
+        moment = cls._normalize_timestamp(occurred_at)
+        if moment < state.started_at:
+            return
+        if not ShelfItem.objects.filter(shelf=home_shelf, book=book).exists():
             return
         total_pages = book.get_total_pages()
         if not total_pages:
@@ -153,10 +203,10 @@ class ReadBeforeBuyGame:
         missing = max(0, total_pages - entry.pages_logged)
         if missing <= 0:
             return
-        cls._increment_points(state, missing)
+        cls._increment_points(state, missing, timestamp=moment)
         GameShelfBook.objects.filter(pk=entry.pk).update(
             pages_logged=F("pages_logged") + missing,
-            updated_at=timezone.now(),
+            updated_at=moment,
         )
 
     @classmethod
@@ -251,14 +301,16 @@ class ReadBeforeBuyGame:
 
     # --- внутренние утилиты ---
     @classmethod
-    def _increment_points(cls, state: GameShelfState, amount: int) -> None:
+    def _increment_points(
+        cls, state: GameShelfState, amount: int, *, timestamp: datetime | date | None = None
+    ) -> None:
         if amount <= 0:
             return
-        now = timezone.now()
+        moment = cls._normalize_timestamp(timestamp)
         GameShelfState.objects.filter(pk=state.pk).update(
             points_balance=F("points_balance") + amount,
             total_points_earned=F("total_points_earned") + amount,
-            updated_at=now,
+            updated_at=moment,
         )
 
     @staticmethod
@@ -272,7 +324,24 @@ class ReadBeforeBuyGame:
             return ReadBeforeBuyGame.BONUS_OVER_500
         return 0
 
+    @staticmethod
+    def _normalize_timestamp(value: datetime | date | None) -> datetime:
+        moment: datetime
+        if value is None:
+            moment = timezone.now()
+        elif isinstance(value, datetime):
+            moment = value
+        else:
+            moment = datetime.combine(value, time.max)
+        if timezone.is_naive(moment):
+            moment = timezone.make_aware(moment)
+        return moment
+    
     @classmethod
     def iter_participating_shelves(cls, user: User) -> Iterable[GameShelfState]:
         game = cls.get_game()
-        return GameShelfState.objects.filter(game=game, user=user).select_related("shelf")
+        home_shelf = get_home_library_shelf(user)
+        return (
+            GameShelfState.objects.filter(game=game, user=user, shelf=home_shelf)
+            .select_related("shelf")
+        )

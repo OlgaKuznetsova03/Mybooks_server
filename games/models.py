@@ -33,6 +33,7 @@ class GameShelfState(models.Model):
     total_points_earned = models.PositiveIntegerField(default=0)
     books_purchased = models.PositiveIntegerField(default=0)
     books_reviewed = models.PositiveIntegerField(default=0)
+    started_at = models.DateTimeField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
