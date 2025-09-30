@@ -14,7 +14,6 @@ from .models import (
     BookProgress,
     CharacterNote,
 )
-
 class ShelfCreateForm(forms.ModelForm):
     class Meta:
         model = Shelf

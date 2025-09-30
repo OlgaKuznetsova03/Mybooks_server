@@ -6,7 +6,13 @@ from django.urls import reverse
 from django.utils.timezone import localdate
 
 from books.models import Book, ISBNModel
-from .models import BookProgress, ReadingLog, CharacterNote, Shelf, ShelfItem
+from .models import (
+    BookProgress,
+    ReadingLog,
+    CharacterNote,
+    Shelf,
+    ShelfItem,
+)
 
 
 class ReadingTrackViewTests(TestCase):

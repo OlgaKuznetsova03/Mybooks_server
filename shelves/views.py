@@ -24,6 +24,7 @@ from .forms import (
     CharacterNoteForm,
     BookProgressFormatForm,
 )
+from games.services.read_before_buy import ReadBeforeBuyGame
 
 
 def event_list(request):
@@ -43,6 +44,7 @@ def event_leave(request, pk):
     event = get_object_or_404(Event, pk=pk)
     event.participants.remove(request.user)
     return redirect("event_detail", pk=pk)
+
 
 # ---------- ПОЛКИ ----------
 
@@ -90,10 +92,22 @@ def add_book_to_shelf(request, book_id):
                 return redirect("book_detail", pk=book.pk)
             if shelf.name == DEFAULT_READ_SHELF:
                 move_book_to_read_shelf(request.user, book)
-            else:
-                ShelfItem.objects.get_or_create(shelf=shelf, book=book)
-                if shelf.name == DEFAULT_READING_SHELF:
+                messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")
+                return redirect("book_detail", pk=book.pk)
+
+            if ReadBeforeBuyGame.is_game_shelf(shelf):
+                success, message_text, level = ReadBeforeBuyGame.add_book_to_shelf(
+                    request.user, shelf, book
+                )
+                message_handler = getattr(messages, level, messages.info)
+                message_handler(request, message_text)
+                if success and shelf.name == DEFAULT_READING_SHELF:
                     remove_book_from_want_shelf(request.user, book)
+                return redirect("book_detail", pk=book.pk)
+
+            ShelfItem.objects.get_or_create(shelf=shelf, book=book)
+            if shelf.name == DEFAULT_READING_SHELF:
+                remove_book_from_want_shelf(request.user, book)
             messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")
             return redirect("book_detail", pk=book.pk)
     else:
@@ -144,14 +158,31 @@ def quick_add_default_shelf(request, book_id, code):
     )
     if code == "read":
         move_book_to_read_shelf(request.user, book)
-    else:
-        ShelfItem.objects.get_or_create(shelf=shelf, book=book)
-        if code == "reading":
+        messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")
+        return redirect("book_detail", pk=book.pk)
+
+    if ReadBeforeBuyGame.is_game_shelf(shelf):
+        success, message_text, level = ReadBeforeBuyGame.add_book_to_shelf(
+            request.user, shelf, book
+        )
+        message_handler = getattr(messages, level, messages.info)
+        message_handler(request, message_text)
+        if success and code == "reading":
             remove_book_from_want_shelf(request.user, book)
-    messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")
+            messages.info(
+                request,
+                "Уточните формат чтения и данные книги на странице прогресса.",
+            )
+            return redirect("reading_track", book_id=book.pk)
+        return redirect("book_detail", pk=book.pk)
+
+    ShelfItem.objects.get_or_create(shelf=shelf, book=book)
     if code == "reading":
+        remove_book_from_want_shelf(request.user, book)
+        messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")
         messages.info(request, "Уточните формат чтения и данные книги на странице прогресса.")
         return redirect("reading_track", book_id=book.pk)
+    messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")
     return redirect("book_detail", pk=book.pk)
 
 

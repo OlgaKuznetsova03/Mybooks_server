@@ -35,7 +35,8 @@ class ShelfItem(models.Model):
 
     def __str__(self):
         return f"{self.book.title} в {self.shelf.name}"
-    
+
+
 class Event(models.Model):
     KIND_CHOICES = [
         ("readathon", "Марафон"),
@@ -203,6 +204,10 @@ class BookProgress(models.Model):
         if not created:
             log.pages_read += pages_read
             log.save(update_fields=["pages_read"])
+        if pages_read > 0:
+            from games.services.read_before_buy import ReadBeforeBuyGame
+
+            ReadBeforeBuyGame.award_pages(self.user, self.book, pages_read)
 
     @property
     def average_pages_per_day(self):

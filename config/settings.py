@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'books.apps.BooksConfig',
     'accounts.apps.AccountsConfig',
     'shelves.apps.ShelvesConfig',
+    'games.apps.GamesConfig',
 ]
 
 MIDDLEWARE = [
