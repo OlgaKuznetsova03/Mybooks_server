@@ -6,6 +6,7 @@ urlpatterns = [
     path("book_list", views.book_list, name="book_list"),
 
     path("lookup/", views.book_lookup, name="book_lookup"),
+    path("prefill/", views.book_prefill_external, name="book_prefill_external"),
     
     # детальная страница книги
     path("<int:pk>/", views.book_detail, name="book_detail"),

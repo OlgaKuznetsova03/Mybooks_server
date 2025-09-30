@@ -15,6 +15,9 @@
         <form method="post" enctype="multipart/form-data" autocomplete="off" novalidate>
           {% csrf_token %}
           {{ form.media }}
+          {% if prefill_data %}
+            {{ prefill_data|json_script:"book-prefill-data" }}
+          {% endif %}
 
           {% if form.non_field_errors %}
             <div class="alert alert-danger">
@@ -48,6 +51,13 @@
               </div>
             </div>
             <div id="book-lookup-feedback" class="form-text mt-2 text-muted">Введите данные и нажмите поиск, чтобы убедиться, что книги ещё нет на сайте.</div>
+
+            <div id="book-lookup-cover-preview" class="mt-3" hidden>
+              <p class="text-muted small mb-2">Обложка найденного издания:</p>
+              <div class="ratio ratio-3x4" style="max-width:160px;">
+                <img src="" alt="Предпросмотр обложки" class="rounded shadow-sm object-fit-cover" data-role="preview-image">
+              </div>
+            </div>
 
             <div id="book-lookup-results" class="mt-4" hidden>
               <div class="mb-3" data-role="local-section" hidden>
@@ -158,14 +168,16 @@
       const isbnInput = document.getElementById('book-lookup-isbn');
       const submitButton = document.getElementById('book-lookup-submit');
       const feedback = document.getElementById('book-lookup-feedback');
-      const resultsRoot = document.getElementById('book-lookup-results');
-      const localSection = resultsRoot?.querySelector('[data-role="local-section"]');
-      const localResults = resultsRoot?.querySelector('[data-role="local-results"]');
-      const externalSection = resultsRoot?.querySelector('[data-role="external-section"]');
-      const externalResults = resultsRoot?.querySelector('[data-role="external-results"]');
-      const externalButton = document.getElementById('book-lookup-load-external');
-      const externalSuggestion = document.getElementById('book-lookup-external-suggestion');
-      const isbnField = document.getElementById('id_isbn');
+      const feedback = document.getElementById('book-lookup-feedback');
+          const resultsRoot = document.getElementById('book-lookup-results');
+          const localSection = resultsRoot?.querySelector('[data-role="local-section"]');
+          const localResults = resultsRoot?.querySelector('[data-role="local-results"]');
+          const externalSection = resultsRoot?.querySelector('[data-role="external-section"]');
+          const externalResults = resultsRoot?.querySelector('[data-role="external-results"]');
+          const externalButton = document.getElementById('book-lookup-load-external');
+          const externalSuggestion = document.getElementById('book-lookup-external-suggestion');
+          const coverPreview = document.getElementById('book-lookup-cover-preview');
+          const coverPreviewImage = coverPreview?.querySelector('[data-role="preview-image"]');
       const titleField = document.getElementById('id_title');
       const authorsField = document.getElementById('id_authors');
       const genresField = document.getElementById('id_genres');
@@ -203,6 +215,12 @@
           externalSuggestion.hidden = true;
         }
       }
+      if (coverPreview) {
+          coverPreview.hidden = true;
+          if (coverPreviewImage) {
+            coverPreviewImage.src = '';
+          }
+        }
 
       function renderLocal(results) {
         if (!localSection || !localResults) {
@@ -216,16 +234,34 @@
         localResults.innerHTML = '';
         results.forEach((item) => {
           const card = document.createElement('div');
-          card.className = 'border rounded p-3';
+          card.className = 'border rounded p-3 d-flex gap-3 align-items-start';
+
+          if (item.cover_url) {
+            const thumbWrapper = document.createElement('div');
+            thumbWrapper.className = 'ratio ratio-3x4 flex-shrink-0';
+            thumbWrapper.style.maxWidth = '72px';
+            const img = document.createElement('img');
+            img.src = item.cover_url;
+            img.alt = `Обложка книги ${item.title}`;
+            img.className = 'rounded object-fit-cover';
+            thumbWrapper.appendChild(img);
+            card.appendChild(thumbWrapper);
+          }
+
+          const body = document.createElement('div');
           const title = document.createElement('h4');
           title.className = 'h6 mb-1';
           title.textContent = item.title;
+          body.appendChild(title);
           const authors = document.createElement('p');
           authors.className = 'text-muted small mb-2';
           authors.textContent = item.authors.length ? `Авторы: ${item.authors.join(', ')}` : 'Авторы не указаны';
+          body.appendChild(authors);
           const editions = document.createElement('p');
           editions.className = 'text-muted small mb-2';
           editions.textContent = `Изданий на сайте: ${item.edition_count}`;
+          body.appendChild(editions);
+
           const link = document.createElement('a');
           link.href = item.detail_url;
           link.target = '_blank';
@@ -233,10 +269,8 @@
           link.className = 'btn btn-sm btn-outline-secondary';
           link.textContent = 'Открыть страницу';
 
-          card.appendChild(title);
-          card.appendChild(authors);
-          card.appendChild(editions);
-          card.appendChild(link);
+          body.appendChild(link);
+          card.appendChild(body);
           localResults.appendChild(card);
         });
       }
@@ -249,6 +283,23 @@
           metadataField.value = JSON.stringify(metadata || {});
         } catch (err) {
           console.warn('Не удалось сохранить данные из API', err);
+        }
+      }
+
+      function showCoverPreview(url) {
+        if (!coverPreview) {
+          return;
+        }
+        if (!url) {
+          coverPreview.hidden = true;
+          if (coverPreviewImage) {
+            coverPreviewImage.src = '';
+          }
+          return;
+        }
+        coverPreview.hidden = false;
+        if (coverPreviewImage) {
+          coverPreviewImage.src = url;
         }
       }
 
@@ -275,6 +326,7 @@
           isbnField.value = item.isbn_list.join(', ');
         }
         applyMetadata(item.metadata || {});
+        showCoverPreview(item.cover_url || '');
 
         if (feedback) {
           feedback.textContent = 'Данные заполнены из Google Books. Проверьте и дополните при необходимости.';
@@ -307,8 +359,22 @@
         results.forEach((item) => {
           const card = document.createElement('div');
           card.className = 'border rounded p-3';
+
           const header = document.createElement('div');
-          header.className = 'd-flex justify-content-between align-items-start flex-wrap gap-2';
+          header.className = 'd-flex gap-3 align-items-start flex-wrap';
+
+          if (item.cover_url) {
+            const cover = document.createElement('div');
+            cover.className = 'ratio ratio-3x4 flex-shrink-0';
+            cover.style.maxWidth = '96px';
+            const img = document.createElement('img');
+            img.src = item.cover_url;
+            img.alt = `Обложка книги ${item.title}`;
+            img.className = 'rounded object-fit-cover shadow-sm';
+            cover.appendChild(img);
+            header.appendChild(cover);
+          }
+
           const textContainer = document.createElement('div');
 
           const title = document.createElement('h4');
@@ -330,7 +396,7 @@
             textContainer.appendChild(authors);
           }
 
-          if (item.publish_date || item.physical_format) {
+          if (item.publish_date || item.physical_format || item.number_of_pages) {
             const meta = document.createElement('p');
             meta.className = 'text-muted small mb-1';
             const parts = [];
@@ -346,6 +412,36 @@
             isbnText.className = 'text-muted small mb-1';
             isbnText.textContent = `ISBN: ${item.isbn_list.join(', ')}`;
             textContainer.appendChild(isbnText);
+          }
+
+          
+          if (item.matching_editions?.length) {
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-warning small mb-2';
+            const alertTitle = document.createElement('p');
+            alertTitle.className = 'mb-1';
+            alertTitle.textContent = 'На сайте уже есть другие издания с таким ISBN:';
+            alert.appendChild(alertTitle);
+            const list = document.createElement('ul');
+            list.className = 'm-0 ps-3';
+            item.matching_editions.forEach((edition) => {
+              const li = document.createElement('li');
+              const link = document.createElement('a');
+              link.href = edition.detail_url;
+              link.target = '_blank';
+              link.rel = 'noopener';
+              link.textContent = `${edition.title} (изданий: ${edition.edition_count})`;
+              li.appendChild(link);
+              if (edition.matching_isbns?.length) {
+                const isbnNote = document.createElement('div');
+                isbnNote.className = 'text-muted';
+                isbnNote.textContent = `Совпадающие ISBN: ${edition.matching_isbns.join(', ')}`;
+                li.appendChild(isbnNote);
+              }
+              list.appendChild(li);
+            });
+            alert.appendChild(list);
+            textContainer.appendChild(alert);
           }
 
           header.appendChild(textContainer);
@@ -469,6 +565,35 @@
       externalButton?.addEventListener('click', () => {
         performSearch({ forceExternal: true });
       });
+
+      const prefillNode = document.getElementById('book-prefill-data');
+      if (prefillNode) {
+        try {
+          const payload = JSON.parse(prefillNode.textContent || '{}');
+          const query = payload.query || {};
+          if (titleInput && query.title) {
+            titleInput.value = query.title;
+          }
+          if (authorInput && query.author) {
+            authorInput.value = query.author;
+          }
+          if (isbnInput && query.isbn) {
+            isbnInput.value = query.isbn;
+          }
+          if (payload.external_result) {
+            renderExternal([payload.external_result], null);
+            if (resultsRoot) {
+              resultsRoot.hidden = false;
+              if (externalSuggestion) {
+                externalSuggestion.hidden = true;
+              }
+            }
+            applyExternalResult(payload.external_result);
+          }
+        } catch (err) {
+          console.warn('Не удалось применить данные предварительного заполнения', err);
+        }
+      }
     });
   </script>
 {% endblock %}

@@ -1,3 +1,4 @@
+import json
 import logging
 
 from django.db.models import (
@@ -21,7 +22,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.html import mark_safe
 from django.utils.text import slugify
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 from shelves.models import BookProgress
 from shelves.services import move_book_to_read_shelf
 from games.services.read_before_buy import ReadBeforeBuyGame
@@ -37,6 +38,105 @@ logger = logging.getLogger(__name__)
 
 def _isbn_query(value: Optional[str]) -> str:
     return normalize_isbn(value)
+
+
+def _book_cover_url(book: Book) -> str:
+    """Вернуть URL обложки для отображения в подборках."""
+
+    cover = getattr(book, "cover", None)
+    if cover:
+        try:
+            url = cover.url
+        except (ValueError, AttributeError):
+            url = ""
+        else:
+            if url:
+                return url
+
+    primary = getattr(book, "primary_isbn", None)
+    if primary:
+        cover_url = primary.get_image_url()
+        if cover_url:
+            return cover_url
+
+    fallback_isbn = (
+        book.isbn.exclude(image__isnull=True)
+        .exclude(image="")
+        .first()
+    )
+    if fallback_isbn:
+        cover_url = fallback_isbn.get_image_url()
+        if cover_url:
+            return cover_url
+    return ""
+
+
+def _matching_books_for_isbns(isbn_values: list[str]) -> list[dict[str, object]]:
+    """Найти книги на сайте, которые содержат указанные ISBN."""
+
+    normalized = [normalize_isbn(value) for value in isbn_values if normalize_isbn(value)]
+    if not normalized:
+        return []
+
+    isbn_filter = Q()
+    for value in normalized:
+        isbn_filter |= Q(isbn__iexact=value) | Q(isbn13__iexact=value)
+
+    if not isbn_filter.children:
+        return []
+
+    matched_isbns = ISBNModel.objects.filter(isbn_filter)
+    if not matched_isbns.exists():
+        return []
+
+    books = (
+        Book.objects.filter(isbn__in=matched_isbns)
+        .distinct()
+        .prefetch_related("isbn")
+    )
+
+    matches: list[dict[str, object]] = []
+    for book in books:
+        book_matches = set()
+        for isbn_instance in book.isbn.filter(isbn_filter):
+            if isbn_instance.isbn and normalize_isbn(isbn_instance.isbn) in normalized:
+                book_matches.add(isbn_instance.isbn)
+            if isbn_instance.isbn13 and normalize_isbn(isbn_instance.isbn13) in normalized:
+                book_matches.add(isbn_instance.isbn13)
+
+        matches.append(
+            {
+                "id": book.pk,
+                "title": book.title,
+                "detail_url": reverse("book_detail", args=[book.pk]),
+                "edition_count": book.isbn.count(),
+                "cover_url": _book_cover_url(book),
+                "matching_isbns": sorted(book_matches),
+            }
+        )
+    return matches
+
+
+def _serialize_external_item(item) -> dict[str, object]:
+    metadata = item.to_metadata_mapping()
+    combined_isbns = item.combined_isbns()
+    return {
+        "title": item.title,
+        "subtitle": item.subtitle,
+        "authors": item.authors,
+        "publishers": item.publishers,
+        "publish_date": item.publish_date,
+        "number_of_pages": item.number_of_pages,
+        "physical_format": item.physical_format,
+        "subjects": item.subjects,
+        "languages": item.languages,
+        "description": item.description,
+        "cover_url": item.cover_url,
+        "source_url": item.source_url,
+        "isbn_list": combined_isbns,
+        "metadata": metadata,
+        "matching_editions": _matching_books_for_isbns(combined_isbns),
+    }
 
 
 @login_required
@@ -96,24 +196,7 @@ def book_lookup(request):
             external_error = "Не удалось получить данные от Google Books. Попробуйте позже."
 
         for item in search_results:
-            metadata = item.to_metadata_mapping()
-            combined_isbns = item.combined_isbns()
-            external_results.append({
-                "title": item.title,
-                "subtitle": item.subtitle,
-                "authors": item.authors,
-                "publishers": item.publishers,
-                "publish_date": item.publish_date,
-                "number_of_pages": item.number_of_pages,
-                "physical_format": item.physical_format,
-                "subjects": item.subjects,
-                "languages": item.languages,
-                "description": item.description,
-                "cover_url": item.cover_url,
-                "source_url": item.source_url,
-                "isbn_list": combined_isbns,
-                "metadata": metadata,
-            })
+            external_results.append(_serialize_external_item(item))
 
     return JsonResponse(
         {
@@ -124,6 +207,25 @@ def book_lookup(request):
             "force_external": force_external,
         }
     )
+
+@login_required
+@require_POST
+def book_prefill_external(request):
+    payload = request.POST.get("payload")
+    redirect_url = reverse("book_create")
+    if not payload:
+        messages.error(request, "Не удалось подготовить данные книги. Попробуйте ещё раз.")
+        return redirect(redirect_url)
+
+    try:
+        data = json.loads(payload)
+    except json.JSONDecodeError:
+        messages.error(request, "Получены повреждённые данные из внешнего поиска.")
+        return redirect(redirect_url)
+
+    request.session["book_prefill"] = data
+    return redirect(redirect_url)
+
 
 def _find_books_with_same_title_and_authors(title, authors):
     """Вернуть книги, у которых совпадает название и состав авторов."""
@@ -195,7 +297,46 @@ def book_list(request):
     paginator = Paginator(qs, 12)
     page = request.GET.get("page")
     page_obj = paginator.get_page(page)
-    return render(request, "books/books_list.html", {"page_obj": page_obj, "q": q})
+    external_suggestions: list[dict[str, object]] = []
+    external_error = None
+
+    if q and page_obj.paginator.count == 0:
+        isbn_candidate = normalize_isbn(q)
+        title_query = q if len(isbn_candidate) not in (10, 13) else ""
+        try:
+            results = google_books_client.search(
+                title=title_query or None,
+                isbn=isbn_candidate or None,
+                limit=6,
+            )
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.exception("Google Books search for list failed: %s", exc)
+            results = []
+            external_error = "Не удалось получить данные из Google Books. Попробуйте позже."
+
+        for item in results:
+            serialized = _serialize_external_item(item)
+            payload = {
+                "query": {"title": q, "author": "", "isbn": isbn_candidate},
+                "external_result": serialized,
+            }
+            external_suggestions.append(
+                {
+                    "data": serialized,
+                    "payload": json.dumps(payload, ensure_ascii=False),
+                }
+            )
+
+    return render(
+        request,
+        "books/books_list.html",
+        {
+            "page_obj": page_obj,
+            "q": q,
+            "external_suggestions": external_suggestions,
+            "external_error": external_error,
+        },
+    )
 
 def book_detail(request, pk):
     book = get_object_or_404(
@@ -477,6 +618,7 @@ def book_detail(request, pk):
 def book_create(request):
     duplicate_candidates = []
     duplicate_resolution = request.POST.get("duplicate_resolution") if request.method == "POST" else None
+    prefill_data = request.session.pop("book_prefill", None)
 
     if request.method == "POST":
         form = BookForm(request.POST, request.FILES)
@@ -579,6 +721,7 @@ def book_create(request):
         "form": form,
         "duplicate_candidates": duplicate_candidates,
         "duplicate_resolution": duplicate_resolution,
+        "prefill_data": prefill_data,
     }
     return render(request, "books/book_form.html", context)
 
