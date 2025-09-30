@@ -185,14 +185,24 @@
     <!-- Кнопки действий -->
     {% if request.user.is_authenticated %}
       <div class="d-flex flex-wrap gap-2 my-3" aria-label="Быстрые действия">
-        <form method="post" action="{% url 'quick_add_shelf' book.id 'want' %}">
-          {% csrf_token %}
-          <button class="btn btn-outline-primary btn-sm" type="submit">Хочу прочитать</button>
-        </form>
-        <form method="post" action="{% url 'quick_add_shelf' book.id 'reading' %}">
-          {% csrf_token %}
-          <button class="btn btn-outline-primary btn-sm" type="submit">Читаю</button>
-        </form>
+        {% if default_shelf_status %}
+          <div class="bg-light border rounded px-3 py-2 small">
+            {% if default_shelf_status.code == 'read' %}
+              Книга прочитана{% if default_shelf_status.added_at %} {{ default_shelf_status.added_at|date:"d.m.Y" }}{% endif %}.
+            {% else %}
+              Книга находится на полке «{{ default_shelf_status.label }}».
+            {% endif %}
+          </div>
+        {% else %}
+          <form method="post" action="{% url 'quick_add_shelf' book.id 'want' %}">
+            {% csrf_token %}
+            <button class="btn btn-outline-primary btn-sm" type="submit">Хочу прочитать</button>
+          </form>
+          <form method="post" action="{% url 'quick_add_shelf' book.id 'reading' %}">
+            {% csrf_token %}
+            <button class="btn btn-outline-primary btn-sm" type="submit">Читаю</button>
+          </form>
+        {% endif %}
         <a class="btn btn-primary btn-sm" href="{% url 'add_book_to_event' book.id %}">Взять в марафон</a>
       </div>
 

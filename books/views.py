@@ -25,7 +25,13 @@ from django.utils.text import slugify
 from django.views.decorators.http import require_GET, require_POST
 from shelves.forms import HomeLibraryQuickAddForm
 from shelves.models import BookProgress, ShelfItem, HomeLibraryEntry
-from shelves.services import move_book_to_read_shelf, get_home_library_shelf
+from shelves.services import (
+    DEFAULT_READ_SHELF,
+    DEFAULT_READING_SHELF,
+    DEFAULT_WANT_SHELF,
+    get_home_library_shelf,
+    move_book_to_read_shelf,
+)
 from games.services.read_before_buy import ReadBeforeBuyGame
 from .models import Book, Rating, ISBNModel
 from .forms import BookForm, RatingForm
@@ -332,6 +338,7 @@ def book_detail(request, pk):
     home_library_item: ShelfItem | None = None
     home_library_entry: HomeLibraryEntry | None = None
     home_library_edit_url: str | None = None
+    default_shelf_status: dict[str, object] | None = None
 
     if request.user.is_authenticated:
         home_library_shelf = get_home_library_shelf(request.user)
@@ -382,6 +389,44 @@ def book_detail(request, pk):
             home_library_form = HomeLibraryQuickAddForm(initial=initial)
         if home_library_item:
             home_library_edit_url = reverse("home_library_edit", args=[home_library_item.pk])
+
+    default_shelf_items = (
+            ShelfItem.objects
+            .filter(
+                shelf__user=request.user,
+                shelf__name__in=[
+                    DEFAULT_WANT_SHELF,
+                    DEFAULT_READING_SHELF,
+                    DEFAULT_READ_SHELF,
+                ],
+                book=book,
+            )
+            .select_related("shelf")
+        )
+
+        items_by_name = {item.shelf.name: item for item in default_shelf_items}
+
+        if DEFAULT_READ_SHELF in items_by_name:
+            item = items_by_name[DEFAULT_READ_SHELF]
+            default_shelf_status = {
+                "code": "read",
+                "label": DEFAULT_READ_SHELF,
+                "added_at": item.added_at,
+            }
+        elif DEFAULT_READING_SHELF in items_by_name:
+            item = items_by_name[DEFAULT_READING_SHELF]
+            default_shelf_status = {
+                "code": "reading",
+                "label": DEFAULT_READING_SHELF,
+                "added_at": item.added_at,
+            }
+        elif DEFAULT_WANT_SHELF in items_by_name:
+            item = items_by_name[DEFAULT_WANT_SHELF]
+            default_shelf_status = {
+                "code": "want",
+                "label": DEFAULT_WANT_SHELF,
+                "added_at": item.added_at,
+            }
 
     form = RatingForm(
         user=request.user if request.user.is_authenticated else None,
@@ -647,6 +692,7 @@ def book_detail(request, pk):
         "home_library_item": home_library_item,
         "home_library_entry": home_library_entry,
         "home_library_edit_url": home_library_edit_url,
+        "default_shelf_status": default_shelf_status,
     })
 
 @login_required
