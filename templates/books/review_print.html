@@ -4,121 +4,446 @@
   <meta charset="utf-8">
   <title>Отзыв о книге «{{ book.title }}»</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+    :root {
+      --accent: #c26a5a;
+      --accent-dark: #7b4032;
+      --muted: #6c6f75;
+      --surface: #fff9f5;
+      --line-color: rgba(194, 106, 90, 0.12);
+      --border-color: rgba(0, 0, 0, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #f4ede7;
+      color: #2b2b2b;
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+    }
+
     body {
-      font-family: "Segoe UI", Roboto, sans-serif;
-      margin: 40px;
-      color: #222;
-      line-height: 1.6;
-    }
-    header {
       display: flex;
-      align-items: flex-start;
-      gap: 24px;
-      margin-bottom: 32px;
+      justify-content: center;
+      padding: 32px;
     }
-    header img {
-      max-width: 180px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    
+    .page {
+      background: var(--surface);
+      width: 210mm;
+      min-height: 297mm;
+      padding: 36px 44px 48px;
+      position: relative;
+      border-radius: 18px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
     }
-    h1 {
-      margin: 0 0 8px;
-      font-size: 28px;
+
+    .page::before,
+    .page::after {
+      content: "";
+      position: absolute;
+      width: 220px;
+      height: 220px;
+      background: radial-gradient(circle at top left, rgba(194, 106, 90, 0.18), transparent 65%);
+      opacity: 0.9;
+      pointer-events: none;
+      z-index: 0;
     }
-    h2 {
-      margin-top: 32px;
-      font-size: 20px;
-      border-bottom: 1px solid #d9d9d9;
-      padding-bottom: 6px;
+
+    .page::after {
+      right: -60px;
+      bottom: -80px;
+      transform: rotate(15deg);
+      background: radial-gradient(circle at bottom right, rgba(194, 106, 90, 0.16), transparent 70%);
     }
-    .meta {
-      margin: 4px 0;
-      color: #555;
+
+    header {
+        position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 28px;
+      padding: 28px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(194, 106, 90, 0.12), rgba(255, 255, 255, 0.9));
+      border: 1px solid rgba(194, 106, 90, 0.18);
     }
-    .section {
-      margin-top: 16px;
-    }
-    .notes, .review {
-      white-space: pre-wrap;
-      background-color: #f8f9fa;
-      border-radius: 8px;
+
+    .cover {
+      width: 180px;
+      height: 260px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      box-shadow: 0 16px 30px rgba(194, 106, 90, 0.28);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: var(--muted);
+      text-align: center;
       padding: 16px;
-      border: 1px solid #e2e3e5;
     }
-    ul.characters {
-      list-style: disc;
-      padding-left: 24px;
+    
+    .cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
-    ul.characters li {
+    
+    .title-block h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 32px;
+      font-weight: 600;
+      margin: 0;
+      color: var(--accent-dark);
+    }
+    
+    .title-block .subtitle {
+      margin-top: 8px;
+      font-size: 16px;
+      color: var(--muted);
+    }
+    
+    .meta-grid {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px 24px;
+    }
+
+    .meta-item {
+      font-size: 14px;
+      color: #373a3d;
+      line-height: 1.4;
+    }
+
+    .meta-item span {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    main {
+      position: relative;
+      z-index: 1;
+      margin-top: 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    section {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px 28px;
+      box-shadow: 0 12px 26px rgba(0, 0, 0, 0.04);
+    }
+    
+    section h2 {
+      margin: 0 0 18px;
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 22px;
+      color: var(--accent-dark);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: 0.02em;
+    }
+
+    section h2::before {
+      content: '';
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(194, 106, 90, 0.85), rgba(237, 196, 169, 0.85));
+      box-shadow: 0 0 0 3px rgba(194, 106, 90, 0.15);
+    }
+
+    .description {
+      font-size: 14px;
+      line-height: 1.7;
+      color: #34373c;
+    }
+
+    .empty-note {
+      color: var(--muted);
+      font-style: italic;
+    }
+    
+    .notes {
+      background: repeating-linear-gradient(
+        transparent,
+        transparent 28px,
+        var(--line-color) 28px,
+        var(--line-color) 30px
+      );
+      border-radius: 14px;
+      padding: 18px 20px;
+      font-size: 14px;
+      line-height: 30px;
+      min-height: 220px;
+      border: 1px solid rgba(194, 106, 90, 0.18);
+      white-space: pre-wrap;
+    }
+    
+    .characters {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+      padding: 0;
+      list-style: none;
+      margin: 0;
+    }
+
+    .character-card {
+      background: rgba(255, 255, 255, 0.75);
+      border: 1px solid rgba(194, 106, 90, 0.2);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 8px 18px rgba(194, 106, 90, 0.14);
+    }
+
+    .character-card strong {
+      display: block;
+      font-weight: 600;
+      color: var(--accent-dark);
       margin-bottom: 6px;
     }
-    .muted {
-      color: #888;
+
+    .character-card p {
+      margin: 0;
+      font-size: 13px;
+      color: #3c3f43;
+      line-height: 1.5;
+    }
+
+    .scores {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+    }
+
+    .score-card {
+      background: rgba(194, 106, 90, 0.08);
+      border: 1px solid rgba(194, 106, 90, 0.24);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      text-align: left;
+      color: #3d3a38;
+    }
+
+    .score-label {
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .score-value {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--accent-dark);
+    }
+
+    .review {
+      background: rgba(255, 255, 255, 0.92);
+      border-radius: 16px;
+      border: 1px solid rgba(194, 106, 90, 0.22);
+      padding: 22px;
+      font-size: 15px;
+      line-height: 1.7;
+      color: #303030;
+      white-space: pre-wrap;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .review::before {
+      content: '“';
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 86px;
+      color: rgba(194, 106, 90, 0.18);
+      position: absolute;
+      top: -24px;
+      left: 12px;
+    }
+
+    .review::after {
+      content: '”';
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 86px;
+      color: rgba(194, 106, 90, 0.18);
+      position: absolute;
+      bottom: -36px;
+      right: 28px;
+    }
+
+    .footer-note {
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    @media print {
+      body {
+        padding: 0;
+        background: transparent;
+      }
+
+      .page {
+        box-shadow: none;
+        border-radius: 0;
+        width: auto;
+        min-height: auto;
+      }
+
+      .page::before,
+      .page::after {
+        display: none;
+      }
     }
   </style>
 </head>
 <body>
-  <header>
-    {% if cover_url %}
-      <img src="{{ cover_url }}" alt="Обложка {{ book.title }}">
-    {% endif %}
-    <div>
-      <h1>«{{ book.title }}»</h1>
-      <div class="meta"><strong>Автор(ы):</strong> {{ authors|join:", " }}</div>
-      {% if book.synopsis %}
-        <div class="meta"><strong>Описание:</strong> {{ book.synopsis }}</div>
-      {% endif %}
-      {% if reading_start or reading_end %}
-        <div class="meta">
-          <strong>Период чтения:</strong>
-          {% if reading_start and reading_end %}
-            {{ reading_start|date:"d.m.Y" }} — {{ reading_end|date:"d.m.Y" }}
-          {% elif reading_start %}
-            с {{ reading_start|date:"d.m.Y" }}
-          {% elif reading_end %}
-            до {{ reading_end|date:"d.m.Y" }}
+  <div class="page">
+    <header>
+      <div class="cover">
+        {% if cover_url %}
+          <img src="{{ cover_url }}" alt="Обложка {{ book.title }}">
+        {% else %}
+          Нет обложки
+        {% endif %}
+      </div>
+      <div class="title-block">
+        <h1>«{{ book.title }}»</h1>
+        <div class="subtitle">
+          {% if authors %}
+            Автор(ы): {{ authors|join:", " }}
+          {% else %}
+            Автор не указан
           {% endif %}
         </div>
-      {% else %}
-        <div class="meta"><strong>Период чтения:</strong> данные не зафиксированы</div>
-      {% endif %}
-    </div>
-  </header>
-
-  <section class="section">
-    <h2>Сохранённые заметки</h2>
-    {% if notes %}
-      <div class="notes">{{ notes|linebreaksbr }}</div>
-    {% else %}
-      <p class="muted">Заметки для этой книги отсутствуют.</p>
-    {% endif %}
-  </section>
-
-  <section class="section">
-    <h2>Главные герои</h2>
-    {% if characters %}
-      <ul class="characters">
-        {% for character in characters %}
-          <li>
-            <strong>{{ character.name }}</strong>
-            {% if character.description %}
-              — {{ character.description }}
+      <div class="meta-grid">
+          <div class="meta-item">
+            <span>Жанры</span>
+            {% if book.genres.all %}
+              {{ book.genres.all|join:", " }}
+            {% else %}
+              —
             {% endif %}
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <p class="muted">Список персонажей пока пуст.</p>
-    {% endif %}
-  </section>
+          </div>
+          <div class="meta-item">
+            <span>Издательство</span>
+            {% if book.publisher %}
+              {{ book.publisher.name }}
+            {% else %}
+              —
+            {% endif %}
+          </div>
+          <div class="meta-item">
+            <span>Количество страниц</span>
+            {{ book.total_pages|default:"—" }}
+          </div>
+          <div class="meta-item">
+            <span>Период чтения</span>
+            {% if reading_start and reading_end %}
+              {{ reading_start|date:"d.m.Y" }} — {{ reading_end|date:"d.m.Y" }}
+            {% elif reading_start %}
+              c {{ reading_start|date:"d.m.Y" }}
+            {% elif reading_end %}
+              до {{ reading_end|date:"d.m.Y" }}
+            {% else %}
+              не указан
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </header>
 
-  <section class="section">
-    <h2>Отзыв</h2>
-    {% if rating.review %}
-      <div class="review">{{ rating.review|linebreaksbr }}</div>
-    {% else %}
-      <p class="muted">Текст отзыва отсутствует.</p>
-    {% endif %}
-  </section>
+    <main>
+      <section>
+        <h2>О книге</h2>
+        {% if book.synopsis %}
+          <div class="description">{{ book.synopsis }}</div>
+        {% else %}
+          <p class="empty-note">Описание пока не добавлено.</p>
+        {% endif %}
+      </section>
+
+      <section>
+        <h2>Комментарии и цитаты</h2>
+        {% if notes %}
+          <div class="notes">{{ notes|linebreaksbr }}</div>
+        {% else %}
+          <p class="empty-note">Здесь можно записывать любимые моменты и цитаты.</p>
+        {% endif %}
+      </section>
+
+      <section>
+        <h2>Герои истории</h2>
+        {% if characters %}
+          <ul class="characters">
+            {% for character in characters %}
+              <li class="character-card">
+                <strong>{{ character.name }}</strong>
+                {% if character.description %}
+                  <p>{{ character.description }}</p>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="empty-note">Список персонажей пока пуст — самое время его заполнить!</p>
+        {% endif %}
+      </section>
+
+      {% if rating.has_any_scores %}
+        <section>
+          <h2>Оценки</h2>
+          <div class="scores">
+            {% if rating.score %}
+              <div class="score-card">
+                <span class="score-label">Общая оценка</span>
+                <span class="score-value">{{ rating.score }}/10</span>
+              </div>
+            {% endif %}
+            {% for label, value in rating.get_category_scores %}
+              <div class="score-card">
+                <span class="score-label">{{ label }}</span>
+                <span class="score-value">{{ value }}/10</span>
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      <section>
+        <h2>Отзыв</h2>
+        {% if rating.review %}
+          <div class="review">{{ rating.review|linebreaksbr }}</div>
+        {% else %}
+          <p class="empty-note">Текст отзыва ещё не написан.</p>
+        {% endif %}
+      </section>
+    </main>
+
+    <div class="footer-note">Дата формирования: {{ rating.created_at|date:"d.m.Y" }}</div>
+  </div>
 </body>
 </html>
