@@ -6,7 +6,12 @@ from typing import Iterable, List, Optional, Sequence, Mapping, Any
 from django.db import transaction
 
 from .models import Book, ISBNModel, Publisher, Genre, AudioBook, Author
-from .utils import build_edition_group_key, store_additional_cover, normalize_isbn
+from .utils import (
+    build_edition_group_key,
+    store_additional_cover,
+    normalize_isbn,
+    download_cover_from_url,
+)
 
 
 @dataclass
@@ -167,14 +172,24 @@ def register_book_edition(
     isbn_entries = _ensure_sequence(isbn_entries)
 
     metadata_map: dict[str, Mapping[str, Any]] = {}
+    metadata_cover_url: str | None = None
     if isbn_metadata:
         for key, details in isbn_metadata.items():
+            if isinstance(details, Mapping) and not metadata_cover_url:
+                cover_candidate = str(details.get("cover_url") or "").strip()
+                if cover_candidate:
+                    metadata_cover_url = cover_candidate
             normalized = normalize_isbn(str(key))
             if not normalized:
                 continue
             if isinstance(details, Mapping):
                 metadata_map[normalized] = details
 
+    if not cover_file and metadata_cover_url:
+        downloaded_cover = download_cover_from_url(metadata_cover_url)
+        if downloaded_cover:
+            cover_file = downloaded_cover
+    
     with transaction.atomic():
         book: Optional[Book]
 

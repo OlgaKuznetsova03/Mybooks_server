@@ -4,6 +4,7 @@ from unittest import mock
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 
@@ -234,6 +235,37 @@ class RegisterBookEditionTests(TestCase):
         self.assertEqual(isbn.image, "https://example.org/cover.jpg")
         self.assertEqual(isbn.isbn13, "9781234567897")
         self.assertIn("Новый Автор", list(isbn.authors.values_list("name", flat=True)))
+
+    @mock.patch("books.services.download_cover_from_url")
+    def test_downloads_cover_from_metadata_when_no_upload(self, mock_download):
+        isbn = ISBNModel.objects.create(isbn="1234567890")
+
+        metadata = {
+            "1234567890": {
+                "cover_url": "https://covers.example.com/api.jpg",
+            }
+        }
+
+        mock_download.return_value = ContentFile(b"image-bytes", name="api-cover.jpg")
+
+        with tempfile.TemporaryDirectory() as tmpdir, override_settings(MEDIA_ROOT=tmpdir):
+            result = register_book_edition(
+                title="API Title",
+                authors=[self.author],
+                isbn_entries=[isbn],
+                isbn_metadata=metadata,
+            )
+
+            mock_download.assert_called_once_with("https://covers.example.com/api.jpg")
+
+            book = result.book
+            book.refresh_from_db()
+            self.assertTrue(book.cover.name)
+            self.assertTrue(book.cover.name.startswith("book_covers/"))
+            self.assertTrue(book.cover.storage.exists(book.cover.name))
+
+            isbn.refresh_from_db()
+            self.assertEqual(isbn.image, book.cover.name)
 
 
 class BookLookupViewTests(TestCase):
