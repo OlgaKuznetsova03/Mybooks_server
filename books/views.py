@@ -390,7 +390,7 @@ def book_detail(request, pk):
         if home_library_item:
             home_library_edit_url = reverse("home_library_edit", args=[home_library_item.pk])
 
-    default_shelf_items = (
+        default_shelf_items = (
             ShelfItem.objects
             .filter(
                 shelf__user=request.user,
