@@ -168,22 +168,22 @@
       const isbnInput = document.getElementById('book-lookup-isbn');
       const submitButton = document.getElementById('book-lookup-submit');
       const feedback = document.getElementById('book-lookup-feedback');
-      const feedback = document.getElementById('book-lookup-feedback');
-          const resultsRoot = document.getElementById('book-lookup-results');
-          const localSection = resultsRoot?.querySelector('[data-role="local-section"]');
-          const localResults = resultsRoot?.querySelector('[data-role="local-results"]');
-          const externalSection = resultsRoot?.querySelector('[data-role="external-section"]');
-          const externalResults = resultsRoot?.querySelector('[data-role="external-results"]');
-          const externalButton = document.getElementById('book-lookup-load-external');
-          const externalSuggestion = document.getElementById('book-lookup-external-suggestion');
-          const coverPreview = document.getElementById('book-lookup-cover-preview');
-          const coverPreviewImage = coverPreview?.querySelector('[data-role="preview-image"]');
+      const resultsRoot = document.getElementById('book-lookup-results');
+      const localSection = resultsRoot?.querySelector('[data-role="local-section"]');
+      const localResults = resultsRoot?.querySelector('[data-role="local-results"]');
+      const externalSection = resultsRoot?.querySelector('[data-role="external-section"]');
+      const externalResults = resultsRoot?.querySelector('[data-role="external-results"]');
+      const externalButton = document.getElementById('book-lookup-load-external');
+      const externalSuggestion = document.getElementById('book-lookup-external-suggestion');
+      const coverPreview = document.getElementById('book-lookup-cover-preview');
+      const coverPreviewImage = coverPreview?.querySelector('[data-role="preview-image"]');
       const titleField = document.getElementById('id_title');
       const authorsField = document.getElementById('id_authors');
       const genresField = document.getElementById('id_genres');
       const publisherField = document.getElementById('id_publisher');
       const languageField = document.getElementById('id_language');
       const synopsisField = document.getElementById('id_synopsis');
+      const isbnField = document.getElementById('id_isbn');
       const metadataField = document.getElementById('id_isbn_metadata');
 
 
@@ -214,13 +214,8 @@
         if (externalSuggestion) {
           externalSuggestion.hidden = true;
         }
+        showCoverPreview('');
       }
-      if (coverPreview) {
-          coverPreview.hidden = true;
-          if (coverPreviewImage) {
-            coverPreviewImage.src = '';
-          }
-        }
 
       function renderLocal(results) {
         if (!localSection || !localResults) {
