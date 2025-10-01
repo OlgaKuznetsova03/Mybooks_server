@@ -10,6 +10,7 @@ from shelves.models import ShelfItem
 from shelves.services import get_home_library_shelf
 
 from .models import GameShelfBook, GameShelfPurchase, GameShelfState
+from .services.book_journey import BookJourneyMap
 from .services.read_before_buy import ReadBeforeBuyGame
 
 
@@ -134,3 +135,14 @@ class ReadBeforeBuyGameTests(TestCase):
         self.assertEqual(response.status_code, 200)
         game = ReadBeforeBuyGame.get_game()
         self.assertContains(response, game.title)
+
+
+class BookJourneyMapTests(TestCase):
+    def test_stage_count_is_30(self):
+        self.assertEqual(BookJourneyMap.get_stage_count(), 30)
+
+    def test_journey_map_view_renders(self):
+        response = self.client.get(reverse("games:book_journey_map"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, BookJourneyMap.TITLE)
+        self.assertContains(response, "30 этапов")

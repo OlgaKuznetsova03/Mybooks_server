@@ -4,6 +4,7 @@ from django.db.models import Count
 from django.shortcuts import redirect, render
 
 from .forms import ReadBeforeBuyEnrollForm
+from .services.book_journey import BookJourneyMap
 from .services.read_before_buy import ReadBeforeBuyGame
 
 
@@ -85,3 +86,32 @@ def read_before_buy_dashboard(request):
         "enroll_form": enroll_form,
     }
     return render(request, "games/read_before_buy.html", context)
+
+
+def book_journey_map(request):
+    """Render the 30-step literary journey map."""
+
+    stages = [
+        {
+            "number": stage.number,
+            "title": stage.title,
+            "requirement": stage.requirement,
+            "description": stage.description,
+            "terrain": stage.terrain,
+            "terrain_label": BookJourneyMap.TERRAIN.get(stage.terrain, {}).get(
+                "label", stage.terrain.capitalize()
+            ),
+            "top": stage.top,
+            "left": stage.left,
+        }
+        for stage in BookJourneyMap.get_stages()
+    ]
+    context = {
+        "map_title": BookJourneyMap.TITLE,
+        "map_description": BookJourneyMap.SUBTITLE,
+        "checklist": BookJourneyMap.CHECKLIST,
+        "stages": stages,
+        "stage_count": BookJourneyMap.get_stage_count(),
+        "terrain_legend": BookJourneyMap.get_terrain_legend(),
+    }
+    return render(request, "games/book_journey_map.html", context)

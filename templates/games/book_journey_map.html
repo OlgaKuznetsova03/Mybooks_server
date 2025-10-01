@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}{{ map_title }} — карта приключения{% endblock %}
+{% block content %}
+<div class="row g-4 align-items-start">
+  <div class="col-lg-7">
+    <section class="card shadow-sm border-0 overflow-hidden journey-map">
+      <div class="card-header bg-body-tertiary border-bottom">
+        <h1 class="h5 mb-1">{{ map_title }}</h1>
+        <p class="text-muted mb-0">{{ map_description }}</p>
+      </div>
+      <div class="journey-map__canvas position-relative">
+        <div class="journey-map__background"></div>
+        <div class="journey-map__path"></div>
+        {% for stage in stages %}
+        <button
+          type="button"
+          class="journey-map__marker terrain-{{ stage.terrain }}"
+          style="top: {{ stage.top }}%; left: {{ stage.left }}%;"
+          data-bs-toggle="popover"
+          data-bs-custom-class="journey-map__popover"
+          data-bs-placement="top"
+          title="#{{ stage.number }} · {{ stage.title }}"
+          data-bs-content="{{ stage.requirement }}"
+          aria-label="#{{ stage.number }} · {{ stage.title }} — {{ stage.requirement }}"
+        >
+          <span class="journey-map__marker-index">{{ stage.number }}</span>
+        </button>
+        {% endfor %}
+      </div>
+      <div class="card-footer bg-white">
+        <div class="d-flex flex-wrap gap-3 align-items-center justify-content-between">
+          <div class="fw-semibold small text-uppercase text-muted">Легенда</div>
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            {% for key, item in terrain_legend %}
+              <span class="badge rounded-pill journey-map__legend-badge terrain-{{ key }}">
+                {{ item.label }}
+              </span>
+            {% endfor %}
+          </div>
+        </div>
+        <ul class="list-unstyled small text-muted mb-0 mt-2">
+          {% for key, item in terrain_legend %}
+            <li><span class="fw-semibold">{{ item.label }}:</span> {{ item.hint }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
+  </div>
+  <div class="col-lg-5">
+    <section class="card shadow-sm border-0">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+          <div>
+            <h2 class="h6 mb-1">Как проходить карту</h2>
+            <p class="small text-muted mb-0">Выполните все {{ stage_count }} этапов, чтобы завершить путешествие.</p>
+          </div>
+          <a class="btn btn-outline-primary btn-sm" href="{% url 'games:read_before_buy' %}">
+            <i class="bi bi-controller me-1"></i>К игре «Читай прежде чем покупать»
+          </a>
+        </div>
+        <ol class="ps-3 small">
+          {% for item in checklist %}
+            <li class="mb-2">{{ item }}</li>
+          {% endfor %}
+        </ol>
+        <div class="alert alert-success small" role="status">
+          <div class="fw-semibold">Подсказка</div>
+          <p class="mb-1">Каждая точка — это новая книга. После добавления отметьте чтение и отзыв, чтобы открыть следующую.</p>
+          <p class="mb-0">Используйте заметки к книге, чтобы фиксировать идеи для отзывов на ходу.</p>
+        </div>
+      </div>
+    </section>
+    <section class="card shadow-sm border-0 mt-4">
+      <div class="card-header bg-body-tertiary border-bottom">
+        <h2 class="h6 mb-0">Все этапы путешествия</h2>
+      </div>
+      <div class="card-body p-0">
+        <div class="list-group list-group-flush journey-stage-list">
+          {% for stage in stages %}
+            <div class="list-group-item">
+              <div class="d-flex justify-content-between align-items-start gap-3">
+                <div>
+                  <div class="fw-semibold">#{{ stage.number }} · {{ stage.title }}</div>
+                  <div class="small text-muted">{{ stage.requirement }}</div>
+                </div>
+                <span class="badge rounded-pill journey-map__legend-badge terrain-{{ stage.terrain }}">{{ stage.terrain_label }}</span>
+              </div>
+              <p class="small mb-0 mt-2">{{ stage.description }}</p>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const triggers = document.querySelectorAll('[data-bs-toggle="popover"]');
+    triggers.forEach((triggerEl) => {
+      if (!triggerEl.dataset.popoverApplied) {
+        triggerEl.dataset.popoverApplied = '1';
+        new bootstrap.Popover(triggerEl, {
+          trigger: 'focus',
+          html: false,
+        });
+      }
+    });
+  });
+</script>
+{% endblock %}
