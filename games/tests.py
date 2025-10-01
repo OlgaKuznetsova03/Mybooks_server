@@ -1,3 +1,4 @@
+from decimal import Decimal
 from datetime import timedelta
 
 from django.contrib.auth.models import User
@@ -5,11 +6,16 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from books.models import Book, ISBNModel
-from shelves.models import ShelfItem
+from books.models import Book, ISBNModel, Rating
+from shelves.models import BookProgress, ShelfItem
 from shelves.services import get_home_library_shelf
 
-from .models import GameShelfBook, GameShelfPurchase, GameShelfState
+from .models import (
+    BookJourneyAssignment,
+    GameShelfBook,
+    GameShelfPurchase,
+    GameShelfState,
+)
 from .services.book_journey import BookJourneyMap
 from .services.read_before_buy import ReadBeforeBuyGame
 
@@ -138,11 +144,102 @@ class ReadBeforeBuyGameTests(TestCase):
 
 
 class BookJourneyMapTests(TestCase):
-    def test_stage_count_is_30(self):
-        self.assertEqual(BookJourneyMap.get_stage_count(), 30)
+    def test_stage_count_is_15(self):
+        self.assertEqual(BookJourneyMap.get_stage_count(), 15)
 
     def test_journey_map_view_renders(self):
         response = self.client.get(reverse("games:book_journey_map"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, BookJourneyMap.TITLE)
-        self.assertContains(response, "30 этапов")
+        self.assertContains(response, "15 заданий")
+
+
+class BookJourneyInteractionTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="explorer", password="secret123")
+        self.client.login(username="explorer", password="secret123")
+        self.book = Book.objects.create(title="Путешествие", synopsis="")
+        self.other_book = Book.objects.create(title="Роман", synopsis="")
+        self.home_shelf = get_home_library_shelf(self.user)
+        ShelfItem.objects.get_or_create(shelf=self.home_shelf, book=self.book)
+        ShelfItem.objects.get_or_create(shelf=self.home_shelf, book=self.other_book)
+
+    def test_assign_book_creates_assignment(self):
+        response = self.client.post(
+            reverse("games:book_journey_map"),
+            {"action": "assign", "stage_number": 1, "book": self.book.pk},
+        )
+        self.assertRedirects(response, reverse("games:book_journey_map"))
+        assignment = BookJourneyAssignment.objects.get(user=self.user, stage_number=1)
+        self.assertEqual(assignment.book, self.book)
+        self.assertEqual(assignment.status, BookJourneyAssignment.Status.IN_PROGRESS)
+
+    def test_only_one_active_assignment_allowed(self):
+        self.client.post(
+            reverse("games:book_journey_map"),
+            {"action": "assign", "stage_number": 1, "book": self.book.pk},
+        )
+        response = self.client.post(
+            reverse("games:book_journey_map"),
+            {"action": "assign", "stage_number": 2, "book": self.other_book.pk},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "У вас уже есть активное задание")
+        self.assertFalse(
+            BookJourneyAssignment.objects.filter(user=self.user, stage_number=2).exists()
+        )
+
+    def test_release_assignment(self):
+        self.client.post(
+            reverse("games:book_journey_map"),
+            {"action": "assign", "stage_number": 1, "book": self.book.pk},
+        )
+        response = self.client.post(
+            reverse("games:book_journey_map"),
+            {"action": "release", "stage_number": 1},
+        )
+        self.assertRedirects(response, reverse("games:book_journey_map"))
+        self.assertFalse(
+            BookJourneyAssignment.objects.filter(user=self.user, stage_number=1).exists()
+        )
+
+    def test_assignment_completes_after_progress_and_review(self):
+        self.client.post(
+            reverse("games:book_journey_map"),
+            {"action": "assign", "stage_number": 1, "book": self.book.pk},
+        )
+        BookProgress.objects.create(
+            user=self.user,
+            book=self.book,
+            percent=Decimal("100"),
+            current_page=0,
+        )
+        Rating.objects.create(book=self.book, user=self.user, review="Готово!")
+        assignment = BookJourneyAssignment.objects.get(user=self.user, stage_number=1)
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.status, BookJourneyAssignment.Status.COMPLETED)
+
+    def test_release_blocked_for_completed_stage(self):
+        self.client.post(
+            reverse("games:book_journey_map"),
+            {"action": "assign", "stage_number": 1, "book": self.book.pk},
+        )
+        BookProgress.objects.create(
+            user=self.user,
+            book=self.book,
+            percent=Decimal("100"),
+            current_page=0,
+        )
+        Rating.objects.create(book=self.book, user=self.user, review="Финал")
+        assignment = BookJourneyAssignment.objects.get(user=self.user, stage_number=1)
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.status, BookJourneyAssignment.Status.COMPLETED)
+        response = self.client.post(
+            reverse("games:book_journey_map"),
+            {"action": "release", "stage_number": 1},
+            follow=True,
+        )
+        self.assertContains(response, "Завершённое задание нельзя отменить")
+        self.assertTrue(
+            BookJourneyAssignment.objects.filter(user=self.user, stage_number=1).exists()
+        )

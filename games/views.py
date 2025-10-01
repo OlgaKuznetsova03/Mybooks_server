@@ -1,9 +1,20 @@
+from decimal import Decimal
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
 from django.shortcuts import redirect, render
+from django.urls import reverse
 
-from .forms import ReadBeforeBuyEnrollForm
+from books.models import Rating
+from shelves.models import BookProgress
+
+from .forms import (
+    BookJourneyAssignForm,
+    BookJourneyReleaseForm,
+    ReadBeforeBuyEnrollForm,
+)
+from .models import BookJourneyAssignment
 from .services.book_journey import BookJourneyMap
 from .services.read_before_buy import ReadBeforeBuyGame
 
@@ -89,23 +100,176 @@ def read_before_buy_dashboard(request):
 
 
 def book_journey_map(request):
-    """Render the 30-step literary journey map."""
+    """Render the interactive 15-step literary journey map."""
 
-    stages = [
-        {
-            "number": stage.number,
-            "title": stage.title,
-            "requirement": stage.requirement,
-            "description": stage.description,
-            "terrain": stage.terrain,
-            "terrain_label": BookJourneyMap.TERRAIN.get(stage.terrain, {}).get(
-                "label", stage.terrain.capitalize()
-            ),
-            "top": stage.top,
-            "left": stage.left,
-        }
-        for stage in BookJourneyMap.get_stages()
-    ]
+    user = request.user
+    assignment_form = None
+    release_form = BookJourneyReleaseForm()
+
+    if request.method == "POST":
+        if not user.is_authenticated:
+            messages.error(request, "Авторизуйтесь, чтобы прикреплять книги к заданиям.")
+            return redirect("login")
+        action = request.POST.get("action")
+        if action == "assign":
+            assignment_form = BookJourneyAssignForm(request.POST, user=user)
+            if assignment_form.is_valid():
+                stage_number = assignment_form.cleaned_data["stage_number"]
+                book = assignment_form.cleaned_data["book"]
+                stage = BookJourneyMap.get_stage_by_number(stage_number)
+                active_other = (
+                    BookJourneyAssignment.objects.filter(
+                        user=user,
+                        status=BookJourneyAssignment.Status.IN_PROGRESS,
+                    )
+                    .exclude(stage_number=stage_number)
+                    .first()
+                )
+                if active_other:
+                    other_stage = BookJourneyMap.get_stage_by_number(active_other.stage_number)
+                    messages.error(
+                        request,
+                        (
+                            "У вас уже есть активное задание: "
+                            f"#{active_other.stage_number} «{other_stage.title if other_stage else 'Без названия'}»."
+                            " Завершите его или снимите книгу, чтобы продолжить."
+                        ),
+                    )
+                else:
+                    assignment, created = BookJourneyAssignment.objects.get_or_create(
+                        user=user,
+                        stage_number=stage_number,
+                        defaults={"book": book},
+                    )
+                    if created:
+                        assignment.reset_progress(book=book)
+                    else:
+                        if assignment.is_completed:
+                            messages.error(
+                                request,
+                                "Завершённое задание нельзя перепроходить повторно.",
+                            )
+                            return redirect("games:book_journey_map")
+                        assignment.reset_progress(book=book)
+                    BookProgress.objects.get_or_create(
+                        event=None,
+                        user=user,
+                        book=book,
+                        defaults={"percent": Decimal("0"), "current_page": 0},
+                    )
+                    BookJourneyAssignment.sync_for_user_book(user, book)
+                    messages.success(
+                        request,
+                        f"Книга «{book.title}» прикреплена к этапу #{stage_number} «{stage.title}».",
+                    )
+                    return redirect("games:book_journey_map")
+        elif action == "release":
+            release_form = BookJourneyReleaseForm(request.POST)
+            if release_form.is_valid():
+                stage_number = release_form.cleaned_data["stage_number"]
+                assignment = BookJourneyAssignment.objects.filter(
+                    user=user, stage_number=stage_number
+                ).first()
+                stage = BookJourneyMap.get_stage_by_number(stage_number)
+                if not assignment:
+                    messages.error(request, "Для этого этапа пока не выбрана книга.")
+                elif assignment.is_completed:
+                    messages.error(request, "Завершённое задание нельзя отменить.")
+                else:
+                    assignment.delete()
+                    title = stage.title if stage else f"#{stage_number}"
+                    messages.success(request, f"Этап «{title}» снова свободен.")
+                return redirect("games:book_journey_map")
+        else:
+            assignment_form = BookJourneyAssignForm(user=user)
+
+    if assignment_form is None and user.is_authenticated:
+        assignment_form = BookJourneyAssignForm(user=user)
+
+    assignment_lookup = {}
+    progress_lookup = {}
+    review_lookup = {}
+    active_stage_number = None
+    if user.is_authenticated:
+        assignments = (
+            BookJourneyAssignment.objects.filter(user=user)
+            .select_related("book")
+            .order_by("stage_number")
+        )
+        assignment_lookup = {item.stage_number: item for item in assignments}
+        book_ids = [assignment.book_id for assignment in assignments]
+        if book_ids:
+            progress_lookup = {
+                progress.book_id: progress
+                for progress in BookProgress.objects.filter(user=user, book_id__in=book_ids)
+            }
+            review_lookup = {
+                rating.book_id: rating
+                for rating in Rating.objects.filter(user=user, book_id__in=book_ids)
+            }
+        for assignment in assignments:
+            if assignment.status == BookJourneyAssignment.Status.IN_PROGRESS:
+                active_stage_number = assignment.stage_number
+                break
+
+    stages = []
+    for stage in BookJourneyMap.get_stages():
+        assignment = assignment_lookup.get(stage.number)
+        status = "available"
+        assignment_payload = None
+        if assignment:
+            if assignment.status == BookJourneyAssignment.Status.COMPLETED:
+                status = "completed"
+            else:
+                status = "in_progress"
+            progress = progress_lookup.get(assignment.book_id)
+            rating = review_lookup.get(assignment.book_id)
+            percent = None
+            if progress and progress.percent is not None:
+                try:
+                    percent = float(progress.percent)
+                except (TypeError, ValueError):  # pragma: no cover - defensive
+                    percent = None
+            assignment_payload = {
+                "id": assignment.id,
+                "book_id": assignment.book_id,
+                "book_title": assignment.book.title,
+                "status": assignment.status,
+                "is_completed": assignment.is_completed,
+                "progress_percent": percent,
+                "has_review": bool(
+                    rating and str(getattr(rating, "review", "") or "").strip()
+                ),
+                "detail_url": reverse("book_detail", args=[assignment.book_id]),
+                "reading_url": reverse("reading_track", args=[assignment.book_id]),
+                "review_url": reverse("book_detail", args=[assignment.book_id]) + "#write-review",
+                "started_at": assignment.started_at,
+                "completed_at": assignment.completed_at,
+            }
+        stages.append(
+            {
+                "number": stage.number,
+                "title": stage.title,
+                "requirement": stage.requirement,
+                "description": stage.description,
+                "terrain": stage.terrain,
+                "terrain_label": BookJourneyMap.TERRAIN.get(stage.terrain, {}).get(
+                    "label", stage.terrain.capitalize()
+                ),
+                "top": stage.top,
+                "left": stage.left,
+                "status": status,
+                "assignment": assignment_payload,
+            }
+        )
+
+    assignment_stage_value = None
+    if assignment_form is not None and assignment_form.is_bound:
+        try:
+            assignment_stage_value = assignment_form["stage_number"].value()
+        except KeyError:  # pragma: no cover - defensive
+            assignment_stage_value = None
+
     context = {
         "map_title": BookJourneyMap.TITLE,
         "map_description": BookJourneyMap.SUBTITLE,
@@ -113,5 +277,15 @@ def book_journey_map(request):
         "stages": stages,
         "stage_count": BookJourneyMap.get_stage_count(),
         "terrain_legend": BookJourneyMap.get_terrain_legend(),
+        "assignment_form": assignment_form,
+        "release_form": release_form,
+        "active_stage_number": active_stage_number,
+        "is_authenticated": user.is_authenticated,
+        "status_labels": {
+            "available": "Свободно",
+            "in_progress": "В процессе",
+            "completed": "Выполнено",
+        },
+        "assignment_stage_value": assignment_stage_value,
     }
     return render(request, "games/book_journey_map.html", context)

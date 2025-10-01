@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Карта литературного путешествия</title>
+  <desc id="desc">Острова с названиями классиков: Гюго, Чехов, Шекспир, Достоевский и Кафка. По карте протекают реки и отмечены небольшие городки.</desc>
+  <defs>
+    <linearGradient id="water" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b5fa5" />
+      <stop offset="100%" stop-color="#0a497c" />
+    </linearGradient>
+    <radialGradient id="island" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#f0d080" />
+      <stop offset="100%" stop-color="#c7a75d" />
+    </radialGradient>
+    <radialGradient id="forest" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#7fbf6d" />
+      <stop offset="100%" stop-color="#49824a" />
+    </radialGradient>
+    <radialGradient id="mountain" cx="50%" cy="50%" r="65%">
+      <stop offset="0%" stop-color="#f3e4c4" />
+      <stop offset="100%" stop-color="#9d8b67" />
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#water)" />
+
+  <g id="islands" fill="url(#island)" stroke="#735c33" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M218 128c96-58 240-70 316 12s32 200-92 268-276 70-328-24 8-198 104-256z" />
+    <path d="M192 476c132-52 248-4 276 108s-68 214-208 212-216-96-184-200 112-68 116-120z" />
+    <path d="M548 96c220-64 456 12 556 156s-16 312-220 388-400 20-492-112-64-328 156-432z" />
+  </g>
+
+  <g id="forests" fill="url(#forest)">
+    <path d="M250 170c52-40 112-48 164-8s32 112-60 160-192 48-200-8 44-104 96-144z" opacity="0.7" />
+    <path d="M220 520c72-36 132-16 148 52s-32 132-132 152-164-48-140-124 52-44 124-80z" opacity="0.65" />
+    <path d="M700 190c84-56 184-60 268-12s96 140-12 220-244 92-308 12  -32-164 52-220z" opacity="0.65" />
+    <path d="M832 492c68-32 148-24 188 36s12 140-108 188-224 4-236-88 88-104 156-136z" opacity="0.65" />
+  </g>
+
+  <g id="mountains" fill="url(#mountain)" opacity="0.9">
+    <path d="M860 250c48-28 100-28 156 8s60 92-20 148-196 72-228 16 44-144 92-172z" />
+    <path d="M772 540c32-24 88-24 128 12s32 96-56 140-188 44-200-32 96-96 128-120z" />
+  </g>
+
+  <g id="rivers" fill="none" stroke="#2d87d2" stroke-width="10" stroke-linecap="round">
+    <path d="M780 120c-36 80-4 144 52 196s100 96 84 172" opacity="0.65" />
+    <path d="M666 360c52 40 92 92 76 160" opacity="0.6" />
+    <path d="M290 114c-24 58-12 116 44 172s96 104 40 176" opacity="0.5" />
+    <path d="M256 472c48 60 52 128-8 188" opacity="0.5" />
+  </g>
+
+  <g id="labels" font-family="'Montserrat', 'Arial', sans-serif" font-weight="600" font-size="54" fill="#2b3a42" text-anchor="middle">
+    <text x="300" y="160">Гюго</text>
+    <text x="240" y="580">Чехов</text>
+    <text x="820" y="170">Шекспир</text>
+    <text x="820" y="380">Достоевский</text>
+    <text x="900" y="620">Кафка</text>
+  </g>
+
+  <g id="towns" fill="#b34b2d" stroke="#fff" stroke-width="4" stroke-linejoin="round">
+    <path d="M290 210l36-28 36 28v60h-72z" />
+    <path d="M180 560l32-28 32 28v56h-64z" />
+    <path d="M790 220l40-30 40 30v68h-80z" />
+    <path d="M800 420l44-32 44 32v72h-88z" />
+    <path d="M880 600l40-30 40 30v68h-80z" />
+  </g>
+</svg>
