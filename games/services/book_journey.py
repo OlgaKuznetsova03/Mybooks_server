@@ -147,6 +147,7 @@ class BookJourneyMap:
             description="Опишите конфликт, в котором вы узнаёте себя или современность.",
             terrain="city",
             top=48,
+            left=60,
         ),
         JourneyStage(
             number=11,
