@@ -213,7 +213,7 @@ class BookJourneyMap:
 
         return tuple((key, cls.TERRAIN[key]) for key in sorted(cls.TERRAIN.keys()))
     
-     @classmethod
+    @classmethod
     def get_stage_by_number(cls, number: int) -> JourneyStage | None:
         """Return a stage definition by its sequential number."""
 
