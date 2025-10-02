@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}{{ game.title }} — игры{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+  <div>
+    <h1 class="h4 mb-1">{{ game.title }}</h1>
+    <p class="text-muted mb-0">{{ game.description }}</p>
+  </div>
+  <div class="card shadow-sm">
+    <div class="card-body text-end">
+      <div class="fw-semibold text-uppercase text-muted small">Добавлено книг</div>
+      <div class="fs-4 fw-semibold">{{ max_books|add:-remaining_slots }}</div>
+      <div class="small text-muted">Осталось выбрать: {{ remaining_slots }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h2 class="h6 mb-3">Добавить книгу в список</h2>
+        {% if remaining_slots %}
+        <p class="small text-muted">Выберите книги из полки «Домашняя библиотека», которые вы давно откладывали. Нужно собрать ровно 12 книг.</p>
+        <form method="post" class="vstack gap-3">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="add">
+          <div>
+            {{ add_form.book.label_tag }}
+            {{ add_form.book }}
+            {% if add_form.book.errors %}
+              <div class="invalid-feedback d-block">{{ add_form.book.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+          <button class="btn btn-primary" type="submit">
+            <i class="bi bi-plus-lg me-1"></i>Добавить в челлендж
+          </button>
+        </form>
+        {% else %}
+          <p class="text-muted mb-0">Вы уже выбрали 12 книг. Теперь каждый месяц будет появляться новая книга для чтения.</p>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card shadow-sm mt-4">
+      <div class="card-body">
+        <h2 class="h6 mb-3">Ожидают своего месяца</h2>
+        {% if pending_entries %}
+        <ul class="list-unstyled vstack gap-3 mb-0">
+          {% for entry in pending_entries %}
+          <li class="d-flex justify-content-between align-items-start gap-3">
+            <div>
+              <div class="fw-semibold">{{ entry.book.title }}</div>
+              <div class="small text-muted">Добавлена {{ entry.added_at|date:"d.m.Y" }}</div>
+            </div>
+            <form method="post" class="ms-auto">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="remove">
+              <input type="hidden" name="entry_id" value="{{ entry.id }}">
+              <button class="btn btn-sm btn-outline-danger" type="submit">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+          <p class="text-muted mb-0">Все добавленные книги уже получили свои месяцы.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h2 class="h6 mb-3">Книга текущего месяца</h2>
+        {% if selection %}
+          {% with entry=selection.entry %}
+          <div class="d-flex flex-column flex-sm-row gap-3 align-items-start justify-content-between">
+            <div>
+              <div class="fw-semibold">{{ entry.book.title }}</div>
+              <div class="small text-muted">Выбрана {{ selection.month_start|date:"d E Y" }}</div>
+            </div>
+            <div class="text-sm-end">
+              <div class="badge {% if entry.is_completed %}text-bg-success{% else %}text-bg-warning{% endif %}">
+                {% if entry.is_completed %}Отзыв готов{% else %}Читать до {{ selection.deadline|date:"d E" }}{% endif %}
+              </div>
+              {% if entry.review_submitted_at %}
+              <div class="small text-muted">Отзыв: {{ entry.review_submitted_at|date:"d.m.Y" }}</div>
+              {% endif %}
+            </div>
+          </div>
+          {% if entry.finished_at or entry.review_submitted_at %}
+          <dl class="row small text-muted mt-3 mb-0">
+            {% if entry.finished_at %}
+            <dt class="col-sm-4">Прочитана</dt>
+            <dd class="col-sm-8">{{ entry.finished_at|date:"d.m.Y" }}</dd>
+            {% endif %}
+            {% if entry.review_submitted_at %}
+            <dt class="col-sm-4">Отзыв</dt>
+            <dd class="col-sm-8">{{ entry.review_submitted_at|date:"d.m.Y" }}</dd>
+            {% endif %}
+          </dl>
+          {% else %}
+          <p class="text-muted small mb-0 mt-2">Не забудьте отметить прогресс чтения и оставить отзыв до конца месяца.</p>
+          {% endif %}
+          {% endwith %}
+        {% else %}
+          <p class="text-muted mb-0">Как только вы добавите все 12 книг, в начале следующего месяца появится первая книга для чтения.</p>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h2 class="h6 mb-3">История выборов</h2>
+        {% if selected_entries %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Месяц</th>
+                <th>Книга</th>
+                <th class="text-center">Статус</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entry in selected_entries %}
+              <tr class="{% if entry.is_completed %}table-success{% elif entry.review_submitted_at %}table-warning{% endif %}">
+                <td>
+                  {% if entry.selected_month %}
+                    {{ entry.selected_month|date:"F Y" }}<br>
+                    <small class="text-muted">до {{ entry.get_deadline|date:"d.m" }}</small>
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                <td>{{ entry.book.title }}</td>
+                <td class="text-center">
+                  {% if entry.is_completed %}
+                    <span class="badge text-bg-success">Завершено</span>
+                  {% elif entry.review_submitted_at %}
+                    <span class="badge text-bg-warning">Ждёт завершения</span>
+                  {% else %}
+                    <span class="badge text-bg-secondary">В процессе</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+          <p class="text-muted mb-0">Здесь появятся книги, которые уже были выбраны в прошлые месяцы.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

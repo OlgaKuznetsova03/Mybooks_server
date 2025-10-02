@@ -5,6 +5,118 @@ from django.db import models
 from django.utils import timezone
 
 
+class ForgottenBookEntry(models.Model):
+    """Книга, выбранная пользователем для челленджа «12 забытых книг»."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="forgotten_book_entries",
+    )
+    book = models.ForeignKey(
+        "books.Book",
+        on_delete=models.CASCADE,
+        related_name="forgotten_book_entries",
+    )
+    added_at = models.DateTimeField(auto_now_add=True)
+    selected_month = models.DateField(null=True, blank=True)
+    selected_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    review_submitted_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("user", "book")
+        ordering = ["added_at"]
+
+    def __str__(self) -> str:  # pragma: no cover - simple representation
+        return f"{self.book.title} — {self.user.username}"
+
+    @property
+    def is_selected(self) -> bool:
+        return self.selected_month is not None
+
+    @property
+    def is_completed(self) -> bool:
+        return self.completed_at is not None
+
+    def get_deadline(self):
+        """Вернуть крайний срок чтения для выбранного месяца."""
+
+        if not self.selected_month:
+            return None
+        from calendar import monthrange
+
+        last_day = monthrange(self.selected_month.year, self.selected_month.month)[1]
+        return self.selected_month.replace(day=last_day)
+
+    def apply_status_updates(
+        self,
+        *,
+        finished_at,
+        review_at,
+        timestamp,
+    ) -> None:
+        """Сохранить новые данные о прочтении и отзыве."""
+
+        updates = {}
+        if self.finished_at != finished_at:
+            updates["finished_at"] = finished_at
+        if self.review_submitted_at != review_at:
+            updates["review_submitted_at"] = review_at
+        completed_at = None
+        if finished_at and review_at:
+            completed_at = max(finished_at, review_at)
+        if self.completed_at != completed_at:
+            updates["completed_at"] = completed_at
+        if updates:
+            updates["updated_at"] = timestamp
+            for field, value in updates.items():
+                setattr(self, field, value)
+            self.save(update_fields=list(updates.keys()))
+
+    @classmethod
+    def sync_for_user_book(cls, user, book) -> None:
+        """Обновить статус челленджа для конкретной книги пользователя."""
+
+        entries = list(cls.objects.filter(user=user, book=book))
+        if not entries:
+            return
+
+        from shelves.models import BookProgress
+        from books.models import Rating
+
+        progress = (
+            BookProgress.objects.filter(user=user, book=book)
+            .order_by("-updated_at")
+            .first()
+        )
+        finished_at = None
+        if progress and progress.percent is not None:
+            try:
+                finished = Decimal(progress.percent) >= Decimal("99.99")
+            except Exception:  # pragma: no cover - fallback на некорректные значения
+                finished = False
+            if finished:
+                finished_at = getattr(progress, "updated_at", None) or timezone.now()
+
+        review = (
+            Rating.objects.filter(user=user, book=book)
+            .order_by("-created_at")
+            .first()
+        )
+        review_at = getattr(review, "created_at", None)
+        timestamp = timezone.now()
+
+        for entry in entries:
+            entry.apply_status_updates(
+                finished_at=finished_at,
+                review_at=review_at,
+                timestamp=timestamp,
+            )
+
+
 class Game(models.Model):
     """Описание игровой механики."""
 

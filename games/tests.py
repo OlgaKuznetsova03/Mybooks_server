@@ -1,5 +1,6 @@
 from decimal import Decimal
-from datetime import timedelta
+from datetime import date, timedelta
+from unittest.mock import patch
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -11,18 +12,19 @@ from shelves.models import BookProgress, Shelf, ShelfItem
 from shelves.services import (
     DEFAULT_READ_SHELF,
     DEFAULT_READING_SHELF,
-    DEFAULT_WANT_SHELF,
     get_home_library_shelf,
 )
 
 from .models import (
     BookJourneyAssignment,
+    ForgottenBookEntry,
     GameShelfBook,
     GameShelfPurchase,
     GameShelfState,
 )
 from .forms import BookJourneyAssignForm
 from .services.book_journey import BookJourneyMap
+from .services.forgotten_books import ForgottenBooksGame
 from .services.read_before_buy import ReadBeforeBuyGame
 
 
@@ -322,3 +324,86 @@ class BookJourneyInteractionTests(TestCase):
         self.assertTrue(
             BookJourneyAssignment.objects.filter(user=self.user, stage_number=1).exists()
         )
+
+
+class ForgottenBooksGameTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="collector", password="secret123")
+        self.client.login(username="collector", password="secret123")
+        self.home_shelf = get_home_library_shelf(self.user)
+        self.books = []
+        for index in range(1, 13):
+            book = Book.objects.create(title=f"Книга {index}", synopsis="")
+            ShelfItem.objects.get_or_create(shelf=self.home_shelf, book=book)
+            self.books.append(book)
+
+    def _fill_challenge(self):
+        for book in self.books:
+            success, _, _ = ForgottenBooksGame.add_book(self.user, book)
+            self.assertTrue(success)
+
+    def test_add_book_requires_home_library(self):
+        outsider = Book.objects.create(title="Чужая книга", synopsis="")
+        success, _, level = ForgottenBooksGame.add_book(self.user, outsider)
+        self.assertFalse(success)
+        self.assertEqual(level, "danger")
+
+    def test_selection_waits_until_full_list(self):
+        ForgottenBooksGame.add_book(self.user, self.books[0])
+        selection = ForgottenBooksGame.ensure_monthly_selection(
+            self.user, reference_date=date(2024, 1, 10)
+        )
+        self.assertIsNone(selection)
+
+    def test_selection_assigns_unique_books_per_month(self):
+        self._fill_challenge()
+        with patch("games.services.forgotten_books.random.choice", side_effect=lambda seq: seq[0]):
+            january = ForgottenBooksGame.ensure_monthly_selection(
+                self.user, reference_date=date(2024, 1, 5)
+            )
+            february = ForgottenBooksGame.ensure_monthly_selection(
+                self.user, reference_date=date(2024, 2, 5)
+            )
+        self.assertIsNotNone(january)
+        self.assertIsNotNone(february)
+        self.assertNotEqual(january.entry.pk, february.entry.pk)
+        self.assertEqual(january.entry.selected_month, date(2024, 1, 1))
+        self.assertEqual(february.entry.selected_month, date(2024, 2, 1))
+        current = ForgottenBooksGame.get_current_selection(
+            self.user, reference_date=date(2024, 1, 15)
+        )
+        self.assertEqual(current.entry.pk, january.entry.pk)
+
+    def test_remove_entry_blocked_after_selection(self):
+        self._fill_challenge()
+        with patch("games.services.forgotten_books.random.choice", side_effect=lambda seq: seq[0]):
+            selection = ForgottenBooksGame.ensure_monthly_selection(
+                self.user, reference_date=date(2024, 1, 3)
+            )
+        entry = selection.entry
+        success, _, level = ForgottenBooksGame.remove_entry(entry)
+        self.assertFalse(success)
+        self.assertEqual(level, "warning")
+
+    def test_sync_updates_completion_fields(self):
+        book = self.books[0]
+        ForgottenBooksGame.add_book(self.user, book)
+        entry = ForgottenBookEntry.objects.get(user=self.user, book=book)
+        BookProgress.objects.create(user=self.user, book=book, percent=100)
+        ForgottenBookEntry.sync_for_user_book(self.user, book)
+        entry.refresh_from_db()
+        self.assertIsNotNone(entry.finished_at)
+        Rating.objects.create(user=self.user, book=book, review="Отличная книга")
+        ForgottenBookEntry.sync_for_user_book(self.user, book)
+        entry.refresh_from_db()
+        self.assertTrue(entry.is_completed)
+
+    def test_dashboard_view_requires_authentication(self):
+        self.client.logout()
+        response = self.client.get(reverse("games:forgotten_books"))
+        self.assertEqual(response.status_code, 302)
+        self.client.login(username="collector", password="secret123")
+        response = self.client.get(reverse("games:forgotten_books"))
+        self.assertEqual(response.status_code, 200)
+        game = ForgottenBooksGame.get_game()
+        self.assertContains(response, game.title)

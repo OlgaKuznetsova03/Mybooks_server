@@ -8,7 +8,7 @@ from django.dispatch import receiver
 from books.models import Rating
 from shelves.models import BookProgress
 
-from .models import BookJourneyAssignment
+from .models import BookJourneyAssignment, ForgottenBookEntry
 
 
 @receiver(post_save, sender=BookProgress)
@@ -17,6 +17,7 @@ def handle_book_progress_update(sender, instance, **kwargs):
 
     if instance.user_id and instance.book_id:
         BookJourneyAssignment.sync_for_user_book(instance.user, instance.book)
+        ForgottenBookEntry.sync_for_user_book(instance.user, instance.book)
 
 
 @receiver(post_save, sender=Rating)
@@ -25,6 +26,7 @@ def handle_rating_save(sender, instance, **kwargs):
 
     if instance.user_id and instance.book_id:
         BookJourneyAssignment.sync_for_user_book(instance.user, instance.book)
+        ForgottenBookEntry.sync_for_user_book(instance.user, instance.book)
 
 
 @receiver(post_delete, sender=Rating)
@@ -33,3 +35,4 @@ def handle_rating_delete(sender, instance, **kwargs):
 
     if instance.user_id and instance.book_id:
         BookJourneyAssignment.sync_for_user_book(instance.user, instance.book)
+        ForgottenBookEntry.sync_for_user_book(instance.user, instance.book)

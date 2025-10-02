@@ -12,8 +12,9 @@ from shelves.services import (
     get_home_library_shelf,
 )
 
-from .models import BookJourneyAssignment
+from .models import BookJourneyAssignment, ForgottenBookEntry
 from .services.book_journey import BookJourneyMap
+from .services.forgotten_books import ForgottenBooksGame
 from .services.read_before_buy import ReadBeforeBuyGame
 
 
@@ -128,3 +129,62 @@ class BookJourneyReleaseForm(forms.Form):
         if not stage:
             raise ValidationError("Этап на карте не найден.")
         return number
+
+
+class ForgottenBooksAddForm(forms.Form):
+    book = forms.ModelChoiceField(
+        queryset=Book.objects.none(),
+        label="Выберите книгу",
+        empty_label="Книга из домашней библиотеки",
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+        field = self.fields["book"]
+        field.widget.attrs.setdefault("class", "form-select")
+        if not user:
+            field.queryset = Book.objects.none()
+            return
+        home_shelf = get_home_library_shelf(user)
+        queryset = Book.objects.filter(
+            shelf_items__shelf=home_shelf,
+        ).exclude(
+            shelf_items__shelf__name=DEFAULT_READ_SHELF,
+            shelf_items__shelf__user=user,
+        )
+        queryset = queryset.exclude(
+            forgotten_book_entries__user=user
+        ).distinct().order_by("title")
+        field.queryset = queryset
+
+    def clean(self):
+        cleaned = super().clean()
+        user = self.user
+        if not user:
+            raise ValidationError("Авторизуйтесь, чтобы управлять списком книг.")
+        book = cleaned.get("book")
+        if not book:
+            return cleaned
+        if not ForgottenBooksGame.can_add_more(user):
+            raise ValidationError("Вы уже добавили 12 книг в челлендж.")
+        return cleaned
+
+
+class ForgottenBooksRemoveForm(forms.Form):
+    entry_id = forms.IntegerField(widget=forms.HiddenInput)
+
+    def __init__(self, *args, user=None, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean_entry_id(self):
+        entry_id = self.cleaned_data["entry_id"]
+        try:
+            entry = ForgottenBookEntry.objects.get(pk=entry_id, user=self.user)
+        except ForgottenBookEntry.DoesNotExist as exc:  # pragma: no cover - validation
+            raise ValidationError("Книга не найдена в вашем списке.") from exc
+        if entry.is_selected:
+            raise ValidationError("Нельзя удалить выбранную книгу.")
+        self.cleaned_data["entry"] = entry
+        return entry_id

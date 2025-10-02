@@ -14,10 +14,13 @@ from shelves.services import move_book_to_reading_shelf
 from .catalog import get_game_cards
 from .forms import (
     BookJourneyAssignForm,
+    ForgottenBooksAddForm,
+    ForgottenBooksRemoveForm,
     BookJourneyReleaseForm,
     ReadBeforeBuyEnrollForm,
 )
 from .models import BookJourneyAssignment
+from .services.forgotten_books import ForgottenBooksGame
 from .services.book_journey import BookJourneyMap
 from .services.read_before_buy import ReadBeforeBuyGame
 
@@ -117,6 +120,65 @@ def read_before_buy_dashboard(request):
     return render(request, "games/read_before_buy.html", context)
 
 
+@login_required
+def forgotten_books_dashboard(request):
+    """Управление челленджем «12 забытых книг»."""
+
+    game = ForgottenBooksGame.get_game()
+    add_form = ForgottenBooksAddForm(user=request.user)
+    remove_form = ForgottenBooksRemoveForm(user=request.user)
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "add":
+            add_form = ForgottenBooksAddForm(request.POST, user=request.user)
+            if add_form.is_valid():
+                book = add_form.cleaned_data["book"]
+                success, message_text, level = ForgottenBooksGame.add_book(
+                    request.user, book
+                )
+                message_handler = getattr(messages, level, messages.info)
+                message_handler(request, message_text)
+                if success:
+                    ForgottenBooksGame.ensure_monthly_selection(request.user)
+                return redirect("games:forgotten_books")
+            messages.error(request, "Не удалось добавить книгу. Проверьте форму.")
+        elif action == "remove":
+            remove_form = ForgottenBooksRemoveForm(request.POST, user=request.user)
+            if remove_form.is_valid():
+                entry = remove_form.cleaned_data["entry"]
+                success, message_text, level = ForgottenBooksGame.remove_entry(entry)
+                message_handler = getattr(messages, level, messages.info)
+                message_handler(request, message_text)
+                return redirect("games:forgotten_books")
+            messages.error(request, "Не удалось удалить книгу из списка.")
+
+    selection = ForgottenBooksGame.ensure_monthly_selection(request.user)
+    if not selection:
+        selection = ForgottenBooksGame.get_current_selection(request.user)
+
+    entries_qs = ForgottenBooksGame.get_entries(request.user)
+    entries = list(
+        entries_qs.order_by("selected_month", "added_at", "book__title")
+    )
+    selected_entries = [entry for entry in entries if entry.selected_month]
+    pending_entries = [entry for entry in entries if not entry.selected_month]
+    remaining_slots = max(0, ForgottenBooksGame.MAX_BOOKS - len(entries))
+
+    context = {
+        "game": game,
+        "add_form": add_form,
+        "remove_form": remove_form,
+        "selection": selection,
+        "selected_entries": selected_entries,
+        "pending_entries": pending_entries,
+        "remaining_slots": remaining_slots,
+        "max_books": ForgottenBooksGame.MAX_BOOKS,
+    }
+
+    return render(request, "games/forgotten_books.html", context)
+
+
 def book_journey_map(request):
     """Render the interactive 15-step literary journey map."""
 
@@ -170,7 +232,7 @@ def book_journey_map(request):
                             return redirect("games:book_journey_map")
                         assignment.reset_progress(book=book)
                     move_book_to_reading_shelf(user, book)
-                    
+
                     BookProgress.objects.get_or_create(
                         event=None,
                         user=user,
