@@ -11,6 +11,8 @@ from django.db.models import (
     When,
     OuterRef,
     Subquery,
+    Avg,
+    Count,
 )
 from typing import Optional
 from django.core.paginator import Paginator
@@ -247,6 +249,8 @@ def _notify_about_registration(request, result: EditionRegistrationResult) -> No
 
 def book_list(request):
     q = (request.GET.get("q") or "").strip()
+    active_sort = (request.GET.get("sort") or "popular").lower()
+
     qs = (
         Book.objects.all()
         .select_related("audio")
@@ -254,9 +258,9 @@ def book_list(request):
     )
     if q:
         qs = qs.filter(
-            Q(title__icontains=q) |
-            Q(authors__name__icontains=q) |
-            Q(genres__name__icontains=q)
+            Q(title__icontains=q)
+            | Q(authors__name__icontains=q)
+            | Q(genres__name__icontains=q)
         ).distinct()
 
     group_leader_subquery = (
@@ -265,22 +269,65 @@ def book_list(request):
         .values("pk")[:1]
     )
 
-    qs = (
-        qs.order_by("edition_group_key", "pk")
-        .annotate(
-            edition_leader=Case(
-                When(edition_group_key="", then=F("pk")),
-                default=Subquery(group_leader_subquery),
-            )
-        )
-        .filter(pk=F("edition_leader"))
-    )
+    qs = qs.annotate(
+        edition_leader=Case(
+            When(edition_group_key="", then=F("pk")),
+            default=Subquery(group_leader_subquery),
+        ),
+        average_rating=Avg("ratings__score"),
+        rating_count=Count("ratings__score"),
+    ).filter(pk=F("edition_leader"))
+
+    sort_definitions = {
+        "popular": {
+            "label": "Популярные",
+            "icon": "bi-fire",
+            "order": ("-rating_count", "-average_rating", "title"),
+        },
+        "rating": {
+            "label": "Высокий рейтинг",
+            "icon": "bi-star-fill",
+            "order": ("-average_rating", "-rating_count", "title"),
+        },
+        "recent": {
+            "label": "Недавно добавлены",
+            "icon": "bi-clock-history",
+            "order": ("-pk",),
+        },
+        "title": {
+            "label": "По алфавиту",
+            "icon": "bi-sort-alpha-down",
+            "order": ("title",),
+        },
+    }
+
+    if active_sort not in sort_definitions:
+        active_sort = "popular"
+
+    qs = qs.order_by(*sort_definitions[active_sort]["order"])
 
     paginator = Paginator(qs, 12)
     page = request.GET.get("page")
     page_obj = paginator.get_page(page)
     external_suggestions: list[dict[str, object]] = []
     external_error = None
+
+    preserved_query = request.GET.copy()
+    preserved_query._mutable = True
+    preserved_query.pop("page", None)
+
+    sort_options = []
+    for key, definition in sort_definitions.items():
+        params = preserved_query.copy()
+        params["sort"] = key
+        sort_options.append(
+            {
+                "key": key,
+                "label": definition["label"],
+                "icon": definition["icon"],
+                "url": f"?{params.urlencode()}",
+            }
+        )
 
     if q and page_obj.paginator.count == 0:
         isbn_candidate = normalize_isbn(q)
@@ -315,8 +362,11 @@ def book_list(request):
         {
             "page_obj": page_obj,
             "q": q,
+            "active_sort": active_sort,
+            "sort_options": sort_options,
             "external_suggestions": external_suggestions,
             "external_error": external_error,
+            "total_books": paginator.count,
         },
     )
 

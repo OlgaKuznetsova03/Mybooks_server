@@ -2,33 +2,85 @@
 {% block title %}Книги · ReadTogether{% endblock %}
 {% block content %}
 
-<div class="d-flex align-items-center justify-content-between mb-3">
-  <h1 class="h4 m-0">Книги</h1>
-  {% if request.user.is_authenticated %}
-    <a class="btn btn-outline-primary" href="{% url 'book_create' %}"><i class="bi bi-plus-lg me-1"></i>Добавить книгу</a>
-  {% else %}
-    <a class="btn btn-outline-secondary" href="{% url 'login' %}?next={% url 'book_create' %}"><i class="bi bi-person-plus me-1"></i>Войти, чтобы добавить</a>
-  {% endif %}
-</div>
+<section class="books-hero mb-4">
+  <div class="books-hero__body">
+    <div>
+      <h1 class="books-hero__title">Подберите книгу под настроение</h1>
+      <p class="books-hero__subtitle">
+        {{ total_books }} {{ total_books|pluralize:"книга,книги,книг" }} в каталоге · обновлено сообществом ReadTogether
+      </p>
+    </div>
+    <div class="books-hero__actions">
+      {% if request.user.is_authenticated %}
+        <a class="btn btn-light text-primary-emphasis" href="{% url 'book_create' %}"><i class="bi bi-plus-lg me-2"></i>Добавить книгу</a>
+      {% else %}
+        <a class="btn btn-outline-light" href="{% url 'login' %}?next={% url 'book_create' %}"><i class="bi bi-person-plus me-2"></i>Войти, чтобы добавить</a>
+      {% endif %}
+    </div>
+  </div>
+  <form class="books-hero__search" method="get" action="{% url 'book_list' %}">
+    <div class="input-group input-group-lg shadow-sm">
+      <span class="input-group-text bg-white border-0"><i class="bi bi-search text-primary"></i></span>
+      <input class="form-control border-0" name="q" value="{{ q|default:'' }}" placeholder="Название, автор, жанр или ISBN">
+      {% if active_sort %}<input type="hidden" name="sort" value="{{ active_sort }}">{% endif %}
+      {% if q %}
+        <button class="btn btn-outline-secondary" type="button" data-clear-search>Сбросить</button>
+      {% endif %}
+      <button class="btn btn-primary" type="submit">Найти</button>
+    </div>
+  </form>
+</section>
 
 {% if page_obj.paginator.count %}
-  <div class="row g-5">
+  <nav class="books-sort" aria-label="Сортировка книг">
+    <div class="nav nav-pills flex-nowrap gap-2 overflow-auto pb-2">
+      {% for option in sort_options %}
+        <a class="nav-link {% if option.key == active_sort %}active{% endif %}" href="{{ option.url }}">
+          <i class="bi {{ option.icon }} me-2"></i>{{ option.label }}
+        </a>
+      {% endfor %}
+    </div>
+  </nav>
+
+  <div class="book-gallery mt-3">
     {% for b in page_obj.object_list %}
-      <div class="col-12 col-sm-6 col-lg-2">
-        <div class="card h-100 shadow-sm border-0 hover-raise">
-          {% if b.cover %}<img src="{{ b.cover.url }}" class="card-img-top object-fit-cover" style="height:240px" alt="">{% endif %}
-          <div class="card-body">
-            <h2 class="h5 card-title mb-1">
-              <a class="text-decoration-none" href="{% url 'book_detail' b.pk %}">{{ b.title }}</a>
+      <div class="book-gallery__item">
+        <article class="card book-gallery-card hover-raise h-100">
+          {% with cover_url=b.get_cover_url %}
+            {% if cover_url %}
+              <a class="book-gallery-card__cover-link" href="{% url 'book_detail' b.pk %}">
+                <img src="{{ cover_url }}" class="book-gallery-card__cover rounded-top" alt="Обложка {{ b.title }}" loading="lazy">
+              </a>
+            {% endif %}
+          {% endwith %}
+          <div class="card-body d-flex flex-column">
+            <h2 class="card-title h6 mb-1 line-clamp-2">
+              <a class="stretched-link text-decoration-none" href="{% url 'book_detail' b.pk %}">{{ b.title }}</a>
             </h2>
-            <div class="text-muted small">{{ b.authors.all|join:", " }}</div>
-            <div class="mt-2">{% for g in b.genres.all %}<span class="badge text-bg-light me-1">{{ g.name }}</span>{% endfor %}</div>
+            <div class="text-muted small line-clamp-2">{{ b.authors.all|join:", " }}</div>
+            {% with genres=b.genres.all genre_count=b.genres.count %}
+              {% if genre_count %}
+                <div class="mt-2 d-flex flex-wrap gap-1">
+                  {% for g in genres|slice:":3" %}
+                    <span class="badge rounded-pill text-bg-light">{{ g.name }}</span>
+                  {% endfor %}
+                  {% if genre_count > 3 %}
+                    <span class="badge rounded-pill text-bg-light">+{{ genre_count|add:"-3" }}</span>
+                  {% endif %}
+                </div>
+              {% endif %}
+            {% endwith %}
+            <div class="mt-auto pt-3">
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="rating-badge">
+                  <i class="bi bi-star-fill me-1"></i>
+                  {% if b.average_rating %}{{ b.average_rating|floatformat:1 }}{% else %}—{% endif %}
+                </span>
+                <span class="text-muted small">{{ b.rating_count|default:0 }} оценок</span>
+              </div>
+            </div>
           </div>
-          <div class="card-footer bg-white d-flex justify-content-between align-items-center">
-            <span class="text-warning"><i class="bi bi-star-fill"></i> {{ b.get_average_rating|default:"—" }}</span>
-            <a class="btn btn-sm btn-outline-primary" href="{% url 'book_detail' b.pk %}">Подробнее</a>
-          </div>
-        </div>
+        </article>
       </div>
     {% endfor %}
   </div>
@@ -36,18 +88,22 @@
   <nav class="mt-4">
     <ul class="pagination justify-content-center">
       {% if page_obj.has_previous %}
-        <li class="page-item"><a class="page-link" href="?q={{ q }}&page={{ page_obj.previous_page_number }}">«</a></li>
+        <li class="page-item"><a class="page-link" href="?q={{ q|urlencode }}&sort={{ active_sort }}&page={{ page_obj.previous_page_number }}">«</a></li>
       {% else %}<li class="page-item disabled"><span class="page-link">«</span></li>{% endif %}
       <li class="page-item disabled"><span class="page-link">Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span></li>
       {% if page_obj.has_next %}
-        <li class="page-item"><a class="page-link" href="?q={{ q }}&page={{ page_obj.next_page_number }}">»</a></li>
+        <li class="page-item"><a class="page-link" href="?q={{ q|urlencode }}&sort={{ active_sort }}&page={{ page_obj.next_page_number }}">»</a></li>
       {% else %}<li class="page-item disabled"><span class="page-link">»</span></li>{% endif %}
     </ul>
   </nav>
 {% else %}
   {% if q %}
-    <div class="alert alert-warning">
-      По запросу «{{ q }}» ничего не найдено в нашей базе. Мы поискали подходящие издания через Google Books.
+    <div class="books-empty-state card border-0 shadow-sm mb-4">
+      <div class="card-body">
+        <h2 class="h5 mb-2">Мы не нашли «{{ q }}»</h2>
+        <p class="text-muted mb-3">Попробуйте изменить запрос или добавить книгу вручную. Мы также поискали подходящие издания через Google Books.</p>
+        <a class="btn btn-primary" href="{% url 'book_create' %}">Добавить новую книгу</a>
+      </div>
     </div>
 
     {% if external_error %}
@@ -59,7 +115,7 @@
             <div class="col-12 col-md-6 col-lg-4">
               <div class="card h-100 shadow-sm border-0">
                 {% if data.cover_url %}
-                  <img src="{{ data.cover_url }}" class="card-img-top object-fit-cover" style="height:220px" alt="Обложка книги {{ data.title }}">
+                  <img src="{{ data.cover_url }}" class="card-img-top object-fit-cover" style="height:220px" alt="Обложка книги {{ data.title }}" loading="lazy">
                 {% endif %}
                 <div class="card-body d-flex flex-column">
                   <h3 class="h5 mb-1">{{ data.title }}</h3>
@@ -113,10 +169,35 @@
       <div class="alert alert-info">Мы не нашли подходящих изданий в Google Books. Попробуйте изменить запрос или добавить книгу вручную.</div>
     {% endif %}
   {% else %}
-    <div class="alert alert-info">
-      Пока нет книг. {% if request.user.is_authenticated %}Добавьте первую через кнопку выше.{% else %}Авторизуйтесь, чтобы добавить первую.{% endif %}
+    <div class="books-empty-state card border-0 shadow-sm">
+      <div class="card-body text-center">
+        <i class="bi bi-journal-bookmark-fill text-primary display-6 mb-3"></i>
+        <h2 class="h5 mb-2">Каталог пока пуст</h2>
+        <p class="text-muted mb-3">Будьте первым, кто добавит книгу, и помогите сообществу открыть новые истории.</p>
+        {% if request.user.is_authenticated %}
+          <a class="btn btn-primary" href="{% url 'book_create' %}">Добавить книгу</a>
+        {% else %}
+          <a class="btn btn-outline-primary" href="{% url 'login' %}">Войдите, чтобы начать</a>
+        {% endif %}
+      </div>
     </div>
   {% endif %}
 {% endif %}
+
+{% block extra_js %}
+  {{ block.super }}
+  <script>
+    document.querySelector('[data-clear-search]')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      const form = event.currentTarget.closest('form');
+      if (!form) return;
+      const input = form.querySelector('input[name="q"]');
+      if (input) {
+        input.value = '';
+        form.submit();
+      }
+    });
+  </script>
+{% endblock %}
 
 {% endblock %}
