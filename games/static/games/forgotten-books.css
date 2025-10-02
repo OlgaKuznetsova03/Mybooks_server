@@ -1,0 +1,301 @@
+:root {
+  --fb-purple: #6b4eff;
+  --fb-rose: #f86594;
+  --fb-sand: #ffe9c7;
+  --fb-shelf: #fffbf5;
+  --fb-text-dark: #2c1f4a;
+}
+
+.forgotten-books-hero {
+  position: relative;
+  border-radius: 1.75rem;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--fb-purple), var(--fb-rose));
+  color: #fff;
+}
+
+.forgotten-books-hero::before {
+  content: "";
+  position: absolute;
+  inset: -30% -30% auto auto;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.35), transparent 70%);
+  transform: rotate(25deg);
+}
+
+.forgotten-books-hero .card-body {
+  position: relative;
+  padding: clamp(1.75rem, 2vw + 1rem, 2.75rem);
+}
+
+.fb-hero-heading {
+  font-size: clamp(1.75rem, 2vw + 1.4rem, 2.5rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.fb-hero-description {
+  max-width: 38rem;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.fb-hero-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.fb-hero-stat {
+  backdrop-filter: blur(6px);
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 1rem;
+  padding: 0.75rem 1.25rem;
+  min-width: 160px;
+}
+
+.fb-hero-stat .label {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.fb-hero-stat .value {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.fb-progress {
+  margin-top: 1.75rem;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  height: 12px;
+  overflow: hidden;
+}
+
+.fb-progress-bar {
+  height: 100%;
+  width: 0;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: inherit;
+  transition: width 0.4s ease;
+}
+
+.fb-shelf {
+  border-radius: 1.5rem;
+  background: linear-gradient(160deg, var(--fb-shelf), #ffffff);
+  border: 1px solid rgba(107, 78, 255, 0.12);
+}
+
+.fb-shelf-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.fb-shelf-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--fb-text-dark);
+}
+
+.fb-shelf-list {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(180px, 1fr);
+  gap: 1.25rem;
+  overflow-x: auto;
+  padding-bottom: 0.75rem;
+  scroll-snap-type: x mandatory;
+}
+
+.fb-shelf-list::-webkit-scrollbar {
+  height: 8px;
+}
+
+.fb-shelf-list::-webkit-scrollbar-thumb {
+  background-color: rgba(107, 78, 255, 0.4);
+  border-radius: 999px;
+}
+
+.fb-book-card {
+  position: relative;
+  background: #fff;
+  border-radius: 1.25rem;
+  box-shadow: 0 14px 30px rgba(44, 31, 74, 0.08);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 100%;
+  scroll-snap-align: center;
+}
+
+.fb-book-cover {
+  position: relative;
+  width: 100%;
+  padding-top: 150%;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f8f9fa, rgba(107, 78, 255, 0.15));
+  box-shadow: inset 0 0 0 1px rgba(107, 78, 255, 0.08);
+}
+
+.fb-book-cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fb-book-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 2rem;
+  color: rgba(107, 78, 255, 0.45);
+  background: linear-gradient(160deg, rgba(255, 233, 199, 0.5), rgba(107, 78, 255, 0.15));
+}
+
+.fb-remove-form {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 2;
+}
+
+.fb-remove-form .btn {
+  border-radius: 999px;
+  padding: 0.35rem 0.55rem;
+  line-height: 1;
+}
+
+.fb-book-meta .title {
+  font-weight: 600;
+  color: var(--fb-text-dark);
+}
+
+.fb-book-meta .date {
+  font-size: 0.85rem;
+  color: rgba(44, 31, 74, 0.6);
+}
+
+.fb-current-month {
+  border-radius: 1.5rem;
+  background: linear-gradient(160deg, rgba(107, 78, 255, 0.12), rgba(248, 101, 148, 0.12));
+  border: 1px solid rgba(107, 78, 255, 0.12);
+}
+
+.fb-current-month .card-body {
+  padding: 1.5rem;
+}
+
+.fb-current-month .fb-book-title {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.fb-current-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  color: rgba(44, 31, 74, 0.7);
+}
+
+.fb-current-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(107, 78, 255, 0.16);
+  color: var(--fb-text-dark);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.fb-current-status--success {
+  background: rgba(66, 186, 150, 0.18);
+  color: #1b6e58;
+}
+
+.fb-current-status--warning {
+  background: rgba(255, 193, 7, 0.18);
+  color: #8a6d1a;
+}
+
+.fb-history-table table {
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.fb-history-table thead tr {
+  background: rgba(107, 78, 255, 0.08);
+  color: var(--fb-text-dark);
+}
+
+.fb-history-table tbody tr {
+  --status-color: transparent;
+}
+
+.fb-history-table tbody tr.table-success {
+  --status-color: rgba(66, 186, 150, 0.18);
+}
+
+.fb-history-table tbody tr.table-warning {
+  --status-color: rgba(255, 193, 7, 0.18);
+}
+
+.fb-history-table tbody tr::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--status-color);
+  pointer-events: none;
+}
+
+.fb-history-table tbody tr {
+  position: relative;
+}
+
+@media (max-width: 992px) {
+  .fb-shelf-list {
+    grid-auto-columns: minmax(160px, 70%);
+  }
+}
+
+@media (max-width: 576px) {
+  .fb-hero-stats {
+    gap: 0.75rem;
+  }
+
+  .fb-hero-stat {
+    min-width: 140px;
+    padding: 0.65rem 1rem;
+  }
+
+  .fb-shelf-list {
+    grid-auto-columns: minmax(150px, 75%);
+  }
+
+  .fb-book-card {
+    padding: 0.85rem;
+    border-radius: 1rem;
+  }
+
+  .fb-remove-form {
+    top: 0.6rem;
+    right: 0.6rem;
+  }
+}

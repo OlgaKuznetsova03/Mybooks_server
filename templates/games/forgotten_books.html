@@ -1,125 +1,176 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}{{ game.title }} — игры{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'games/forgotten-books.css' %}">
+{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
-  <div>
-    <h1 class="h4 mb-1">{{ game.title }}</h1>
-    <p class="text-muted mb-0">{{ game.description }}</p>
-  </div>
-  <div class="card shadow-sm">
-    <div class="card-body text-end">
-      <div class="fw-semibold text-uppercase text-muted small">Добавлено книг</div>
-      <div class="fs-4 fw-semibold">{{ added_books_count }}</div>
-      <div class="small text-muted">Осталось выбрать: {{ remaining_slots }}</div>
+<section class="forgotten-books-hero card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <div class="d-flex flex-column flex-lg-row gap-4 align-items-start justify-content-between">
+      <div>
+        <h1 class="fb-hero-heading mb-2">{{ game.title }}</h1>
+        <p class="fb-hero-description mb-0">{{ game.description }}</p>
+      </div>
+      <div class="ms-lg-auto text-lg-end">
+        {% if remaining_slots %}
+          <div class="small text-white-50">Осталось добавить {{ remaining_slots }} книг до полного набора.</div>
+        {% else %}
+          <div class="small text-white-50">Полка собрана! Каждый месяц появится новая книга для чтения.</div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="fb-hero-stats">
+      <div class="fb-hero-stat">
+        <span class="label">Добавлено книг</span>
+        <span class="value">{{ added_books_count }}</span>
+        <span class="small">из {{ max_books }}</span>
+      </div>
+      <div class="fb-hero-stat">
+        <span class="label">Осталось выбрать</span>
+        <span class="value">{{ remaining_slots }}</span>
+        <span class="small">в ожидании вдохновения</span>
+      </div>
+      <div class="fb-hero-stat">
+        <span class="label">Текущая книга</span>
+        <span class="value fs-5">{% if selection %}{{ selection.entry.book.title }}{% else %}В ожидании{% endif %}</span>
+        {% if selection %}
+          <span class="small">до {{ selection.deadline|date:"d E" }}</span>
+        {% else %}
+          <span class="small">появится после комплекта</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="fb-progress">
+      <div class="fb-progress-bar" style="width: {% widthratio added_books_count max_books 100 %}%"></div>
     </div>
   </div>
-</div>
+  </section>
+
+<section class="fb-shelf card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <div class="fb-shelf-header">
+      <h2>Полка забытых книг</h2>
+      <span class="badge rounded-pill text-bg-light text-dark-emphasis">В ожидании: {{ pending_entries|length }}</span>
+    </div>
+    <div class="mt-3">
+      {% if pending_entries %}
+        <div class="fb-shelf-list">
+          {% for entry in pending_entries %}
+          <article class="fb-book-card">
+            <div class="fb-book-cover">
+              <form method="post" class="fb-remove-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="remove">
+                <input type="hidden" name="entry_id" value="{{ entry.id }}">
+                <button class="btn btn-light btn-sm" type="submit" title="Убрать с полки" aria-label="Убрать «{{ entry.book.title }}»">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </form>
+              {% with cover_url=entry.book.get_cover_url %}
+                {% if cover_url %}
+                  <img src="{{ cover_url }}" alt="Обложка «{{ entry.book.title }}»">
+                {% else %}
+                  <div class="fb-book-placeholder" aria-hidden="true">📖</div>
+                {% endif %}
+              {% endwith %}
+            </div>
+            <div class="fb-book-meta">
+              <div class="title">{{ entry.book.title }}</div>
+              <div class="date">Добавлена {{ entry.added_at|date:"d.m.Y" }}</div>
+            </div>
+          </article>
+          {% endfor %}
+        </div>
+        <p class="small text-muted mt-3 mb-0">Подсказка: пролистывайте полку горизонтально, чтобы увидеть остальные книги.</p>
+      {% else %}
+        <p class="text-muted mb-0">Пока на полке пусто — выберите книги из домашней библиотеки, чтобы вдохнуть в них новую жизнь.</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
 
 <div class="row g-4">
-  <div class="col-lg-5">
-    <div class="card shadow-sm h-100">
+  <div class="col-lg-5 order-lg-1 order-2">
+    <div class="card shadow-sm border-0 h-100">
       <div class="card-body">
-        <h2 class="h6 mb-3">Добавить книгу в список</h2>
+        <h2 class="h5 mb-3">Добавить книгу в челлендж</h2>
         {% if remaining_slots %}
-        <p class="small text-muted">Выберите книги из полки «Домашняя библиотека», которые вы давно откладывали. Нужно собрать ровно 12 книг.</p>
-        <form method="post" class="vstack gap-3">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="add">
-          <div>
-            {{ add_form.book.label_tag }}
-            {{ add_form.book }}
-            {% if add_form.book.errors %}
-              <div class="invalid-feedback d-block">{{ add_form.book.errors|join:", " }}</div>
-            {% endif %}
-          </div>
-          <button class="btn btn-primary" type="submit">
-            <i class="bi bi-plus-lg me-1"></i>Добавить в челлендж
-          </button>
-        </form>
-        {% else %}
-          <p class="text-muted mb-0">Вы уже выбрали 12 книг. Теперь каждый месяц будет появляться новая книга для чтения.</p>
-        {% endif %}
-      </div>
-    </div>
-    <div class="card shadow-sm mt-4">
-      <div class="card-body">
-        <h2 class="h6 mb-3">Ожидают своего месяца</h2>
-        {% if pending_entries %}
-        <ul class="list-unstyled vstack gap-3 mb-0">
-          {% for entry in pending_entries %}
-          <li class="d-flex justify-content-between align-items-start gap-3">
+        <p class="small text-muted">Выберите истории, которые томятся на полке «Домашняя библиотека». Всего нужно {{ max_books }} книг — вы уже ближе, чем кажется!</p>
+          <form method="post" class="vstack gap-3">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add">
             <div>
-              <div class="fw-semibold">{{ entry.book.title }}</div>
-              <div class="small text-muted">Добавлена {{ entry.added_at|date:"d.m.Y" }}</div>
+              {{ add_form.book.label_tag }}
+              {{ add_form.book }}
+              {% if add_form.book.errors %}
+                <div class="invalid-feedback d-block">{{ add_form.book.errors|join:", " }}</div>
+              {% endif %}
             </div>
-            <form method="post" class="ms-auto">
-              {% csrf_token %}
-              <input type="hidden" name="action" value="remove">
-              <input type="hidden" name="entry_id" value="{{ entry.id }}">
-              <button class="btn btn-sm btn-outline-danger" type="submit">
-                <i class="bi bi-trash"></i>
-              </button>
-            </form>
-          </li>
-          {% endfor %}
-        </ul>
+            <button class="btn btn-primary" type="submit">
+              <i class="bi bi-plus-lg me-1"></i>Добавить на полку
+            </button>
+          </form>
         {% else %}
-          <p class="text-muted mb-0">Все добавленные книги уже получили свои месяцы.</p>
+          <div class="alert alert-success mb-0">
+            Вы собрали все {{ max_books }} книг. Следите за новыми открытиями каждый месяц!
+          </div>
         {% endif %}
       </div>
     </div>
   </div>
-  <div class="col-lg-7">
-    <div class="card shadow-sm mb-4">
+  <div class="col-lg-7 order-lg-2 order-1">
+    <div class="fb-current-month card shadow-sm border-0 mb-4">
       <div class="card-body">
-        <h2 class="h6 mb-3">Книга текущего месяца</h2>
+        <h2 class="h5 mb-3">Книга текущего месяца</h2>
         {% if selection %}
           {% with entry=selection.entry %}
-          <div class="d-flex flex-column flex-sm-row gap-3 align-items-start justify-content-between">
-            <div>
-              <div class="fw-semibold">{{ entry.book.title }}</div>
-              <div class="small text-muted">Выбрана {{ selection.month_start|date:"d E Y" }}</div>
+          <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center gap-4">
+            <div class="flex-grow-1">
+              <div class="fb-book-title">{{ entry.book.title }}</div>
+              <div class="fb-current-meta mt-2">
+                <span><i class="bi bi-calendar-week me-1"></i>Старт {{ selection.month_start|date:"d E Y" }}</span>
+                <span><i class="bi bi-flag me-1"></i>Дедлайн {{ selection.deadline|date:"d E" }}</span>
+              </div>
             </div>
-            <div class="text-sm-end">
-              <div class="badge {% if entry.is_completed %}text-bg-success{% else %}text-bg-warning{% endif %}">
-                {% if entry.is_completed %}Отзыв готов{% else %}Читать до {{ selection.deadline|date:"d E" }}{% endif %}
+            <div class="text-md-end">
+              <div class="fb-current-status {% if entry.is_completed %}fb-current-status--success{% elif entry.review_submitted_at %}fb-current-status--warning{% endif %}">
+                {% if entry.is_completed %}
+                  <i class="bi bi-stars"></i> Отзыв готов
+                {% elif entry.review_submitted_at %}
+                  <i class="bi bi-chat-square-text"></i> Ждёт завершения
+                {% else %}
+                  <i class="bi bi-bookmark-heart"></i> В процессе чтения
+                {% endif %}
               </div>
               {% if entry.review_submitted_at %}
-              <div class="small text-muted">Отзыв: {{ entry.review_submitted_at|date:"d.m.Y" }}</div>
+              <div class="small text-muted mt-2">Отзыв отправлен {{ entry.review_submitted_at|date:"d.m.Y" }}</div>
+              {% endif %}
+              {% if entry.finished_at %}
+                <div class="small text-muted">Прочитана {{ entry.finished_at|date:"d.m.Y" }}</div>
               {% endif %}
             </div>
           </div>
-          {% if entry.finished_at or entry.review_submitted_at %}
-          <dl class="row small text-muted mt-3 mb-0">
-            {% if entry.finished_at %}
-            <dt class="col-sm-4">Прочитана</dt>
-            <dd class="col-sm-8">{{ entry.finished_at|date:"d.m.Y" }}</dd>
-            {% endif %}
-            {% if entry.review_submitted_at %}
-            <dt class="col-sm-4">Отзыв</dt>
-            <dd class="col-sm-8">{{ entry.review_submitted_at|date:"d.m.Y" }}</dd>
-            {% endif %}
-          </dl>
-          {% else %}
-          <p class="text-muted small mb-0 mt-2">Не забудьте отметить прогресс чтения и оставить отзыв до конца месяца.</p>
+          {% if not entry.finished_at and not entry.review_submitted_at %}
+            <p class="text-muted small mb-0 mt-3">Отмечайте прогресс и делитесь впечатлениями прямо из профиля книги.</p>
           {% endif %}
           {% endwith %}
         {% else %}
-          <p class="text-muted mb-0">Как только вы добавите все 12 книг, в начале следующего месяца появится первая книга для чтения.</p>
+          <p class="text-muted mb-0">Как только вы заполните полку из {{ max_books }} книг, в начале следующего месяца появится первая книга для чтения.</p>
         {% endif %}
       </div>
     </div>
-    <div class="card shadow-sm">
+    <div class="card shadow-sm border-0 fb-history-table">
       <div class="card-body">
-        <h2 class="h6 mb-3">История выборов</h2>
+        <h2 class="h5 mb-3">История выборов</h2>
         {% if selected_entries %}
         <div class="table-responsive">
           <table class="table table-sm align-middle mb-0">
             <thead>
               <tr>
-                <th>Месяц</th>
-                <th>Книга</th>
-                <th class="text-center">Статус</th>
+                <th scope="col">Месяц</th>
+                <th scope="col">Книга</th>
+                <th scope="col" class="text-center">Статус</th>
               </tr>
             </thead>
             <tbody>
@@ -149,7 +200,7 @@
           </table>
         </div>
         {% else %}
-          <p class="text-muted mb-0">Здесь появятся книги, которые уже были выбраны в прошлые месяцы.</p>
+          <p class="text-muted mb-0">Здесь появятся книги, которые уже побывали в ежемесячном фокусе.</p>
         {% endif %}
       </div>
     </div>
