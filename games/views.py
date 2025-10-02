@@ -5,10 +5,12 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.views.decorators.http import require_GET
 
 from books.models import Rating
 from shelves.models import BookProgress
 
+from .catalog import get_game_cards
 from .forms import (
     BookJourneyAssignForm,
     BookJourneyReleaseForm,
@@ -17,6 +19,21 @@ from .forms import (
 from .models import BookJourneyAssignment
 from .services.book_journey import BookJourneyMap
 from .services.read_before_buy import ReadBeforeBuyGame
+
+
+@require_GET
+def game_list(request):
+    """Display the catalogue of active and upcoming games."""
+
+    cards = get_game_cards()
+    available_games = [card for card in cards if card.is_available]
+    upcoming_games = [card for card in cards if not card.is_available]
+
+    context = {
+        "available_games": available_games,
+        "upcoming_games": upcoming_games,
+    }
+    return render(request, "games/index.html", context)
 
 
 @login_required

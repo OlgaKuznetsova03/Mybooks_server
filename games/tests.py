@@ -25,6 +25,19 @@ from .services.book_journey import BookJourneyMap
 from .services.read_before_buy import ReadBeforeBuyGame
 
 
+class GameCatalogViewTests(TestCase):
+    def test_catalog_lists_active_and_upcoming_games(self):
+        response = self.client.get(reverse("games:index"))
+        self.assertEqual(response.status_code, 200)
+
+        active_game = ReadBeforeBuyGame.get_game()
+        self.assertContains(response, active_game.title)
+        self.assertContains(response, BookJourneyMap.TITLE)
+        self.assertContains(response, "Скоро появятся")
+        self.assertContains(response, reverse("games:read_before_buy"))
+
+
+
 class ReadBeforeBuyGameTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="gamer", password="secret123")
@@ -220,7 +233,7 @@ class BookJourneyInteractionTests(TestCase):
             "Прочитанные книги нельзя прикреплять к заданию.",
             form.errors.get("__all__", []),
         )
-        
+
     def test_only_one_active_assignment_allowed(self):
         self.client.post(
             reverse("games:book_journey_map"),

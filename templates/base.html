@@ -25,7 +25,7 @@
         {% if request.user.is_authenticated %}
         <li class="nav-item"><a class="nav-link" href="{% url 'home_library' %}">Домашняя библиотека</a></li>
         {% endif %}
-        <li class="nav-item"><a class="nav-link" href="{% url 'games:read_before_buy' %}">Игры</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'games:index' %}">Игры</a></li>
         <li class="nav-item"><a class="nav-link" href="/bloggers/">Блогеры</a></li>
         <li class="nav-item"><a class="nav-link" href="/partners/">Авторы & Издательства</a></li>
         <li class="nav-item"><a class="nav-link" href="{% url 'reading_now' %}">Читаю сейчас</a></li>
