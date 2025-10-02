@@ -11,6 +11,7 @@ from shelves.models import BookProgress, Shelf, ShelfItem
 from shelves.services import (
     DEFAULT_READ_SHELF,
     DEFAULT_READING_SHELF,
+    DEFAULT_WANT_SHELF,
     get_home_library_shelf,
 )
 
@@ -194,6 +195,24 @@ class BookJourneyInteractionTests(TestCase):
         assignment = BookJourneyAssignment.objects.get(user=self.user, stage_number=1)
         self.assertEqual(assignment.book, self.book)
         self.assertEqual(assignment.status, BookJourneyAssignment.Status.IN_PROGRESS)
+
+    def test_assign_book_moves_entry_to_reading_shelf(self):
+        reading_shelf = self._get_default_shelf(DEFAULT_READING_SHELF)
+        want_shelf = self._get_default_shelf(DEFAULT_WANT_SHELF)
+        ShelfItem.objects.get_or_create(shelf=want_shelf, book=self.book)
+
+        response = self.client.post(
+            reverse("games:book_journey_map"),
+            {"action": "assign", "stage_number": 1, "book": self.book.pk},
+        )
+
+        self.assertRedirects(response, reverse("games:book_journey_map"))
+        self.assertTrue(
+            ShelfItem.objects.filter(shelf=reading_shelf, book=self.book).exists()
+        )
+        self.assertFalse(
+            ShelfItem.objects.filter(shelf=want_shelf, book=self.book).exists()
+        )
 
     def test_assign_form_excludes_books_outside_allowed_shelves(self):
         custom_book = Book.objects.create(title="Секретная книга", synopsis="")

@@ -9,6 +9,7 @@ from django.views.decorators.http import require_GET
 
 from books.models import Rating
 from shelves.models import BookProgress
+from shelves.services import move_book_to_reading_shelf
 
 from .catalog import get_game_cards
 from .forms import (
@@ -168,6 +169,8 @@ def book_journey_map(request):
                             )
                             return redirect("games:book_journey_map")
                         assignment.reset_progress(book=book)
+                    move_book_to_reading_shelf(user, book)
+                    
                     BookProgress.objects.get_or_create(
                         event=None,
                         user=user,

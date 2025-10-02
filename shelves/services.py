@@ -69,3 +69,17 @@ def move_book_to_read_shelf(user: User, book: Book) -> None:
         book,
         occurred_at=timezone.now(),
     )
+
+
+def move_book_to_reading_shelf(user: User, book: Book) -> None:
+    """Ensure the book is on the user's "Читаю" shelf."""
+
+    if not user.is_authenticated:
+        return
+
+    with transaction.atomic():
+        _remove_book_from_named_shelf(user, book, DEFAULT_READ_SHELF)
+        _remove_book_from_named_shelf(user, book, DEFAULT_WANT_SHELF)
+
+        reading_shelf = _get_default_shelf(user, DEFAULT_READING_SHELF)
+        ShelfItem.objects.get_or_create(shelf=reading_shelf, book=book)
