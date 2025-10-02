@@ -4,7 +4,13 @@ from django.core.exceptions import ValidationError
 
 from books.models import Book
 from shelves.models import Shelf, ShelfItem
-from shelves.services import get_home_library_shelf
+from shelves.services import (
+    DEFAULT_HOME_LIBRARY_SHELF,
+    DEFAULT_READ_SHELF,
+    DEFAULT_READING_SHELF,
+    DEFAULT_WANT_SHELF,
+    get_home_library_shelf,
+)
 
 from .models import BookJourneyAssignment
 from .services.book_journey import BookJourneyMap
@@ -35,6 +41,13 @@ class ReadBeforeBuyEnrollForm(forms.Form):
             self.fields["shelf"].label = f"Полка «{home_shelf.name}»"
 
 
+ALLOWED_SHELF_NAMES = [
+    DEFAULT_HOME_LIBRARY_SHELF,
+    DEFAULT_WANT_SHELF,
+    DEFAULT_READING_SHELF,
+]
+
+
 class BookJourneyAssignForm(forms.Form):
     stage_number = forms.ChoiceField(widget=forms.HiddenInput)
     book = forms.ModelChoiceField(
@@ -55,8 +68,14 @@ class BookJourneyAssignForm(forms.Form):
         if not user:
             book_field.queryset = Book.objects.none()
             return
+        allowed_items = ShelfItem.objects.filter(
+            shelf__user=user, shelf__name__in=ALLOWED_SHELF_NAMES
+        )
+        read_book_ids = ShelfItem.objects.filter(
+            shelf__user=user, shelf__name=DEFAULT_READ_SHELF
+        ).values_list("book_id", flat=True)
         book_ids = (
-            ShelfItem.objects.filter(shelf__user=user)
+            allowed_items.exclude(book_id__in=read_book_ids)
             .values_list("book_id", flat=True)
             .distinct()
         )
@@ -81,9 +100,15 @@ class BookJourneyAssignForm(forms.Form):
         book = cleaned_data.get("book")
         if not book:
             return cleaned_data
-        if not ShelfItem.objects.filter(shelf__user=user, book=book).exists():
+        if ShelfItem.objects.filter(
+            shelf__user=user, shelf__name=DEFAULT_READ_SHELF, book=book
+        ).exists():
+            raise ValidationError("Прочитанные книги нельзя прикреплять к заданию.")
+        if not ShelfItem.objects.filter(
+            shelf__user=user, shelf__name__in=ALLOWED_SHELF_NAMES, book=book
+        ).exists():
             raise ValidationError(
-                "Добавьте книгу на любую свою полку, прежде чем прикреплять к заданию."
+                "Добавьте книгу в домашнюю библиотеку или на полку «Хочу прочитать»/«Читаю», прежде чем прикреплять к заданию."
             )
         existing = BookJourneyAssignment.objects.filter(
             user=user, stage_number=stage_number

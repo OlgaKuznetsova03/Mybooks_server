@@ -7,8 +7,12 @@ from django.urls import reverse
 from django.utils import timezone
 
 from books.models import Book, ISBNModel, Rating
-from shelves.models import BookProgress, ShelfItem
-from shelves.services import get_home_library_shelf
+from shelves.models import BookProgress, Shelf, ShelfItem
+from shelves.services import (
+    DEFAULT_READ_SHELF,
+    DEFAULT_READING_SHELF,
+    get_home_library_shelf,
+)
 
 from .models import (
     BookJourneyAssignment,
@@ -16,6 +20,7 @@ from .models import (
     GameShelfPurchase,
     GameShelfState,
 )
+from .forms import BookJourneyAssignForm
 from .services.book_journey import BookJourneyMap
 from .services.read_before_buy import ReadBeforeBuyGame
 
@@ -164,6 +169,9 @@ class BookJourneyInteractionTests(TestCase):
         ShelfItem.objects.get_or_create(shelf=self.home_shelf, book=self.book)
         ShelfItem.objects.get_or_create(shelf=self.home_shelf, book=self.other_book)
 
+    def _get_default_shelf(self, name):
+        return Shelf.objects.get(user=self.user, name=name)
+    
     def test_assign_book_creates_assignment(self):
         response = self.client.post(
             reverse("games:book_journey_map"),
@@ -174,6 +182,45 @@ class BookJourneyInteractionTests(TestCase):
         self.assertEqual(assignment.book, self.book)
         self.assertEqual(assignment.status, BookJourneyAssignment.Status.IN_PROGRESS)
 
+    def test_assign_form_excludes_books_outside_allowed_shelves(self):
+        custom_book = Book.objects.create(title="Секретная книга", synopsis="")
+        custom_shelf = Shelf.objects.create(user=self.user, name="Любимые книги")
+        ShelfItem.objects.create(shelf=custom_shelf, book=custom_book)
+        reading_shelf = self._get_default_shelf(DEFAULT_READING_SHELF)
+        ShelfItem.objects.get_or_create(shelf=reading_shelf, book=self.book)
+
+        form = BookJourneyAssignForm(user=self.user)
+        book_ids = set(form.fields["book"].queryset.values_list("id", flat=True))
+
+        self.assertIn(self.book.id, book_ids)
+        self.assertNotIn(custom_book.id, book_ids)
+
+    def test_read_books_are_not_listed_in_assignment_form(self):
+        read_book = Book.objects.create(title="Прочитанная", synopsis="")
+        ShelfItem.objects.create(shelf=self.home_shelf, book=read_book)
+        read_shelf = self._get_default_shelf(DEFAULT_READ_SHELF)
+        ShelfItem.objects.get_or_create(shelf=read_shelf, book=read_book)
+
+        form = BookJourneyAssignForm(user=self.user)
+        book_ids = set(form.fields["book"].queryset.values_list("id", flat=True))
+
+        self.assertNotIn(read_book.id, book_ids)
+
+    def test_read_books_cannot_be_assigned(self):
+        read_book = Book.objects.create(title="Архив", synopsis="")
+        ShelfItem.objects.create(shelf=self.home_shelf, book=read_book)
+        read_shelf = self._get_default_shelf(DEFAULT_READ_SHELF)
+        ShelfItem.objects.get_or_create(shelf=read_shelf, book=read_book)
+
+        form = BookJourneyAssignForm(
+            {"stage_number": "1", "book": read_book.pk}, user=self.user
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn(
+            "Прочитанные книги нельзя прикреплять к заданию.",
+            form.errors.get("__all__", []),
+        )
+        
     def test_only_one_active_assignment_allowed(self):
         self.client.post(
             reverse("games:book_journey_map"),
