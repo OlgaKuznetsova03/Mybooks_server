@@ -247,12 +247,28 @@
   margin-bottom:0;
 }
 
+
 .journey-map__canvas{
   position:relative;
   min-height:420px;
   background:linear-gradient(180deg,#0b5fa5 0%,#0a497c 100%);
   overflow:hidden;
   border-bottom:1px solid rgba(0,0,0,.08);
+  aspect-ratio:3 / 2;
+}
+
+.journey-map__canvas::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background-image:var(--journey-map-image, none);
+  background-repeat:no-repeat;
+  background-size:cover;
+  background-position:center;
+  opacity:.95;
+  pointer-events:none;
+  transition:opacity .3s ease;
+  z-index:1;
 }
 
 .journey-map__image{

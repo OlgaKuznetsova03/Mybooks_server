@@ -9,11 +9,14 @@
         <h1 class="h5 mb-1">{{ map_title }}</h1>
         <p class="text-muted mb-0">{{ map_description }}</p>
       </div>
-      <div class="journey-map__canvas position-relative">
+      <div
+        class="journey-map__canvas position-relative"
+        style="--journey-map-image: url('{% static 'games/book-journey-map.png' %}');"
+      >
         <img
-          src="{% static 'games/book-journey-map.png' %}
+          src="{% static 'games/book-journey-map.png' %}"
           alt="Карты с островами Гюго, Чехова, Шекспира, Достоевского и Кафки"
-          class="journey-map__image"
+          class="journey-map__image visually-hidden"
         >
           {% for stage in stages %}
           <button
