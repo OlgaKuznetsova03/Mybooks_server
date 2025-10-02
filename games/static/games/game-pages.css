@@ -1,0 +1,387 @@
+:root {
+  --game-purple: #6b4eff;
+  --game-rose: #f86594;
+  --game-sand: #ffe9c7;
+  --game-ink: #2c1f4a;
+  --game-fog: #f4f1ff;
+  --game-teal: #32c4a0;
+}
+
+.game-hero {
+  position: relative;
+  border-radius: 1.75rem;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--game-purple), var(--game-rose));
+  color: #fff;
+}
+
+.game-hero::before {
+  content: "";
+  position: absolute;
+  inset: -35% -35% auto auto;
+  width: clamp(220px, 40vw, 360px);
+  aspect-ratio: 1 / 1;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.35), transparent 70%);
+  transform: rotate(18deg);
+}
+
+.game-hero .card-body {
+  position: relative;
+  padding: clamp(1.75rem, 2vw + 1.5rem, 3rem);
+}
+
+.game-hero-heading {
+  font-size: clamp(1.85rem, 3vw + 1.4rem, 2.85rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.game-hero-description {
+  max-width: 46rem;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.game-hero-meta {
+  max-width: 18rem;
+}
+
+.game-hero-meta .badge,
+.game-hero-meta .small {
+  letter-spacing: 0.02em;
+}
+
+.game-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.game-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-top: 1.75rem;
+}
+
+.game-hero-stat {
+  backdrop-filter: blur(6px);
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 1.25rem;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-height: 120px;
+}
+
+.game-hero-stat .label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.game-hero-stat .value {
+  font-size: clamp(1.75rem, 2vw + 1.25rem, 2.45rem);
+  font-weight: 700;
+}
+
+.game-hero-stat .hint {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.game-progress {
+  margin-top: 1.75rem;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+  overflow: hidden;
+}
+
+.game-progress-bar {
+  height: 100%;
+  width: 0;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: inherit;
+  transition: width 0.4s ease;
+}
+
+.game-panel {
+  border-radius: 1.5rem;
+  border: 1px solid rgba(107, 78, 255, 0.12);
+}
+
+.game-panel .card-header,
+.game-panel .card-footer {
+  border: none;
+  background: transparent;
+}
+
+.game-panel .card-body {
+  padding: 1.75rem;
+}
+
+.game-panel--soft {
+  background: linear-gradient(160deg, rgba(107, 78, 255, 0.08), rgba(248, 101, 148, 0.08));
+}
+
+.game-panel-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.game-checklist {
+  counter-reset: checklist;
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 0;
+}
+
+.game-checklist li {
+  position: relative;
+  padding-left: 2.25rem;
+  margin-bottom: 0.85rem;
+}
+
+.game-checklist li::before {
+  counter-increment: checklist;
+  content: counter(checklist, decimal-leading-zero);
+  position: absolute;
+  left: 0;
+  top: 0.05rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.65rem;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--game-purple);
+  font-weight: 600;
+  font-size: 0.85rem;
+  box-shadow: inset 0 0 0 1px rgba(107, 78, 255, 0.28);
+}
+
+.game-hint {
+  border-radius: 1.25rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0.4));
+  border: 1px solid rgba(107, 78, 255, 0.18);
+}
+
+.game-hint strong {
+  color: var(--game-ink);
+}
+
+.journey-map-card {
+  border-radius: 1.75rem;
+  overflow: hidden;
+}
+
+.journey-map-card .card-header {
+  padding: 1.75rem 1.75rem 0;
+}
+
+.journey-map-card .card-body {
+  padding: 1.75rem;
+}
+
+.journey-map-card .card-footer {
+  padding: 1.25rem 1.75rem 1.75rem;
+  border-top: 1px solid rgba(107, 78, 255, 0.12);
+  background: rgba(107, 78, 255, 0.03);
+}
+
+.journey-map-card .journey-map__canvas {
+  border-radius: 1.5rem;
+  border: none;
+  box-shadow: inset 0 0 0 1px rgba(107, 78, 255, 0.08);
+}
+
+.journey-map-card .journey-map__canvas::before {
+  border-radius: inherit;
+}
+
+.journey-legend-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.journey-legend-hints {
+  margin-bottom: 0;
+  padding-left: 1rem;
+  color: var(--bs-secondary-color);
+}
+
+.journey-stage-list__item {
+  padding: 1.05rem 1.25rem;
+  border: none;
+  border-bottom: 1px solid rgba(107, 78, 255, 0.12);
+  background: transparent;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.journey-stage-list__item:hover {
+  background: rgba(107, 78, 255, 0.05);
+}
+
+.journey-stage-list__status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+}
+
+.journey-stage-list__status--available {
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--game-purple);
+  box-shadow: inset 0 0 0 1px rgba(107, 78, 255, 0.2);
+}
+
+.journey-stage-list__status--in_progress {
+  background: rgba(248, 101, 148, 0.18);
+  color: #aa1f59;
+}
+
+.journey-stage-list__status--completed {
+  background: rgba(50, 196, 160, 0.18);
+  color: #1b6f49;
+}
+
+.journey-stage-panel {
+  --bs-offcanvas-width: min(420px, 100vw);
+  background: var(--game-fog);
+  color: var(--game-ink);
+}
+
+.journey-stage-panel .offcanvas-header {
+  padding: 1.5rem 1.75rem;
+}
+
+.journey-stage-panel .offcanvas-body {
+  padding: 1.75rem;
+}
+
+.journey-stage-panel__status {
+  background: rgba(107, 78, 255, 0.12);
+  color: var(--game-ink);
+  font-weight: 600;
+}
+
+.journey-stage-panel__form {
+  border-radius: 1.25rem;
+  border: 1px solid rgba(107, 78, 255, 0.12);
+  padding: 1.25rem;
+  background: #fff;
+}
+
+.journey-stage-panel__form + .journey-stage-panel__form {
+  margin-top: 1rem;
+}
+
+.game-promo {
+  border-radius: 1.5rem;
+  background: linear-gradient(140deg, rgba(107, 78, 255, 0.12), rgba(248, 101, 148, 0.08));
+  border: 1px solid rgba(107, 78, 255, 0.12);
+}
+
+.game-promo .card-body {
+  padding: 1.5rem 1.75rem;
+}
+
+.read-before-buy-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.read-before-buy-card {
+  border-radius: 1.5rem;
+  border: 1px solid rgba(107, 78, 255, 0.12);
+  background: #fff;
+  box-shadow: 0 18px 40px rgba(44, 31, 74, 0.08);
+}
+
+.read-before-buy-card .card-body {
+  padding: 1.75rem;
+}
+
+.read-before-buy-card__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  text-align: center;
+}
+
+.read-before-buy-card__meta .value {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.shelf-card .game-progress {
+  margin-top: 1.25rem;
+  background: rgba(107, 78, 255, 0.12);
+}
+
+.shelf-card .game-progress-bar {
+  background: linear-gradient(90deg, var(--game-purple), var(--game-rose));
+}
+
+.shelf-card__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  text-align: center;
+}
+
+.shelf-card__meta .value {
+  font-weight: 600;
+  font-size: 1.15rem;
+}
+
+.shelf-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.shelf-card__list {
+  border-top: 1px dashed rgba(107, 78, 255, 0.2);
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+}
+
+.shelf-card__list-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--bs-secondary-color);
+}
+
+.game-empty-card {
+  border-radius: 1.5rem;
+  border: 1px dashed rgba(107, 78, 255, 0.35);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.9), rgba(244, 241, 255, 0.9));
+}
+
+.game-empty-card .card-body {
+  padding: 3rem 2rem;
+  text-align: center;
+  color: var(--bs-secondary-color);
+}
+
+@media (max-width: 991.98px) {
+  .game-hero {
+    border-radius: 1.25rem;
+  }
+
+  .game-panel,
+  .read-before-buy-card,
+  .game-promo {
+    border-radius: 1.25rem;
+  }
+
+  .journey-stage-panel {
+    --bs-offcanvas-width: 100vw;
+  }
+}

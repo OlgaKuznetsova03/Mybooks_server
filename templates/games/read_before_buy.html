@@ -1,38 +1,101 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}{{ game.title }} — игры{% endblock %}
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'games/game-pages.css' %}">
+{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
-  <div>
-    <h1 class="h4 mb-1">{{ game.title }}</h1>
-    <p class="text-muted mb-0">{{ game.description }}</p>
-  </div>
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <div class="fw-semibold text-uppercase text-muted small">Сводка</div>
-      <div class="fs-4 fw-semibold">{{ overall.points_balance }} баллов</div>
-      <div class="small text-muted">Прочитано книг: {{ overall.books_reviewed }} · Куплено: {{ overall.books_purchased }}</div>
-      <div class="small text-muted">Книг на полках: {{ overall.total_books }}</div>
+<section class="game-hero card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <div class="d-flex flex-column flex-lg-row gap-4 align-items-start justify-content-between">
+      <div>
+        <h1 class="game-hero-heading mb-2">{{ game.title }}</h1>
+        <p class="game-hero-description mb-0">{{ game.description }}</p>
+      </div>
+      <div class="ms-lg-auto text-lg-end game-hero-meta">
+        <div class="small text-white-50 text-uppercase mb-1">Стоимость новой книги</div>
+        <div class="fs-4 fw-semibold">{{ purchase_cost }} баллов</div>
+        {% if shelf_count %}
+          <div class="small text-white-50">Подключено полок: {{ shelf_count }}</div>
+        {% else %}
+          <div class="small text-white-50">Подключите «Домашнюю библиотеку», чтобы начать.</div>
+        {% endif %}
+        <div class="game-hero-actions mt-3">
+          <a class="btn btn-outline-light btn-sm" href="#enroll-form">
+            <i class="bi bi-plus-lg me-1"></i>Подключить полку
+          </a>
+          <a class="btn btn-light btn-sm" href="{% url 'games:book_journey_map' %}">
+            <i class="bi bi-map me-1"></i>Литературное путешествие
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="game-hero-stats">
+      <div class="game-hero-stat">
+        <span class="label">Баланс</span>
+        <span class="value">{{ overall.points_balance }}</span>
+        <span class="hint">Накопленные баллы</span>
+      </div>
+      <div class="game-hero-stat">
+        <span class="label">Отзывы</span>
+        <span class="value">{{ overall.books_reviewed }}</span>
+        <span class="hint">Прочитанные и оценённые книги</span>
+      </div>
+      <div class="game-hero-stat">
+        <span class="label">Покупки</span>
+        <span class="value">{{ overall.books_purchased }}</span>
+        <span class="hint">Книги, купленные за баллы</span>
+      </div>
+      <div class="game-hero-stat">
+        <span class="label">На полках</span>
+        <span class="value">{{ overall.total_books }}</span>
+        <span class="hint">Истории в «Домашней библиотеке»</span>
+      </div>
+    </div>
+    <div
+      class="game-progress"
+      role="progressbar"
+      aria-valuenow="{{ overall.progress_percent }}"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-label="Прогресс до следующей покупки"
+    >
+      <div class="game-progress-bar" style="width: {{ overall.progress_percent }}%;"></div>
+    </div>
+    <div class="small text-white-50 mt-2">
+      {% if overall.available_purchases %}
+        Можно приобрести {{ overall.available_purchases }} книг за накопленные баллы.
+      {% elif overall.next_purchase_points %}
+        Осталось {{ overall.next_purchase_points }} баллов до следующей покупки.
+      {% else %}
+        Подключите полку, чтобы начать получать баллы за отзывы.
+      {% endif %}
     </div>
   </div>
-</div>
+</section>
 
-<div class="alert alert-info d-flex flex-wrap gap-3 align-items-center justify-content-between" role="status">
-  <div>
-    <div class="fw-semibold">Новое приключение — «Литературное путешествие»</div>
-    <p class="mb-0 small">Исследуйте карту с лесами и горами: 30 этапов с заданиями на подбор книг и отзывов.</p>
+<section class="card border-0 game-promo mb-4">
+  <div class="card-body d-flex flex-wrap gap-3 align-items-center justify-content-between">
+    <div>
+      <div class="fw-semibold text-uppercase small text-muted">Новое приключение</div>
+      <div class="h5 mb-1">«Литературное путешествие»</div>
+      <p class="small mb-0">Исследуйте карту с 15 этапами: подбирайте книги, отмечайте прогресс и открывайте новые острова.</p>
+    </div>
+    <a class="btn btn-outline-primary btn-sm" href="{% url 'games:book_journey_map' %}">
+      <i class="bi bi-compass me-1"></i>Открыть карту
+    </a>
   </div>
-  <a class="btn btn-outline-primary btn-sm" href="{% url 'games:book_journey_map' %}">
-    <i class="bi bi-map me-1"></i>Открыть карту
-  </a>
-</div>
+</section>
 
 <div class="row g-4">
-  <div class="col-lg-4">
-    <div class="card h-100 shadow-sm">
+  <div class="col-xl-4">
+    <section id="enroll-form" class="card read-before-buy-card h-100">
       <div class="card-body">
-        <h2 class="h6 mb-3">Подключить полку «Домашняя библиотека»</h2>
+        <div class="game-panel-title">Подключить полку «Домашняя библиотека»</div>
+        <p class="small text-muted mb-3">Баллы начисляются за отзывы о книгах на выбранной полке.</p>
         {% if enroll_form.fields.shelf.queryset %}
-        <form method="post" class="vstack gap-3">
+      <form method="post" class="vstack gap-3">
           {% csrf_token %}
           <input type="hidden" name="action" value="enroll">
           <div>
@@ -43,99 +106,125 @@
             {% endif %}
           </div>
           <button class="btn btn-primary" type="submit">
-            <i class="bi bi-plus-lg me-1"></i>Добавить
+            <i class="bi bi-plus-lg me-1"></i>Добавить полку
           </button>
         </form>
         {% else %}
-          <p class="text-muted mb-0">Полка «Домашняя библиотека» уже подключена к игре.</p>
+          <div class="game-hint p-3 small mb-0" role="status">
+            <strong>Полка уже подключена.</strong>
+            Добавляйте новые книги и продолжайте зарабатывать баллы.
+          </div>
         {% endif %}
       </div>
-    </div>
+    </section>
   </div>
-  <div class="col-lg-8">
+  <div class="col-xl-8">
     {% if states %}
-      <div class="vstack gap-3">
+      <div class="read-before-buy-grid">
         {% for item in states %}
           {% with state=item.state %}
-          <div class="card shadow-sm">
-            <div class="card-body">
-              <div class="d-flex justify-content-between flex-wrap gap-3 align-items-start">
-                <div>
-                  <h3 class="h6 mb-1">{{ state.shelf.name }}</h3>
-                  <div class="text-muted small">Баланс: {{ state.points_balance }} · Всего заработано: {{ state.total_points_earned }}</div>
+          <article class="card read-before-buy-card shelf-card">
+              <div class="card-body">
+                <div class="d-flex justify-content-between flex-wrap gap-3 align-items-start">
+                  <div>
+                    <div class="game-panel-title mb-1">{{ state.shelf.name }}</div>
+                    <div class="small text-muted">Баланс: {{ state.points_balance }} · Всего заработано: {{ state.total_points_earned }}</div>
+                  </div>
+                  <div class="text-end">
+                    {% if item.points_needed > 0 %}
+                      <span class="badge rounded-pill text-bg-warning">До покупки: {{ item.points_needed }}</span>
+                    {% else %}
+                      <span class="badge rounded-pill text-bg-success">Можно купить книгу!</span>
+                    {% endif %}
+                    <div class="small text-muted mt-1">Цена книги: {{ purchase_cost }}</div>
+                  </div>
                 </div>
-                <div class="text-end">
+                <div class="shelf-card__meta mt-4">
+                  <div>
+                    <div class="value">{{ item.total_books }}</div>
+                    <div class="small text-muted">Книг на полке</div>
+                  </div>
+                  <div>
+                    <div class="value">{{ state.books_reviewed }}</div>
+                    <div class="small text-muted">Написано отзывов</div>
+                  </div>
+                  <div>
+                    <div class="value">{{ state.books_purchased }}</div>
+                    <div class="small text-muted">Куплено книг</div>
+                  </div>
+                  <div>
+                    <div class="value">{{ item.available_purchases }}</div>
+                    <div class="small text-muted">Доступных покупок</div>
+                  </div>
+                </div>
+                <div
+                  class="game-progress"
+                  role="progressbar"
+                  aria-valuenow="{{ item.progress_percent }}"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-label="Прогресс до покупки книги"
+                >
+                  <div class="game-progress-bar" style="width: {{ item.progress_percent }}%;"></div>
+                </div>
+                <div class="small text-muted mt-2">
                   {% if item.points_needed > 0 %}
-                    <div class="badge text-bg-warning">До покупки: {{ item.points_needed }}</div>
+                    Осталось {{ item.points_needed }} баллов до следующей покупки.
                   {% else %}
-                    <div class="badge text-bg-success">Можно купить книгу!</div>
+                    Баллов достаточно, чтобы выбрать новую книгу.
                   {% endif %}
-                  <div class="small text-muted">Цена новой книги: {{ purchase_cost }}</div>
                 </div>
-              </div>
-              <hr>
-              <div class="row text-center g-3">
-                <div class="col-sm-3">
-                  <div class="fw-semibold">{{ item.total_books }}</div>
-                  <div class="small text-muted">Книг на полке</div>
-                </div>
-                <div class="col-sm-3">
-                  <div class="fw-semibold">{{ state.books_reviewed }}</div>
-                  <div class="small text-muted">Написано отзывов</div>
-                </div>
-                <div class="col-sm-3">
-                  <div class="fw-semibold">{{ state.books_purchased }}</div>
-                  <div class="small text-muted">Куплено книг</div>
-                </div>
-                <div class="col-sm-3">
-                  <div class="fw-semibold">{{ item.available_purchases }}</div>
-                  <div class="small text-muted">Доступных покупок</div>
-                </div>
-              </div>
-              <form method="post" class="mt-3 d-flex flex-wrap gap-2 align-items-center">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="bulk_purchase">
-                <input type="hidden" name="state_id" value="{{ state.id }}">
-                <div class="input-group input-group-sm" style="max-width: 220px;">
-                  <span class="input-group-text">Куплено книг</span>
-                  <input type="number" name="count" min="1" value="1" class="form-control" {% if item.available_purchases %}max="{{ item.available_purchases }}"{% else %}disabled{% endif %}>
-                </div>
-                <button class="btn btn-sm btn-outline-primary" type="submit" {% if not item.available_purchases %}disabled{% endif %}>
-                  <i class="bi bi-bag-check me-1"></i>Списать баллы
-                </button>
-                {% if not item.available_purchases %}
-                  <div class="small text-muted">Недостаточно баллов для покупки.</div>
+                <form method="post" class="shelf-card__actions mt-4">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="bulk_purchase">
+                  <input type="hidden" name="state_id" value="{{ state.id }}">
+                  <div class="input-group input-group-sm" style="max-width: 240px;">
+                    <span class="input-group-text">Куплено книг</span>
+                    <input
+                      type="number"
+                      name="count"
+                      min="1"
+                      value="1"
+                      class="form-control"
+                      {% if item.available_purchases %}max="{{ item.available_purchases }}"{% else %}disabled{% endif %}
+                    >
+                  </div>
+                  <button class="btn btn-sm btn-outline-primary" type="submit" {% if not item.available_purchases %}disabled{% endif %}>
+                    <i class="bi bi-bag-check me-1"></i>Списать баллы
+                  </button>
+                  {% if not item.available_purchases %}
+                    <div class="small text-muted">Недостаточно баллов для покупки.</div>
+                  {% endif %}
+                </form>
+                {% if state.purchases.all %}
+                  <div class="shelf-card__list">
+                    <div class="shelf-card__list-title">Последние покупки</div>
+                    <ul class="list-unstyled mb-0 small">
+                      {% for purchase in state.purchases.all|slice:":3" %}
+                        <li class="mb-1">
+                          {% if purchase.book %}
+                            {{ purchase.book.title }}
+                          {% else %}
+                            Покупка без указания книги
+                          {% endif %}
+                          — {{ purchase.points_spent }} баллов ({{ purchase.created_at|date:"d.m.Y" }})
+                        </li>
+                      {% endfor %}
+                    </ul>
+                  </div>
                 {% endif %}
-              </form>
-              {% if state.purchases.all %}
-              <div class="mt-3">
-                <div class="small text-muted text-uppercase">Последние покупки</div>
-                <ul class="list-unstyled mb-0 small">
-                  {% for purchase in state.purchases.all|slice:":3" %}
-                    <li>
-                      {% if purchase.book %}
-                        {{ purchase.book.title }}
-                      {% else %}
-                        Покупка без указания книги
-                      {% endif %}
-                      — {{ purchase.points_spent }} баллов ({{ purchase.created_at|date:"d.m.Y" }})
-                    </li>
-                  {% endfor %}
-                </ul>
               </div>
-              {% endif %}
-            </div>
-          </div>
+              </article>
           {% endwith %}
         {% endfor %}
       </div>
     {% else %}
-      <div class="card shadow-sm">
-        <div class="card-body text-center text-muted py-5">
+      <section class="card game-empty-card">
+        <div class="card-body">
           <p class="mb-2">Вы ещё не подключили «Домашнюю библиотеку» к игре.</p>
-          <p class="mb-0">Добавьте книги в полку «Домашняя библиотека» и активируйте игру, чтобы получать баллы за прочитанные книги.</p>
+          <p class="mb-0">Добавьте полку и начните получать баллы за прочитанные книги и отзывы, чтобы покупать новые истории.</p>
         </div>
-      </div>
+      </section>
     {% endif %}
   </div>
 </div>

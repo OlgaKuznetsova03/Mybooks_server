@@ -1,75 +1,164 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}{{ map_title }} — интерактивная карта{% endblock %}
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'games/game-pages.css' %}">
+{% endblock %}
 {% block content %}
+<section class="game-hero card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <div class="d-flex flex-column flex-lg-row gap-4 align-items-start justify-content-between">
+      <div>
+        <h1 class="game-hero-heading mb-2">{{ map_title }}</h1>
+        <p class="game-hero-description mb-0">{{ map_description }}</p>
+      </div>
+      <div class="ms-lg-auto text-lg-end game-hero-meta">
+        {% with focus_stage=active_stage_number|default:next_available_stage %}
+          {% if active_stage_number %}
+            <div class="small text-white-50 text-uppercase mb-1">Активный этап</div>
+            <div class="fs-4 fw-semibold">#{{ active_stage_number }}</div>
+            <div class="small text-white-50">Продолжайте путешествие с выбранной книгой.</div>
+          {% elif next_available_stage %}
+            <div class="small text-white-50 text-uppercase mb-1">Следующий шаг</div>
+            <div class="fs-4 fw-semibold">#{{ next_available_stage }}</div>
+            <div class="small text-white-50">Выберите книгу, чтобы открыть новый остров.</div>
+          {% else %}
+            <div class="small text-white-50 text-uppercase mb-1">Отличная работа</div>
+            <div class="fs-4 fw-semibold">Карта пройдена!</div>
+            <div class="small text-white-50">Можно повторить задания с новыми историями.</div>
+          {% endif %}
+          <div class="game-hero-actions mt-3">
+            {% if focus_stage %}
+              <button
+                type="button"
+                class="btn btn-outline-light btn-sm"
+                data-bs-toggle="offcanvas"
+                data-bs-target="#journey-stage-panel"
+                data-stage="{{ focus_stage }}"
+              >
+                <i class="bi bi-compass me-1"></i>Открыть этап #{{ focus_stage }}
+              </button>
+            {% endif %}
+            <a class="btn btn-light btn-sm" href="{% url 'games:read_before_buy' %}">
+              <i class="bi bi-controller me-1"></i>К другим играм
+            </a>
+          </div>
+        {% endwith %}
+      </div>
+    </div>
+    <div class="game-hero-stats">
+      <div class="game-hero-stat">
+        <span class="label">Всего этапов</span>
+        <span class="value">{{ stage_summary.total }}</span>
+        <span class="hint">Карты, города и побережья</span>
+      </div>
+      <div class="game-hero-stat">
+        <span class="label">Завершено</span>
+        <span class="value">{{ stage_summary.completed }}</span>
+        <span class="hint">Отмечено отзывами</span>
+      </div>
+      <div class="game-hero-stat">
+        <span class="label">В процессе</span>
+        <span class="value">{{ stage_summary.in_progress }}</span>
+        <span class="hint">Книги ждут финала</span>
+      </div>
+      <div class="game-hero-stat">
+        <span class="label">Свободно</span>
+        <span class="value">{{ stage_summary.available }}</span>
+        <span class="hint">Можно выбрать любую историю</span>
+      </div>
+    </div>
+    <div
+      class="game-progress"
+      role="progressbar"
+      aria-valuenow="{{ stage_summary.progress_percent }}"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-label="Прогресс прохождения карты"
+    >
+      <div class="game-progress-bar" style="width: {{ stage_summary.progress_percent }}%;"></div>
+    </div>
+    <div class="small text-white-50 mt-2">
+      {% if stage_summary.total %}
+        Пройдено {{ stage_summary.completed }} из {{ stage_summary.total }} этапов.
+      {% else %}
+        Карта готова к первому путешествию.
+      {% endif %}
+    </div>
+  </div>
+</section>
+
 <div class="row g-4 align-items-start">
-  <div class="col-lg-7">
-    <section class="card shadow-sm border-0 overflow-hidden journey-map">
-      <div class="card-header bg-body-tertiary border-bottom">
-        <h1 class="h5 mb-1">{{ map_title }}</h1>
-        <p class="text-muted mb-0">{{ map_description }}</p>
-      </div>
-      <div
-        class="journey-map__canvas position-relative"
-        style="--journey-map-image: url('{% static 'games/book-journey-map.png' %}');"
-      >
-        <img
-          src="{% static 'games/book-journey-map.png' %}"
-          alt="Карты с островами Гюго, Чехова, Шекспира, Достоевского и Кафки"
-          class="journey-map__image visually-hidden"
-        >
-          {% for stage in stages %}
-          <button
-            type="button"
-            class="journey-map__marker terrain-{{ stage.terrain }} journey-map__marker--{{ stage.status }}"
-            style="top: {{ stage.top }}%; left: {{ stage.left }}%;"
-            data-stage="{{ stage.number }}"
-            aria-label="Этап #{{ stage.number }}: {{ stage.title }}"
-            data-bs-toggle="offcanvas"
-            data-bs-target="#journey-stage-panel"
-          >
-            <span class="journey-map__marker-index">{{ stage.number }}</span>
-          </button>
-        {% endfor %}
-      </div>
-      <div class="card-footer bg-white">
-        <div class="d-flex flex-wrap gap-3 align-items-center justify-content-between">
-          <div class="fw-semibold small text-uppercase text-muted">Легенда</div>
-          <div class="d-flex flex-wrap gap-2 align-items-center">
+  <div class="col-xl-7 order-xl-1 order-2">
+    <section class="card shadow-sm border-0 journey-map-card">
+      <div class="card-header">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+          <div>
+            <h2 class="h5 mb-1">Интерактивная карта</h2>
+            <p class="text-muted small mb-0">Нажимайте на острова, чтобы открыть задания и прикрепить свои книги.</p>
+          </div>
+          <div class="journey-legend-badges">
             {% for key, item in terrain_legend %}
               <span class="badge rounded-pill journey-map__legend-badge terrain-{{ key }}">{{ item.label }}</span>
             {% endfor %}
           </div>
         </div>
-        <ul class="list-unstyled small text-muted mb-0 mt-2">
+        </div>
+      <div class="card-body">
+        <div
+          class="journey-map__canvas position-relative"
+          style="--journey-map-image: url('{% static 'games/book-journey-map.png' %}');"
+        >
+          <img
+            src="{% static 'games/book-journey-map.png' %}"
+            alt="Карты с островами Гюго, Чехова, Шекспира, Достоевского и Кафки"
+            class="journey-map__image visually-hidden"
+          >
+          {% for stage in stages %}
+            <button
+              type="button"
+              class="journey-map__marker terrain-{{ stage.terrain }} journey-map__marker--{{ stage.status }}"
+              style="top: {{ stage.top }}%; left: {{ stage.left }}%;"
+              data-stage="{{ stage.number }}"
+              aria-label="Этап #{{ stage.number }}: {{ stage.title }}"
+              data-bs-toggle="offcanvas"
+              data-bs-target="#journey-stage-panel"
+            >
+              <span class="journey-map__marker-index">{{ stage.number }}</span>
+            </button>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="card-footer">
+        <div class="small text-uppercase text-muted fw-semibold mb-2">Легенда</div>
+        <ul class="journey-legend-hints small">
           {% for key, item in terrain_legend %}
-            <li><span class="fw-semibold">{{ item.label }}:</span> {{ item.hint }}</li>
+            <li class="mb-1"><span class="fw-semibold">{{ item.label }}:</span> {{ item.hint }}</li>
           {% endfor %}
         </ul>
       </div>
     </section>
   </div>
-  <div class="col-lg-5">
-    <section class="card shadow-sm border-0">
+  <div class="col-xl-5 order-xl-2 order-1">
+    <section class="card shadow-sm border-0 game-panel game-panel--soft">
       <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
           <div>
-            <h2 class="h6 mb-1">Как играть</h2>
-            <p class="small text-muted mb-0">Всего {{ stage_count }} заданий — исследуйте острова в своём темпе.</p>
+            <div class="game-panel-title mb-1">Как играть</div>
+            <p class="small text-muted mb-0">Всего {{ stage_summary.total }} заданий — исследуйте карту в своём темпе.</p>
           </div>
-          <a class="btn btn-outline-primary btn-sm" href="{% url 'games:read_before_buy' %}">
-            <i class="bi bi-controller me-1"></i>К другим играм
-          </a>
+          <span class="badge rounded-pill text-bg-light text-dark-emphasis">{{ stage_summary.total }} этапов</span>
         </div>
-        <ol class="ps-3 small">
+        <ol class="game-checklist small mb-4">
           {% for item in checklist %}
-            <li class="mb-2">{{ item }}</li>
+            <li>{{ item }}</li>
           {% endfor %}
         </ol>
         {% if not is_authenticated %}
-          <div class="alert alert-info small" role="status">
-            <div class="fw-semibold">Войдите, чтобы прикреплять книги</div>
-            <p class="mb-0">После авторизации вы сможете выбирать задания и отслеживать прогресс прямо с карты.</p>
+          <div class="game-hint p-3 small" role="status">
+            <strong>Войдите, чтобы прикреплять книги.</strong>
+            После авторизации вы сможете выбирать задания и отслеживать прогресс прямо с карты
           </div>
         {% elif active_stage_number %}
           <div class="alert alert-primary small mb-0" role="status">
@@ -79,10 +168,12 @@
         {% endif %}
       </div>
     </section>
-    <section class="card shadow-sm border-0 mt-4">
-      <div class="card-header bg-body-tertiary border-bottom d-flex justify-content-between align-items-center">
-        <h2 class="h6 mb-0">Этапы путешествия</h2>
-        <span class="badge text-bg-light">{{ stage_count }} заданий</span>
+    <section class="card shadow-sm border-0 game-panel mt-4">
+      <div class="card-header">
+        <div class="d-flex align-items-center justify-content-between gap-3">
+          <div class="game-panel-title mb-0">Этапы путешествия</div>
+          <span class="badge rounded-pill text-bg-light text-dark-emphasis">{{ stage_summary.total }} заданий</span>
+        </div>
       </div>
       <div class="card-body p-0">
         <div class="list-group list-group-flush journey-stage-list">
@@ -98,9 +189,9 @@
                 <div class="fw-semibold">#{{ stage.number }} · {{ stage.title }}</div>
                 <div class="small text-muted">{{ stage.requirement }}</div>
                 {% if stage.assignment %}
-                  <div class="small mt-1">
-                    <i class="bi bi-book me-1 text-primary"></i>
-                    <span class="text-body-secondary">{{ stage.assignment.book_title }}</span>
+                  <div class="small mt-1 d-flex align-items-center gap-2 text-body-secondary">
+                    <i class="bi bi-book"></i>
+                    <span>{{ stage.assignment.book_title }}</span>
                   </div>
                 {% endif %}
               </div>

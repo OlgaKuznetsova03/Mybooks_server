@@ -58,12 +58,19 @@ def read_before_buy_dashboard(request):
         if total_books is None:
             total_books = state.shelf.items.count()
         total_books_counter += total_books
+        progress_percent = 0
+        if cost:
+            progress_percent = min(
+                100,
+                round((state.points_balance / cost) * 100),
+            )
         state_details.append(
             {
                 "state": state,
                 "total_books": total_books,
                 "points_needed": max(0, cost - state.points_balance),
                 "available_purchases": state.points_balance // cost if cost else 0,
+                "progress_percent": progress_percent,
             }
         )
 
@@ -73,6 +80,17 @@ def read_before_buy_dashboard(request):
         "books_purchased": sum(state.books_purchased for state in states),
         "total_books": total_books_counter,
     }
+    overall_available_purchases = sum(item["available_purchases"] for item in state_details)
+    overall["available_purchases"] = overall_available_purchases
+    if cost:
+        overall["next_purchase_points"] = max(0, cost - overall["points_balance"])
+        overall["progress_percent"] = min(
+            100,
+            round((overall["points_balance"] / cost) * 100),
+        )
+    else:
+        overall["next_purchase_points"] = 0
+        overall["progress_percent"] = 0
 
     enroll_form = ReadBeforeBuyEnrollForm(user=request.user)
     if request.method == "POST":
@@ -116,6 +134,7 @@ def read_before_buy_dashboard(request):
         "overall": overall,
         "purchase_cost": ReadBeforeBuyGame.PURCHASE_COST,
         "enroll_form": enroll_form,
+        "shelf_count": len(state_details),
     }
     return render(request, "games/read_before_buy.html", context)
 
@@ -297,6 +316,10 @@ def book_journey_map(request):
                 break
 
     stages = []
+    completed_count = 0
+    in_progress_count = 0
+    assigned_count = 0
+    next_available_stage = None
     for stage in BookJourneyMap.get_stages():
         assignment = assignment_lookup.get(stage.number)
         status = "available"
@@ -330,6 +353,7 @@ def book_journey_map(request):
                 "started_at": assignment.started_at,
                 "completed_at": assignment.completed_at,
             }
+            assigned_count += 1
         stages.append(
             {
                 "number": stage.number,
@@ -347,12 +371,26 @@ def book_journey_map(request):
             }
         )
 
+        if status == "completed":
+            completed_count += 1
+        elif status == "in_progress":
+            in_progress_count += 1
+        if status == "available" and next_available_stage is None:
+            next_available_stage = stage.number
+
     assignment_stage_value = None
     if assignment_form is not None and assignment_form.is_bound:
         try:
             assignment_stage_value = assignment_form["stage_number"].value()
         except KeyError:  # pragma: no cover - defensive
             assignment_stage_value = None
+
+    stage_count = len(stages)
+    available_count = stage_count - completed_count - in_progress_count
+    available_count = max(available_count, 0)
+    progress_percent = 0
+    if stage_count:
+        progress_percent = round((completed_count / stage_count) * 100)
 
     context = {
         "map_title": BookJourneyMap.TITLE,
@@ -371,5 +409,14 @@ def book_journey_map(request):
             "completed": "Выполнено",
         },
         "assignment_stage_value": assignment_stage_value,
+        "stage_summary": {
+            "total": stage_count,
+            "completed": completed_count,
+            "in_progress": in_progress_count,
+            "available": available_count,
+            "assigned": assigned_count,
+            "progress_percent": progress_percent,
+        },
+        "next_available_stage": next_available_stage,
     }
     return render(request, "games/book_journey_map.html", context)
