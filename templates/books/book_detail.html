@@ -1,5 +1,10 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}{{ book.title }} · ReadTogether{% endblock %}
+{% block extra_css %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'books/genre-shelf.css' %}">
+{% endblock %}
 {% block content %}
 
 <div class="row g-4">
@@ -140,11 +145,15 @@
   <div class="col-md-8">
     <h1 class="h3 mb-1">{{ book.title }}</h1>
     <div class="text-muted mb-2">{{ book.authors.all|join:", " }}</div>
-    <div class="mb-2">
-      {% for g in book.genres.all %}
-        <span class="badge text-bg-light me-1">{{ g.name }}</span>
-      {% endfor %}
-    </div>
+    {% with genres=book.genres.all %}
+      {% if genres %}
+        <div class="mb-2 d-flex flex-wrap gap-2">
+          {% for g in genres %}
+            <a class="badge text-bg-light text-decoration-none" href="{{ g.get_absolute_url }}">{{ g.name }}</a>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
     {% if active_publisher_name %}
       <div class="mb-2">Издательство: {{ active_publisher_name }}</div>
     {% endif %}
@@ -182,6 +191,20 @@
       </div>
     {% endif %}
 
+    {% if genre_shelves %}
+      <section class="mt-4" aria-labelledby="genre-shelf-heading">
+        <div class="d-flex align-items-baseline justify-content-between flex-wrap gap-2 mb-3">
+          <h2 class="h6 mb-0" id="genre-shelf-heading">Ещё книги в этих жанрах</h2>
+          <span class="text-muted small">Подборка в стиле «12 забытых книг»</span>
+        </div>
+        <div class="genre-shelf-collection">
+          {% for shelf in genre_shelves %}
+            {% include "books/includes/genre_shelf.html" with shelf=shelf %}
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+    
     <!-- Кнопки действий -->
     {% if request.user.is_authenticated %}
       <div class="d-flex flex-wrap gap-2 my-3" aria-label="Быстрые действия">

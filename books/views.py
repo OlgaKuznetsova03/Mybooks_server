@@ -35,7 +35,7 @@ from shelves.services import (
     move_book_to_read_shelf,
 )
 from games.services.read_before_buy import ReadBeforeBuyGame
-from .models import Book, Rating, ISBNModel
+from .models import Author, Book, Genre, Rating, ISBNModel
 from .forms import BookForm, RatingForm
 from .services import EditionRegistrationResult, register_book_edition
 from .api_clients import google_books_client
@@ -53,6 +53,35 @@ def _book_cover_url(book: Book) -> str:
     """Вернуть URL обложки для отображения в подборках."""
 
     return book.get_cover_url()
+
+
+SHELF_BOOKS_LIMIT = 12
+
+
+def _serialize_book_for_shelf(book: Book) -> dict[str, object]:
+    if (
+        hasattr(book, "_prefetched_objects_cache")
+        and "authors" in book._prefetched_objects_cache
+    ):
+        authors_qs = book._prefetched_objects_cache["authors"]
+        authors = [author.name for author in authors_qs if author.name]
+    else:
+        authors = list(
+            book.authors.order_by("name").values_list("name", flat=True)
+        )
+
+    title = (book.title or "").strip()
+
+    return {
+        "id": book.pk,
+        "title": title,
+        "detail_url": reverse("book_detail", args=[book.pk]),
+        "cover_url": _book_cover_url(book),
+        "authors": authors,
+        "average_rating": getattr(book, "average_rating", None),
+        "rating_count": int(getattr(book, "rating_count", 0) or 0),
+        "initial": (title[:1] or "?").upper(),
+    }
 
 
 def _matching_books_for_isbns(isbn_values: list[str]) -> list[dict[str, object]]:
@@ -370,10 +399,95 @@ def book_list(request):
         },
     )
 
+
+def genre_detail(request, slug):
+    genre = get_object_or_404(Genre, slug=slug)
+
+    base_qs = (
+        genre.books.prefetch_related(
+            Prefetch("authors", queryset=Author.objects.order_by("name"))
+        )
+        .annotate(
+            average_rating=Avg("ratings__score"),
+            rating_count=Count("ratings__score"),
+        )
+    )
+
+    total_books = base_qs.count()
+
+    shelves: list[dict[str, object]] = []
+
+    popular_selection = list(
+        base_qs.order_by("-rating_count", "-average_rating", "title")[
+            :SHELF_BOOKS_LIMIT
+        ]
+    )
+    if popular_selection:
+        shelves.append(
+            {
+                "title": "Популярное",
+                "subtitle": "Читатели выбирают чаще всего.",
+                "cta": None,
+                "books": [
+                    _serialize_book_for_shelf(book)
+                    for book in popular_selection
+                ],
+            }
+        )
+
+    top_rated_selection = list(
+        base_qs.filter(average_rating__isnull=False)
+        .order_by("-average_rating", "-rating_count", "title")[:SHELF_BOOKS_LIMIT]
+    )
+    if top_rated_selection:
+        shelves.append(
+            {
+                "title": "С высоким рейтингом",
+                "subtitle": "Лучшие оценки сообщества ReadTogether.",
+                "cta": None,
+                "books": [
+                    _serialize_book_for_shelf(book)
+                    for book in top_rated_selection
+                ],
+            }
+        )
+
+    newest_selection = list(base_qs.order_by("-pk")[:SHELF_BOOKS_LIMIT])
+    if newest_selection:
+        shelves.append(
+            {
+                "title": "Недавно добавлены",
+                "subtitle": "Свежие истории в этом жанре.",
+                "cta": None,
+                "books": [
+                    _serialize_book_for_shelf(book)
+                    for book in newest_selection
+                ],
+            }
+        )
+
+    other_genres = (
+        Genre.objects.exclude(pk=genre.pk)
+        .annotate(book_count=Count("books", distinct=True))
+        .filter(book_count__gt=0)
+        .order_by("-book_count", "name")[:12]
+    )
+
+    return render(
+        request,
+        "books/genre_detail.html",
+        {
+            "genre": genre,
+            "shelves": shelves,
+            "total_books": total_books,
+            "other_genres": other_genres,
+        },
+    )
+
 def book_detail(request, pk):
     book = get_object_or_404(
         Book.objects.prefetch_related(
-            "authors",
+            Prefetch("authors", queryset=Author.objects.order_by("name")),
             "genres",
             "publisher",
             "ratings__user",
@@ -721,6 +835,41 @@ def book_detail(request, pk):
         if publisher_names:
             active_publisher_name = ", ".join(publisher_names)
 
+    genre_shelves: list[dict[str, object]] = []
+    for genre in book.genres.all():
+        related_qs = (
+            genre.books.exclude(pk=book.pk)
+            .prefetch_related(
+                Prefetch("authors", queryset=Author.objects.order_by("name"))
+            )
+            .annotate(
+                average_rating=Avg("ratings__score"),
+                rating_count=Count("ratings__score"),
+            )
+        )
+
+        related_selection = related_qs.order_by(
+            "-rating_count", "-average_rating", "title"
+        )[:SHELF_BOOKS_LIMIT]
+
+        related_books = [
+            _serialize_book_for_shelf(related)
+            for related in related_selection
+        ]
+
+        if related_books:
+            genre_shelves.append(
+                {
+                    "title": f"Ещё в жанре «{genre.name}»",
+                    "subtitle": "Популярные книги, которые выбирают читатели.",
+                    "cta": {
+                        "url": genre.get_absolute_url(),
+                        "label": "Все книги жанра",
+                    },
+                    "books": related_books,
+                }
+            )
+
     return render(request, "books/book_detail.html", {
         "book": book,
         "form": form,
@@ -743,6 +892,7 @@ def book_detail(request, pk):
         "home_library_entry": home_library_entry,
         "home_library_edit_url": home_library_edit_url,
         "default_shelf_status": default_shelf_status,
+        "genre_shelves": genre_shelves,
     })
 
 @login_required

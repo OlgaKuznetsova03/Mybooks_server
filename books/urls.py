@@ -5,6 +5,8 @@ urlpatterns = [
     # пример: страница со списком книг
     path("book_list", views.book_list, name="book_list"),
 
+    path("genres/<slug:slug>/", views.genre_detail, name="genre_detail"),
+
     path("lookup/", views.book_lookup, name="book_lookup"),
     path("prefill/", views.book_prefill_external, name="book_prefill_external"),
     

@@ -5,6 +5,8 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
+from django.utils.text import slugify
+from django.urls import reverse
 from django.db.models import Sum, F, Avg, Count
 from django.db.models.signals import m2m_changed
 from django.dispatch import receiver
@@ -31,10 +33,34 @@ class Publisher(models.Model):
 
 class Genre(models.Model):
     name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(
+        max_length=150,
+        unique=True,
+        blank=True,
+        allow_unicode=True,
+    )
 
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        if not self.slug and self.name:
+            base_slug = slugify(self.name, allow_unicode=True) or "genre"
+            slug_candidate = base_slug
+            counter = 2
+            while (
+                Genre.objects.filter(slug=slug_candidate)
+                .exclude(pk=self.pk)
+                .exists()
+            ):
+                slug_candidate = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug_candidate
+        super().save(*args, **kwargs)
+
+    def get_absolute_url(self) -> str:
+        return reverse("genre_detail", args=[self.slug])
+    
 
 class ISBNModel(models.Model):
     isbn = models.CharField(max_length=13, unique=True)

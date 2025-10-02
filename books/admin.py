@@ -18,4 +18,12 @@ class ISBNAdmin(admin.ModelAdmin):
     search_fields = ("title", "isbn", "isbn13", "publisher")
     list_filter = ("language",)
 
-admin.site.register([Author, Genre, Publisher, AudioBook, Rating])
+
+@admin.register(Genre)
+class GenreAdmin(admin.ModelAdmin):
+    list_display = ("name", "slug")
+    search_fields = ("name", "slug")
+    prepopulated_fields = {"slug": ("name",)}
+
+
+admin.site.register([Author, Publisher, AudioBook, Rating])

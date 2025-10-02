@@ -4,6 +4,7 @@ from unittest import mock
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+from django.utils.text import slugify
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
@@ -13,6 +14,28 @@ from shelves.models import Shelf, ShelfItem
 from .models import Author, Genre, Publisher, Book, ISBNModel
 from .services import register_book_edition
 from .api_clients import ExternalBookData
+
+
+class GenreModelTests(TestCase):
+    def test_slug_generated_from_name(self):
+        genre = Genre.objects.create(name="Научная фантастика")
+        self.assertEqual(
+            genre.slug,
+            slugify("Научная фантастика", allow_unicode=True),
+        )
+        self.assertEqual(
+            genre.get_absolute_url(),
+            reverse("genre_detail", args=[genre.slug]),
+        )
+
+    def test_slug_uniqueness_suffix(self):
+        base = Genre.objects.create(name="Фэнтези")
+        variant = Genre.objects.create(name="Фэнтези!")
+
+        expected_base_slug = slugify("Фэнтези", allow_unicode=True)
+        self.assertEqual(base.slug, expected_base_slug)
+        self.assertTrue(variant.slug.startswith(expected_base_slug))
+        self.assertNotEqual(base.slug, variant.slug)
 
 
 class ISBNModelGetImageURLTests(TestCase):
@@ -140,6 +163,32 @@ class BookCreateViewTests(TestCase):
 
             existing_isbn.refresh_from_db()
             self.assertEqual(existing_isbn.image, "book_covers/original.jpg")
+
+
+class GenreDetailViewTests(TestCase):
+    def setUp(self):
+        self.author = Author.objects.create(name="Автор")
+        self.genre = Genre.objects.create(name="Детектив")
+
+        self.book = Book.objects.create(title="Первое дело")
+        self.book.authors.add(self.author)
+        self.book.genres.add(self.genre)
+
+        self.another_book = Book.objects.create(title="Второе дело")
+        self.another_book.authors.add(self.author)
+        self.another_book.genres.add(self.genre)
+
+    def test_genre_detail_lists_books(self):
+        response = self.client.get(self.genre.get_absolute_url())
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.book.title)
+        self.assertContains(response, self.another_book.title)
+
+    def test_book_detail_displays_genre_shelf(self):
+        response = self.client.get(reverse("book_detail", args=[self.book.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Ещё книги в этих жанрах")
+        self.assertContains(response, self.another_book.title)
 
 
 class RegisterBookEditionTests(TestCase):

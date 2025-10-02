@@ -62,7 +62,7 @@
               {% if genre_count %}
                 <div class="mt-2 d-flex flex-wrap gap-1">
                   {% for g in genres|slice:":3" %}
-                    <span class="badge rounded-pill text-bg-light">{{ g.name }}</span>
+                    <a class="badge rounded-pill text-bg-light text-decoration-none" href="{{ g.get_absolute_url }}">{{ g.name }}</a>
                   {% endfor %}
                   {% if genre_count > 3 %}
                     <span class="badge rounded-pill text-bg-light">+{{ genre_count|add:"-3" }}</span>
