@@ -164,6 +164,7 @@ def forgotten_books_dashboard(request):
     selected_entries = [entry for entry in entries if entry.selected_month]
     pending_entries = [entry for entry in entries if not entry.selected_month]
     remaining_slots = max(0, ForgottenBooksGame.MAX_BOOKS - len(entries))
+    added_books_count = ForgottenBooksGame.MAX_BOOKS - remaining_slots
 
     context = {
         "game": game,
@@ -173,6 +174,7 @@ def forgotten_books_dashboard(request):
         "selected_entries": selected_entries,
         "pending_entries": pending_entries,
         "remaining_slots": remaining_slots,
+        "added_books_count": added_books_count,
         "max_books": ForgottenBooksGame.MAX_BOOKS,
     }
 
