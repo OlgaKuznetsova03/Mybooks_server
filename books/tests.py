@@ -4,7 +4,6 @@ from unittest import mock
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
-from django.utils.text import slugify
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
@@ -19,10 +18,8 @@ from .api_clients import ExternalBookData
 class GenreModelTests(TestCase):
     def test_slug_generated_from_name(self):
         genre = Genre.objects.create(name="Научная фантастика")
-        self.assertEqual(
-            genre.slug,
-            slugify("Научная фантастика", allow_unicode=True),
-        )
+        self.assertEqual(genre.slug, "nauchnaya-fantastika")
+        self.assertTrue(genre.slug.isascii())
         self.assertEqual(
             genre.get_absolute_url(),
             reverse("genre_detail", args=[genre.slug]),
@@ -32,9 +29,8 @@ class GenreModelTests(TestCase):
         base = Genre.objects.create(name="Фэнтези")
         variant = Genre.objects.create(name="Фэнтези!")
 
-        expected_base_slug = slugify("Фэнтези", allow_unicode=True)
-        self.assertEqual(base.slug, expected_base_slug)
-        self.assertTrue(variant.slug.startswith(expected_base_slug))
+        self.assertEqual(base.slug, "fentezi")
+        self.assertTrue(variant.slug.startswith("fentezi"))
         self.assertNotEqual(base.slug, variant.slug)
 
 

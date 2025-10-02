@@ -31,13 +31,60 @@ class Publisher(models.Model):
         return self.name
 
 
+CYRILLIC_TO_LATIN = {
+    "а": "a",
+    "б": "b",
+    "в": "v",
+    "г": "g",
+    "д": "d",
+    "е": "e",
+    "ё": "yo",
+    "ж": "zh",
+    "з": "z",
+    "и": "i",
+    "й": "y",
+    "к": "k",
+    "л": "l",
+    "м": "m",
+    "н": "n",
+    "о": "o",
+    "п": "p",
+    "р": "r",
+    "с": "s",
+    "т": "t",
+    "у": "u",
+    "ф": "f",
+    "х": "kh",
+    "ц": "ts",
+    "ч": "ch",
+    "ш": "sh",
+    "щ": "shch",
+    "ъ": "",
+    "ы": "y",
+    "ь": "",
+    "э": "e",
+    "ю": "yu",
+    "я": "ya",
+}
+
+
+def _transliterate_for_slug(value: str) -> str:
+    if not value:
+        return ""
+    return "".join(CYRILLIC_TO_LATIN.get(ch, ch) for ch in value.lower())
+
+
+def _build_genre_slug_base(name: str) -> str:
+    transliterated = _transliterate_for_slug(name)
+    return slugify(transliterated, allow_unicode=False) or "genre"
+
+
 class Genre(models.Model):
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(
         max_length=150,
         unique=True,
         blank=True,
-        allow_unicode=True,
     )
 
     def __str__(self):
@@ -45,7 +92,7 @@ class Genre(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug and self.name:
-            base_slug = slugify(self.name, allow_unicode=True) or "genre"
+            base_slug = _build_genre_slug_base(self.name)
             slug_candidate = base_slug
             counter = 2
             while (
