@@ -154,7 +154,7 @@ def home_library(request):
         added = entry.shelf_item.added_at.date() if entry.shelf_item.added_at else date.min
         return (acquired, added, entry.shelf_item_id)
 
-recent_entries = sorted(active_entries_qs, key=_sort_key, reverse=True)[:5]
+    recent_entries = sorted(active_entries_qs, key=_sort_key, reverse=True)[:5]
 
     series_values = list(
         active_entries_qs
