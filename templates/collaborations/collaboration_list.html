@@ -53,19 +53,24 @@
               {% endif %}
             </td>
             <td class="text-end">
-              {% if user == collaboration.partner and (collaboration.status == collaboration.Status.NEGOTIATION or collaboration.status == collaboration.Status.ACTIVE) %}
-                <a href="{% url 'collaborations:collaboration_review' collaboration.pk %}" class="btn btn-sm btn-outline-primary me-2">
-                  <i class="bi bi-upload me-1"></i>{% trans "Отправить ссылки" %}
-                </a>
+              {% if user == collaboration.partner %}
+                {% if collaboration.status == collaboration.Status.NEGOTIATION or collaboration.status == collaboration.Status.ACTIVE %}
+                  <a href="{% url 'collaborations:collaboration_review' collaboration.pk %}" class="btn btn-sm btn-outline-primary me-2">
+                    <i class="bi bi-upload me-1"></i>{% trans "Отправить ссылки" %}
+                  </a>
+                  {% endif %}
               {% endif %}
-              {% if user == collaboration.author and (collaboration.status == collaboration.Status.NEGOTIATION or collaboration.status == collaboration.Status.ACTIVE) %}
-                <div class="btn-group">
-                  <a href="{% url 'collaborations:collaboration_confirm' collaboration.pk %}" class="btn btn-sm btn-success">
-                    <i class="bi bi-check-circle me-1"></i>{% trans "Подтвердить" %}
-                  </a>
-                  <a href="{% url 'collaborations:collaboration_fail' collaboration.pk %}" class="btn btn-sm btn-outline-danger">
-                    <i class="bi bi-exclamation-octagon me-1"></i>{% trans "Просрочено" %}
-                  </a>
+              {% if user == collaboration.author %}
+                {% if collaboration.status == collaboration.Status.NEGOTIATION or collaboration.status == collaboration.Status.ACTIVE %}
+                  <div class="btn-group">
+                    <a href="{% url 'collaborations:collaboration_confirm' collaboration.pk %}" class="btn btn-sm btn-success">
+                      <i class="bi bi-check-circle me-1"></i>{% trans "Подтвердить" %}
+                    </a>
+                    <a href="{% url 'collaborations:collaboration_fail' collaboration.pk %}" class="btn btn-sm btn-outline-danger">
+                      <i class="bi bi-exclamation-octagon me-1"></i>{% trans "Просрочено" %}
+                    </a>
+                  </div>
+                {% endif %}
                 </div>
               {% endif %}
             </td>
