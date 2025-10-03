@@ -221,53 +221,49 @@
             <div class="row g-3">
               <div class="col-12 col-md-3">
                 <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
-                  <p class="text-muted text-uppercase small mb-1">Всего экземпляров</p>
+                  <p class="text-muted text-uppercase small mb-1">Всего активных книг</p>
                   <p class="fs-3 fw-semibold mb-1">{{ home.total }}</p>
-                  <p class="small text-muted mb-0">{{ home.gift_count }} {{ home.gift_count|ru_pluralize:"подарок,подарка,подарков" }}</p>
+                  <p class="small text-muted mb-0">Передано: {{ home.disposed_total }} {{ home.disposed_total|ru_pluralize:"книга,книги,книг" }}</p>
+                </div>
+              </div>
+              <div class="col-12 col-md-3">
+                <div class="border rounded-3 p-3 h-100 bg-body-terтиary">
+                  <p class="text-muted text-uppercase small mb-1">Классика</p>
+                  <p class="fs-3 fw-semibold mb-1">{{ home.classic_count }}</p>
+                  <p class="small text-muted mb-0">Современных книг: {{ home.modern_count }}</p>
                 </div>
               </div>
               <div class="col-12 col-md-3">
                 <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
-                  <p class="text-muted text-uppercase small mb-1">Оценочная стоимость</p>
-                  {% if home.estimated_value %}
-                    <p class="fs-3 fw-semibold mb-1">{{ home.estimated_value }} ₽</p>
-                    <p class="small text-muted mb-0">Сумма по заполненным ценам.</p>
+                  <p class="text-muted text-uppercase small mb-2">Популярные серии</p>
+                  {% if home.series_counts %}
+                    <ul class="list-unstyled mb-0 small">
+                      {% for series in home.series_counts %}
+                        <li class="d-flex justify-content-between">
+                          <span>{{ series.series_name }}</span>
+                          <span class="fw-semibold">{{ series.total }}</span>
+                        </li>
+                      {% endfor %}
+                    </ul>
                   {% else %}
-                    <p class="text-muted mb-0">Укажите стоимость книг, чтобы увидеть оценку коллекции.</p>
+                    <p class="text-muted mb-0 small">Добавьте серию для экземпляров.</p>
                   {% endif %}
                 </div>
               </div>
               <div class="col-12 col-md-3">
                 <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
-                  <p class="text-muted text-uppercase small mb-2">Популярные форматы</p>
-                  {% if home.format_counts %}
+                  <p class="text-muted text-uppercase small mb-2">Популярные жанры</p>
+                  {% if home.genre_counts %}
                     <ul class="list-unstyled mb-0 small">
-                      {% for fmt in home.format_counts %}
+                      {% for genre in home.genre_counts %}
                         <li class="d-flex justify-content-between">
-                          <span>{{ fmt.label }}</span>
-                          <span class="fw-semibold">{{ fmt.count }}</span>
+                          <span>{{ genre.name }}</span>
+                          <span class="fw-semibold">{{ genre.total }}</span>
                         </li>
                       {% endfor %}
                     </ul>
                   {% else %}
-                    <p class="text-muted mb-0 small">Пока нет данных.</p>
-                  {% endif %}
-                </div>
-              </div>
-              <div class="col-12 col-md-3">
-                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
-                  <p class="text-muted text-uppercase small mb-2">Где хранятся</p>
-                  {% if home.top_locations %}
-                    <ul class="list-unstyled mb-0 small">
-                      {% for loc in home.top_locations %}
-                        <li class="d-flex justify-content-between">
-                          <span>{{ loc.location }}</span>
-                          <span class="fw-semibold">{{ loc.total }}</span>
-                        </li>
-                      {% endfor %}
-                    </ul>
-                  {% else %}
-                    <p class="text-muted mb-0 small">Заполните поле «Где хранится».</p>
+                    <p class="text-muted mb-0 small">Заполните жанры у книг.</p>
                   {% endif %}
                 </div>
               </div>
@@ -282,6 +278,21 @@
                 </div>
               </div>
             {% endif %}
+            <div class="mt-4">
+              <h4 class="h6 mb-2">Где хранятся</h4>
+              {% if home.top_locations %}
+                <ul class="list-unstyled mb-0 small">
+                  {% for loc in home.top_locations %}
+                    <li class="d-flex justify-content-between">
+                      <span>{{ loc.location }}</span>
+                      <span class="fw-semibold">{{ loc.total }}</span>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <p class="text-muted mb-0 small">Заполните поле «Где хранится».</p>
+              {% endif %}
+            </div>
           {% else %}
             <p class="text-muted mb-0">Добавьте книги в полку «Моя домашняя библиотека», чтобы отслеживать их состояние.</p>
           {% endif %}

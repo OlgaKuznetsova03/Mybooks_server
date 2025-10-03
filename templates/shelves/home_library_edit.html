@@ -48,10 +48,10 @@
           {{ form.status.errors }}
         </div>
         <div class="col-12 col-md-4">
-          <label class="form-label" for="id_condition">{{ form.condition.label }}</label>
-          {{ form.condition }}
-          {% if form.condition.help_text %}<div class="form-text">{{ form.condition.help_text }}</div>{% endif %}
-          {{ form.condition.errors }}
+          <label class="form-label" for="id_acquired_at">{{ form.acquired_at.label }}</label>
+          {{ form.acquired_at }}
+          {% if form.acquired_at.help_text %}<div class="form-text">{{ form.acquired_at.help_text }}</div>{% endif %}
+          {{ form.acquired_at.errors }}
         </div>
         <div class="col-12 col-md-6">
           <label class="form-label" for="id_location">{{ form.location.label }}</label>
@@ -66,30 +66,38 @@
           {{ form.shelf_section.errors }}
         </div>
         <div class="col-12 col-md-6">
-          <label class="form-label" for="id_acquired_from">{{ form.acquired_from.label }}</label>
-          {{ form.acquired_from }}
-          {% if form.acquired_from.help_text %}<div class="form-text">{{ form.acquired_from.help_text }}</div>{% endif %}
-          {{ form.acquired_from.errors }}
+          <label class="form-label" for="id_series_name">{{ form.series_name.label }}</label>
+          {{ form.series_name }}
+          {% if form.series_name.help_text %}<div class="form-text">{{ form.series_name.help_text }}</div>{% endif %}
+          {{ form.series_name.errors }}
         </div>
-        <div class="col-12 col-md-3">
-          <label class="form-label" for="id_acquired_at">{{ form.acquired_at.label }}</label>
-          {{ form.acquired_at }}
-          {% if form.acquired_at.help_text %}<div class="form-text">{{ form.acquired_at.help_text }}</div>{% endif %}
-          {{ form.acquired_at.errors }}
+        <div class="col-12 col-md-6">
+          <label class="form-label" for="id_custom_genres">{{ form.custom_genres.label }}</label>
+          {{ form.custom_genres }}
+          {% if form.custom_genres.help_text %}<div class="form-text">{{ form.custom_genres.help_text }}</div>{% endif %}
+          {{ form.custom_genres.errors }}
         </div>
-        <div class="col-12 col-md-3">
-          <label class="form-label" for="id_price">{{ form.price.label }}</label>
-          {{ form.price }}
-          {% if form.price.help_text %}<div class="form-text">{{ form.price.help_text }}</div>{% endif %}
-          {{ form.price.errors }}
+        <div class="col-12 col-md-6">
+          <div class="form-check mb-3">
+            {{ form.is_classic }}
+            <label class="form-check-label" for="id_is_classic">{{ form.is_classic.label }}</label>
+            {% if form.is_classic.help_text %}<div class="form-text">{{ form.is_classic.help_text }}</div>{% endif %}
+          </div>
+          {{ form.is_classic.errors }}
+        </div>
+        <div class="col-12 col-md-6">
+          <div class="form-check mb-3">
+            {{ form.is_disposed }}
+            <label class="form-check-label" for="id_is_disposed">{{ form.is_disposed.label }}</label>
+            {% if form.is_disposed.help_text %}<div class="form-text">{{ form.is_disposed.help_text }}</div>{% endif %}
+          </div>
+          {{ form.is_disposed.errors }}
         </div>
         <div class="col-12">
-          <div class="form-check mb-3">
-            {{ form.is_gift }}
-            <label class="form-check-label" for="id_is_gift">{{ form.is_gift.label }}</label>
-            {% if form.is_gift.help_text %}<div class="form-text">{{ form.is_gift.help_text }}</div>{% endif %}
-          </div>
-          {{ form.is_gift.errors }}
+          <label class="form-label" for="id_disposition_note">{{ form.disposition_note.label }}</label>
+          {{ form.disposition_note }}
+          {% if form.disposition_note.help_text %}<div class="form-text">{{ form.disposition_note.help_text }}</div>{% endif %}
+          {{ form.disposition_note.errors }}
         </div>
         <div class="col-12">
           <label class="form-label" for="id_notes">{{ form.notes.label }}</label>

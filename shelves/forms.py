@@ -5,7 +5,7 @@ from decimal import Decimal
 from django import forms
 from django.core.exceptions import ValidationError
 
-from books.models import Book
+from books.models import Book, Genre
 from .models import (
     Shelf,
     ShelfItem,
@@ -223,11 +223,12 @@ class HomeLibraryEntryForm(forms.ModelForm):
             "status",
             "location",
             "shelf_section",
-            "condition",
-            "acquired_from",
             "acquired_at",
-            "price",
-            "is_gift",
+            "is_classic",
+            "series_name",
+            "custom_genres",
+            "is_disposed",
+            "disposition_note",
             "notes",
         ]
         labels = {
@@ -237,11 +238,12 @@ class HomeLibraryEntryForm(forms.ModelForm):
             "status": "Статус",
             "location": "Где хранится",
             "shelf_section": "Секция/полка",
-            "condition": "Состояние",
-            "acquired_from": "Источник",
             "acquired_at": "Дата приобретения",
-            "price": "Стоимость",
-            "is_gift": "Подарок",
+            "is_classic": "Классика",
+            "series_name": "Серия книг",
+            "custom_genres": "Жанры",
+            "is_disposed": "Продана / отдана",
+            "disposition_note": "Комментарий к передаче",
             "notes": "Заметки",
         }
         widgets = {
@@ -251,10 +253,60 @@ class HomeLibraryEntryForm(forms.ModelForm):
             "status": forms.TextInput(attrs={"class": "form-control"}),
             "location": forms.TextInput(attrs={"class": "form-control"}),
             "shelf_section": forms.TextInput(attrs={"class": "form-control"}),
-            "condition": forms.TextInput(attrs={"class": "form-control"}),
-            "acquired_from": forms.TextInput(attrs={"class": "form-control"}),
             "acquired_at": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
-            "price": forms.NumberInput(attrs={"class": "form-control", "min": "0", "step": "0.01"}),
-            "is_gift": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "is_classic": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "series_name": forms.TextInput(attrs={"class": "form-control"}),
+            "custom_genres": forms.SelectMultiple(
+                attrs={"class": "form-select", "size": "6"}
+            ),
+            "is_disposed": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "disposition_note": forms.Textarea(
+                attrs={"class": "form-control", "rows": 3}
+            ),
             "notes": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
         }
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        is_disposed = cleaned_data.get("is_disposed")
+        note = cleaned_data.get("disposition_note", "").strip()
+        if is_disposed and not note:
+            self.add_error("disposition_note", "Укажите, почему книга выбыла из коллекции.")
+        return cleaned_data
+
+
+class HomeLibraryFilterForm(forms.Form):
+    is_classic = forms.ChoiceField(
+        required=False,
+        label="Классика",
+        choices=(
+            ("", "Все"),
+            ("true", "Только классика"),
+            ("false", "Только современная"),
+        ),
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    series = forms.ChoiceField(
+        required=False,
+        label="Серия",
+        choices=[("", "Все серии")],
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    genres = forms.ModelMultipleChoiceField(
+        required=False,
+        label="Жанры",
+        queryset=Genre.objects.none(),
+        widget=forms.SelectMultiple(
+            attrs={"class": "form-select", "size": "6"}
+        ),
+    )
+
+    def __init__(self, *args, series_choices=None, genre_queryset=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        base_choices = [("", "Все серии")]
+        if series_choices:
+            unique_series = sorted({value for value in series_choices if value})
+            base_choices.extend((value, value) for value in unique_series)
+        self.fields["series"].choices = base_choices
+        if genre_queryset is not None:
+            self.fields["genres"].queryset = genre_queryset

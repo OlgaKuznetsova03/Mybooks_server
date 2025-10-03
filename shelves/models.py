@@ -8,7 +8,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.timezone import localdate
-from books.models import Book
+from books.models import Book, Genre
 
 class Shelf(models.Model):
     """Полка пользователя"""
@@ -318,32 +318,38 @@ class HomeLibraryEntry(models.Model):
         blank=True,
         help_text="Дополнительная пометка: ряд, коробка, секция",
     )
-    condition = models.CharField(
-        max_length=100,
-        blank=True,
-        help_text="Состояние экземпляра, например «как новая»",
-    )
-    acquired_from = models.CharField(
-        max_length=120,
-        blank=True,
-        help_text="Где куплена или получена книга",
-    )
     acquired_at = models.DateField(
         null=True,
         blank=True,
         help_text="Дата покупки или получения",
     )
-    price = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        null=True,
+    condition = models.CharField(
+        max_length=100,
         blank=True,
-        validators=[MinValueValidator(Decimal("0"))],
-        help_text="Стоимость экземпляра в выбранной валюте",
+        help_text="Состояние экземпляра, например «как новая»",
     )
-    is_gift = models.BooleanField(
+    is_classic = models.BooleanField(
         default=False,
-        help_text="Получена ли книга в подарок",
+        help_text="Отметьте, если книга относится к классике",
+    )
+    series_name = models.CharField(
+        max_length=150,
+        blank=True,
+        help_text="Серия, к которой относится экземпляр",
+    )
+    custom_genres = models.ManyToManyField(
+        Genre,
+        blank=True,
+        related_name="home_library_entries",
+        help_text="Жанры именно этого экземпляра",
+    )
+    is_disposed = models.BooleanField(
+        default=False,
+        help_text="Пометка, что книга продана или отдана",
+    )
+    disposition_note = models.TextField(
+        blank=True,
+        help_text="Комментарий, почему книга выбыла",
     )
     notes = models.TextField(
         blank=True,

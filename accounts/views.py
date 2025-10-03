@@ -6,7 +6,7 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from .forms import SignUpForm, ProfileForm, RoleForm
-from django.db.models import Count, Sum
+from django.db.models import Count
 from django.urls import reverse
 from django.utils import timezone
 
@@ -112,9 +112,11 @@ def _collect_home_library_summary(user: User):
     shelf = Shelf.objects.filter(user=user, name=DEFAULT_HOME_LIBRARY_SHELF).first()
     summary = {
         "total": 0,
-        "estimated_value": None,
-        "gift_count": 0,
-        "format_counts": [],
+        "disposed_total": 0,
+        "classic_count": 0,
+        "modern_count": 0,
+        "series_counts": [],
+        "genre_counts": [],
         "top_locations": [],
         "top_statuses": [],
     }
@@ -122,27 +124,39 @@ def _collect_home_library_summary(user: User):
         return summary
 
     entries_qs = HomeLibraryEntry.objects.filter(shelf_item__shelf=shelf)
-    total_items = shelf.items.count()
-    summary["total"] = total_items
-    summary["gift_count"] = entries_qs.filter(is_gift=True).count()
-    total_value = entries_qs.aggregate(total=Sum("price"))["total"]
-    summary["estimated_value"] = total_value
+    active_entries = entries_qs.filter(is_disposed=False)
+    disposed_total = entries_qs.filter(is_disposed=True).count()
 
-    format_map = {
-        row["format"]: row["total"]
-        for row in entries_qs.values("format").annotate(total=Count("id"))
-    }
-    summary["format_counts"] = [
+    total_items = active_entries.count()
+    summary["total"] = total_items
+    summary["disposed_total"] = disposed_total
+    classic_count = active_entries.filter(is_classic=True).count()
+    summary["classic_count"] = classic_count
+    summary["modern_count"] = total_items - classic_count
+
+    summary["series_counts"] = list(
+        active_entries
+        .exclude(series_name="")
+        .values("series_name")
+        .annotate(total=Count("id"))
+        .order_by("-total", "series_name")[:5]
+    )
+    summary["genre_counts"] = [
         {
-            "label": label,
-            "count": format_map.get(key, 0),
+            "name": row["custom_genres__name"],
+            "total": row["total"],
         }
-        for key, label in HomeLibraryEntry.Format.choices
-        if format_map.get(key, 0)
+        for row in (
+            active_entries
+            .values("custom_genres__name")
+            .annotate(total=Count("custom_genres"))
+            .exclude(custom_genres__name__isnull=True)
+            .order_by("-total", "custom_genres__name")[:5]
+        )
     ]
 
     summary["top_locations"] = list(
-        entries_qs
+         active_entries
         .exclude(location="")
         .values("location")
         .annotate(total=Count("id"))

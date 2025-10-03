@@ -2,7 +2,7 @@
 from decimal import Decimal, ROUND_HALF_UP
 from datetime import date
 
-from django.db.models import Count, Sum
+from django.db.models import Count
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.http import url_has_allowed_host_and_scheme
-from books.models import Book
+from books.models import Book, Genre
 from .models import Shelf, ShelfItem, BookProgress, Event, EventParticipant, HomeLibraryEntry
 from .services import (
     move_book_to_read_shelf,
@@ -28,6 +28,7 @@ from .forms import (
     CharacterNoteForm,
     BookProgressFormatForm,
     HomeLibraryEntryForm,
+    HomeLibraryFilterForm,
 )
 from games.services.read_before_buy import ReadBeforeBuyGame
 
@@ -73,7 +74,7 @@ def home_library(request):
     items = list(
         shelf.items
         .select_related("book")
-        .prefetch_related("book__authors")
+        .prefetch_related("book__authors", "book__genres")
         .order_by("book__title")
     )
     item_ids = [item.id for item in items]
@@ -87,27 +88,29 @@ def home_library(request):
     for item in items:
         entry = entry_map.get(item.id)
         if entry is None:
-            entry = HomeLibraryEntry.objects.create(shelf_item=item)
-        entries.append(entry)
+            entry = HomeLibraryEntry.objects.create(
+                shelf_item=item,
+                series_name=item.book.series or "",
+            )
+            if item.book.genres.exists():
+                entry.custom_genres.set(item.book.genres.all())
+        elif not entry.series_name and item.book.series:
+            entry.series_name = item.book.series
+            entry.save(update_fields=["series_name"])
+        entry_map[item.id] = entry
 
-    entries_qs = HomeLibraryEntry.objects.filter(shelf_item__shelf=shelf)
+    entries_qs = (
+        HomeLibraryEntry.objects
+        .filter(shelf_item__shelf=shelf)
+        .select_related("shelf_item__book")
+        .prefetch_related("shelf_item__book__authors", "custom_genres")
+    )
 
-    format_stats = {
-        row["format"]: row["total"]
-        for row in entries_qs.values("format").annotate(total=Count("id"))
-    }
-    format_counts = [
-        {
-            "key": key,
-            "label": label,
-            "count": format_stats.get(key, 0),
-        }
-        for key, label in HomeLibraryEntry.Format.choices
-        if format_stats.get(key, 0)
-    ]
+    active_entries_qs = entries_qs.filter(is_disposed=False)
+    disposed_entries_qs = entries_qs.filter(is_disposed=True)
 
     location_counts = list(
-        entries_qs
+        active_entries_qs
         .exclude(location="")
         .values("location")
         .annotate(total=Count("id"))
@@ -120,30 +123,106 @@ def home_library(request):
         .annotate(total=Count("id"))
         .order_by("-total", "status")[:5]
     )
-    gift_count = entries_qs.filter(is_gift=True).count()
-    total_value = entries_qs.aggregate(total=Sum("price"))["total"]
+
+    total_active = active_entries_qs.count()
+    disposed_total = disposed_entries_qs.count()
+    classic_count = active_entries_qs.filter(is_classic=True).count()
+
+    series_counts = list(
+        active_entries_qs
+        .exclude(series_name="")
+        .values("series_name")
+        .annotate(total=Count("id"))
+        .order_by("-total", "series_name")[:5]
+    )
+    genre_counts = [
+        {
+            "name": row["custom_genres__name"],
+            "total": row["total"],
+        }
+        for row in (
+            active_entries_qs
+            .values("custom_genres__name")
+            .annotate(total=Count("custom_genres"))
+            .exclude(custom_genres__name__isnull=True)
+            .order_by("-total", "custom_genres__name")[:5]
+        )
+    ]
 
     def _sort_key(entry: HomeLibraryEntry):
         acquired = entry.acquired_at or date.min
         added = entry.shelf_item.added_at.date() if entry.shelf_item.added_at else date.min
         return (acquired, added, entry.shelf_item_id)
 
-    recent_entries = sorted(entries, key=_sort_key, reverse=True)[:5]
+recent_entries = sorted(active_entries_qs, key=_sort_key, reverse=True)[:5]
+
+    series_values = list(
+        active_entries_qs
+        .exclude(series_name="")
+        .values_list("series_name", flat=True)
+        .distinct()
+    )
+    genre_queryset = (
+        Genre.objects
+        .filter(home_library_entries__shelf_item__shelf=shelf, home_library_entries__is_disposed=False)
+        .distinct()
+        .order_by("name")
+    )
+    filter_form = HomeLibraryFilterForm(
+        request.GET or None,
+        series_choices=series_values,
+        genre_queryset=genre_queryset,
+    )
+
+    filtered_entries_qs = active_entries_qs
+    filters_applied = False
+    if filter_form.is_valid():
+        is_classic = filter_form.cleaned_data.get("is_classic")
+        series = filter_form.cleaned_data.get("series")
+        genres = filter_form.cleaned_data.get("genres")
+
+        if is_classic == "true":
+            filtered_entries_qs = filtered_entries_qs.filter(is_classic=True)
+            filters_applied = True
+        elif is_classic == "false":
+            filtered_entries_qs = filtered_entries_qs.filter(is_classic=False)
+            filters_applied = True
+
+        if series:
+            filtered_entries_qs = filtered_entries_qs.filter(series_name=series)
+            filters_applied = True
+
+        if genres:
+            filtered_entries_qs = filtered_entries_qs.filter(custom_genres__in=genres).distinct()
+            filters_applied = True
+
+    entries = list(
+        filtered_entries_qs
+        .order_by("shelf_item__book__title", "shelf_item__id")
+    )
+    disposed_entries = list(
+        disposed_entries_qs
+        .order_by("shelf_item__book__title", "shelf_item__id")
+    )
 
     summary = {
-        "total": len(items),
-        "format_counts": format_counts,
+        "total": total_active,
+        "disposed_total": disposed_total,
+        "classic_count": classic_count,
+        "modern_count": total_active - classic_count,
+        "series_counts": series_counts,
+        "genre_counts": genre_counts,
         "locations": location_counts,
         "statuses": status_counts,
-        "gift_count": gift_count,
-        "estimated_value": total_value,
         "recent_entries": recent_entries,
     }
 
     context = {
         "shelf": shelf,
         "entries": entries,
+        "disposed_entries": disposed_entries,
         "summary": summary,
+        "disposed_entries": disposed_entries,
     }
     return render(request, "shelves/home_library.html", context)
 

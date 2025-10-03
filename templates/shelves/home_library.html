@@ -26,40 +26,36 @@
     <div class="col-12 col-lg-3">
       <div class="card border-0 shadow-sm h-100">
         <div class="card-body">
-          <h2 class="h6 text-uppercase text-muted mb-2">Всего книг</h2>
+          <h2 class="h6 text-uppercase text-muted mb-2">Всего активных книг</h2>
           <p class="display-6 mb-1">{{ summary.total }}</p>
-          <p class="small text-muted mb-0">{{ summary.gift_count }} {{ summary.gift_count|ru_pluralize:"подарок,подарка,подарков" }}</p>
+          <p class="small text-muted mb-0">Передано: {{ summary.disposed_total }} {{ summary.disposed_total|ru_pluralize:"книга,книги,книг" }}</p>
         </div>
       </div>
     </div>
     <div class="col-12 col-lg-3">
       <div class="card border-0 shadow-sm h-100">
         <div class="card-body">
-          <h2 class="h6 text-uppercase text-muted mb-2">Оценочная стоимость</h2>
-          {% if summary.estimated_value %}
-            <p class="fs-4 mb-0">{{ summary.estimated_value }} ₽</p>
-            <p class="small text-muted mb-0">Сумма по указанной цене экземпляров.</p>
-          {% else %}
-            <p class="text-muted mb-0">Укажите стоимость книг, чтобы увидеть оценку коллекции.</p>
-          {% endif %}
+          <h2 class="h6 text-uppercase text-muted mb-2">Классика</h2>
+          <p class="display-6 mb-1">{{ summary.classic_count }}</p>
+          <p class="small text-muted mb-0">Современных книг: {{ summary.modern_count }}</p>
         </div>
       </div>
     </div>
     <div class="col-12 col-lg-3">
       <div class="card border-0 shadow-sm h-100">
         <div class="card-body">
-          <h2 class="h6 text-uppercase text-muted mb-2">Популярные форматы</h2>
-          {% if summary.format_counts %}
+          <h2 class="h6 text-uppercase text-muted mb-2">Популярные серии</h2>
+          {% if summary.series_counts %}
             <ul class="list-unstyled mb-0 small">
-              {% for fmt in summary.format_counts %}
+              {% for series in summary.series_counts %}
                 <li class="d-flex justify-content-between">
-                  <span>{{ fmt.label }}</span>
-                  <span class="fw-semibold">{{ fmt.count }}</span>
+                  <span>{{ series.series_name }}</span>
+                  <span class="fw-semibold">{{ series.total }}</span>
                 </li>
               {% endfor %}
             </ul>
           {% else %}
-            <p class="text-muted mb-0">Отметьте формат экземпляров.</p>
+            <p class="text-muted mb-0">Добавьте серию для экземпляров.</p>
           {% endif %}
         </div>
       </div>
@@ -67,21 +63,55 @@
     <div class="col-12 col-lg-3">
       <div class="card border-0 shadow-sm h-100">
         <div class="card-body">
-          <h2 class="h6 text-uppercase text-muted mb-2">Где лежат книги</h2>
-          {% if summary.locations %}
+          <h2 class="h6 text-uppercase text-muted mb-2">Популярные жанры</h2>
+          {% if summary.genre_counts %}
             <ul class="list-unstyled mb-0 small">
-              {% for loc in summary.locations %}
+              {% for genre in summary.genre_counts %}
                 <li class="d-flex justify-content-between">
-                  <span>{{ loc.location }}</span>
-                  <span class="fw-semibold">{{ loc.total }}</span>
+                  <span>{{ genre.name }}</span>
+                  <span class="fw-semibold">{{ genre.total }}</span>
                 </li>
               {% endfor %}
             </ul>
           {% else %}
-            <p class="text-muted mb-0">Добавьте информацию о хранении, чтобы ничего не потерялось.</p>
+            <p class="text-muted mb-0">Заполните жанры, чтобы увидеть статистику.</p>
           {% endif %}
         </div>
       </div>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+      <h2 class="h6 text-uppercase text-muted mb-3">Фильтры</h2>
+      <form method="get" class="row g-3 align-items-end">
+        {% if filter_form.non_field_errors %}
+          <div class="col-12">
+            <div class="alert alert-danger">{{ filter_form.non_field_errors }}</div>
+          </div>
+        {% endif %}
+        <div class="col-12 col-lg-3">
+          <label class="form-label" for="id_is_classic">{{ filter_form.is_classic.label }}</label>
+          {{ filter_form.is_classic }}
+          {{ filter_form.is_classic.errors }}
+        </div>
+        <div class="col-12 col-lg-3">
+          <label class="form-label" for="id_series">{{ filter_form.series.label }}</label>
+          {{ filter_form.series }}
+          {{ filter_form.series.errors }}
+        </div>
+        <div class="col-12 col-lg-4">
+          <label class="form-label" for="id_genres">{{ filter_form.genres.label }}</label>
+          {{ filter_form.genres }}
+          {{ filter_form.genres.errors }}
+        </div>
+        <div class="col-12 col-lg-2 d-flex gap-2">
+          <button class="btn btn-primary flex-fill" type="submit">Применить</button>
+          {% if filters_applied %}
+            <a class="btn btn-outline-secondary" href="{% url 'home_library' %}">Сбросить</a>
+          {% endif %}
+        </div>
+      </form>
     </div>
   </div>
 
@@ -122,7 +152,7 @@
         <div class="card-body">
           <h2 class="h6 text-uppercase text-muted mb-3">Статусы экземпляров</h2>
           {% if summary.statuses %}
-            <ul class="list-unstyled mb-0">
+            <ul class="list-unstyled mb-3">
               {% for status in summary.statuses %}
                 <li class="d-flex justify-content-between align-items-center mb-2">
                   <span>{{ status.status }}</span>
@@ -131,8 +161,23 @@
               {% endfor %}
             </ul>
           {% else %}
-            <p class="text-muted mb-0">Используйте поле «Статус», чтобы отслеживать движение книг.</p>
+            <p class="text-muted mb-3">Используйте поле «Статус», чтобы отслеживать движение книг.</p>
           {% endif %}
+          <div class="border-top pt-3">
+            <h3 class="h6 text-uppercase text-muted mb-2">Где лежат книги</h3>
+            {% if summary.locations %}
+              <ul class="list-unstyled mb-0 small">
+                {% for loc in summary.locations %}
+                  <li class="d-flex justify-content-between">
+                    <span>{{ loc.location }}</span>
+                    <span class="fw-semibold">{{ loc.total }}</span>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="text-muted mb-0 small">Добавьте информацию о хранении, чтобы ничего не потерялось.</p>
+            {% endif %}
+          </div>
         </div>
       </div>
     </div>
@@ -148,75 +193,124 @@
               <th>Формат</th>
               <th>Статус</th>
               <th>Хранение</th>
-              <th>Состояние</th>
-              <th>Стоимость</th>
-              <th>Подарок</th>
-              <th>Источник</th>
+              <th>Классика</th>
+              <th>Серия</th>
+              <th>Жанры</th>
               <th>Приобретена</th>
               <th>Заметки</th>
               <th class="text-end">Действия</th>
             </tr>
           </thead>
           <tbody>
-            {% for entry in entries %}
+            {% if entries %}
+              {% for entry in entries %}
+                <tr>
+                  <td style="min-width: 200px;">
+                    <div class="fw-semibold"><a class="text-decoration-none" href="{% url 'book_detail' entry.book.pk %}">{{ entry.book.title }}</a></div>
+                    <div class="small text-muted">{{ entry.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
+                  </td>
+                  <td>{{ entry.get_format_display }}</td>
+                  <td>{{ entry.status|default:"—" }}</td>
+                  <td>
+                    {% if entry.location %}
+                      {{ entry.location }}<br>
+                    {% endif %}
+                    {% if entry.shelf_section %}
+                      <span class="text-muted small">{{ entry.shelf_section }}</span>
+                    {% endif %}
+                    {% if not entry.location and not entry.shelf_section %}
+                      —
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if entry.is_classic %}
+                      <span class="badge text-bg-success">Да</span>
+                    {% else %}
+                      <span class="text-muted">Нет</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ entry.series_name|default:"—" }}</td>
+                  <td>
+                    {% with entry.custom_genres.all as entry_genres %}
+                      {% if entry_genres %}
+                        {{ entry_genres|join:", " }}
+                      {% else %}
+                        —
+                      {% endif %}
+                    {% endwith %}
+                  </td>
+                  <td>
+                    {% if entry.acquired_at %}
+                      {{ entry.acquired_at|date:"d.m.Y" }}
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
+                  <td style="max-width: 240px; white-space: pre-wrap;">{{ entry.notes|default:"—" }}</td>
+                  <td class="text-end">
+                    <div class="btn-group btn-group-sm">
+                      <a class="btn btn-outline-secondary" href="{% url 'home_library_edit' entry.shelf_item_id %}?next={{ request.get_full_path|urlencode }}">
+                        <i class="bi bi-pencil"></i>
+                      </a>
+                      <a class="btn btn-outline-danger" href="{% url 'remove_book_from_shelf' shelf.id entry.book.id %}?next={{ request.get_full_path|urlencode }}" title="Удалить из полки" aria-label="Удалить книгу">
+                        <i class="bi bi-trash"></i>
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
               <tr>
-                <td style="min-width: 200px;">
-                  <div class="fw-semibold"><a class="text-decoration-none" href="{% url 'book_detail' entry.book.pk %}">{{ entry.book.title }}</a></div>
-                  <div class="small text-muted">{{ entry.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
-                </td>
-                <td>{{ entry.get_format_display }}</td>
-                <td>{{ entry.status|default:"—" }}</td>
-                <td>
-                  {% if entry.location %}
-                    {{ entry.location }}<br>
-                  {% endif %}
-                  {% if entry.shelf_section %}
-                    <span class="text-muted small">{{ entry.shelf_section }}</span>
-                  {% endif %}
-                  {% if not entry.location and not entry.shelf_section %}
-                    —
-                  {% endif %}
-                </td>
-                <td>{{ entry.condition|default:"—" }}</td>
-                <td>
-                  {% if entry.price %}
-                    {{ entry.price }} ₽
-                  {% else %}
-                    —
-                  {% endif %}
-                </td>
-                <td>
-                  {% if entry.is_gift %}
-                    <span class="badge text-bg-success">Да</span>
-                  {% else %}
-                    <span class="text-muted">Нет</span>
-                  {% endif %}
-                </td>
-                <td>{{ entry.acquired_from|default:"—" }}</td>
-                <td>
-                  {% if entry.acquired_at %}
-                    {{ entry.acquired_at|date:"d.m.Y" }}
-                  {% else %}
-                    —
-                  {% endif %}
-                </td>
-                <td style="max-width: 240px; white-space: pre-wrap;">{{ entry.notes|default:"—" }}</td>
-                <td class="text-end">
-                  <div class="btn-group btn-group-sm">
-                    <a class="btn btn-outline-secondary" href="{% url 'home_library_edit' entry.shelf_item_id %}?next={{ request.get_full_path|urlencode }}">
-                      <i class="bi bi-pencil"></i>
-                    </a>
-                    <a class="btn btn-outline-danger" href="{% url 'remove_book_from_shelf' shelf.id entry.book.id %}?next={{ request.get_full_path|urlencode }}" title="Удалить из полки" aria-label="Удалить книгу">
-                      <i class="bi bi-trash"></i>
-                    </a>
-                  </div>
-                </td>
+                <td colspan="10" class="text-center text-muted py-4">По выбранным условиям книги не найдены.</td>
               </tr>
-            {% endfor %}
+            {% endif %}
           </tbody>
         </table>
       </div>
     </div>
   </div>
+  {% if disposed_entries %}
+    <div class="card border-0 shadow-sm mt-4">
+      <div class="card-header bg-body-tertiary">Проданные и отданные книги</div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Книга</th>
+                <th>Статус</th>
+                <th>Комментарий</th>
+                <th>Обновлено</th>
+                <th class="text-end">Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entry in disposed_entries %}
+                <tr>
+                  <td style="min-width: 200px;">
+                    <div class="fw-semibold"><a class="text-decoration-none" href="{% url 'book_detail' entry.book.pk %}">{{ entry.book.title }}</a></div>
+                    <div class="small text-muted">{{ entry.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
+                  </td>
+                  <td>{{ entry.status|default:"—" }}</td>
+                  <td style="max-width: 280px; white-space: pre-wrap;">{{ entry.disposition_note|default:"—" }}</td>
+                  <td>{{ entry.updated_at|date:"d.m.Y H:i" }}</td>
+                  <td class="text-end">
+                    <div class="btn-group btn-group-sm">
+                      <a class="btn btn-outline-secondary" href="{% url 'home_library_edit' entry.shelf_item_id %}?next={{ request.get_full_path|urlencode }}">
+                        <i class="bi bi-pencil"></i>
+                      </a>
+                      <a class="btn btn-outline-danger" href="{% url 'remove_book_from_shelf' shelf.id entry.book.id %}?next={{ request.get_full_path|urlencode }}" title="Удалить из полки" aria-label="Удалить книгу">
+                        <i class="bi bi-trash"></i>
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% endif %}
 {% endif %}
 {% endblock %}
