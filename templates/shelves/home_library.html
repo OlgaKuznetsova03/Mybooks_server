@@ -1,316 +1,663 @@
 {% extends "base.html" %}
 {% load shelf_extras %}
 {% block title %}Моя домашняя библиотека{% endblock %}
+{% block extra_css %}
+<style>
+  :root {
+    --home-hero-gradient: radial-gradient(circle at top left, #3f37ff, rgba(25, 17, 89, 0.8) 45%, rgba(6, 6, 29, 0.95));
+    --home-card-bg: rgba(17, 18, 44, 0.92);
+    --home-card-border: rgba(140, 167, 255, 0.3);
+    --home-card-shadow: 0 15px 35px rgba(23, 16, 74, 0.35);
+    --home-text-soft: rgba(255, 255, 255, 0.65);
+    --home-accent: #8ef6ff;
+    --home-accent-strong: #ff71ff;
+  }
+
+  .home-hero {
+    position: relative;
+    border-radius: 24px;
+    overflow: hidden;
+    background: var(--home-hero-gradient);
+    color: #f5f7ff;
+    padding: 2.5rem 2rem;
+    box-shadow: 0 25px 55px rgba(14, 9, 54, 0.45);
+  }
+
+  .home-hero::before,
+  .home-hero::after {
+    content: "";
+    position: absolute;
+    border-radius: 100%;
+    filter: blur(60px);
+    opacity: 0.7;
+    z-index: 0;
+  }
+
+  .home-hero::before {
+    width: 360px;
+    height: 360px;
+    top: -120px;
+    right: -140px;
+    background: rgba(116, 255, 217, 0.35);
+  }
+
+  .home-hero::after {
+    width: 280px;
+    height: 280px;
+    bottom: -140px;
+    left: -110px;
+    background: rgba(143, 92, 255, 0.35);
+  }
+
+  .home-hero__content,
+  .home-hero__actions {
+    position: relative;
+    z-index: 1;
+  }
+
+  .home-hero__title {
+    font-family: "Montserrat", "Segoe UI", system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .home-hero__subtitle {
+    max-width: 520px;
+    color: var(--home-text-soft);
+  }
+
+  .home-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .home-hero__btn {
+    border-radius: 999px;
+    font-weight: 600;
+    box-shadow: 0 10px 25px rgba(8, 10, 44, 0.35);
+    border: none;
+  }
+
+  .home-hero__btn.btn-outline-light {
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    background: rgba(16, 22, 57, 0.35);
+    color: #ffffff;
+  }
+
+  .home-glow-card {
+    background: var(--home-card-bg);
+    border: 1px solid var(--home-card-border);
+    border-radius: 20px;
+    box-shadow: var(--home-card-shadow);
+    color: #f1f4ff;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .home-glow-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(142, 246, 255, 0.35), rgba(255, 113, 255, 0.18));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+  }
+
+  .home-glow-card h2,
+  .home-glow-card h3 {
+    color: #ffffff;
+    text-transform: none;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+  }
+
+  .home-glow-card .text-muted,
+  .home-glow-card .small,
+  .home-glow-card .badge.text-bg-light {
+    color: var(--home-text-soft) !important;
+  }
+
+  .home-glow-card ul li span:first-child {
+    color: var(--home-text-soft);
+  }
+
+  .home-glow-card .badge {
+    border-radius: 12px;
+    background: rgba(142, 246, 255, 0.2) !important;
+    color: #8ef6ff;
+    border: 1px solid rgba(142, 246, 255, 0.35);
+  }
+
+  .home-stats-grid {
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .home-stats-primary {
+    font-size: clamp(2.25rem, 4vw, 3.5rem);
+    font-weight: 700;
+    color: var(--home-accent);
+  }
+
+  .home-filters-card {
+    background: rgba(12, 15, 36, 0.9);
+    border-radius: 20px;
+    border: 1px solid rgba(142, 246, 255, 0.25);
+    box-shadow: 0 12px 28px rgba(8, 6, 38, 0.45);
+  }
+
+  .home-filters-toggle {
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(12, 15, 36, 0.7);
+    color: #f8f9ff;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  .home-section-title {
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(142, 246, 255, 0.7);
+  }
+
+  .home-activity {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .home-library-table {
+    background: rgba(10, 13, 34, 0.85);
+    border-radius: 24px;
+    border: 1px solid rgba(142, 246, 255, 0.22);
+    box-shadow: 0 25px 55px rgba(7, 5, 30, 0.6);
+    overflow: hidden;
+  }
+
+  .home-library-table .table {
+    color: #f4f7ff;
+    margin-bottom: 0;
+  }
+
+  .home-library-table .table thead {
+    background: rgba(13, 18, 42, 0.95);
+  }
+
+  .home-library-table .table thead th {
+    border-color: rgba(142, 246, 255, 0.12);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    color: rgba(142, 246, 255, 0.7);
+  }
+
+  .home-library-table .table tbody td {
+    border-color: rgba(142, 246, 255, 0.08);
+    vertical-align: top;
+  }
+
+  .home-table-actions .btn {
+    border-radius: 12px;
+  }
+
+  .tag-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    background: rgba(142, 246, 255, 0.16);
+    color: var(--home-accent);
+    font-size: 0.75rem;
+    margin-right: 0.35rem;
+    margin-bottom: 0.35rem;
+    border: 1px solid rgba(142, 246, 255, 0.3);
+  }
+
+  @media (max-width: 991.98px) {
+    .home-hero {
+      padding: 2rem 1.5rem;
+    }
+
+    .home-activity {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .home-hero {
+      padding: 1.75rem 1.25rem;
+    }
+
+    .home-hero__title {
+      font-size: 1.875rem;
+    }
+
+    .home-hero__subtitle {
+      font-size: 0.95rem;
+    }
+
+    .home-stats-grid {
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    }
+
+    .home-library-table .table thead {
+      display: none;
+    }
+
+    .home-library-table table,
+    .home-library-table tbody,
+    .home-library-table tr,
+    .home-library-table td {
+      display: block;
+      width: 100%;
+    }
+
+    .home-library-table tr {
+      background: rgba(12, 15, 36, 0.8);
+      border-radius: 20px;
+      margin-bottom: 1rem;
+      padding: 1rem 1.25rem;
+      box-shadow: 0 18px 35px rgba(6, 5, 30, 0.45);
+    }
+
+    .home-library-table td {
+      border: none;
+      padding: 0.25rem 0;
+    }
+
+    .home-library-table td::before {
+      content: attr(data-label);
+      display: block;
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(142, 246, 255, 0.65);
+      margin-bottom: 0.15rem;
+    }
+
+    .home-library-table td[data-label="Действия"] {
+      text-align: left;
+      margin-top: 0.5rem;
+    }
+
+    .home-table-actions {
+      justify-content: flex-start !important;
+    }
+
+    .home-filters-toggle {
+      width: 100%;
+    }
+
+    .home-disposed-card .table thead {
+      display: none;
+    }
+
+    .home-disposed-card .table,
+    .home-disposed-card tbody,
+    .home-disposed-card tr,
+    .home-disposed-card td {
+      display: block;
+      width: 100%;
+    }
+
+    .home-disposed-card tr {
+      background: rgba(12, 15, 36, 0.8);
+      border-radius: 20px;
+      margin-bottom: 1rem;
+      padding: 1rem 1.25rem;
+      box-shadow: 0 18px 35px rgba(6, 5, 30, 0.45);
+    }
+
+    .home-disposed-card td {
+      border: none;
+      padding: 0.3rem 0;
+    }
+
+    .home-disposed-card td::before {
+      content: attr(data-label);
+      display: block;
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(142, 246, 255, 0.65);
+      margin-bottom: 0.1rem;
+    }
+  }
+
+  @media (min-width: 768px) {
+    #homeLibraryFilters {
+      display: block !important;
+      height: auto !important;
+      visibility: visible !important;
+    }
+  }
+</style>
+{% endblock %}
 {% block content %}
-<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
-  <div>
-    <h1 class="h4 mb-1">Моя домашняя библиотека</h1>
-    <p class="text-muted mb-0">Следите за своими бумажными и электронными экземплярами, отмечайте, где они хранятся и в каком состоянии.</p>
+<section class="home-hero mb-5">
+  <div class="row g-4 align-items-center">
+    <div class="col-12 col-lg-7 home-hero__content">
+      <p class="home-section-title mb-2">Домашняя коллекция</p>
+      <h1 class="home-hero__title display-5 mb-3">Моя домашняя библиотека</h1>
+      <p class="home-hero__subtitle mb-4">Отслеживайте бумажные и электронные экземпляры, расставляйте их по полкам и возвращайтесь к любимым сериям с атмосферой ретро-игры.</p>
+      <div class="home-hero__actions">
+        <a class="btn btn-light home-hero__btn" href="{% url 'book_list' %}">
+          <i class="bi bi-plus-circle me-2"></i>
+          Добавить книгу
+        </a>
+        <a class="btn btn-outline-light home-hero__btn" href="{% url 'my_shelves' %}">
+          <i class="bi bi-card-list me-2"></i>
+          К полкам
+        </a>
+      </div>
+    </div>
+    <div class="col-12 col-lg-5 home-hero__actions">
+      <div class="home-glow-card h-100">
+        <h2 class="h6 text-uppercase text-muted mb-3">Быстрые действия</h2>
+        <div class="d-flex flex-wrap gap-3">
+          <div class="flex-fill">
+            <div class="small text-uppercase text-muted mb-1">Текущие книги</div>
+            <div class="home-stats-primary">{{ summary.total }}</div>
+          </div>
+          <div class="flex-fill">
+            <div class="small text-uppercase text-muted mb-1">Передано</div>
+            <div class="display-6 mb-0">{{ summary.disposed_total }}</div>
+          </div>
+        </div>
+        <p class="small text-muted mt-3 mb-0">Следите за движением коллекции, присваивайте статусы и делитесь историями прямо со смартфона.</p>
+      </div>
+    </div>
   </div>
-  <div class="d-flex flex-wrap gap-2">
-    <a class="btn btn-outline-primary" href="{% url 'my_shelves' %}">
-      <i class="bi bi-card-list me-1"></i>К полкам
-    </a>
-    <a class="btn btn-primary" href="{% url 'book_list' %}">
-      <i class="bi bi-plus-lg me-1"></i>Добавить книгу
-    </a>
-  </div>
-</div>
+</section>
 
 {% if not entries %}
-  <div class="alert alert-light border">
-    На полке пока нет книг. Найдите книгу в каталоге и добавьте её в полку «{{ shelf.name }}» на странице книги.
-  </div>
+  <div class="alert alert-light border">На полке пока нет книг. Найдите книгу в каталоге и добавьте её в полку «{{ shelf.name }}» на странице книги.</div>
 {% else %}
-  <div class="row g-3 mb-4">
-    <div class="col-12 col-lg-3">
-      <div class="card border-0 shadow-sm h-100">
-        <div class="card-body">
-          <h2 class="h6 text-uppercase text-muted mb-2">Всего активных книг</h2>
-          <p class="display-6 mb-1">{{ summary.total }}</p>
-          <p class="small text-muted mb-0">Передано: {{ summary.disposed_total }} {{ summary.disposed_total|ru_pluralize:"книга,книги,книг" }}</p>
+  <div class="home-stats-grid mb-5">
+    <div class="home-glow-card">
+      <h2 class="h6 text-uppercase text-muted mb-3">Всего активных книг</h2>
+      <div class="home-stats-primary">{{ summary.total }}</div>
+      <p class="small text-muted mb-0">Передано: {{ summary.disposed_total }} {{ summary.disposed_total|ru_pluralize:"книга,книги,книг" }}</p>
+    </div>
+    <div class="home-glow-card">
+      <h2 class="h6 text-uppercase text-muted mb-3">Классика против современности</h2>
+      <div class="d-flex gap-4 align-items-end">
+        <div>
+          <div class="small text-uppercase text-muted">Классика</div>
+          <div class="display-6 mb-0">{{ summary.classic_count }}</div>
+        </div>
+      <div>
+          <div class="small text-uppercase text-muted">Современные</div>
+          <div class="display-6 mb-0 text-info">{{ summary.modern_count }}</div>
         </div>
       </div>
     </div>
-    <div class="col-12 col-lg-3">
-      <div class="card border-0 shadow-sm h-100">
-        <div class="card-body">
-          <h2 class="h6 text-uppercase text-muted mb-2">Классика</h2>
-          <p class="display-6 mb-1">{{ summary.classic_count }}</p>
-          <p class="small text-muted mb-0">Современных книг: {{ summary.modern_count }}</p>
-        </div>
-      </div>
+    <div class="home-glow-card">
+      <h2 class="h6 text-uppercase text-muted mb-3">Популярные серии</h2>
+      {% if summary.series_counts %}
+        <ul class="list-unstyled mb-0 small">
+          {% for series in summary.series_counts %}
+            <li class="d-flex justify-content-between">
+              <span>{{ series.series_name }}</span>
+              <span class="fw-semibold">{{ series.total }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-muted mb-0">Добавьте серию для экземпляров.</p>
+      {% endif %}
     </div>
-    <div class="col-12 col-lg-3">
-      <div class="card border-0 shadow-sm h-100">
-        <div class="card-body">
-          <h2 class="h6 text-uppercase text-muted mb-2">Популярные серии</h2>
-          {% if summary.series_counts %}
-            <ul class="list-unstyled mb-0 small">
-              {% for series in summary.series_counts %}
-                <li class="d-flex justify-content-between">
-                  <span>{{ series.series_name }}</span>
-                  <span class="fw-semibold">{{ series.total }}</span>
-                </li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p class="text-muted mb-0">Добавьте серию для экземпляров.</p>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-lg-3">
-      <div class="card border-0 shadow-sm h-100">
-        <div class="card-body">
-          <h2 class="h6 text-uppercase text-muted mb-2">Популярные жанры</h2>
-          {% if summary.genre_counts %}
-            <ul class="list-unstyled mb-0 small">
-              {% for genre in summary.genre_counts %}
-                <li class="d-flex justify-content-between">
-                  <span>{{ genre.name }}</span>
-                  <span class="fw-semibold">{{ genre.total }}</span>
-                </li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p class="text-muted mb-0">Заполните жанры, чтобы увидеть статистику.</p>
-          {% endif %}
-        </div>
-      </div>
+    <div class="home-glow-card">
+      <h2 class="h6 text-uppercase text-muted mb-3">Популярные жанры</h2>
+      {% if summary.genre_counts %}
+        <ul class="list-unstyled mb-0 small">
+          {% for genre in summary.genre_counts %}
+            <li class="d-flex justify-content-between">
+              <span>{{ genre.name }}</span>
+              <span class="fw-semibold">{{ genre.total }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-muted mb-0">Заполните жанры, чтобы увидеть статистику.</p>
+      {% endif %}
     </div>
   </div>
 
-  <div class="card border-0 shadow-sm mb-4">
-    <div class="card-body">
-      <h2 class="h6 text-uppercase text-muted mb-3">Фильтры</h2>
-      <form method="get" class="row g-3 align-items-end">
+  <div class="home-filters-card p-4 mb-5">
+    <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+      <h2 class="h6 text-uppercase text-muted mb-0">Фильтры</h2>
+      <button class="btn home-filters-toggle d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#homeLibraryFilters" aria-expanded="false" aria-controls="homeLibraryFilters">
+        <i class="bi bi-sliders me-2"></i>Показать фильтры
+      </button>
+    </div>
+    <div id="homeLibraryFilters" class="collapse">
+      <form method="get" class="row g-3">
         {% if filter_form.non_field_errors %}
           <div class="col-12">
             <div class="alert alert-danger">{{ filter_form.non_field_errors }}</div>
           </div>
         {% endif %}
-        <div class="col-12 col-lg-3">
+        <div class="col-12 col-md-4">
           <label class="form-label" for="id_is_classic">{{ filter_form.is_classic.label }}</label>
           {{ filter_form.is_classic }}
           {{ filter_form.is_classic.errors }}
         </div>
-        <div class="col-12 col-lg-3">
+        <div class="col-12 col-md-4">
           <label class="form-label" for="id_series">{{ filter_form.series.label }}</label>
           {{ filter_form.series }}
           {{ filter_form.series.errors }}
         </div>
-        <div class="col-12 col-lg-4">
+        <div class="col-12 col-md-4">
           <label class="form-label" for="id_genres">{{ filter_form.genres.label }}</label>
           {{ filter_form.genres }}
           {{ filter_form.genres.errors }}
         </div>
-        <div class="col-12 col-lg-2 d-flex gap-2">
+        <div class="col-12 d-flex flex-column flex-md-row gap-2 mt-2">
           <button class="btn btn-primary flex-fill" type="submit">Применить</button>
           {% if filters_applied %}
-            <a class="btn btn-outline-secondary" href="{% url 'home_library' %}">Сбросить</a>
+            <a class="btn btn-outline-secondary flex-fill flex-md-grow-0" href="{% url 'home_library' %}">Сбросить</a>
           {% endif %}
         </div>
       </form>
     </div>
   </div>
 
-  <div class="row g-3 mb-4">
-    <div class="col-12 col-lg-6">
-      <div class="card border-0 shadow-sm h-100">
-        <div class="card-body">
-          <h2 class="h6 text-uppercase text-muted mb-3">Последние обновления</h2>
-          {% if summary.recent_entries %}
-            <ul class="list-unstyled mb-0">
-              {% for entry in summary.recent_entries %}
-                <li class="mb-3">
-                  <div class="fw-semibold">{{ entry.book.title }}</div>
-                  <div class="small text-muted">
-                    {% if entry.book.authors.all %}
-                      {{ entry.book.authors.all|join:", " }} ·
-                    {% endif %}
-                    {% if entry.acquired_at %}
-                      получена {{ entry.acquired_at|date:"d.m.Y" }}
-                    {% else %}
-                      добавлена {{ entry.shelf_item.added_at|date:"d.m.Y" }}
-                    {% endif %}
-                    {% if entry.location %}
-                      · хранится: {{ entry.location }}
-                    {% endif %}
-                  </div>
-                </li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p class="text-muted mb-0">Пока нет активности. Заполните информацию о нескольких книгах.</p>
-          {% endif %}
-        </div>
-      </div>
+  <div class="home-activity mb-5">
+    <div class="home-glow-card h-100">
+      <h2 class="h6 text-uppercase text-muted mb-3">Последние обновления</h2>
+      {% if summary.recent_entries %}
+        <ul class="list-unstyled mb-0">
+          {% for entry in summary.recent_entries %}
+            <li class="mb-3 pb-3 border-bottom border-secondary-subtle">
+              <div class="fw-semibold">{{ entry.book.title }}</div>
+              <div class="small text-muted">
+                {% if entry.book.authors.all %}
+                  {{ entry.book.authors.all|join:", " }} ·
+                {% endif %}
+                {% if entry.acquired_at %}
+                  получена {{ entry.acquired_at|date:"d.m.Y" }}
+                {% else %}
+                  добавлена {{ entry.shelf_item.added_at|date:"d.m.Y" }}
+                {% endif %}
+                {% if entry.location %}
+                  · хранится: {{ entry.location }}
+                {% endif %}
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-muted mb-0">Пока нет активности. Заполните информацию о нескольких книгах.</p>
+      {% endif %}
     </div>
-    <div class="col-12 col-lg-6">
-      <div class="card border-0 shadow-sm h-100">
-        <div class="card-body">
-          <h2 class="h6 text-uppercase text-muted mb-3">Статусы экземпляров</h2>
-          {% if summary.statuses %}
-            <ul class="list-unstyled mb-3">
-              {% for status in summary.statuses %}
-                <li class="d-flex justify-content-between align-items-center mb-2">
-                  <span>{{ status.status }}</span>
-                  <span class="badge text-bg-light">{{ status.total }}</span>
-                </li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p class="text-muted mb-3">Используйте поле «Статус», чтобы отслеживать движение книг.</p>
-          {% endif %}
-          <div class="border-top pt-3">
-            <h3 class="h6 text-uppercase text-muted mb-2">Где лежат книги</h3>
-            {% if summary.locations %}
-              <ul class="list-unstyled mb-0 small">
-                {% for loc in summary.locations %}
-                  <li class="d-flex justify-content-between">
-                    <span>{{ loc.location }}</span>
-                    <span class="fw-semibold">{{ loc.total }}</span>
-                  </li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p class="text-muted mb-0 small">Добавьте информацию о хранении, чтобы ничего не потерялось.</p>
-            {% endif %}
-          </div>
-        </div>
+    <div class="home-glow-card h-100">
+      <h2 class="h6 text-uppercase text-muted mb-3">Статусы экземпляров</h2>
+      {% if summary.statuses %}
+        <ul class="list-unstyled mb-3">
+          {% for status in summary.statuses %}
+            <li class="d-flex justify-content-between align-items-center mb-2">
+              <span>{{ status.status }}</span>
+              <span class="badge text-bg-light">{{ status.total }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-muted mb-3">Используйте поле «Статус», чтобы отслеживать движение книг.</p>
+      {% endif %}
+      <div class="border-top border-secondary pt-3">
+        <h3 class="h6 text-uppercase text-muted mb-2">Где лежат книги</h3>
+        {% if summary.locations %}
+          <ul class="list-unstyled mb-0 small">
+            {% for loc in summary.locations %}
+              <li class="d-flex justify-content-between">
+                <span>{{ loc.location }}</span>
+                <span class="fw-semibold">{{ loc.total }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted mb-0 small">Добавьте информацию о хранении, чтобы ничего не потерялось.</p>
+        {% endif %}
       </div>
     </div>
   </div>
 
-  <div class="card border-0 shadow-sm">
-    <div class="card-body p-0">
+  <div class="home-library-table mb-4">
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th>Книга</th>
+            <th>Формат</th>
+            <th>Статус</th>
+            <th>Хранение</th>
+            <th>Классика</th>
+            <th>Серия</th>
+            <th>Жанры</th>
+            <th>Приобретена</th>
+            <th>Заметки</th>
+            <th class="text-end">Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if entries %}
+            {% for entry in entries %}
+              <tr>
+                <td data-label="Книга" style="min-width: 200px;">
+                  <div class="fw-semibold"><a class="text-decoration-none text-reset" href="{% url 'book_detail' entry.book.pk %}">{{ entry.book.title }}</a></div>
+                  <div class="small text-muted">{{ entry.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
+                </td>
+                <td data-label="Формат">{{ entry.get_format_display }}</td>
+                <td data-label="Статус">{{ entry.status|default:"—" }}</td>
+                <td data-label="Хранение">
+                  {% if entry.location %}
+                    {{ entry.location }}<br>
+                  {% endif %}
+                  {% if entry.shelf_section %}
+                    <span class="text-muted small">{{ entry.shelf_section }}</span>
+                  {% endif %}
+                  {% if not entry.location and not entry.shelf_section %}
+                    —
+                  {% endif %}
+                </td>
+                <td data-label="Классика">
+                  {% if entry.is_classic %}
+                    <span class="badge text-bg-success">Да</span>
+                  {% else %}
+                    <span class="text-muted">Нет</span>
+                  {% endif %}
+                </td>
+                <td data-label="Серия">{{ entry.series_name|default:"—" }}</td>
+                <td data-label="Жанры">
+                  {% with entry.custom_genres.all as entry_genres %}
+                    {% if entry_genres %}
+                      {% for genre in entry_genres %}
+                        <span class="tag-chip">{{ genre }}</span>
+                      {% endfor %}
+                    {% else %}
+                      —
+                    {% endif %}
+                    {% endwith %}
+                </td>
+                <td data-label="Приобретена">
+                  {% if entry.acquired_at %}
+                    {{ entry.acquired_at|date:"d.m.Y" }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                <td data-label="Заметки" style="max-width: 240px; white-space: pre-wrap;">{{ entry.notes|default:"—" }}</td>
+                <td data-label="Действия" class="text-end">
+                  <div class="btn-group btn-group-sm home-table-actions">
+                    <a class="btn btn-outline-secondary" href="{% url 'home_library_edit' entry.shelf_item_id %}?next={{ request.get_full_path|urlencode }}">
+                      <i class="bi bi-pencil"></i>
+                    </a>
+                    <a class="btn btn-outline-danger" href="{% url 'remove_book_from_shelf' shelf.id entry.book.id %}?next={{ request.get_full_path|urlencode }}" title="Удалить из полки" aria-label="Удалить книгу">
+                      <i class="bi bi-trash"></i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="10" class="text-center text-muted py-4">По выбранным условиям книги не найдены.</td>
+            </tr>
+          {% endif %}
+          </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% if disposed_entries %}
+    <div class="home-glow-card home-disposed-card mt-4">
+      <h2 class="h6 text-uppercase text-muted mb-3">Проданные и отданные книги</h2>
       <div class="table-responsive">
         <table class="table align-middle mb-0">
-          <thead class="table-light">
+          <thead>
             <tr>
               <th>Книга</th>
-              <th>Формат</th>
               <th>Статус</th>
-              <th>Хранение</th>
-              <th>Классика</th>
-              <th>Серия</th>
-              <th>Жанры</th>
-              <th>Приобретена</th>
-              <th>Заметки</th>
+              <th>Комментарий</th>
+              <th>Обновлено</th>
               <th class="text-end">Действия</th>
             </tr>
           </thead>
           <tbody>
-            {% if entries %}
-              {% for entry in entries %}
-                <tr>
-                  <td style="min-width: 200px;">
-                    <div class="fw-semibold"><a class="text-decoration-none" href="{% url 'book_detail' entry.book.pk %}">{{ entry.book.title }}</a></div>
-                    <div class="small text-muted">{{ entry.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
-                  </td>
-                  <td>{{ entry.get_format_display }}</td>
-                  <td>{{ entry.status|default:"—" }}</td>
-                  <td>
-                    {% if entry.location %}
-                      {{ entry.location }}<br>
-                    {% endif %}
-                    {% if entry.shelf_section %}
-                      <span class="text-muted small">{{ entry.shelf_section }}</span>
-                    {% endif %}
-                    {% if not entry.location and not entry.shelf_section %}
-                      —
-                    {% endif %}
-                  </td>
-                  <td>
-                    {% if entry.is_classic %}
-                      <span class="badge text-bg-success">Да</span>
-                    {% else %}
-                      <span class="text-muted">Нет</span>
-                    {% endif %}
-                  </td>
-                  <td>{{ entry.series_name|default:"—" }}</td>
-                  <td>
-                    {% with entry.custom_genres.all as entry_genres %}
-                      {% if entry_genres %}
-                        {{ entry_genres|join:", " }}
-                      {% else %}
-                        —
-                      {% endif %}
-                    {% endwith %}
-                  </td>
-                  <td>
-                    {% if entry.acquired_at %}
-                      {{ entry.acquired_at|date:"d.m.Y" }}
-                    {% else %}
-                      —
-                    {% endif %}
-                  </td>
-                  <td style="max-width: 240px; white-space: pre-wrap;">{{ entry.notes|default:"—" }}</td>
-                  <td class="text-end">
-                    <div class="btn-group btn-group-sm">
-                      <a class="btn btn-outline-secondary" href="{% url 'home_library_edit' entry.shelf_item_id %}?next={{ request.get_full_path|urlencode }}">
-                        <i class="bi bi-pencil"></i>
-                      </a>
-                      <a class="btn btn-outline-danger" href="{% url 'remove_book_from_shelf' shelf.id entry.book.id %}?next={{ request.get_full_path|urlencode }}" title="Удалить из полки" aria-label="Удалить книгу">
-                        <i class="bi bi-trash"></i>
-                      </a>
-                    </div>
-                  </td>
-                </tr>
-              {% endfor %}
-            {% else %}
-              <tr>
-                <td colspan="10" class="text-center text-muted py-4">По выбранным условиям книги не найдены.</td>
+            {% for entry in disposed_entries %}
+            <tr>
+              <td data-label="Книга" style="min-width: 200px;">
+                  <div class="fw-semibold"><a class="text-decoration-none text-reset" href="{% url 'book_detail' entry.book.pk %}">{{ entry.book.title }}</a></div>
+                  <div class="small text-muted">{{ entry.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
+                </td>
+                <td data-label="Статус">{{ entry.status|default:"—" }}</td>
+                <td data-label="Комментарий" style="max-width: 280px; white-space: pre-wrap;">{{ entry.disposition_note|default:"—" }}</td>
+                <td data-label="Обновлено">{{ entry.updated_at|date:"d.m.Y H:i" }}</td>
+                <td data-label="Действия" class="text-end">
+                  <div class="btn-group btn-group-sm home-table-actions">
+                    <a class="btn btn-outline-secondary" href="{% url 'home_library_edit' entry.shelf_item_id %}?next={{ request.get_full_path|urlencode }}">
+                      <i class="bi bi-pencil"></i>
+                    </a>
+                    <a class="btn btn-outline-danger" href="{% url 'remove_book_from_shelf' shelf.id entry.book.id %}?next={{ request.get_full_path|urlencode }}" title="Удалить из полки" aria-label="Удалить книгу">
+                      <i class="bi bi-trash"></i>
+                    </a>
+                  </div>
+                </td>
               </tr>
-            {% endif %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-  {% if disposed_entries %}
-    <div class="card border-0 shadow-sm mt-4">
-      <div class="card-header bg-body-tertiary">Проданные и отданные книги</div>
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table align-middle mb-0">
-            <thead class="table-light">
-              <tr>
-                <th>Книга</th>
-                <th>Статус</th>
-                <th>Комментарий</th>
-                <th>Обновлено</th>
-                <th class="text-end">Действия</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for entry in disposed_entries %}
-                <tr>
-                  <td style="min-width: 200px;">
-                    <div class="fw-semibold"><a class="text-decoration-none" href="{% url 'book_detail' entry.book.pk %}">{{ entry.book.title }}</a></div>
-                    <div class="small text-muted">{{ entry.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
-                  </td>
-                  <td>{{ entry.status|default:"—" }}</td>
-                  <td style="max-width: 280px; white-space: pre-wrap;">{{ entry.disposition_note|default:"—" }}</td>
-                  <td>{{ entry.updated_at|date:"d.m.Y H:i" }}</td>
-                  <td class="text-end">
-                    <div class="btn-group btn-group-sm">
-                      <a class="btn btn-outline-secondary" href="{% url 'home_library_edit' entry.shelf_item_id %}?next={{ request.get_full_path|urlencode }}">
-                        <i class="bi bi-pencil"></i>
-                      </a>
-                      <a class="btn btn-outline-danger" href="{% url 'remove_book_from_shelf' shelf.id entry.book.id %}?next={{ request.get_full_path|urlencode }}" title="Удалить из полки" aria-label="Удалить книгу">
-                        <i class="bi bi-trash"></i>
-                      </a>
-                    </div>
-                  </td>
-                </tr>
-              {% endfor %}
+            {% endfor %}
             </tbody>
           </table>
         </div>
       </div>
-    </div>
   {% endif %}
 {% endif %}
 {% endblock %}
