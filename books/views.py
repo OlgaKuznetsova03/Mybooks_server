@@ -806,6 +806,18 @@ def book_detail(request, pk):
         book_metadata.append({"label": label, "value": value_str})
         metadata_labels.add(label)
 
+    genre_names = [
+        genre.name.strip()
+        for genre in book.genres.all()
+        if getattr(genre, "name", "").strip()
+    ]
+
+    def add_genre_quick_fact() -> None:
+        if not genre_names:
+            return
+        genre_label = "Жанры" if len(genre_names) > 1 else "Жанр"
+        add_quick_fact(genre_label, ", ".join(genre_names))
+
     active_publisher_name = ""
     active_edition_details = None
 
@@ -828,6 +840,11 @@ def book_detail(request, pk):
 
         if active_edition.total_pages:
             add_quick_fact("Страниц", active_edition.total_pages)
+        if active_edition.isbn13:
+            isbn13 = active_edition.isbn13.strip()
+            if isbn13:
+                add_quick_fact("ISBN-13", isbn13)
+        add_genre_quick_fact()
         if publisher:
             add_quick_fact("Издательство", publisher)
         if publish_date:
@@ -838,11 +855,6 @@ def book_detail(request, pk):
             edition_meta.append({"label": "Переплёт", "value": binding})
         if language:
             edition_meta.append({"label": "Язык", "value": language})
-        if active_edition.isbn:
-            edition_meta.append({"label": "ISBN-10", "value": active_edition.isbn})
-        if active_edition.isbn13:
-            edition_meta.append({"label": "ISBN-13", "value": active_edition.isbn13})
-
         header_parts = []
         if publisher:
             header_parts.append(publisher)
@@ -889,14 +901,17 @@ def book_detail(request, pk):
             if language:
                 edition_meta.append({"label": "Язык", "value": language})
 
-            if primary_isbn.isbn:
-                edition_meta.append({"label": "ISBN-10", "value": primary_isbn.isbn})
             if primary_isbn.isbn13:
-                edition_meta.append({"label": "ISBN-13", "value": primary_isbn.isbn13})
+                isbn13 = primary_isbn.isbn13.strip()
+                if isbn13:
+                    add_quick_fact("ISBN-13", isbn13)
+            add_genre_quick_fact()
 
         book_metadata.extend(edition_meta)
         metadata_labels.update(item["label"] for item in edition_meta)
 
+    add_genre_quick_fact()
+    
     if not book_quick_facts and active_publisher_name:
         add_quick_fact("Издательство", active_publisher_name)
 

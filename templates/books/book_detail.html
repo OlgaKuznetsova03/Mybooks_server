@@ -9,8 +9,8 @@
 {% block content %}
 
 <div class="book-detail-layout">
-  <div class="row g-4">
-    <div class="col-md-4 book-detail-layout__aside">
+  <div class="row g-4 g-xl-5 align-items-start">
+    <div class="col-12 col-lg-4 book-detail-layout__aside">
       <div class="book-detail-cover text-center" data-role="book-cover-display" data-default-alt="Обложка книги «{{ book.title }}»" data-default-label="{{ cover_label|default_if_none:''|escape }}">
         <img
           src="{% if active_cover and active_cover.image %}{{ active_cover.image }}{% endif %}"
@@ -116,7 +116,7 @@
       </div>
     {% endif %}
 
-    <div class="card border-0 shadow-sm">
+     <div class="card border-0 shadow-sm book-detail-layout__ratings">
       <div class="card-body">
         <h3 class="h6 mb-3">Средние оценки читателей</h3>
         {% if ratings %}
@@ -144,35 +144,35 @@
     </div>
   </div>
 
-   <div class="col-md-8 book-detail-layout__main">
-    <h1 class="h3 mb-1">{{ book.title }}</h1>
-    <div class="text-muted mb-2">{{ book.authors.all|join:", " }}</div>
-    {% with genres=book.genres.all %}
-      {% if genres %}
-        <div class="mb-2 d-flex flex-wrap gap-2">
-          {% for g in genres %}
-            <a class="badge text-bg-light text-decoration-none" href="{{ g.get_absolute_url }}">{{ g.name }}</a>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
-    {% if book_quick_facts %}
-      <div class="card border-0 shadow-sm mb-3 book-detail-quick-facts">
-        <div class="card-body">
-          <div class="row row-cols-1 row-cols-sm-2 g-3">
-            {% for fact in book_quick_facts %}
-              <div class="col">
-                <div class="book-detail-quick-fact">
-                  <div class="book-detail-quick-fact__label text-muted small">{{ fact.label }}</div>
-                  <div class="book-detail-quick-fact__value fw-semibold">{{ fact.value }}</div>
-                </div>
-              </div>
+    <div class="col-12 col-lg-8 book-detail-layout__main">
+    <div class="book-detail-header">
+      <h1 class="book-detail-header__title h3 mb-0">{{ book.title }}</h1>
+      <div class="book-detail-header__authors text-muted">{{ book.authors.all|join:", " }}</div>
+      {% with genres=book.genres.all %}
+        {% if genres %}
+          <div class="book-detail-header__genres">
+            {% for g in genres %}
+              <a class="badge text-bg-light text-decoration-none" href="{{ g.get_absolute_url }}">{{ g.name }}</a>
             {% endfor %}
           </div>
+        {% endif %}
+      {% endwith %}
+    </div>
+    {% if book_quick_facts %}
+      <div class="card border-0 shadow-sm book-detail-quick-facts">
+        <div class="card-body">
+          <dl class="book-detail-quick-facts__list">
+            {% for fact in book_quick_facts %}
+              <div class="book-detail-quick-facts__item">
+                <dt class="book-detail-quick-facts__label">{{ fact.label }}</dt>
+                <dd class="book-detail-quick-facts__value">{{ fact.value }}</dd>
+              </div>
+            {% endfor %}
+          </dl>
         </div>
       </div>
     {% endif %}
-    <div class="card border-0 shadow-sm mb-3">
+    <div class="card border-0 shadow-sm">
       <div class="card-body">
         <h2 class="h6 mb-3">Описание</h2>
         {% if book.synopsis %}
@@ -184,7 +184,7 @@
     </div>
 
     {% if active_edition_details %}
-      <div class="card border-0 shadow-sm mt-4" aria-labelledby="current-edition-title">
+      <div class="card border-0 shadow-sm" aria-labelledby="current-edition-title">
         <div class="card-body">
           <h2 class="h6 mb-3" id="current-edition-title">Текущее издание</h2>
           {% if active_edition_details.title and active_edition_details.title != book.title %}
@@ -218,7 +218,7 @@
     {% endif %}
 
     {% if book_metadata %}
-      <div class="card border-0 shadow-sm mt-4" aria-labelledby="book-metadata-title">
+      <div class="card border-0 shadow-sm" aria-labelledby="book-metadata-title">
         <div class="card-body">
           <h2 class="h6 mb-3" id="book-metadata-title">Дополнительные сведения</h2>
           <dl class="book-detail-meta">
@@ -234,7 +234,7 @@
     {% endif %}
 
     {% if genre_shelves %}
-      <section class="mt-4" aria-labelledby="genre-shelf-heading">
+      <section aria-labelledby="genre-shelf-heading">
         <div class="d-flex align-items-baseline justify-content-between flex-wrap gap-2 mb-3">
           <h2 class="h6 mb-0" id="genre-shelf-heading">Ещё книги в этих жанрах</h2>
           <span class="text-muted small">Подборка в стиле «12 забытых книг»</span>
@@ -249,7 +249,7 @@
     
     <!-- Кнопки действий -->
     {% if request.user.is_authenticated %}
-      <div class="d-flex flex-wrap gap-2 my-3" aria-label="Быстрые действия">
+      <div class="book-detail-actions d-flex flex-wrap gap-2" aria-label="Быстрые действия">
         {% if default_shelf_status %}
           <div class="bg-light border rounded px-3 py-2 small">
             {% if default_shelf_status.code == 'read' %}
@@ -322,7 +322,7 @@
     {% endif %}
 
     {% with overall=rating_summary.score %}
-      <div class="d-flex flex-wrap align-items-baseline gap-2 mt-3">
+      <div class="book-detail-overall-rating d-flex flex-wrap align-items-baseline gap-2">
         <div class="d-flex align-items-baseline gap-2 text-warning">
           <i class="bi bi-star-fill"></i>
           <span class="fw-semibold fs-5">
@@ -351,65 +351,63 @@
       </div>
     {% endwith %}
 
-    <div class="mt-4">
-      {% if user.is_authenticated %}
-        <div class="card border-0 shadow-sm" id="write-review" aria-labelledby="write-review-title">
-          <div class="card-body">
-            <h2 class="h6 mb-3" id="write-review-title">Оставить отзыв</h2>
-            <form method="post" action="{% url 'rate_book' book.pk %}" class="row g-3">
-              {% csrf_token %}
-              {{ form.book }}
-              {% if form.non_field_errors %}
-                <div class="col-12">
-                  <div class="alert alert-danger mb-0">
-                    {{ form.non_field_errors|join:"<br>"|safe }}
-                  </div>
-                </div>
-              {% endif %}
+    {% if user.is_authenticated %}
+      <div class="card border-0 shadow-sm" id="write-review" aria-labelledby="write-review-title">
+        <div class="card-body">
+          <h2 class="h6 mb-3" id="write-review-title">Оставить отзыв</h2>
+          <form method="post" action="{% url 'rate_book' book.pk %}" class="row g-3">
+            {% csrf_token %}
+            {{ form.book }}
+            {% if form.non_field_errors %}
               <div class="col-12">
-                <div class="d-flex flex-column gap-3">
+                <div class="alert alert-danger mb-0">
+                  {{ form.non_field_errors|join:"<br>"|safe }}
+                </div>
+              </div>
+            {% endif %}
+            <div class="col-12">
+              <div class="d-flex flex-column gap-3">
+                <div>
+                  <label class="form-label" for="{{ form.score.id_for_label }}">{{ form.score.label }}</label>
+                  {% include "books/includes/star_rating_field.html" with field=form.score scale=rating_scale label_id=form.score.id_for_label %}
+                  {% if form.score.errors %}
+                    <div class="invalid-feedback d-block">{{ form.score.errors|join:", " }}</div>
+                  {% endif %}
+                </div>
+                {% for field in rating_category_fields %}
                   <div>
-                    <label class="form-label" for="{{ form.score.id_for_label }}">{{ form.score.label }}</label>
-                    {% include "books/includes/star_rating_field.html" with field=form.score scale=rating_scale label_id=form.score.id_for_label %}
-                    {% if form.score.errors %}
-                      <div class="invalid-feedback d-block">{{ form.score.errors|join:", " }}</div>
+                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {% include "books/includes/star_rating_field.html" with field=field scale=rating_scale label_id=field.id_for_label %}
+                    {% if field.errors %}
+                      <div class="invalid-feedback d-block">{{ field.errors|join:", " }}</div>
                     {% endif %}
                   </div>
-                  {% for field in rating_category_fields %}
-                    <div>
-                      <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                      {% include "books/includes/star_rating_field.html" with field=field scale=rating_scale label_id=field.id_for_label %}
-                      {% if field.errors %}
-                        <div class="invalid-feedback d-block">{{ field.errors|join:", " }}</div>
-                      {% endif %}
-                    </div>
                   {% endfor %}
-                </div>
-                <div class="form-text mt-1">Вы можете заполнить только те категории, которые вам важны.</div>
               </div>
-              <div class="col-12">
-                <label class="form-label" for="{{ form.review.id_for_label }}">{{ form.review.label }}</label>
-                {{ form.review }}
-                {% if form.review.errors %}
-                  <div class="invalid-feedback d-block">{{ form.review.errors|join:", " }}</div>
-                {% endif %}
-              </div>
-              <div class="col-12 d-flex justify-content-end">
-                <button class="btn btn-primary" type="submit">Отправить отзыв</button>
-              </div>
-            </form>
-          </div>
+            <div class="form-text mt-1">Вы можете заполнить только те категории, которые вам важны.</div>
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="{{ form.review.id_for_label }}">{{ form.review.label }}</label>
+              {{ form.review }}
+              {% if form.review.errors %}
+                <div class="invalid-feedback d-block">{{ form.review.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+            <div class="col-12 d-flex justify-content-end">
+              <button class="btn btn-primary" type="submit">Отправить отзыв</button>
+            </div>
+          </form>
         </div>
-      {% else %}
-        <div class="alert alert-light border d-flex flex-column justify-content-center">
-          <p class="mb-2">Войдите, чтобы оставить свою оценку и отзыв.</p>
-          <a class="btn btn-primary btn-sm align-self-start" href="{% url 'login' %}?next={{ request.path }}">Войти</a>
-        </div>
-      {% endif %}
-    </div>
+      </div>
+    {% else %}
+      <div class="alert alert-light border d-flex flex-column justify-content-center">
+        <p class="mb-2">Войдите, чтобы оставить свою оценку и отзыв.</p>
+        <a class="btn btn-primary btn-sm align-self-start" href="{% url 'login' %}?next={{ request.path }}">Войти</a>
+      </div>
+    {% endif %}
 
-    <div class="mt-4">
-      <h2 class="h6 mb-3">Отзывы читателей</h2>
+    <section class="book-detail-reviews" aria-labelledby="reader-reviews-title">
+      <h2 class="h6 mb-3" id="reader-reviews-title">Отзывы читателей</h2>
       {% if ratings %}
         <div class="list-group">
           {% for r in ratings %}
@@ -441,7 +439,7 @@
       {% else %}
         <div class="alert alert-light border mb-0">Пока нет отзывов — станьте первым!</div>
       {% endif %}
-    </div>
+    </section>
   </div>
 </div>
 
