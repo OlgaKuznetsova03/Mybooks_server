@@ -1,5 +1,6 @@
 import tempfile
 from unittest import mock
+from urllib import parse
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -12,7 +13,32 @@ from shelves.models import Shelf, ShelfItem
 
 from .models import Author, Genre, Publisher, Book, ISBNModel
 from .services import register_book_edition
-from .api_clients import ExternalBookData
+from .api_clients import ExternalBookData, GoogleBooksClient
+
+
+class GoogleBooksClientTests(TestCase):
+    def test_pick_cover_url_upgrades_zoom_and_scheme(self):
+        client = GoogleBooksClient()
+        volume_info = {
+            "imageLinks": {
+                "thumbnail": (
+                    "http://books.google.com/books/content"
+                    "?id=test-id&printsec=frontcover&img=1&zoom=1"
+                )
+            }
+        }
+
+        result = client._pick_cover_url(volume_info)
+
+        self.assertIsNotNone(result)
+        parsed_url = parse.urlparse(result)
+        self.assertEqual(parsed_url.scheme, "https")
+        self.assertEqual(parsed_url.netloc, "books.google.com")
+        self.assertTrue(parsed_url.path.startswith("/books/content"))
+
+        params = dict(parse.parse_qsl(parsed_url.query))
+        self.assertEqual(params.get("zoom"), "3")
+        self.assertEqual(params.get("download"), "1")
 
 
 class GenreModelTests(TestCase):

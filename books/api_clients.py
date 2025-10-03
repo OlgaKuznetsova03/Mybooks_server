@@ -210,7 +210,48 @@ class GoogleBooksClient:
         ]:
             value = links.get(key)
             if value:
-                return str(value).strip() or None
+                candidate = str(value).strip()
+                if not candidate:
+                    continue
+
+                parsed = parse.urlparse(candidate)
+                if (
+                    parsed.netloc == "books.google.com"
+                    and parsed.path.startswith("/books/content")
+                ):
+                    params = parse.parse_qsl(
+                        parsed.query, keep_blank_values=True
+                    )
+                    zoom_found = False
+                    download_found = False
+                    updated_params = []
+                    for name, raw_value in params:
+                        if name == "zoom":
+                            try:
+                                zoom_value = int(raw_value)
+                            except (TypeError, ValueError):
+                                zoom_value = 0
+                            updated_params.append((name, str(max(zoom_value, 3))))
+                            zoom_found = True
+                        elif name == "download":
+                            updated_params.append((name, "1"))
+                            download_found = True
+                        else:
+                            updated_params.append((name, raw_value))
+
+                    if not zoom_found:
+                        updated_params.append(("zoom", "3"))
+                    if not download_found:
+                        updated_params.append(("download", "1"))
+
+                    candidate = parse.urlunparse(
+                        parsed._replace(
+                            scheme="https",
+                            query=parse.urlencode(updated_params, doseq=True),
+                        )
+                    )
+
+                return candidate
         return None
 
     def _parse_volume(self, item: Dict[str, Any]) -> Optional[ExternalBookData]:
