@@ -781,6 +781,31 @@ def book_detail(request, pk):
             if page.get("is_active"):
                 active_thumbnail_page_index = index
                 break
+    book_quick_facts: list[dict[str, str]] = []
+    book_metadata: list[dict[str, str]] = []
+    metadata_labels: set[str] = set()
+    quick_fact_labels: set[str] = set()
+
+    def add_quick_fact(label: str, value) -> None:
+        if value is None:
+            return
+        value_str = str(value).strip()
+        if not value_str:
+            return
+        if label in quick_fact_labels:
+            return
+        book_quick_facts.append({"label": label, "value": value_str})
+        quick_fact_labels.add(label)
+
+    def add_book_metadata(label: str, value) -> None:
+        if value is None:
+            return
+        value_str = str(value).strip()
+        if not value_str or label in metadata_labels or label in quick_fact_labels:
+            return
+        book_metadata.append({"label": label, "value": value_str})
+        metadata_labels.add(label)
+
     active_publisher_name = ""
     active_edition_details = None
 
@@ -801,6 +826,23 @@ def book_detail(request, pk):
         binding = (active_edition.binding or "").strip()
         language = (active_edition.language or "").strip()
 
+        if active_edition.total_pages:
+            add_quick_fact("Страниц", active_edition.total_pages)
+        if publisher:
+            add_quick_fact("Издательство", publisher)
+        if publish_date:
+            add_quick_fact("Издано", publish_date)
+
+        edition_meta: list[dict[str, str]] = []
+        if binding:
+            edition_meta.append({"label": "Переплёт", "value": binding})
+        if language:
+            edition_meta.append({"label": "Язык", "value": language})
+        if active_edition.isbn:
+            edition_meta.append({"label": "ISBN-10", "value": active_edition.isbn})
+        if active_edition.isbn13:
+            edition_meta.append({"label": "ISBN-13", "value": active_edition.isbn13})
+
         header_parts = []
         if publisher:
             header_parts.append(publisher)
@@ -809,23 +851,16 @@ def book_detail(request, pk):
         if binding:
             header_parts.append(binding)
 
-        meta = []
-        if active_edition.isbn:
-            meta.append({"label": "ISBN-10", "value": active_edition.isbn})
-        if active_edition.isbn13:
-            meta.append({"label": "ISBN-13", "value": active_edition.isbn13})
-        if active_edition.total_pages:
-            meta.append({"label": "Страниц", "value": f"{active_edition.total_pages} стр."})
-        if language:
-            meta.append({"label": "Язык", "value": language})
-
         active_edition_details = {
             "title": (active_edition.title or "").strip() or book.title,
             "header_text": " · ".join(header_parts),
             "subjects": subjects,
             "authors_display": authors_display,
-            "meta": meta,
-            }
+            "meta": edition_meta,
+            "quick_facts": list(book_quick_facts),
+        }
+
+        metadata_labels.update(item["label"] for item in edition_meta)
 
         active_publisher_name = publisher
     else:
@@ -833,7 +868,57 @@ def book_detail(request, pk):
             book.publisher.order_by("name").values_list("name", flat=True)
         )
         if publisher_names:
-            active_publisher_name = ", ".join(publisher_names)
+            publishers_display = ", ".join(publisher_names)
+            active_publisher_name = publishers_display
+            add_quick_fact("Издательство", publishers_display)
+
+        edition_meta: list[dict[str, str]] = []
+        primary_isbn = book.primary_isbn
+        if primary_isbn:
+            if primary_isbn.total_pages:
+                add_quick_fact("Страниц", primary_isbn.total_pages)
+            publish_date = (primary_isbn.publish_date or "").strip()
+            if publish_date:
+                add_quick_fact("Издано", publish_date)
+
+            binding = (primary_isbn.binding or "").strip()
+            if binding:
+                edition_meta.append({"label": "Переплёт", "value": binding})
+
+            language = (primary_isbn.language or "").strip()
+            if language:
+                edition_meta.append({"label": "Язык", "value": language})
+
+            if primary_isbn.isbn:
+                edition_meta.append({"label": "ISBN-10", "value": primary_isbn.isbn})
+            if primary_isbn.isbn13:
+                edition_meta.append({"label": "ISBN-13", "value": primary_isbn.isbn13})
+
+        book_metadata.extend(edition_meta)
+        metadata_labels.update(item["label"] for item in edition_meta)
+
+    if not book_quick_facts and active_publisher_name:
+        add_quick_fact("Издательство", active_publisher_name)
+
+    if book.series:
+        series_value = book.series.strip()
+        if series_value:
+            if book.series_order:
+                order_value = str(book.series_order).strip()
+                if order_value:
+                    series_value = f"{series_value} · книга {order_value}"
+            add_book_metadata("Серия", series_value)
+    elif book.series_order:
+        add_book_metadata("Номер в серии", book.series_order)
+
+    if book.age_rating:
+        add_book_metadata("Возрастное ограничение", book.age_rating)
+
+    if book.language:
+        add_book_metadata("Язык", book.language)
+
+    if book.audio:
+        add_book_metadata("Аудиоверсия", book.audio.title)
 
     genre_shelves: list[dict[str, object]] = []
     for genre in book.genres.all():
@@ -887,6 +972,8 @@ def book_detail(request, pk):
         "active_edition": active_edition,
         "active_edition_details": active_edition_details,
         "active_publisher_name": active_publisher_name,
+        "book_quick_facts": book_quick_facts,
+        "book_metadata": book_metadata,
         "home_library_form": home_library_form,
         "home_library_item": home_library_item,
         "home_library_entry": home_library_entry,

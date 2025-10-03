@@ -3,41 +3,43 @@
 {% block title %}{{ book.title }} · ReadTogether{% endblock %}
 {% block extra_css %}
   {{ block.super }}
+  <link rel="stylesheet" href="{% static 'books/book-detail.css' %}">
   <link rel="stylesheet" href="{% static 'books/genre-shelf.css' %}">
 {% endblock %}
 {% block content %}
 
-<div class="row g-4">
-  <div class="col-md-4" style="--book-cover-width: 240px;">
-   <div class="text-center" data-role="book-cover-display" data-default-alt="Обложка книги «{{ book.title }}»" data-default-label="{{ cover_label|default_if_none:''|escape }}">
-      <img
-        src="{% if active_cover and active_cover.image %}{{ active_cover.image }}{% endif %}"
-        class="rounded shadow-sm img-fluid mx-auto{% if not active_cover or not active_cover.image %} d-none{% endif %}"
-        style="max-width: var(--book-cover-width, 240px);"
-        alt="{% if active_cover and active_cover.alt %}{{ active_cover.alt }}{% else %}Обложка книги «{{ book.title }}»{% endif %}"
-        loading="lazy"
-        data-role="book-cover-image"
-      >
-      <div
-        class="bg-secondary-subtle rounded d-flex align-items-center justify-content-center mx-auto{% if active_cover and active_cover.image %} d-none{% endif %}"
-        style="max-width: var(--book-cover-width, 240px); min-height: calc(var(--book-cover-width, 240px) * 2 / 3);"
-        data-role="book-cover-placeholder"
-      >
-        <span class="text-muted">Нет обложки</span>
-      </div>
-      <div class="small text-muted mt-2{% if not cover_label %} d-none{% endif %}" data-role="book-cover-label">
-        {{ cover_label|default_if_none:"" }}
-      </div>
-      {% if active_edition and active_edition.total_pages is not None %}
-        <div class="small text-muted" data-role="book-cover-pages">
-          Страниц: {{ active_edition.total_pages }}
+<div class="book-detail-layout">
+  <div class="row g-4">
+    <div class="col-md-4 book-detail-layout__aside">
+      <div class="book-detail-cover text-center" data-role="book-cover-display" data-default-alt="Обложка книги «{{ book.title }}»" data-default-label="{{ cover_label|default_if_none:''|escape }}">
+        <img
+          src="{% if active_cover and active_cover.image %}{{ active_cover.image }}{% endif %}"
+          class="rounded shadow-sm img-fluid mx-auto{% if not active_cover or not active_cover.image %} d-none{% endif %}"
+          style="max-width: var(--book-cover-width, 240px);"
+          alt="{% if active_cover and active_cover.alt %}{{ active_cover.alt }}{% else %}Обложка книги «{{ book.title }}»{% endif %}"
+          loading="lazy"
+          data-role="book-cover-image"
+        >
+        <div
+          class="bg-secondary-subtle rounded d-flex align-items-center justify-content-center mx-auto{% if active_cover and active_cover.image %} d-none{% endif %}"
+          style="max-width: var(--book-cover-width, 240px); min-height: calc(var(--book-cover-width, 240px) * 2 / 3);"
+          data-role="book-cover-placeholder"
+        >
+          <span class="text-muted">Нет обложки</span>
         </div>
-      {% endif %}
-    </div>
+        <div class="small text-muted mt-2{% if not cover_label %} d-none{% endif %}" data-role="book-cover-label">
+          {{ cover_label|default_if_none:"" }}
+        </div>
+        {% if active_edition and active_edition.total_pages is not None %}
+          <div class="small text-muted" data-role="book-cover-pages">
+            Страниц: {{ active_edition.total_pages }}
+          </div>
+        {% endif %}
+      </div>
 
     {% if show_cover_thumbnails %}
     {% url 'book_detail' book.pk as book_detail_url %}
-      <div class="mt-3" aria-labelledby="additional-editions-heading">
+      <div class="book-detail-thumbnails" aria-labelledby="additional-editions-heading">
         <h3 class="visually-hidden" id="additional-editions-heading">Дополнительные издания</h3>
         <div
           class="book-cover-thumbnails"
@@ -114,7 +116,7 @@
       </div>
     {% endif %}
 
-    <div class="card border-0 shadow-sm mt-3">
+    <div class="card border-0 shadow-sm">
       <div class="card-body">
         <h3 class="h6 mb-3">Средние оценки читателей</h3>
         {% if ratings %}
@@ -142,7 +144,7 @@
     </div>
   </div>
 
-  <div class="col-md-8">
+   <div class="col-md-8 book-detail-layout__main">
     <h1 class="h3 mb-1">{{ book.title }}</h1>
     <div class="text-muted mb-2">{{ book.authors.all|join:", " }}</div>
     {% with genres=book.genres.all %}
@@ -154,10 +156,32 @@
         </div>
       {% endif %}
     {% endwith %}
-    {% if active_publisher_name %}
-      <div class="mb-2">Издательство: {{ active_publisher_name }}</div>
+    {% if book_quick_facts %}
+      <div class="card border-0 shadow-sm mb-3 book-detail-quick-facts">
+        <div class="card-body">
+          <div class="row row-cols-1 row-cols-sm-2 g-3">
+            {% for fact in book_quick_facts %}
+              <div class="col">
+                <div class="book-detail-quick-fact">
+                  <div class="book-detail-quick-fact__label text-muted small">{{ fact.label }}</div>
+                  <div class="book-detail-quick-fact__value fw-semibold">{{ fact.value }}</div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
     {% endif %}
-    <p class="mb-3">{{ book.synopsis|default:"Описание пока не добавлено." }}</p>
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-3">Описание</h2>
+        {% if book.synopsis %}
+          <p class="mb-0">{{ book.synopsis|linebreaksbr }}</p>
+        {% else %}
+          <p class="mb-0 text-muted">Описание пока не добавлено.</p>
+        {% endif %}
+      </div>
+    </div>
 
     {% if active_edition_details %}
       <div class="card border-0 shadow-sm mt-4" aria-labelledby="current-edition-title">
@@ -173,10 +197,12 @@
             <div class="text-muted small mt-2">{{ active_edition_details.header_text }}</div>
           {% endif %}
           {% if active_edition_details.meta %}
-            <dl class="row small text-muted mt-3 mb-0 edition-meta">
+            <dl class="book-detail-meta">
               {% for item in active_edition_details.meta %}
-                <dt class="col-sm-4 col-lg-3">{{ item.label }}</dt>
-                <dd class="col-sm-8 col-lg-9 text-body">{{ item.value }}</dd>
+                <div class="book-detail-meta__item">
+                  <dt>{{ item.label }}</dt>
+                  <dd>{{ item.value }}</dd>
+                </div>
               {% endfor %}
             </dl>
           {% endif %}
@@ -187,6 +213,22 @@
               {% endfor %}
             </div>
           {% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+    {% if book_metadata %}
+      <div class="card border-0 shadow-sm mt-4" aria-labelledby="book-metadata-title">
+        <div class="card-body">
+          <h2 class="h6 mb-3" id="book-metadata-title">Дополнительные сведения</h2>
+          <dl class="book-detail-meta">
+            {% for item in book_metadata %}
+              <div class="book-detail-meta__item">
+                <dt>{{ item.label }}</dt>
+                <dd>{{ item.value }}</dd>
+              </div>
+            {% endfor %}
+          </dl>
         </div>
       </div>
     {% endif %}
