@@ -1,58 +1,51 @@
-{% load shelf_extras %}
-<section class="genre-shelf-card card border-0 shadow-sm">
-  <div class="genre-shelf-card__body">
-    <header class="genre-shelf-card__header">
-      <div>
-        <h3 class="genre-shelf-card__title">{{ shelf.title }}</h3>
-        {% if shelf.subtitle %}
-          <p class="genre-shelf-card__subtitle">{{ shelf.subtitle }}</p>
-        {% endif %}
+{% extends "base.html" %}
+{% load static shelf_extras %}
+
+{% block title %}{{ genre.name }} · ReadTogether{% endblock %}
+
+{% block extra_css %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'books/genre-shelf.css' %}">
+{% endblock %}
+
+{% block content %}
+  <section class="genre-hero card border-0 shadow-sm mb-4">
+    <div class="card-body">
+      <div class="genre-hero__header">
+        <div>
+          <h1 class="genre-hero__title">{{ genre.name }}</h1>
+          <p class="genre-hero__subtitle">
+            {{ total_books }} {{ total_books|ru_pluralize:"книга,книги,книг" }} в каталоге ReadTogether
+          </p>
+        </div>
+        <a class="btn btn-light text-primary-emphasis" href="{% url 'book_list' %}">
+          <i class="bi bi-arrow-left me-2"></i>Вернуться к каталогу
+        </a>
       </div>
-      {% with cta=shelf.cta %}
-        {% if cta and cta.url %}
-          <a class="btn btn-outline-primary btn-sm" href="{{ cta.url }}">{{ cta.label }}</a>
-        {% endif %}
-      {% endwith %}
-    </header>
-    {% if shelf.books %}
-      <div class="genre-shelf-card__list" role="list">
-        {% for entry in shelf.books %}
-          <article class="genre-shelf-card__book" role="listitem">
-            <a class="genre-shelf-card__cover" href="{{ entry.detail_url }}" aria-label="{{ entry.title }}">
-              {% if entry.cover_url %}
-                <img src="{{ entry.cover_url }}" alt="Обложка «{{ entry.title }}»" loading="lazy">
-              {% else %}
-                <span class="genre-shelf-card__cover-placeholder">{{ entry.initial }}</span>
-              {% endif %}
-            </a>
-            <div class="genre-shelf-card__meta">
-              <h4 class="genre-shelf-card__book-title">
-                <a href="{{ entry.detail_url }}">{{ entry.title }}</a>
-              </h4>
-              {% if entry.authors %}
-                <div class="genre-shelf-card__book-authors">{{ entry.authors|join:", " }}</div>
-              {% endif %}
-              <div class="genre-shelf-card__book-rating">
-                <span class="genre-shelf-card__rating-value">
-                  {% if entry.average_rating is not None %}
-                    {{ entry.average_rating|floatformat:1 }}
-                  {% else %}
-                    —
-                  {% endif %}
-                </span>
-                <span class="genre-shelf-card__rating-meta">
-                  оценка
-                  {% if entry.rating_count %}
-                    · {{ entry.rating_count }} {{ entry.rating_count|ru_pluralize:"оценка,оценки,оценок" }}
-                  {% endif %}
-                </span>
-              </div>
-            </div>
-          </article>
+      {% if genre.description %}
+        <p class="genre-hero__description">{{ genre.description }}</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <div class="genre-shelf-collection">
+    {% for shelf in shelves %}
+      {% include "books/includes/genre_shelf.html" with shelf=shelf %}
+    {% empty %}
+      <div class="alert alert-info mb-0">В этом жанре пока нет книг. Добавьте первую!</div>
+    {% endfor %}
+  </div>
+
+  {% if other_genres %}
+    <section class="mt-5" aria-labelledby="other-genres-heading">
+      <h2 class="h5 mb-3" id="other-genres-heading">Другие жанры</h2>
+      <div class="d-flex flex-wrap gap-2">
+        {% for other in other_genres %}
+          <a class="badge text-bg-light text-decoration-none" href="{{ other.get_absolute_url }}">
+            {{ other.name }} · {{ other.book_count }} {{ other.book_count|ru_pluralize:"книга,книги,книг" }}
+          </a>
         {% endfor %}
       </div>
-    {% else %}
-      <p class="genre-shelf-card__empty">{{ shelf.empty_message|default:"Скоро здесь появятся новые книги." }}</p>
-    {% endif %}
-  </div>
-</section>
+     </section>
+  {% endif %}
+{% endblock %}

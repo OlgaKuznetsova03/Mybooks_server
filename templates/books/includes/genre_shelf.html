@@ -1,0 +1,58 @@
+{% load shelf_extras %}
+<section class="genre-shelf-card card border-0 shadow-sm">
+  <div class="genre-shelf-card__body">
+    <header class="genre-shelf-card__header">
+      <div>
+        <h3 class="genre-shelf-card__title">{{ shelf.title }}</h3>
+        {% if shelf.subtitle %}
+          <p class="genre-shelf-card__subtitle">{{ shelf.subtitle }}</p>
+        {% endif %}
+      </div>
+      {% with cta=shelf.cta %}
+        {% if cta and cta.url %}
+          <a class="btn btn-outline-primary btn-sm" href="{{ cta.url }}">{{ cta.label }}</a>
+        {% endif %}
+      {% endwith %}
+    </header>
+    {% if shelf.books %}
+      <div class="genre-shelf-card__list" role="list">
+        {% for entry in shelf.books %}
+          <article class="genre-shelf-card__book" role="listitem">
+            <a class="genre-shelf-card__cover" href="{{ entry.detail_url }}" aria-label="{{ entry.title }}">
+              {% if entry.cover_url %}
+                <img src="{{ entry.cover_url }}" alt="Обложка «{{ entry.title }}»" loading="lazy">
+              {% else %}
+                <span class="genre-shelf-card__cover-placeholder">{{ entry.initial }}</span>
+              {% endif %}
+            </a>
+            <div class="genre-shelf-card__meta">
+              <h4 class="genre-shelf-card__book-title">
+                <a href="{{ entry.detail_url }}">{{ entry.title }}</a>
+              </h4>
+              {% if entry.authors %}
+                <div class="genre-shelf-card__book-authors">{{ entry.authors|join:", " }}</div>
+              {% endif %}
+              <div class="genre-shelf-card__book-rating">
+                <span class="genre-shelf-card__rating-value">
+                  {% if entry.average_rating is not None %}
+                    {{ entry.average_rating|floatformat:1 }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </span>
+                <span class="genre-shelf-card__rating-meta">
+                  оценка
+                  {% if entry.rating_count %}
+                    · {{ entry.rating_count }} {{ entry.rating_count|ru_pluralize:"оценка,оценки,оценок" }}
+                  {% endif %}
+                </span>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="genre-shelf-card__empty">{{ shelf.empty_message|default:"Скоро здесь появятся новые книги." }}</p>
+    {% endif %}
+  </div>
+</section>
