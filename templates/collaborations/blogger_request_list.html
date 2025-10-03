@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Заявки блогеров" %} · {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+  <div>
+    <h1 class="h3 mb-1">{% trans "Заявки блогеров" %}</h1>
+    <p class="text-muted mb-0">{% trans "Найдите блогера, готового рассказать о вашей книге." %}</p>
+  </div>
+  {% if request.user.is_authenticated %}
+    <div class="btn-group">
+      <a href="{% url 'collaborations:blogger_request_create' %}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>{% trans "Создать заявку" %}
+      </a>
+      <a href="{% url 'collaborations:collaboration_list' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-people-fill me-1"></i>{% trans "Мои сотрудничества" %}
+      </a>
+    </div>
+  {% endif %}
+</div>
+
+<form method="get" class="row g-3 align-items-end mb-4">
+  <div class="col-md-6 col-lg-4">
+    <label for="search" class="form-label">{% trans "Поиск" %}</label>
+    <input id="search" type="search" name="q" value="{{ request.GET.q }}" class="form-control" placeholder="{% trans 'Жанр или описание' %}">
+  </div>
+  <div class="col-md-3 col-lg-2">
+    <button type="submit" class="btn btn-outline-secondary w-100">
+      <i class="bi bi-search me-1"></i>{% trans "Найти" %}
+    </button>
+  </div>
+</form>
+
+{% if requests %}
+  <div class="row g-4">
+    {% for request_obj in requests %}
+      <div class="col-12 col-lg-6">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body d-flex flex-column">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h2 class="h5 mb-0"><a href="{% url 'collaborations:blogger_request_detail' request_obj.pk %}" class="text-decoration-none">{{ request_obj.title }}</a></h2>
+              <span class="badge text-bg-info">{{ request_obj.blogger.get_full_name|default:request_obj.blogger.username }}</span>
+            </div>
+            {% if request_obj.additional_info %}
+              <p class="text-muted small mb-3">{{ request_obj.additional_info|truncatechars:160 }}</p>
+            {% endif %}
+            <div class="mb-3">
+              <strong class="small d-block mb-1 text-uppercase text-muted">{% trans "Форматы" %}</strong>
+              <div class="d-flex flex-wrap gap-2">
+                {% for format in request_obj.get_format_display_list %}
+                  <span class="badge text-bg-light border">{{ format }}</span>
+                {% empty %}
+                  <span class="text-muted small">{% trans "Не указано" %}</span>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="mb-3">
+              <strong class="small d-block mb-1 text-uppercase text-muted">{% trans "Площадки" %}</strong>
+              <div class="d-flex flex-wrap gap-2">
+                {% for platform in request_obj.review_formats.all %}
+                  <span class="badge text-bg-light border">{{ platform.name }}</span>
+                {% empty %}
+                  <span class="text-muted small">{% trans "Уточняются" %}</span>
+                {% endfor %}
+              </div>
+            </div>
+            <ul class="list-unstyled small text-muted mt-auto mb-0">
+              <li class="mb-1"><i class="bi bi-calendar-event me-1"></i>{% trans "Создано" %}: {{ request_obj.created_at|date:"j E Y" }}</li>
+              <li class="mb-1">
+                <i class="bi bi-megaphone me-1"></i>
+                {% if request_obj.open_for_paid_collaboration %}
+                  {% trans "Готов к платному сотрудничеству" %}
+                {% else %}
+                  {% trans "Только бартер" %}
+                {% endif %}
+              </li>
+            </ul>
+          </div>
+          <div class="card-footer bg-body-secondary d-flex justify-content-between align-items-center">
+            <a href="{% url 'collaborations:blogger_request_detail' request_obj.pk %}" class="btn btn-sm btn-outline-primary">{% trans "Подробнее" %}</a>
+            {% with platform_count=request_obj.platforms.all|length %}
+              <span class="text-muted small"><i class="bi bi-people me-1"></i>{{ platform_count }} {% trans "площадк." %}</span>
+            {% endwith %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% include "config/pagination.html" with page_obj=page_obj %}
+{% else %}
+  <div class="text-center py-5">
+    <p class="lead mb-2">{% trans "Активных заявок нет." %}</p>
+    {% if request.user.is_authenticated %}
+      <p class="text-muted">{% trans "Создайте свою и найдите автора!" %}</p>
+    {% endif %}
+  </div>
+{% endif %}
+{% endblock %}

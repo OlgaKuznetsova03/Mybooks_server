@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Новое предложение" %} · {{ block.super }}{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">{% trans "Новое предложение" %}</h1>
+
+<form method="post" class="card shadow-sm">
+  <div class="card-body">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+      <div class="mb-3">
+        {% if field.field.widget.input_type == 'checkbox' %}
+          <div class="form-check">
+            {{ field }}
+            <label class="form-check-label" for="id_{{ field.name }}">{{ field.label }}</label>
+          </div>
+        {% else %}
+          <label class="form-label" for="id_{{ field.name }}">{{ field.label }}</label>
+          {{ field }}
+        {% endif %}
+        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+        {% for error in field.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+  <div class="card-footer text-end">
+    <button type="submit" class="btn btn-primary">
+      <i class="bi bi-check2-circle me-1"></i>{% trans "Сохранить" %}
+    </button>
+  </div>
+</form>
+{% endblock %}

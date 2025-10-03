@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     'accounts.apps.AccountsConfig',
     'shelves.apps.ShelvesConfig',
     'games.apps.GamesConfig',
+    'collaborations.apps.CollaborationsConfig',
 ]
 
 MIDDLEWARE = [

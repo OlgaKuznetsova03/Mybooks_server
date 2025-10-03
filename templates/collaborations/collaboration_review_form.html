@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Отчёт по сотрудничеству" %} · {{ block.super }}{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">{% trans "Отправить ссылки на отзывы" %}</h1>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <p class="text-muted small mb-4">
+      {% trans "Укажите ссылки на публикации, подтверждающие выполнение условий. Каждую ссылку размещайте с новой строки." %}
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      {% for field in form %}
+        <div class="mb-3">
+          {% if field.field.widget.input_type == 'checkbox' %}
+            <div class="form-check">
+              {{ field }}
+              <label class="form-check-label" for="id_{{ field.name }}">{{ field.label }}</label>
+            </div>
+          {% else %}
+            <label class="form-label" for="id_{{ field.name }}">{{ field.label }}</label>
+            {{ field }}
+          {% endif %}
+          {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+          {% for error in field.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-upload me-1"></i>{% trans "Отправить" %}
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

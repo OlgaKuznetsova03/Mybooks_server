@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Новая заявка блогера" %} · {{ block.super }}{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">{% trans "Новая заявка блогера" %}</h1>
+
+<form method="post" class="card shadow-sm">
+  {% csrf_token %}
+  <div class="card-body">
+    <h2 class="h5 mb-3">{% trans "Основная информация" %}</h2>
+    {{ form.non_field_errors }}
+    {% for field in form %}
+      <div class="mb-3">
+        {% if field.field.widget.input_type == 'checkbox' %}
+          <div class="form-check">
+            {{ field }}
+            <label class="form-check-label" for="id_{{ field.name }}">{{ field.label }}</label>
+          </div>
+        {% else %}
+          <label class="form-label" for="id_{{ field.name }}">{{ field.label }}</label>
+          {{ field }}
+        {% endif %}
+        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+        {% for error in field.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+
+    <hr class="my-4">
+    <h2 class="h5 mb-3">{% trans "Площадки и подписчики" %}</h2>
+    {{ formset.management_form }}
+    {{ formset.non_form_errors }}
+    {% for form in formset %}
+      <div class="border rounded-3 p-3 mb-3 bg-body-tertiary">
+        {{ form.id }}
+        <div class="row g-3 align-items-end">
+          <div class="col-md-5">
+            <label class="form-label">{% trans "Платформа" %}</label>
+            {{ form.platform }}
+            {{ form.custom_platform_name }}
+            {% for error in form.platform.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+            {% for error in form.custom_platform_name.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="col-md-5">
+            <label class="form-label">{% trans "Количество подписчиков" %}</label>
+            {{ form.followers_count }}
+            {% for error in form.followers_count.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="col-md-2">
+            <div class="form-check mt-4">
+              {{ form.DELETE }}
+              <label class="form-check-label">{% trans "Удалить" %}</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+    <p class="text-muted small">{% trans "Оставьте поля пустыми, чтобы удалить незаполненные блоки." %}</p>
+  </div>
+  <div class="card-footer text-end">
+    <button type="submit" class="btn btn-primary">
+      <i class="bi bi-check2-circle me-1"></i>{% trans "Сохранить" %}
+    </button>
+  </div>
+</form>
+{% endblock %}
