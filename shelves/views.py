@@ -80,23 +80,31 @@ def home_library(request):
     item_ids = [item.id for item in items]
     entry_map = {
         entry.shelf_item_id: entry
-        for entry in HomeLibraryEntry.objects
-        .filter(shelf_item_id__in=item_ids)
-        .select_related("shelf_item__book")
+        for entry in (
+            HomeLibraryEntry.objects
+            .filter(shelf_item_id__in=item_ids)
+            .select_related("shelf_item__book")
+            .prefetch_related("custom_genres")
+        )
     }
     entries = []
     for item in items:
         entry = entry_map.get(item.id)
+        book_genres = list(item.book.genres.all())
         if entry is None:
             entry = HomeLibraryEntry.objects.create(
                 shelf_item=item,
                 series_name=item.book.series or "",
             )
-            if item.book.genres.exists():
-                entry.custom_genres.set(item.book.genres.all())
-        elif not entry.series_name and item.book.series:
-            entry.series_name = item.book.series
-            entry.save(update_fields=["series_name"])
+            if book_genres:
+                entry.custom_genres.set(book_genres)
+        else:
+            if not entry.series_name and item.book.series:
+                entry.series_name = item.book.series
+                entry.save(update_fields=["series_name"])
+            existing_custom_genres = list(entry.custom_genres.all())
+            if not existing_custom_genres and book_genres:
+                entry.custom_genres.set(book_genres)
         entry_map[item.id] = entry
 
     entries_qs = (
@@ -222,7 +230,8 @@ def home_library(request):
         "entries": entries,
         "disposed_entries": disposed_entries,
         "summary": summary,
-        "disposed_entries": disposed_entries,
+        "filter_form": filter_form,
+        "filters_applied": filters_applied,
     }
     return render(request, "shelves/home_library.html", context)
 

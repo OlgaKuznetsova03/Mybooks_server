@@ -253,7 +253,10 @@ class HomeLibraryEntryForm(forms.ModelForm):
             "status": forms.TextInput(attrs={"class": "form-control"}),
             "location": forms.TextInput(attrs={"class": "form-control"}),
             "shelf_section": forms.TextInput(attrs={"class": "form-control"}),
-            "acquired_at": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+            "acquired_at": forms.DateInput(
+                attrs={"type": "date", "class": "form-control"},
+                format="%Y-%m-%d",
+            ),
             "is_classic": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "series_name": forms.TextInput(attrs={"class": "form-control"}),
             "custom_genres": forms.SelectMultiple(
@@ -266,6 +269,17 @@ class HomeLibraryEntryForm(forms.ModelForm):
             "notes": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
         }
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        acquired_field = self.fields["acquired_at"]
+        existing_formats = list(acquired_field.input_formats or [])
+        if "%Y-%m-%d" not in existing_formats:
+            existing_formats.insert(0, "%Y-%m-%d")
+        acquired_field.input_formats = existing_formats
+        acquired_field.widget.format = "%Y-%m-%d"
+        if self.instance and self.instance.pk and self.instance.acquired_at:
+            self.initial.setdefault("acquired_at", self.instance.acquired_at)
+
     def clean(self):
         cleaned_data = super().clean()
         is_disposed = cleaned_data.get("is_disposed")
