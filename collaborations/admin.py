@@ -48,7 +48,7 @@ class BloggerPlatformPresenceInline(admin.TabularInline):
 @admin.register(BloggerRequest)
 class BloggerRequestAdmin(admin.ModelAdmin):
     list_display = ("title", "blogger", "is_active", "created_at")
-    list_filter = ("is_active", "open_for_paid_collaboration")
+    list_filter = ("is_active", "collaboration_type")
     search_fields = ("title", "additional_info")
     inlines = [BloggerPlatformPresenceInline, BloggerRequestResponseInline]
     filter_horizontal = ("preferred_genres", "review_formats")
