@@ -38,6 +38,7 @@ class AuthorOfferForm(BootstrapModelForm):
         model = AuthorOffer
         fields = [
             "title",
+            "book",
             "offered_format",
             "synopsis",
             "review_requirements",
@@ -55,6 +56,7 @@ class AuthorOfferForm(BootstrapModelForm):
             "review_requirements": forms.Textarea(attrs={"rows": 4}),
             "synopsis": forms.Textarea(attrs={"rows": 3}),
             "expected_platforms": forms.SelectMultiple(attrs={"data-enhanced-multi": "1"}),
+            "book": forms.Select(attrs={"class": "form-select", "data-enhanced-single": "1"}),
         }
 
 

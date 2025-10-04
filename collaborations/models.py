@@ -9,6 +9,8 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from books.models import Book
+
 User = get_user_model()
 
 
@@ -87,6 +89,17 @@ class AuthorOffer(models.Model):
         default=VideoReviewType.NONE,
         verbose_name=_("Формат видеоотзыва"),
     )
+    book = models.ForeignKey(
+        Book,
+        on_delete=models.SET_NULL,
+        related_name="author_offers",
+        null=True,
+        blank=True,
+        verbose_name=_("Книга на сайте"),
+        help_text=_(
+            "При желании привяжите предложение к книге, которая уже добавлена на сайт."
+        ),
+    )
     video_requires_unboxing = models.BooleanField(
         default=False,
         verbose_name=_("Нужна распаковка"),
@@ -125,9 +138,14 @@ class AuthorOffer(models.Model):
         if not self.considers_paid_collaboration:
             return ""
         return _(
-            "Обратите внимание: сайт не несёт ответственности за платные услуги, предоставляемые авторами."
+            "Все договорённости по платным интеграциям или сотрудничеству заключаются исключительно между автором и заказчиком. Платформа не является стороной сделки, не осуществляет контроль над условиями и не несёт какой-либо ответственности за последствия договорённостей."
         )
 
+    def get_attached_book_cover_url(self) -> str:
+        if self.book is None:
+            return ""
+        return self.book.get_cover_url()
+    
 
 class BloggerRequest(models.Model):
     """Заявка блогера на поиск авторов."""

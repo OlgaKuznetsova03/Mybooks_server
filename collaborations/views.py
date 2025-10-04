@@ -63,7 +63,7 @@ class OfferListView(ListView):
         queryset = (
             super()
             .get_queryset()
-            .select_related("author")
+            .select_related("author", "book")
             .prefetch_related("expected_platforms")
         )
         q = self.request.GET.get("q")
@@ -77,6 +77,14 @@ class OfferDetailView(DetailView):
     template_name = "collaborations/offer_detail.html"
     context_object_name = "offer"
 
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .select_related("author", "book")
+            .prefetch_related("expected_platforms")
+        )
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         if self.request.user.is_authenticated:

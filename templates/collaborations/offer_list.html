@@ -39,25 +39,42 @@
       <div class="col-12 col-lg-6">
         <div class="card h-100 shadow-sm">
           <div class="card-body d-flex flex-column">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <h2 class="h5 mb-0"><a href="{% url 'collaborations:offer_detail' offer.pk %}" class="text-decoration-none">{{ offer.title }}</a></h2>
-              <span class="badge text-bg-primary">{{ offer.get_offered_format_display }}</span>
-            </div>
-            {% if offer.synopsis %}
-              <p class="text-muted small mb-3">{{ offer.synopsis|truncatechars:160 }}</p>
-            {% endif %}
-            <ul class="list-unstyled small mb-3 flex-grow-1">
-              <li class="mb-1"><i class="bi bi-person-workspace me-2"></i>{{ offer.author.get_full_name|default:offer.author.username }}</li>
-              <li class="mb-1"><i class="bi bi-clock me-2"></i>{% trans "Опубликовано" %}: {{ offer.created_at|date:"j E Y" }}</li>
-              <li class="mb-1"><i class="bi bi-people me-2"></i>
-                {% if offer.allow_regular_users %}
-                  {% trans "Открыто блогерам и читателям" %}
-                {% else %}
-                  {% trans "Только для блогеров" %}
+            <div class="d-flex gap-3 mb-3">
+              {% with cover_url=offer.get_attached_book_cover_url %}
+                {% if offer.book and cover_url %}
+                  <a href="{% url 'book_detail' offer.book.pk %}" class="flex-shrink-0 d-block">
+                    <img src="{{ cover_url }}" alt="{{ offer.book.title }}" class="rounded shadow-sm" style="width: 96px; height: auto;">
+                  </a>
                 {% endif %}
-              </li>
-            </ul>
-            <div class="d-flex flex-wrap gap-2 align-items-center">
+              {% endwith %}
+              <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <h2 class="h5 mb-0"><a href="{% url 'collaborations:offer_detail' offer.pk %}" class="text-decoration-none">{{ offer.title }}</a></h2>
+                  <span class="badge text-bg-primary">{{ offer.get_offered_format_display }}</span>
+                </div>
+                {% if offer.book %}
+                  <p class="text-muted small mb-2">
+                    <i class="bi bi-book me-1"></i>{% trans "Книга:" %}
+                    <a href="{% url 'book_detail' offer.book.pk %}" class="text-reset text-decoration-none">{{ offer.book.title }}</a>
+                  </p>
+                {% endif %}
+                {% if offer.synopsis %}
+                  <p class="text-muted small mb-3">{{ offer.synopsis|truncatechars:160 }}</p>
+                {% endif %}
+                <ul class="list-unstyled small mb-3">
+                  <li class="mb-1"><i class="bi bi-person-workspace me-2"></i>{{ offer.author.get_full_name|default:offer.author.username }}</li>
+                  <li class="mb-1"><i class="bi bi-clock me-2"></i>{% trans "Опубликовано" %}: {{ offer.created_at|date:"j E Y" }}</li>
+                  <li class="mb-1"><i class="bi bi-people me-2"></i>
+                    {% if offer.allow_regular_users %}
+                      {% trans "Открыто блогерам и читателям" %}
+                    {% else %}
+                      {% trans "Только для блогеров" %}
+                    {% endif %}
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div class="mt-auto d-flex flex-wrap gap-2 align-items-center">
               {% for platform in offer.expected_platforms.all %}
                 <span class="badge text-bg-light border"><i class="bi bi-hash me-1"></i>{{ platform.name }}</span>
               {% empty %}
