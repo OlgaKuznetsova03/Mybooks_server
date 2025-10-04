@@ -140,9 +140,7 @@
             <form method="post" action="{% url 'collaborations:offer_respond' offer.pk %}">
               {% csrf_token %}
               <div class="mb-3">
-                <label class="form-label" for="{{ response_form.platform_links.id_for_label }}">
-                  {{ response_form.platform_links.label }}
-                </label>
+                {{ response_form.platform_links_label_tag }}
                 {{ response_form.platform_links }}
                 {% if response_form.platform_links.help_text %}
                   <div class="form-text">{{ response_form.platform_links.help_text }}</div>
@@ -152,9 +150,7 @@
                 {% endfor %}
               </div>
               <div class="mb-3">
-                <label class="form-label" for="{{ response_form.message.id_for_label }}">
-                  {{ response_form.message.label }}
-                </label>
+                {{ response_form.message_label_tag }}
                 {{ response_form.message }}
                 {% if response_form.message.help_text %}
                   <div class="form-text">{{ response_form.message.help_text }}</div>

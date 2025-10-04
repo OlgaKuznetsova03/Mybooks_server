@@ -116,6 +116,20 @@ class AuthorOfferResponseForm(BootstrapModelForm):
         model = AuthorOfferResponse
         fields = ["platform_links", "message"]
 
+    def _label_with_class(self, field_name: str, css_class: str = "form-label"):
+        """Возвращает label_tag с указанным CSS-классом."""
+
+        bound_field = self[field_name]
+        return bound_field.label_tag(attrs={"class": css_class})
+
+    @property
+    def platform_links_label_tag(self):
+        return self._label_with_class("platform_links")
+
+    @property
+    def message_label_tag(self):
+        return self._label_with_class("message")
+    
     def clean_platform_links(self):
         raw_links = self.cleaned_data.get("platform_links", "")
         if not raw_links:
@@ -141,7 +155,7 @@ class AuthorOfferResponseCommentForm(BootstrapModelForm):
         }
         labels = {"text": _("Комментарий")}
 
-        
+
 class BloggerRequestResponseForm(BootstrapModelForm):
     class Meta:
         model = BloggerRequestResponse
