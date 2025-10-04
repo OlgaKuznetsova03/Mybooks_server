@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Принять отклик" %} · {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{% url 'collaborations:offer_responses' %}" class="btn btn-link text-decoration-none ps-0">
+    <i class="bi bi-arrow-left"></i> {% trans "Назад к откликам" %}
+  </a>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h1 class="h4 mb-3">{% trans "Подтверждение сотрудничества" %}</h1>
+    <p class="text-muted">
+      {% blocktrans with offer_title=response.offer.title partner=response.respondent.get_full_name|default:response.respondent.username %}
+        Вы собираетесь принять отклик пользователя {{ partner }} на предложение «{{ offer_title }}».
+      {% endblocktrans %}
+    </p>
+
+    <dl class="row small text-muted">
+      <dt class="col-sm-4">{% trans "Отправлен" %}</dt>
+      <dd class="col-sm-8">{{ response.created_at|date:"j E Y, H:i" }}</dd>
+      <dt class="col-sm-4">{% trans "Статус отклика" %}</dt>
+      <dd class="col-sm-8">{{ response.get_status_display }}</dd>
+    </dl>
+
+    {% if platform_links %}
+      <div class="mb-4">
+        <h2 class="h6">{% trans "Предлагаемые площадки" %}</h2>
+        <ul class="list-unstyled small mb-0">
+          {% for link in platform_links %}
+            <li><a href="{{ link }}" target="_blank" rel="noopener">{{ link }}</a></li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <div class="mb-4">
+      <h2 class="h6">{% trans "Сообщение" %}</h2>
+      {% if response.message %}
+        <p class="mb-0">{{ response.message|linebreaks }}</p>
+      {% else %}
+        <p class="text-muted small mb-0">{% trans "Без дополнительного сообщения." %}</p>
+      {% endif %}
+    </div>
+
+    <form method="post" class="mt-4">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label for="{{ form.deadline.id_for_label }}" class="form-label">{{ form.deadline.label }}</label>
+        {{ form.deadline }}
+        {% if form.deadline.help_text %}
+          <div class="form-text">{{ form.deadline.help_text }}</div>
+        {% endif %}
+        {% for error in form.deadline.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        {% endfor %}
+      </div>
+      <button type="submit" class="btn btn-success">
+        <i class="bi bi-check-lg me-1"></i>{% trans "Принять сотрудничество" %}
+      </button>
+      <a href="{% url 'collaborations:offer_responses' %}" class="btn btn-outline-secondary ms-2">
+        {% trans "Отмена" %}
+      </a>
+    </form>
+  </div>
+</div>
+{% endblock %}

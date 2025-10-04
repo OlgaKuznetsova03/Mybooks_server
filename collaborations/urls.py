@@ -9,6 +9,21 @@ urlpatterns = [
     path("offers/create/", views.OfferCreateView.as_view(), name="offer_create"),
     path("offers/<int:pk>/", views.OfferDetailView.as_view(), name="offer_detail"),
     path("offers/<int:pk>/respond/", views.OfferRespondView.as_view(), name="offer_respond"),
+    path(
+        "offers/responses/",
+        views.OfferResponseListView.as_view(),
+        name="offer_responses",
+    ),
+    path(
+        "offers/responses/<int:pk>/accept/",
+        views.OfferResponseAcceptView.as_view(),
+        name="offer_response_accept",
+    ),
+    path(
+        "offers/responses/<int:pk>/decline/",
+        views.OfferResponseDeclineView.as_view(),
+        name="offer_response_decline",
+    ),
     path("bloggers/", views.BloggerRequestListView.as_view(), name="blogger_request_list"),
     path("bloggers/create/", views.BloggerRequestCreateView.as_view(), name="blogger_request_create"),
     path("bloggers/<int:pk>/", views.BloggerRequestDetailView.as_view(), name="blogger_request_detail"),

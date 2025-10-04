@@ -14,6 +14,16 @@
       <a href="{% url 'collaborations:offer_create' %}" class="btn btn-primary">
         <i class="bi bi-plus-lg me-1"></i> {% trans "Добавить предложение" %}
       </a>
+      {% if show_response_inbox %}
+        <a href="{% url 'collaborations:offer_responses' %}" class="btn btn-outline-secondary position-relative">
+          <i class="bi bi-inbox me-1"></i>{% trans "Отклики" %}
+          {% if pending_offer_responses_count %}
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+              {{ pending_offer_responses_count }}
+            </span>
+          {% endif %}
+        </a>
+      {% endif %}
       <a href="{% url 'collaborations:collaboration_list' %}" class="btn btn-outline-secondary">
         <i class="bi bi-people-fill me-1"></i>{% trans "Мои сотрудничества" %}
       </a>

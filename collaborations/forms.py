@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date
+
 from django import forms
 from django.forms import inlineformset_factory
 from django.utils.translation import gettext_lazy as _
@@ -168,3 +170,17 @@ BloggerPlatformPresenceFormSet = inlineformset_factory(
     extra=1,
     can_delete=True,
 )
+
+
+class AuthorOfferResponseAcceptForm(forms.Form):
+    deadline = forms.DateField(
+        label=_("Сдать отзыв до"),
+        help_text=_("Выберите дату, к которой партнёр должен прислать ссылки на отзывы."),
+        widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+    )
+
+    def clean_deadline(self):
+        deadline = self.cleaned_data["deadline"]
+        if deadline < date.today():
+            raise forms.ValidationError(_("Дата не может быть в прошлом."))
+        return deadline

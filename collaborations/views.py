@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -16,6 +16,7 @@ from django.views.generic.edit import CreateView, FormView
 from .forms import (
     AuthorOfferForm,
     AuthorOfferResponseForm,
+    AuthorOfferResponseAcceptForm,
     BloggerPlatformPresenceFormSet,
     BloggerRequestForm,
     BloggerRequestResponseForm,
@@ -93,6 +94,21 @@ class OfferListView(ListView):
             queryset = queryset.filter(Q(title__icontains=q) | Q(synopsis__icontains=q))
         return queryset.filter(is_active=True)
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        if user.is_authenticated and _user_is_author(user):
+            context["show_response_inbox"] = True
+            pending_count = AuthorOfferResponse.objects.filter(
+                offer__author=user,
+                status=AuthorOfferResponse.Status.PENDING,
+            ).count()
+            context["pending_offer_responses_count"] = pending_count
+        else:
+            context["show_response_inbox"] = False
+            context["pending_offer_responses_count"] = 0
+        return context
+    
 
 class OfferDetailView(DetailView):
     model = AuthorOffer
@@ -178,6 +194,170 @@ class OfferRespondView(LoginRequiredMixin, FormView):
             context,
             status=400,
         )
+
+class OfferResponseListView(LoginRequiredMixin, ListView):
+    model = AuthorOfferResponse
+    template_name = "collaborations/offer_response_list.html"
+    context_object_name = "responses"
+    paginate_by = 10
+
+    def dispatch(self, request, *args, **kwargs):
+        if not _user_is_author(request.user):
+            messages.error(request, _("Только авторы могут просматривать отклики на свои предложения."))
+            return redirect("collaborations:offer_list")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        queryset = (
+            super()
+            .get_queryset()
+            .select_related("offer", "respondent")
+            .filter(offer__author=self.request.user)
+        )
+        status = self.request.GET.get("status")
+        if status in dict(AuthorOfferResponse.Status.choices):
+            queryset = queryset.filter(status=status)
+        return queryset.order_by("-created_at")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        qs = AuthorOfferResponse.objects.filter(offer__author=self.request.user)
+        status_counts = {
+            item["status"]: item["total"]
+            for item in qs.values("status").annotate(total=Count("id"))
+        }
+        context.update(
+            {
+                "active_status": self.request.GET.get("status", ""),
+                "status_options": [
+                    {
+                        "value": value,
+                        "label": label,
+                        "count": status_counts.get(value, 0),
+                    }
+                    for value, label in AuthorOfferResponse.Status.choices
+                ],
+                "total_responses": qs.count(),
+            }
+        )
+        return context
+
+
+class OfferResponseAcceptView(LoginRequiredMixin, FormView):
+    form_class = AuthorOfferResponseAcceptForm
+    template_name = "collaborations/offer_response_accept.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.response = get_object_or_404(
+            AuthorOfferResponse.objects.select_related("offer", "respondent"),
+            pk=kwargs["pk"],
+        )
+        if self.response.offer.author_id != request.user.id:
+            messages.error(request, _("Нельзя управлять откликом другого автора."))
+            return redirect("collaborations:offer_list")
+        if self.response.status == AuthorOfferResponse.Status.WITHDRAWN:
+            messages.error(request, _("Этот отклик был отозван."))
+            return redirect("collaborations:offer_responses")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_initial(self):
+        initial = super().get_initial()
+        collaboration = Collaboration.objects.filter(
+            offer=self.response.offer,
+            partner=self.response.respondent,
+        ).first()
+        if collaboration:
+            initial["deadline"] = collaboration.deadline
+        return initial
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["response"] = self.response
+        context["platform_links"] = [
+            link for link in self.response.platform_links.splitlines() if link.strip()
+        ]
+        return context
+
+    def form_valid(self, form):
+        deadline = form.cleaned_data["deadline"]
+        response = self.response
+        collaboration, _ = Collaboration.objects.get_or_create(
+            offer=response.offer,
+            partner=response.respondent,
+            defaults={
+                "author": response.offer.author,
+                "deadline": deadline,
+                "status": Collaboration.Status.NEGOTIATION,
+            },
+        )
+        collaboration.deadline = deadline
+        collaboration.status = Collaboration.Status.NEGOTIATION
+        collaboration.author_confirmed = False
+        collaboration.partner_confirmed = False
+        collaboration.review_links = ""
+        collaboration.completed_at = None
+        collaboration.updated_at = timezone.now()
+        collaboration.save(
+            update_fields=[
+                "deadline",
+                "status",
+                "author_confirmed",
+                "partner_confirmed",
+                "review_links",
+                "completed_at",
+                "updated_at",
+            ]
+        )
+
+        if response.status != AuthorOfferResponse.Status.ACCEPTED:
+            response.status = AuthorOfferResponse.Status.ACCEPTED
+            response.save(update_fields=["status", "updated_at"])
+
+        messages.success(
+            self.request,
+            _("Отклик принят. Мы создали сотрудничество и ожидаем ссылки к указанной дате."),
+        )
+        return redirect("collaborations:offer_responses")
+
+
+class OfferResponseDeclineView(LoginRequiredMixin, View):
+    def post(self, request, pk: int):
+        response = get_object_or_404(
+            AuthorOfferResponse.objects.select_related("offer", "respondent"),
+            pk=pk,
+        )
+        if response.offer.author_id != request.user.id:
+            messages.error(request, _("Нельзя управлять откликом другого автора."))
+            return redirect("collaborations:offer_list")
+
+        if response.status != AuthorOfferResponse.Status.DECLINED:
+            response.status = AuthorOfferResponse.Status.DECLINED
+            response.save(update_fields=["status", "updated_at"])
+
+        collaboration = Collaboration.objects.filter(
+            offer=response.offer,
+            partner=response.respondent,
+        ).first()
+        if collaboration and collaboration.status not in {
+            Collaboration.Status.CANCELLED,
+            Collaboration.Status.COMPLETED,
+        }:
+            collaboration.status = Collaboration.Status.CANCELLED
+            collaboration.author_confirmed = False
+            collaboration.partner_confirmed = False
+            collaboration.updated_at = timezone.now()
+            collaboration.save(
+                update_fields=[
+                    "status",
+                    "author_confirmed",
+                    "partner_confirmed",
+                    "updated_at",
+                ]
+            )
+
+        messages.info(request, _("Отклик отклонён."))
+        return redirect("collaborations:offer_responses")
+
 
 class BloggerRequestListView(ListView):
     model = BloggerRequest
