@@ -80,8 +80,8 @@ class BloggerRequestForm(BootstrapModelForm):
             "review_formats",
             "review_platform_links",
             "additional_info",
-            "review_platform_links",
-            "open_for_paid_collaboration",
+            "collaboration_type",
+            "collaboration_terms",
             "is_active",
         ]
         widgets = {
@@ -95,6 +95,7 @@ class BloggerRequestForm(BootstrapModelForm):
                     "placeholder": _("https://t.me/username"),
                 }
             ),
+            "collaboration_type": forms.Select(attrs={"class": "form-select"}),
         }
 
     def clean_review_platform_links(self):
