@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}{% trans "Предложения авторов" %} · {{ block.super }}{% endblock %}
+{% block title %}{% trans "Предложения о сотрудничестве" %} · {{ block.super }}{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
   <div>
-    <h1 class="h3 mb-1">{% trans "Предложения авторов" %}</h1>
-    <p class="text-muted mb-0">{% trans "Найдите книги для обзора и договоритесь с автором." %}</p>
+    <h1 class="h3 mb-1">{% trans "Предложения о сотрудничестве" %}</h1>
+    <p class="text-muted mb-0">{% trans "Найдите книги для обзора и договоритесь с автором или блогером." %}</p>
   </div>
   {% if request.user.is_authenticated %}
     <div class="btn-group">
@@ -35,6 +35,14 @@
   <div class="col-md-6 col-lg-4">
     <label for="search" class="form-label">{% trans "Поиск" %}</label>
     <input id="search" type="search" name="q" value="{{ request.GET.q }}" class="form-control" placeholder="{% trans 'Название или описание' %}">
+  </div>
+  <div class="col-md-6 col-lg-4">
+    <label for="audience" class="form-label">{% trans "Доступность" %}</label>
+    <select id="audience" name="audience" class="form-select">
+      {% for option in audience_filter_options %}
+        <option value="{{ option.value }}"{% if option.value == active_audience_filter %} selected{% endif %}>{{ option.label }}</option>
+      {% endfor %}
+    </select>
   </div>
   <div class="col-md-3 col-lg-2">
     <button type="submit" class="btn btn-outline-secondary w-100">
@@ -110,7 +118,7 @@
   <div class="text-center py-5">
     <p class="lead mb-2">{% trans "Пока нет активных предложений." %}</p>
     {% if request.user.is_authenticated %}
-      <p class="text-muted">{% trans "Станьте первым автором, кто предложит книгу!" %}</p>
+      <p class="text-muted">{% trans "Станьте первым автором или блогером, кто предложит книгу!" %}</p>
     {% endif %}
   </div>
 {% endif %}

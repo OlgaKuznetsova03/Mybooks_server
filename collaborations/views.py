@@ -133,12 +133,21 @@ class OfferListView(ListView):
         q = self.request.GET.get("q")
         if q:
             queryset = queryset.filter(Q(title__icontains=q) | Q(synopsis__icontains=q))
+
+        audience = self.request.GET.get("audience", "")
+        if audience == "bloggers_only":
+            queryset = queryset.filter(allow_regular_users=False)
+        elif audience == "readers_allowed":
+            queryset = queryset.filter(allow_regular_users=True)
+
         return queryset.filter(is_active=True)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
-        if user.is_authenticated and _user_is_author(user):
+        if user.is_authenticated and (
+            _user_is_author(user) or _user_is_blogger(user)
+        ):
             context["show_response_inbox"] = True
             pending_count = AuthorOfferResponse.objects.filter(
                 offer__author=user,
@@ -148,6 +157,20 @@ class OfferListView(ListView):
         else:
             context["show_response_inbox"] = False
             context["pending_offer_responses_count"] = 0
+
+        context["active_audience_filter"] = (
+            self.request.GET.get("audience")
+            if self.request.GET.get("audience") in {"", "bloggers_only", "readers_allowed"}
+            else ""
+        )
+        context["audience_filter_options"] = [
+            {"value": "", "label": _("Все предложения")},
+            {"value": "bloggers_only", "label": _("Только для блогеров")},
+            {
+                "value": "readers_allowed",
+                "label": _("Открытые для блогеров и читателей"),
+            },
+        ]
         return context
     
 
@@ -179,8 +202,11 @@ class OfferCreateView(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy("collaborations:offer_list")
 
     def dispatch(self, request, *args, **kwargs):
-        if not _user_is_author(request.user):
-            messages.error(request, _("Создавать предложения могут только авторы."))
+        if not (_user_is_author(request.user) or _user_is_blogger(request.user)):
+            messages.error(
+                request,
+                _("Создавать предложения могут только авторы и блогеры."),
+            )
             return redirect("collaborations:offer_list")
         return super().dispatch(request, *args, **kwargs)
 
@@ -243,8 +269,11 @@ class OfferResponseListView(LoginRequiredMixin, ListView):
     paginate_by = 10
 
     def dispatch(self, request, *args, **kwargs):
-        if not _user_is_author(request.user):
-            messages.error(request, _("Только авторы могут просматривать отклики на свои предложения."))
+        if not (_user_is_author(request.user) or _user_is_blogger(request.user)):
+            messages.error(
+                request,
+                _("Только авторы и блогеры могут просматривать отклики на свои предложения."),
+            )
             return redirect("collaborations:offer_list")
         return super().dispatch(request, *args, **kwargs)
 
@@ -851,7 +880,7 @@ class BloggerRequestRespondView(LoginRequiredMixin, FormView):
             status=400,
         )
 
-        
+
 class CollaborationListView(LoginRequiredMixin, ListView):
     model = Collaboration
     template_name = "collaborations/collaboration_list.html"
