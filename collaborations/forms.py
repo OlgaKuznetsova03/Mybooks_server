@@ -197,23 +197,7 @@ class BloggerRequestResponseForm(BootstrapModelForm):
 
     class Meta:
         model = BloggerRequestResponse
-        book = forms.ModelChoiceField(
-        required=False,
-        queryset=Book.objects.none(),
-        label=_("Книга"),
-        help_text=_("Прикрепите книгу, чтобы блогер мог быстро её изучить."),
-        widget=forms.Select(attrs={"data-enhanced-single": "1"}),
-    )
-
-    def __init__(self, *args, **kwargs):
-        self.author = kwargs.pop("author", None)
-        super().__init__(*args, **kwargs)
-        queryset = Book.objects.all()
-        if self.author is not None:
-            user_books = getattr(self.author, "books", None)
-            if hasattr(user_books, "all"):
-                queryset = user_books.all()
-        self.fields["book"].queryset = queryset.order_by("title")
+        fields = ["message", "book"]
         widgets = {"message": forms.Textarea(attrs={"rows": 4})}
 
 
@@ -250,13 +234,6 @@ class BloggerPlatformPresenceForm(BootstrapModelForm):
         self.fields["followers_count"].widget.attrs.setdefault("min", "0")
 
 
-    def clean_deadline(self):
-        deadline = self.cleaned_data["deadline"]
-        if deadline < date.today():
-            raise forms.ValidationError(_("Дата не может быть в прошлом."))
-        return deadline
-
-
 class BloggerRequestResponseCommentForm(BootstrapModelForm):
     class Meta:
         model = BloggerRequestResponseComment
@@ -279,6 +256,12 @@ class BloggerRequestResponseAcceptForm(forms.Form):
         help_text=_("Выберите дату, к которой автор должен выслать ссылки."),
         widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
     )
+
+    def clean_deadline(self):
+        deadline = self.cleaned_data["deadline"]
+        if deadline < date.today():
+            raise forms.ValidationError(_("Дата не может быть в прошлом."))
+        return deadline
 
 BloggerPlatformPresenceFormSet = inlineformset_factory(
     BloggerRequest,
