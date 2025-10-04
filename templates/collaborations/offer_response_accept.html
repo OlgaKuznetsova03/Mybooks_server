@@ -46,6 +46,27 @@
       {% endif %}
     </div>
 
+    <div class="mb-4">
+      <a href="{% url 'collaborations:offer_response_detail' response.pk %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-chat-dots me-1"></i>{% trans "Открыть обсуждение отклика" %}
+      </a>
+    </div>
+
+    {% if comments %}
+      <div class="mb-4">
+        <h2 class="h6">{% trans "Комментарии" %}</h2>
+        <ul class="list-unstyled small mb-0">
+          {% for comment in comments %}
+            <li class="mb-2">
+              <strong>{{ comment.author.get_full_name|default:comment.author.username }}</strong>
+              <span class="text-muted">· {{ comment.created_at|date:"j E Y, H:i" }}</span>
+              <div>{{ comment.text|linebreaks }}</div>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+    
     <form method="post" class="mt-4">
       {% csrf_token %}
       <div class="mb-3">

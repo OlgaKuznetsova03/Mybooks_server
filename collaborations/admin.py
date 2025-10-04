@@ -3,6 +3,7 @@ from django.contrib import admin
 from .models import (
     AuthorOffer,
     AuthorOfferResponse,
+    AuthorOfferResponseComment,
     BloggerPlatformPresence,
     BloggerRating,
     BloggerRequest,
@@ -70,3 +71,17 @@ class BloggerRatingAdmin(admin.ModelAdmin):
         "total_collaborations",
     )
     search_fields = ("blogger__username", "blogger__first_name", "blogger__last_name")
+
+
+@admin.register(AuthorOfferResponseComment)
+class AuthorOfferResponseCommentAdmin(admin.ModelAdmin):
+    list_display = ("response", "author", "created_at")
+    list_select_related = ("response", "response__offer", "author")
+    search_fields = (
+        "text",
+        "response__offer__title",
+        "author__username",
+        "author__first_name",
+        "author__last_name",
+    )
+    date_hierarchy = "created_at"

@@ -83,7 +83,10 @@
             {% endif %}
           </div>
         </div>
-        <div class="card-footer d-flex justify-content-end gap-2">
+        <div class="card-footer d-flex justify-content-end gap-2 flex-wrap">
+          <a href="{% url 'collaborations:offer_response_detail' response.pk %}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-chat-dots me-1"></i>{% trans "Обсудить" %}
+          </a>
           {% if response.status == response.Status.PENDING %}
             <a href="{% url 'collaborations:offer_response_accept' response.pk %}" class="btn btn-sm btn-success">
               <i class="bi bi-check-lg me-1"></i>{% trans "Принять" %}

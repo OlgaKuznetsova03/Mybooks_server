@@ -15,6 +15,11 @@ urlpatterns = [
         name="offer_responses",
     ),
     path(
+        "offers/responses/<int:pk>/",
+        views.OfferResponseDetailView.as_view(),
+        name="offer_response_detail",
+    ),
+    path(
         "offers/responses/<int:pk>/accept/",
         views.OfferResponseAcceptView.as_view(),
         name="offer_response_accept",

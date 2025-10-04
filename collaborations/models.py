@@ -298,6 +298,46 @@ class AuthorOfferResponse(models.Model):
     def __str__(self) -> str:
         return f"{self.respondent} → {self.offer} ({self.get_status_display()})"
 
+    def allows_discussion(self) -> bool:
+        return self.status == self.Status.PENDING
+
+    def is_participant(self, user: User) -> bool:
+        user_id = getattr(user, "id", None)
+        return user_id in {self.offer.author_id, self.respondent_id}
+
+    def get_participants(self) -> tuple[User, User]:
+        return (self.offer.author, self.respondent)
+
+
+class AuthorOfferResponseComment(models.Model):
+    """Комментарий по отклику до подтверждения сотрудничества."""
+
+    response = models.ForeignKey(
+        AuthorOfferResponse,
+        on_delete=models.CASCADE,
+        related_name="comments",
+        verbose_name=_("Отклик"),
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="offer_response_comments",
+        verbose_name=_("Автор комментария"),
+    )
+    text = models.TextField(
+        verbose_name=_("Комментарий"),
+        validators=[MaxLengthValidator(1000)],
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("created_at",)
+        verbose_name = _("Комментарий к отклику")
+        verbose_name_plural = _("Комментарии к откликам")
+
+    def __str__(self) -> str:
+        return f"{self.author} → {self.response.offer.title}"
+
 
 class BloggerRequestResponse(models.Model):
     """Отклик автора на заявку блогера."""

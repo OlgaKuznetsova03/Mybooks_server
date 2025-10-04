@@ -5,7 +5,12 @@ from django.contrib.auth.models import Group
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import AuthorOffer, AuthorOfferResponse, Collaboration
+from .models import (
+    AuthorOffer,
+    AuthorOfferResponse,
+    AuthorOfferResponseComment,
+    Collaboration,
+)
 
 
 class OfferResponseViewsTests(TestCase):
@@ -84,5 +89,54 @@ class OfferResponseViewsTests(TestCase):
     def test_non_author_redirected_from_response_list(self):
         self.client.force_login(self.blogger)
         url = reverse("collaborations:offer_responses")
+        response = self.client.get(url)
+        self.assertRedirects(response, reverse("collaborations:offer_list"))
+
+    def test_participants_can_open_discussion(self):
+        self.client.force_login(self.author)
+        url = reverse("collaborations:offer_response_detail", args=[self.response.pk])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+        self.client.force_login(self.blogger)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_author_can_post_comment_on_pending_response(self):
+        self.client.force_login(self.author)
+        url = reverse("collaborations:offer_response_detail", args=[self.response.pk])
+        response = self.client.post(url, {"text": "Уточните формат и сроки"})
+        self.assertRedirects(response, url)
+
+        comment_exists = AuthorOfferResponseComment.objects.filter(
+            response=self.response,
+            author=self.author,
+            text="Уточните формат и сроки",
+        ).exists()
+        self.assertTrue(comment_exists)
+
+    def test_cannot_comment_when_response_not_pending(self):
+        self.response.status = AuthorOfferResponse.Status.ACCEPTED
+        self.response.save(update_fields=["status"])
+
+        self.client.force_login(self.author)
+        url = reverse("collaborations:offer_response_detail", args=[self.response.pk])
+        response = self.client.post(url, {"text": "Попробуем договориться"})
+        self.assertRedirects(response, url)
+        self.assertFalse(
+            AuthorOfferResponseComment.objects.filter(
+                response=self.response,
+                text="Попробуем договориться",
+            ).exists()
+        )
+
+    def test_non_participant_cannot_access_discussion(self):
+        outsider = self.UserModel.objects.create_user(
+            username="outsider",
+            password="password123",
+            email="outsider@example.com",
+        )
+        self.client.force_login(outsider)
+        url = reverse("collaborations:offer_response_detail", args=[self.response.pk])
         response = self.client.get(url)
         self.assertRedirects(response, reverse("collaborations:offer_list"))

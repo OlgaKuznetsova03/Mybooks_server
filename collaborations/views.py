@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views import View
@@ -17,6 +17,7 @@ from .forms import (
     AuthorOfferForm,
     AuthorOfferResponseForm,
     AuthorOfferResponseAcceptForm,
+    AuthorOfferResponseCommentForm,
     BloggerPlatformPresenceFormSet,
     BloggerRequestForm,
     BloggerRequestResponseForm,
@@ -69,10 +70,16 @@ def _get_offer_response_context(
         offer.author_id != user.id
         and (offer.allow_regular_users or _user_is_blogger(user))
     )
+    conversation_url = None
+    if existing_response:
+        conversation_url = reverse(
+            "collaborations:offer_response_detail", args=[existing_response.pk]
+        )
     return {
         "existing_response": existing_response,
         "response_form": response_form,
         "can_respond": can_respond,
+        "response_conversation_url": conversation_url,
     }
 
 
@@ -243,6 +250,78 @@ class OfferResponseListView(LoginRequiredMixin, ListView):
         return context
 
 
+class OfferResponseDetailView(LoginRequiredMixin, View):
+    template_name = "collaborations/offer_response_detail.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.response = get_object_or_404(
+            AuthorOfferResponse.objects.select_related(
+                "offer", "offer__author", "respondent"
+            ),
+            pk=kwargs["pk"],
+        )
+        if not self.response.is_participant(request.user):
+            messages.error(request, _("Вы не участвуете в этом отклике."))
+            return redirect("collaborations:offer_list")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_back_url(self) -> str:
+        if self.request.user.id == self.response.offer.author_id:
+            return reverse("collaborations:offer_responses")
+        return reverse("collaborations:offer_detail", args=[self.response.offer_id])
+
+    def get_context_data(self, form: AuthorOfferResponseCommentForm | None = None) -> dict:
+        can_comment = self.response.allows_discussion()
+        context = {
+            "response": self.response,
+            "offer": self.response.offer,
+            "comments": self.response.comments.select_related("author").order_by(
+                "created_at"
+            ),
+            "can_comment": can_comment,
+            "is_author": self.request.user.id == self.response.offer.author_id,
+            "back_url": self.get_back_url(),
+        }
+        if can_comment:
+            context["form"] = form or AuthorOfferResponseCommentForm()
+        return context
+
+    def get(self, request, *args, **kwargs):
+        return render(
+            request,
+            self.template_name,
+            self.get_context_data(),
+        )
+
+    def post(self, request, *args, **kwargs):
+        if not self.response.allows_discussion():
+            messages.error(
+                request,
+                _("Обсуждение закрыто: отклик уже подтверждён или отклонён."),
+            )
+            return redirect(
+                "collaborations:offer_response_detail", pk=self.response.pk
+            )
+
+        form = AuthorOfferResponseCommentForm(request.POST)
+        if form.is_valid():
+            self.response.comments.create(
+                author=request.user,
+                text=form.cleaned_data["text"],
+            )
+            messages.success(request, _("Комментарий отправлен."))
+            return redirect(
+                "collaborations:offer_response_detail", pk=self.response.pk
+            )
+
+        return render(
+            request,
+            self.template_name,
+            self.get_context_data(form=form),
+            status=400,
+        )
+
+
 class OfferResponseAcceptView(LoginRequiredMixin, FormView):
     form_class = AuthorOfferResponseAcceptForm
     template_name = "collaborations/offer_response_accept.html"
@@ -276,6 +355,9 @@ class OfferResponseAcceptView(LoginRequiredMixin, FormView):
         context["platform_links"] = [
             link for link in self.response.platform_links.splitlines() if link.strip()
         ]
+        context["comments"] = self.response.comments.select_related("author").order_by(
+            "created_at"
+        )
         return context
 
     def form_valid(self, form):

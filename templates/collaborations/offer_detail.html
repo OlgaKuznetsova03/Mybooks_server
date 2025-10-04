@@ -128,7 +128,14 @@
         <div class="card-body">
           {% if can_respond %}
             {% if existing_response %}
-              <p class="text-muted small mb-3">{% trans "Вы уже откликались на это предложение. Можно обновить сообщение." %}</p>
+              <div class="alert alert-info small mb-3" role="alert">
+                {% trans "Вы уже откликались на это предложение. Можно обновить сообщение." %}
+                {% if response_conversation_url %}
+                  <a href="{{ response_conversation_url }}" class="alert-link">
+                    {% trans "Открыть обсуждение с автором" %}
+                  </a>
+                {% endif %}
+              </div>
             {% endif %}
             <form method="post" action="{% url 'collaborations:offer_respond' offer.pk %}">
               {% csrf_token %}

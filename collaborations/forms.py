@@ -9,6 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from .models import (
     AuthorOffer,
     AuthorOfferResponse,
+    AuthorOfferResponseComment,
     BloggerPlatformPresence,
     BloggerRequest,
     BloggerRequestResponse,
@@ -123,6 +124,24 @@ class AuthorOfferResponseForm(BootstrapModelForm):
         return "\n".join(links)
 
 
+class AuthorOfferResponseCommentForm(BootstrapModelForm):
+    class Meta:
+        model = AuthorOfferResponseComment
+        fields = ["text"]
+        widgets = {
+            "text": forms.Textarea(
+                attrs={
+                    "rows": 3,
+                    "maxlength": 1000,
+                    "placeholder": _(
+                        "Задайте уточняющий вопрос или уточните детали сотрудничества."
+                    ),
+                }
+            )
+        }
+        labels = {"text": _("Комментарий")}
+
+        
 class BloggerRequestResponseForm(BootstrapModelForm):
     class Meta:
         model = BloggerRequestResponse
