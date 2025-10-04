@@ -53,6 +53,28 @@ def _user_is_author(user: User) -> bool:
     return user.groups.filter(name="author").exists()
 
 
+def _get_offer_response_context(
+    offer: AuthorOffer, user: User, form: AuthorOfferResponseForm | None = None
+) -> dict:
+    if not user.is_authenticated:
+        return {}
+
+    existing_response = AuthorOfferResponse.objects.filter(
+        offer=offer,
+        respondent=user,
+    ).first()
+    response_form = form or AuthorOfferResponseForm(instance=existing_response)
+    can_respond = (
+        offer.author_id != user.id
+        and (offer.allow_regular_users or _user_is_blogger(user))
+    )
+    return {
+        "existing_response": existing_response,
+        "response_form": response_form,
+        "can_respond": can_respond,
+    }
+
+
 class OfferListView(ListView):
     model = AuthorOffer
     template_name = "collaborations/offer_list.html"
@@ -87,19 +109,9 @@ class OfferDetailView(DetailView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        if self.request.user.is_authenticated:
-            context["response_form"] = AuthorOfferResponseForm()
-            context["existing_response"] = AuthorOfferResponse.objects.filter(
-                offer=self.object,
-                respondent=self.request.user,
-            ).first()
-            context["can_respond"] = (
-                self.object.author_id != self.request.user.id
-                and (
-                    self.object.allow_regular_users
-                    or _user_is_blogger(self.request.user)
-                )
-            )
+        context.update(
+            _get_offer_response_context(self.object, self.request.user)
+        )
         return context
 
 
@@ -138,17 +150,34 @@ class OfferRespondView(LoginRequiredMixin, FormView):
         response, created = AuthorOfferResponse.objects.get_or_create(
             offer=self.offer,
             respondent=self.request.user,
-            defaults={"message": form.cleaned_data.get("message", "")},
+            defaults={
+                "message": form.cleaned_data.get("message", ""),
+                "platform_links": form.cleaned_data.get("platform_links", ""),
+            },
         )
         if not created:
             response.message = form.cleaned_data.get("message", "")
+            response.platform_links = form.cleaned_data.get("platform_links", "")
             response.status = AuthorOfferResponse.Status.PENDING
-            response.save(update_fields=["message", "status", "updated_at"])
+            response.save(
+                update_fields=["message", "platform_links", "status", "updated_at"]
+            )
             messages.info(self.request, _("Отклик обновлён."))
         else:
             messages.success(self.request, _("Отклик отправлен автору."))
         return redirect("collaborations:offer_detail", pk=self.offer.pk)
 
+    def form_invalid(self, form):
+        context = {"offer": self.offer, "object": self.offer}
+        context.update(
+            _get_offer_response_context(self.offer, self.request.user, form)
+        )
+        return render(
+            self.request,
+            "collaborations/offer_detail.html",
+            context,
+            status=400,
+        )
 
 class BloggerRequestListView(ListView):
     model = BloggerRequest

@@ -19,7 +19,7 @@ class BootstrapModelForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field in self.fields.values():
+        for name, field in self.fields.items():
             widget = field.widget
             if isinstance(widget, forms.CheckboxInput):
                 widget.attrs.setdefault("class", "form-check-input")
@@ -31,6 +31,8 @@ class BootstrapModelForm(forms.ModelForm):
                 widget.attrs.setdefault("class", "form-select")
             else:
                 widget.attrs.setdefault("class", "form-control")
+            if self.is_bound and name in self.errors:
+                widget.attrs["class"] = f"{widget.attrs.get('class', '').strip()} is-invalid".strip()
 
 
 class AuthorOfferForm(BootstrapModelForm):
@@ -82,10 +84,41 @@ class BloggerRequestForm(BootstrapModelForm):
 
 
 class AuthorOfferResponseForm(BootstrapModelForm):
+    platform_links = forms.CharField(
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                "rows": 3,
+                "placeholder": _("Например: https://instagram.com/username"),
+            }
+        ),
+        label=_("Где опубликуете отзыв"),
+        help_text=_("Укажите ссылки на площадки построчно."),
+    )
+    message = forms.CharField(
+        required=False,
+        max_length=4000,
+        widget=forms.Textarea(
+            attrs={
+                "rows": 5,
+                "placeholder": _("Расскажите автору о себе и формате сотрудничества."),
+                "maxlength": 4000,
+            }
+        ),
+        label=_("Сообщение"),
+        help_text=_("Можно добавить детали сотрудничества или вопросы."),
+    )
+
     class Meta:
         model = AuthorOfferResponse
-        fields = ["message"]
-        widgets = {"message": forms.Textarea(attrs={"rows": 4})}
+        fields = ["platform_links", "message"]
+
+    def clean_platform_links(self):
+        raw_links = self.cleaned_data.get("platform_links", "")
+        if not raw_links:
+            return ""
+        links = [link.strip() for link in raw_links.splitlines() if link.strip()]
+        return "\n".join(links)
 
 
 class BloggerRequestResponseForm(BootstrapModelForm):

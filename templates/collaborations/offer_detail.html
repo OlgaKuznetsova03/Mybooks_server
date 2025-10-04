@@ -132,7 +132,26 @@
             {% endif %}
             <form method="post" action="{% url 'collaborations:offer_respond' offer.pk %}">
               {% csrf_token %}
-              {{ response_form.as_p }}
+              <div class="mb-3">
+                {{ response_form.platform_links.label_tag(attrs={"class": "form-label"}) }}
+                {{ response_form.platform_links }}
+                {% if response_form.platform_links.help_text %}
+                  <div class="form-text">{{ response_form.platform_links.help_text }}</div>
+                {% endif %}
+                {% for error in response_form.platform_links.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="mb-3">
+                {{ response_form.message.label_tag(attrs={"class": "form-label"}) }}
+                {{ response_form.message }}
+                {% if response_form.message.help_text %}
+                  <div class="form-text">{{ response_form.message.help_text }}</div>
+                {% endif %}
+                {% for error in response_form.message.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
               <button type="submit" class="btn btn-primary w-100">
                 <i class="bi bi-send me-1"></i>{% trans "Отправить отклик" %}
               </button>

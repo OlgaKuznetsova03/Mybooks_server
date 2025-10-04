@@ -5,6 +5,7 @@ from datetime import date
 from typing import Iterable, Optional
 
 from django.contrib.auth import get_user_model
+from django.core.validators import MaxLengthValidator
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -269,7 +270,16 @@ class AuthorOfferResponse(models.Model):
         on_delete=models.CASCADE,
         related_name="offer_responses",
     )
-    message = models.TextField(blank=True, verbose_name=_("Сообщение"))
+    platform_links = models.TextField(
+        blank=True,
+        verbose_name=_("Площадки для отзывов"),
+        help_text=_("Укажите ссылки на площадки построчно."),
+    )
+    message = models.TextField(
+        blank=True,
+        verbose_name=_("Сообщение"),
+        validators=[MaxLengthValidator(4000)],
+    )
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
