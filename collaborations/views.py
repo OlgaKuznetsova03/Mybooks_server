@@ -145,9 +145,9 @@ class OfferListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
-        if user.is_authenticated and (
-            _user_is_author(user) or _user_is_blogger(user)
-        ):
+        is_author = user.is_authenticated and _user_is_author(user)
+        is_blogger = user.is_authenticated and _user_is_blogger(user)
+        if user.is_authenticated and (is_author or is_blogger):
             context["show_response_inbox"] = True
             pending_count = AuthorOfferResponse.objects.filter(
                 offer__author=user,
@@ -157,6 +157,20 @@ class OfferListView(ListView):
         else:
             context["show_response_inbox"] = False
             context["pending_offer_responses_count"] = 0
+
+        context.update(
+            {
+                "user_is_author": is_author,
+                "user_is_blogger": is_blogger,
+                "blogger_request_list_url": reverse(
+                    "collaborations:blogger_request_list"
+                ),
+            }
+        )
+        if is_blogger:
+            context["blogger_request_create_url"] = reverse(
+                "collaborations:blogger_request_create"
+            )
 
         context["active_audience_filter"] = (
             self.request.GET.get("audience")
@@ -772,7 +786,9 @@ class BloggerRequestListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
-        if user.is_authenticated and _user_is_blogger(user):
+        is_blogger = user.is_authenticated and _user_is_blogger(user)
+        is_author = user.is_authenticated and _user_is_author(user)
+        if is_blogger:
             context["show_response_inbox"] = True
             pending_count = BloggerRequestResponse.objects.filter(
                 request__blogger=user,
@@ -782,6 +798,15 @@ class BloggerRequestListView(ListView):
         else:
             context["show_response_inbox"] = False
             context["pending_request_responses_count"] = 0
+        context.update(
+            {
+                "user_is_author": is_author,
+                "user_is_blogger": is_blogger,
+                "offer_list_url": reverse("collaborations:offer_list"),
+            }
+        )
+        if is_author or is_blogger:
+            context["offer_create_url"] = reverse("collaborations:offer_create")
         return context
 
 

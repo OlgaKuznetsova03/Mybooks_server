@@ -9,27 +9,42 @@
     <h1 class="h3 mb-1">{% trans "Заявки блогеров" %}</h1>
     <p class="text-muted mb-0">{% trans "Найдите блогера, готового рассказать о вашей книге." %}</p>
   </div>
-  {% if request.user.is_authenticated %}
-    <div class="btn-group">
-      <a href="{% url 'collaborations:blogger_request_create' %}" class="btn btn-primary">
-        <i class="bi bi-plus-lg me-1"></i>{% trans "Создать заявку" %}
+  <div class="d-flex flex-column align-items-end gap-2">
+    <div class="btn-group" role="group" aria-label="{% trans 'Варианты предложений' %}">
+      <a href="{{ offer_list_url }}" class="btn btn-outline-secondary">
+        <i class="bi bi-journal-bookmark me-1"></i>{% trans "Предложения авторов" %}
       </a>
-      {% if show_response_inbox %}
-        <a href="{% url 'collaborations:blogger_request_responses' %}" class="btn btn-outline-secondary position-relative">
-          <i class="bi bi-inbox me-1"></i>{% trans "Отклики" %}
-          {% if pending_request_responses_count %}
-            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill text-bg-danger">
-              {{ pending_request_responses_count }}
-              <span class="visually-hidden">{% trans "Новые отклики" %}</span>
-            </span>
-          {% endif %}
-        </a>
-      {% endif %}
-      <a href="{% url 'collaborations:collaboration_list' %}" class="btn btn-outline-secondary">
-        <i class="bi bi-people-fill me-1"></i>{% trans "Мои сотрудничества" %}
-      </a>
+      <span class="btn btn-primary active disabled">
+        <i class="bi bi-megaphone me-1"></i>{% trans "Заявки блогеров" %}
+      </span>
     </div>
-  {% endif %}
+    {% if request.user.is_authenticated %}
+      <div class="btn-group">
+        <a href="{% url 'collaborations:blogger_request_create' %}" class="btn btn-primary">
+          <i class="bi bi-plus-lg me-1"></i>{% trans "Создать заявку" %}
+        </a>
+        {% if user_is_author and offer_create_url %}
+          <a href="{{ offer_create_url }}" class="btn btn-outline-primary">
+            <i class="bi bi-journal-plus me-1"></i>{% trans "Добавить предложение автора" %}
+          </a>
+        {% endif %}
+        {% if show_response_inbox %}
+          <a href="{% url 'collaborations:blogger_request_responses' %}" class="btn btn-outline-secondary position-relative">
+            <i class="bi bi-inbox me-1"></i>{% trans "Отклики" %}
+            {% if pending_request_responses_count %}
+              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill text-bg-danger">
+                {{ pending_request_responses_count }}
+                <span class="visually-hidden">{% trans "Новые отклики" %}</span>
+              </span>
+            {% endif %}
+          </a>
+        {% endif %}
+        <a href="{% url 'collaborations:collaboration_list' %}" class="btn btn-outline-secondary">
+          <i class="bi bi-people-fill me-1"></i>{% trans "Мои сотрудничества" %}
+        </a>
+      </div>
+    {% endif %}
+  </div>
 </div>
 
 <form method="get" class="row g-3 align-items-end mb-4">
