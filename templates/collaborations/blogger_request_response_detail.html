@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Обсуждение отклика автора" %} · {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{{ back_url }}" class="btn btn-link text-decoration-none ps-0">
+    <i class="bi bi-arrow-left"></i> {% trans "Назад" %}
+  </a>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h1 class="h5 mb-3">{{ request_obj.title }}</h1>
+        <dl class="row small text-muted mb-4">
+          <dt class="col-6">{% trans "Статус отклика" %}</dt>
+          <dd class="col-6">{{ response.get_status_display }}</dd>
+          <dt class="col-6">{% trans "Отправлен" %}</dt>
+          <dd class="col-6">{{ response.created_at|date:"j E Y, H:i" }}</dd>
+        </dl>
+
+        {% if response.book %}
+          <div class="mb-4">
+            <h2 class="h6">{% trans "Предлагаемая книга" %}</h2>
+            <p class="mb-0">{{ response.book.title }}</p>
+          </div>
+        {% endif %}
+
+        <div class="mb-4">
+          <h2 class="h6">{% trans "Сообщение отклика" %}</h2>
+          {% if response.message %}
+            <p class="mb-0">{{ response.message|linebreaks }}</p>
+          {% else %}
+            <p class="text-muted small mb-0">{% trans "Без дополнительного сообщения." %}</p>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-footer small text-muted">
+        {% if can_comment %}
+          {% trans "Обсуждение доступно, пока решение не принято." %}
+        {% else %}
+          {% trans "Отклик закрыт для новых комментариев." %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h2 class="h5 mb-4">{% trans "Комментарии" %}</h2>
+
+        {% if comments %}
+          <div class="d-flex flex-column gap-4">
+            {% for comment in comments %}
+              <div class="border rounded p-3">
+                <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                  <div>
+                    <strong>{{ comment.author.get_full_name|default:comment.author.username }}</strong>
+                    {% if comment.author_id == request_obj.blogger_id %}
+                      <span class="badge text-bg-secondary ms-2">{% trans "Блогер" %}</span>
+                    {% elif comment.author_id == response.author_id %}
+                      <span class="badge text-bg-primary ms-2">{% trans "Автор" %}</span>
+                    {% endif %}
+                  </div>
+                  <span class="text-muted small">{{ comment.created_at|date:"j E Y, H:i" }}</span>
+                </div>
+                <p class="mb-0">{{ comment.text|linebreaks }}</p>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted mb-0">{% trans "Пока нет комментариев. Начните обсуждение, чтобы уточнить детали." %}</p>
+        {% endif %}
+      </div>
+      {% if can_comment %}
+        <div class="card-footer">
+          <form method="post" class="d-flex flex-column gap-3">
+            {% csrf_token %}
+            <div>
+              <label class="form-label" for="{{ form.text.id_for_label }}">{{ form.text.label }}</label>
+              {{ form.text }}
+              {% for error in form.text.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+              {% endfor %}
+            </div>
+            <div class="d-flex justify-content-end">
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-chat-dots me-1"></i>{% trans "Отправить" %}
+              </button>
+            </div>
+          </form>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

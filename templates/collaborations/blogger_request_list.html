@@ -14,6 +14,17 @@
       <a href="{% url 'collaborations:blogger_request_create' %}" class="btn btn-primary">
         <i class="bi bi-plus-lg me-1"></i>{% trans "Создать заявку" %}
       </a>
+      {% if show_response_inbox %}
+        <a href="{% url 'collaborations:blogger_request_responses' %}" class="btn btn-outline-secondary position-relative">
+          <i class="bi bi-inbox me-1"></i>{% trans "Отклики" %}
+          {% if pending_request_responses_count %}
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill text-bg-danger">
+              {{ pending_request_responses_count }}
+              <span class="visually-hidden">{% trans "Новые отклики" %}</span>
+            </span>
+          {% endif %}
+        </a>
+      {% endif %}
       <a href="{% url 'collaborations:collaboration_list' %}" class="btn btn-outline-secondary">
         <i class="bi bi-people-fill me-1"></i>{% trans "Мои сотрудничества" %}
       </a>
@@ -46,6 +57,12 @@
             {% if request_obj.additional_info %}
               <p class="text-muted small mb-3">{{ request_obj.additional_info|truncatechars:160 }}</p>
             {% endif %}
+            {% if request_obj.collaboration_terms %}
+              <div class="mb-3">
+                <strong class="small d-block mb-1 text-uppercase text-muted">{% trans "Условия" %}</strong>
+                <p class="text-muted small mb-0">{{ request_obj.collaboration_terms|truncatechars:160 }}</p>
+              </div>
+            {% endif %}
             <div class="mb-3">
               <strong class="small d-block mb-1 text-uppercase text-muted">{% trans "Форматы" %}</strong>
               <div class="d-flex flex-wrap gap-2">
@@ -70,11 +87,7 @@
               <li class="mb-1"><i class="bi bi-calendar-event me-1"></i>{% trans "Создано" %}: {{ request_obj.created_at|date:"j E Y" }}</li>
               <li class="mb-1">
                 <i class="bi bi-megaphone me-1"></i>
-                {% if request_obj.open_for_paid_collaboration %}
-                  {% trans "Готов к платному сотрудничеству" %}
-                {% else %}
-                  {% trans "Только бартер" %}
-                {% endif %}
+                {{ request_obj.get_collaboration_type_display }}
               </li>
             </ul>
           </div>

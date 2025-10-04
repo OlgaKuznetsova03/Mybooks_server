@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Принять отклик автора" %} · {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{% url 'collaborations:blogger_request_responses' %}" class="btn btn-link text-decoration-none ps-0">
+    <i class="bi bi-arrow-left"></i> {% trans "Назад к откликам" %}
+  </a>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h1 class="h4 mb-3">{% trans "Подтверждение сотрудничества" %}</h1>
+    <p class="text-muted">
+      {% blocktrans with request_title=response.request.title author_name=response.author.get_full_name|default:response.author.username %}
+        Вы собираетесь принять отклик пользователя {{ author_name }} на заявку «{{ request_title }}».
+      {% endblocktrans %}
+    </p>
+
+    <dl class="row small text-muted">
+      <dt class="col-sm-4">{% trans "Отправлен" %}</dt>
+      <dd class="col-sm-8">{{ response.created_at|date:"j E Y, H:i" }}</dd>
+      <dt class="col-sm-4">{% trans "Статус отклика" %}</dt>
+      <dd class="col-sm-8">{{ response.get_status_display }}</dd>
+    </dl>
+
+    {% if response.book %}
+      <div class="mb-4">
+        <h2 class="h6">{% trans "Предлагаемая книга" %}</h2>
+        <p class="mb-0">{{ response.book.title }}</p>
+      </div>
+    {% endif %}
+
+    <div class="mb-4">
+      <h2 class="h6">{% trans "Сообщение" %}</h2>
+      {% if response.message %}
+        <p class="mb-0">{{ response.message|linebreaks }}</p>
+      {% else %}
+        <p class="text-muted small mb-0">{% trans "Без дополнительного сообщения." %}</p>
+      {% endif %}
+    </div>
+
+    <div class="mb-4">
+      <a href="{% url 'collaborations:blogger_request_response_detail' response.pk %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-chat-dots me-1"></i>{% trans "Открыть обсуждение отклика" %}
+      </a>
+    </div>
+
+    {% if comments %}
+      <div class="mb-4">
+        <h2 class="h6">{% trans "Комментарии" %}</h2>
+        <ul class="list-unstyled small mb-0">
+          {% for comment in comments %}
+            <li class="mb-2">
+              <strong>{{ comment.author.get_full_name|default:comment.author.username }}</strong>
+              <span class="text-muted">· {{ comment.created_at|date:"j E Y, H:i" }}</span>
+              <div>{{ comment.text|linebreaks }}</div>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <form method="post" class="mt-4">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label for="{{ form.deadline.id_for_label }}" class="form-label">{{ form.deadline.label }}</label>
+        {{ form.deadline }}
+        {% if form.deadline.help_text %}
+          <div class="form-text">{{ form.deadline.help_text }}</div>
+        {% endif %}
+        {% for error in form.deadline.errors %}
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        {% endfor %}
+      </div>
+      <button type="submit" class="btn btn-success">
+        <i class="bi bi-check-lg me-1"></i>{% trans "Принять сотрудничество" %}
+      </button>
+      <a href="{% url 'collaborations:blogger_request_responses' %}" class="btn btn-outline-secondary ms-2">
+        {% trans "Отмена" %}
+      </a>
+    </form>
+  </div>
+</div>
+{% endblock %}

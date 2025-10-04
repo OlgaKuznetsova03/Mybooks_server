@@ -151,6 +151,11 @@ class AuthorOffer(models.Model):
 class BloggerRequest(models.Model):
     """Заявка блогера на поиск авторов."""
 
+    class CollaborationType(models.TextChoices):
+        BARTER = "barter", _("Бартер")
+        PAID_ONLY = "paid_only", _("Только платно")
+        BARTER_OR_PAID = "mixed", _("Бартер или оплата")
+
     blogger = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -177,14 +182,27 @@ class BloggerRequest(models.Model):
         related_name="blogger_requests",
         verbose_name=_("Где публикую отзывы"),
     )
+    review_platform_links = models.TextField(
+        blank=True,
+        verbose_name=_("Ссылки на площадки"),
+        help_text=_("Укажите ссылки на социальные сети и каналы построчно."),
+    )
     additional_info = models.TextField(
         blank=True,
         verbose_name=_("Дополнительные детали"),
         help_text=_("Расскажите о предпочитаемом формате контента и условиях."),
     )
-    open_for_paid_collaboration = models.BooleanField(
-        default=False,
-        verbose_name=_("Готов к платному сотрудничеству"),
+    collaboration_type = models.CharField(
+        max_length=20,
+        choices=CollaborationType.choices,
+        default=CollaborationType.BARTER,
+        verbose_name=_("Тип сотрудничества"),
+        help_text=_("Выберите, в каком формате готовы работать с автором."),
+    )
+    collaboration_terms = models.TextField(
+        blank=True,
+        verbose_name=_("Условия сотрудничества"),
+        help_text=_("Опишите дедлайны, требования к бартеру или плате."),
     )
     is_active = models.BooleanField(default=True, verbose_name=_("Активна"))
     created_at = models.DateTimeField(auto_now_add=True)
@@ -208,6 +226,20 @@ class BloggerRequest(models.Model):
             formats.append(str(AuthorOffer.BookFormat.AUDIO.label))
         return formats
 
+    @property
+    def is_paid_only(self) -> bool:
+        return self.collaboration_type == self.CollaborationType.PAID_ONLY
+
+    @property
+    def paid_collaboration_disclaimer(self) -> str:
+        if self.collaboration_type == self.CollaborationType.BARTER:
+            return ""
+        return _(
+            "Все договорённости по платным интеграциям или сотрудничеству заключаются исключительно между автором и блогером."
+            " Платформа не является стороной сделки, не осуществляет контроль над условиями и не несёт какой-либо ответственности"
+            " за последствия договорённостей."
+        )
+    
 
 class BloggerPlatformPresence(models.Model):
     """Информация о платформе блогера и его аудитории."""
@@ -359,6 +391,15 @@ class BloggerRequestResponse(models.Model):
         related_name="blogger_request_responses",
     )
     message = models.TextField(blank=True, verbose_name=_("Сообщение"))
+    book = models.ForeignKey(
+        Book,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="blogger_request_responses",
+        verbose_name=_("Книга"),
+        help_text=_("Выберите книгу, которую предлагаете блогеру."),
+    )
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
@@ -377,7 +418,47 @@ class BloggerRequestResponse(models.Model):
     def __str__(self) -> str:
         return f"{self.author} → {self.request} ({self.get_status_display()})"
 
+    def allows_discussion(self) -> bool:
+        return self.status == self.Status.PENDING
 
+    def is_participant(self, user: User) -> bool:
+        user_id = getattr(user, "id", None)
+        return user_id in {self.request.blogger_id, self.author_id}
+
+    def get_participants(self) -> tuple[User, User]:
+        return (self.request.blogger, self.author)
+
+
+class BloggerRequestResponseComment(models.Model):
+    """Комментарий к отклику на заявку блогера."""
+
+    response = models.ForeignKey(
+        BloggerRequestResponse,
+        on_delete=models.CASCADE,
+        related_name="comments",
+        verbose_name=_("Отклик"),
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="blogger_request_response_comments",
+        verbose_name=_("Автор комментария"),
+    )
+    text = models.TextField(
+        verbose_name=_("Комментарий"),
+        validators=[MaxLengthValidator(1000)],
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("created_at",)
+        verbose_name = _("Комментарий к отклику блогеру")
+        verbose_name_plural = _("Комментарии к откликам блогера")
+
+    def __str__(self) -> str:
+        return f"{self.author} → {self.response.request.title}"
+    
+    
 class Collaboration(models.Model):
     """Фактическое сотрудничество между автором и блогером/читателем."""
 

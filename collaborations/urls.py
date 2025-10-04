@@ -33,6 +33,26 @@ urlpatterns = [
     path("bloggers/create/", views.BloggerRequestCreateView.as_view(), name="blogger_request_create"),
     path("bloggers/<int:pk>/", views.BloggerRequestDetailView.as_view(), name="blogger_request_detail"),
     path("bloggers/<int:pk>/respond/", views.BloggerRequestRespondView.as_view(), name="blogger_request_respond"),
+    path(
+        "bloggers/responses/",
+        views.BloggerRequestResponseListView.as_view(),
+        name="blogger_request_responses",
+    ),
+    path(
+        "bloggers/responses/<int:pk>/",
+        views.BloggerRequestResponseDetailView.as_view(),
+        name="blogger_request_response_detail",
+    ),
+    path(
+        "bloggers/responses/<int:pk>/accept/",
+        views.BloggerRequestResponseAcceptView.as_view(),
+        name="blogger_request_response_accept",
+    ),
+    path(
+        "bloggers/responses/<int:pk>/decline/",
+        views.BloggerRequestResponseDeclineView.as_view(),
+        name="blogger_request_response_decline",
+    ),
     path("collaborations/", views.CollaborationListView.as_view(), name="collaboration_list"),
     path(
         "collaborations/<int:pk>/reviews/",

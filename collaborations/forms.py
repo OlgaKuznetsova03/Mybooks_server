@@ -6,6 +6,8 @@ from django import forms
 from django.forms import inlineformset_factory
 from django.utils.translation import gettext_lazy as _
 
+from books.models import Book
+
 from .models import (
     AuthorOffer,
     AuthorOfferResponse,
@@ -13,6 +15,7 @@ from .models import (
     BloggerPlatformPresence,
     BloggerRequest,
     BloggerRequestResponse,
+    BloggerRequestResponseComment,
     Collaboration,
 )
 
@@ -75,7 +78,9 @@ class BloggerRequestForm(BootstrapModelForm):
             "accepts_electronic",
             "accepts_audio",
             "review_formats",
+            "review_platform_links",
             "additional_info",
+            "review_platform_links",
             "open_for_paid_collaboration",
             "is_active",
         ]
@@ -83,8 +88,22 @@ class BloggerRequestForm(BootstrapModelForm):
             "preferred_genres": forms.SelectMultiple(attrs={"data-enhanced-multi": "1"}),
             "review_formats": forms.SelectMultiple(attrs={"data-enhanced-multi": "1"}),
             "additional_info": forms.Textarea(attrs={"rows": 4}),
+            "collaboration_terms": forms.Textarea(attrs={"rows": 3}),
+            "review_platform_links": forms.Textarea(
+                attrs={
+                    "rows": 3,
+                    "placeholder": _("https://t.me/username"),
+                }
+            ),
         }
 
+    def clean_review_platform_links(self):
+        raw = self.cleaned_data.get("review_platform_links", "")
+        if not raw:
+            return ""
+        links = [link.strip() for link in raw.splitlines() if link.strip()]
+        return "\n".join(links)
+    
 
 class AuthorOfferResponseForm(BootstrapModelForm):
     platform_links = forms.CharField(
@@ -157,9 +176,43 @@ class AuthorOfferResponseCommentForm(BootstrapModelForm):
 
 
 class BloggerRequestResponseForm(BootstrapModelForm):
+    book = forms.ModelChoiceField(
+        required=False,
+        queryset=Book.objects.none(),
+        label=_("Книга"),
+        help_text=_("Прикрепите книгу, чтобы блогер мог быстро её изучить."),
+        widget=forms.Select(attrs={"data-enhanced-single": "1"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.author = kwargs.pop("author", None)
+        super().__init__(*args, **kwargs)
+        queryset = Book.objects.all()
+        if self.author is not None:
+            user_books = getattr(self.author, "books", None)
+            if hasattr(user_books, "all"):
+                queryset = user_books.all()
+        self.fields["book"].queryset = queryset.order_by("title")
+
     class Meta:
         model = BloggerRequestResponse
-        fields = ["message"]
+        book = forms.ModelChoiceField(
+        required=False,
+        queryset=Book.objects.none(),
+        label=_("Книга"),
+        help_text=_("Прикрепите книгу, чтобы блогер мог быстро её изучить."),
+        widget=forms.Select(attrs={"data-enhanced-single": "1"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.author = kwargs.pop("author", None)
+        super().__init__(*args, **kwargs)
+        queryset = Book.objects.all()
+        if self.author is not None:
+            user_books = getattr(self.author, "books", None)
+            if hasattr(user_books, "all"):
+                queryset = user_books.all()
+        self.fields["book"].queryset = queryset.order_by("title")
         widgets = {"message": forms.Textarea(attrs={"rows": 4})}
 
 
@@ -195,6 +248,36 @@ class BloggerPlatformPresenceForm(BootstrapModelForm):
         )
         self.fields["followers_count"].widget.attrs.setdefault("min", "0")
 
+
+    def clean_deadline(self):
+        deadline = self.cleaned_data["deadline"]
+        if deadline < date.today():
+            raise forms.ValidationError(_("Дата не может быть в прошлом."))
+        return deadline
+
+
+class BloggerRequestResponseCommentForm(BootstrapModelForm):
+    class Meta:
+        model = BloggerRequestResponseComment
+        fields = ["text"]
+        widgets = {
+            "text": forms.Textarea(
+                attrs={
+                    "rows": 3,
+                    "maxlength": 1000,
+                    "placeholder": _("Уточните детали сотрудничества."),
+                }
+            )
+        }
+        labels = {"text": _("Комментарий")}
+
+
+class BloggerRequestResponseAcceptForm(forms.Form):
+    deadline = forms.DateField(
+        label=_("Предоставить ссылки до"),
+        help_text=_("Выберите дату, к которой автор должен выслать ссылки."),
+        widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+    )
 
 BloggerPlatformPresenceFormSet = inlineformset_factory(
     BloggerRequest,

@@ -20,6 +20,8 @@ from .forms import (
     AuthorOfferResponseCommentForm,
     BloggerPlatformPresenceFormSet,
     BloggerRequestForm,
+    BloggerRequestResponseAcceptForm,
+    BloggerRequestResponseCommentForm,
     BloggerRequestResponseForm,
     CollaborationReviewForm,
 )
@@ -28,6 +30,7 @@ from .models import (
     AuthorOfferResponse,
     BloggerRequest,
     BloggerRequestResponse,
+    BloggerRequestResponseComment,
     Collaboration,
     CollaborationStatusUpdate,
 )
@@ -74,6 +77,37 @@ def _get_offer_response_context(
     if existing_response:
         conversation_url = reverse(
             "collaborations:offer_response_detail", args=[existing_response.pk]
+        )
+    return {
+        "existing_response": existing_response,
+        "response_form": response_form,
+        "can_respond": can_respond,
+        "response_conversation_url": conversation_url,
+    }
+
+
+def _get_request_response_context(
+    request_obj: BloggerRequest,
+    user: User,
+    form: BloggerRequestResponseForm | None = None,
+) -> dict:
+    if not user.is_authenticated:
+        return {}
+
+    existing_response = (
+        BloggerRequestResponse.objects.select_related("book")
+        .filter(request=request_obj, author=user)
+        .first()
+    )
+    response_form = form or BloggerRequestResponseForm(
+        instance=existing_response, author=user
+    )
+    can_respond = request_obj.blogger_id != user.id and _user_is_author(user)
+    conversation_url = None
+    if existing_response:
+        conversation_url = reverse(
+            "collaborations:blogger_request_response_detail",
+            args=[existing_response.pk],
         )
     return {
         "existing_response": existing_response,
@@ -441,6 +475,253 @@ class OfferResponseDeclineView(LoginRequiredMixin, View):
         return redirect("collaborations:offer_responses")
 
 
+class BloggerRequestResponseListView(LoginRequiredMixin, ListView):
+    model = BloggerRequestResponse
+    template_name = "collaborations/blogger_request_response_list.html"
+    context_object_name = "responses"
+    paginate_by = 10
+
+    def dispatch(self, request, *args, **kwargs):
+        if not _user_is_blogger(request.user):
+            messages.error(
+                request,
+                _("Только блогеры могут просматривать отклики на свои предложения."),
+            )
+            return redirect("collaborations:blogger_request_list")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        queryset = (
+            super()
+            .get_queryset()
+            .select_related("request", "author", "book")
+            .filter(request__blogger=self.request.user)
+            .order_by("-created_at")
+        )
+        status = self.request.GET.get("status")
+        if status in dict(BloggerRequestResponse.Status.choices):
+            queryset = queryset.filter(status=status)
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        qs = BloggerRequestResponse.objects.filter(request__blogger=self.request.user)
+        status_counts = {
+            item["status"]: item["total"]
+            for item in qs.values("status").annotate(total=Count("id"))
+        }
+        context.update(
+            {
+                "active_status": self.request.GET.get("status", ""),
+                "status_options": [
+                    {
+                        "value": value,
+                        "label": label,
+                        "count": status_counts.get(value, 0),
+                    }
+                    for value, label in BloggerRequestResponse.Status.choices
+                ],
+                "total_responses": qs.count(),
+            }
+        )
+        return context
+
+
+class BloggerRequestResponseDetailView(LoginRequiredMixin, View):
+    template_name = "collaborations/blogger_request_response_detail.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.response = get_object_or_404(
+            BloggerRequestResponse.objects.select_related(
+                "request", "request__blogger", "author", "book"
+            ),
+            pk=kwargs["pk"],
+        )
+        if not self.response.is_participant(request.user):
+            messages.error(request, _("Вы не участвуете в этом отклике."))
+            return redirect("collaborations:blogger_request_list")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_back_url(self) -> str:
+        if self.request.user.id == self.response.request.blogger_id:
+            return reverse("collaborations:blogger_request_responses")
+        return reverse(
+            "collaborations:blogger_request_detail", args=[self.response.request_id]
+        )
+
+    def get_context_data(
+        self, form: BloggerRequestResponseCommentForm | None = None
+    ) -> dict:
+        can_comment = self.response.allows_discussion()
+        context = {
+            "response": self.response,
+            "request_obj": self.response.request,
+            "comments": self.response.comments.select_related("author").order_by(
+                "created_at"
+            ),
+            "can_comment": can_comment,
+            "is_blogger": self.request.user.id == self.response.request.blogger_id,
+            "back_url": self.get_back_url(),
+        }
+        if can_comment:
+            context["form"] = form or BloggerRequestResponseCommentForm()
+        return context
+
+    def get(self, request, *args, **kwargs):
+        return render(
+            request,
+            self.template_name,
+            self.get_context_data(),
+        )
+
+    def post(self, request, *args, **kwargs):
+        if not self.response.allows_discussion():
+            messages.error(
+                request,
+                _("Обсуждение закрыто: отклик уже подтверждён или отклонён."),
+            )
+            return redirect(
+                "collaborations:blogger_request_response_detail", pk=self.response.pk
+            )
+
+        form = BloggerRequestResponseCommentForm(request.POST)
+        if form.is_valid():
+            BloggerRequestResponseComment.objects.create(
+                response=self.response,
+                author=request.user,
+                text=form.cleaned_data["text"],
+            )
+            messages.success(request, _("Комментарий отправлен."))
+            return redirect(
+                "collaborations:blogger_request_response_detail", pk=self.response.pk
+            )
+
+        return render(
+            request,
+            self.template_name,
+            self.get_context_data(form=form),
+            status=400,
+        )
+
+
+class BloggerRequestResponseAcceptView(LoginRequiredMixin, FormView):
+    form_class = BloggerRequestResponseAcceptForm
+    template_name = "collaborations/blogger_request_response_accept.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.response = get_object_or_404(
+            BloggerRequestResponse.objects.select_related("request", "author", "book"),
+            pk=kwargs["pk"],
+        )
+        if self.response.request.blogger_id != request.user.id:
+            messages.error(request, _("Нельзя управлять откликом другого блогера."))
+            return redirect("collaborations:blogger_request_list")
+        if self.response.status == BloggerRequestResponse.Status.WITHDRAWN:
+            messages.error(request, _("Этот отклик был отозван."))
+            return redirect("collaborations:blogger_request_responses")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_initial(self):
+        initial = super().get_initial()
+        collaboration = Collaboration.objects.filter(
+            request=self.response.request,
+            author=self.response.author,
+        ).first()
+        if collaboration:
+            initial["deadline"] = collaboration.deadline
+        return initial
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["response"] = self.response
+        context["comments"] = self.response.comments.select_related("author").order_by(
+            "created_at"
+        )
+        return context
+
+    def form_valid(self, form):
+        deadline = form.cleaned_data["deadline"]
+        response = self.response
+        collaboration, _ = Collaboration.objects.get_or_create(
+            request=response.request,
+            author=response.author,
+            defaults={
+                "partner": response.request.blogger,
+                "deadline": deadline,
+                "status": Collaboration.Status.NEGOTIATION,
+            },
+        )
+        collaboration.partner = response.request.blogger
+        collaboration.deadline = deadline
+        collaboration.status = Collaboration.Status.NEGOTIATION
+        collaboration.author_confirmed = False
+        collaboration.partner_confirmed = False
+        collaboration.review_links = ""
+        collaboration.completed_at = None
+        collaboration.updated_at = timezone.now()
+        collaboration.save(
+            update_fields=[
+                "partner",
+                "deadline",
+                "status",
+                "author_confirmed",
+                "partner_confirmed",
+                "review_links",
+                "completed_at",
+                "updated_at",
+            ]
+        )
+
+        if response.status != BloggerRequestResponse.Status.ACCEPTED:
+            response.status = BloggerRequestResponse.Status.ACCEPTED
+            response.save(update_fields=["status", "updated_at"])
+
+        messages.success(
+            self.request,
+            _("Отклик принят. Мы создали сотрудничество и ожидаем ссылки к указанной дате."),
+        )
+        return redirect("collaborations:blogger_request_responses")
+
+
+class BloggerRequestResponseDeclineView(LoginRequiredMixin, View):
+    def post(self, request, pk: int):
+        response = get_object_or_404(
+            BloggerRequestResponse.objects.select_related("request", "author"),
+            pk=pk,
+        )
+        if response.request.blogger_id != request.user.id:
+            messages.error(request, _("Нельзя управлять откликом другого блогера."))
+            return redirect("collaborations:blogger_request_list")
+
+        if response.status != BloggerRequestResponse.Status.DECLINED:
+            response.status = BloggerRequestResponse.Status.DECLINED
+            response.save(update_fields=["status", "updated_at"])
+
+        collaboration = Collaboration.objects.filter(
+            request=response.request,
+            author=response.author,
+        ).first()
+        if collaboration and collaboration.status not in {
+            Collaboration.Status.CANCELLED,
+            Collaboration.Status.COMPLETED,
+        }:
+            collaboration.status = Collaboration.Status.CANCELLED
+            collaboration.author_confirmed = False
+            collaboration.partner_confirmed = False
+            collaboration.updated_at = timezone.now()
+            collaboration.save(
+                update_fields=[
+                    "status",
+                    "author_confirmed",
+                    "partner_confirmed",
+                    "updated_at",
+                ]
+            )
+
+        messages.info(request, _("Отклик отклонён."))
+        return redirect("collaborations:blogger_request_responses")
+
+
 class BloggerRequestListView(ListView):
     model = BloggerRequest
     template_name = "collaborations/blogger_request_list.html"
@@ -459,6 +740,21 @@ class BloggerRequestListView(ListView):
             queryset = queryset.filter(Q(title__icontains=q) | Q(additional_info__icontains=q))
         return queryset.filter(is_active=True)
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        if user.is_authenticated and _user_is_blogger(user):
+            context["show_response_inbox"] = True
+            pending_count = BloggerRequestResponse.objects.filter(
+                request__blogger=user,
+                status=BloggerRequestResponse.Status.PENDING,
+            ).count()
+            context["pending_request_responses_count"] = pending_count
+        else:
+            context["show_response_inbox"] = False
+            context["pending_request_responses_count"] = 0
+        return context
+
 
 class BloggerRequestDetailView(DetailView):
     model = BloggerRequest
@@ -467,16 +763,11 @@ class BloggerRequestDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        if self.request.user.is_authenticated:
-            context["response_form"] = BloggerRequestResponseForm()
-            context["existing_response"] = BloggerRequestResponse.objects.filter(
-                request=self.object,
-                author=self.request.user,
-            ).first()
-            context["can_respond"] = (
-                self.object.blogger_id != self.request.user.id
-                and _user_is_author(self.request.user)
+        context.update(
+            _get_request_response_context(
+                self.object, self.request.user
             )
+        )
         return context
 
 
@@ -524,22 +815,43 @@ class BloggerRequestRespondView(LoginRequiredMixin, FormView):
             return redirect("collaborations:blogger_request_detail", pk=self.request_obj.pk)
         return super().dispatch(request, *args, **kwargs)
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["author"] = self.request.user
+        return kwargs
+    
     def form_valid(self, form):
         response, created = BloggerRequestResponse.objects.get_or_create(
             request=self.request_obj,
             author=self.request.user,
-            defaults={"message": form.cleaned_data.get("message", "")},
+            defaults={
+                "message": form.cleaned_data.get("message", ""),
+                "book": form.cleaned_data.get("book"),
+            },
         )
         if not created:
             response.message = form.cleaned_data.get("message", "")
+            response.book = form.cleaned_data.get("book")
             response.status = BloggerRequestResponse.Status.PENDING
-            response.save(update_fields=["message", "status", "updated_at"])
+            response.save(update_fields=["message", "book", "status", "updated_at"])
             messages.info(self.request, _("Отклик обновлён."))
         else:
             messages.success(self.request, _("Отклик отправлен блогеру."))
         return redirect("collaborations:blogger_request_detail", pk=self.request_obj.pk)
 
+    def form_invalid(self, form):
+        context = {"request_obj": self.request_obj, "object": self.request_obj}
+        context.update(
+            _get_request_response_context(self.request_obj, self.request.user, form)
+        )
+        return render(
+            self.request,
+            "collaborations/blogger_request_detail.html",
+            context,
+            status=400,
+        )
 
+        
 class CollaborationListView(LoginRequiredMixin, ListView):
     model = Collaboration
     template_name = "collaborations/collaboration_list.html"
