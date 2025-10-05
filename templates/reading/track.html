@@ -100,6 +100,7 @@
   }
 
   .reading-progress-hero__meta {
+    position: relative;
     background: rgba(255, 255, 255, 0.92);
     border-radius: 22px;
     padding: 1.25rem;
@@ -107,6 +108,19 @@
     height: 100%;
     display: flex;
     flex-direction: column;
+    z-index: 1;
+  }
+
+  .reading-progress-hero__meta::after {
+    content: "";
+    position: absolute;
+    inset: -12px -14px -20px -14px;
+    border-radius: 28px;
+    background: linear-gradient(180deg,
+        rgba(188, 184, 147, 0.15) 0%,
+        rgba(188, 184, 147, 0.45) 35%,
+        rgba(95, 92, 59, 0.55) 100%);
+    z-index: -1;
   }
 
   .reading-progress-pills {
