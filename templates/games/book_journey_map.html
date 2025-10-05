@@ -16,23 +16,23 @@
       <div class="ms-lg-auto text-lg-end game-hero-meta">
         {% with focus_stage=active_stage_number|default:next_available_stage %}
           {% if active_stage_number %}
-            <div class="small text-white-50 text-uppercase mb-1">Активный этап</div>
+            <div class="small text-uppercase text-muted mb-1">Активный этап</div>
             <div class="fs-4 fw-semibold">#{{ active_stage_number }}</div>
-            <div class="small text-white-50">Продолжайте путешествие с выбранной книгой.</div>
+            <div class="small text-muted">Продолжайте путешествие с выбранной книгой.</div>
           {% elif next_available_stage %}
-            <div class="small text-white-50 text-uppercase mb-1">Следующий шаг</div>
+            <div class="small text-uppercase text-muted mb-1">Следующий шаг</div>
             <div class="fs-4 fw-semibold">#{{ next_available_stage }}</div>
-            <div class="small text-white-50">Выберите книгу, чтобы открыть новый остров.</div>
+            <div class="small text-muted">Выберите книгу, чтобы открыть новый остров.</div>
           {% else %}
-            <div class="small text-white-50 text-uppercase mb-1">Отличная работа</div>
+            <div class="small text-uppercase text-muted mb-1">Отличная работа</div>
             <div class="fs-4 fw-semibold">Карта пройдена!</div>
-            <div class="small text-white-50">Можно повторить задания с новыми историями.</div>
+            <div class="small text-muted">Можно повторить задания с новыми историями.</div>
           {% endif %}
           <div class="game-hero-actions mt-3">
             {% if focus_stage %}
               <button
                 type="button"
-                class="btn btn-outline-light btn-sm"
+                class="btn btn-sm btn-journey-outline"
                 data-bs-toggle="offcanvas"
                 data-bs-target="#journey-stage-panel"
                 data-stage="{{ focus_stage }}"
@@ -40,7 +40,7 @@
                 <i class="bi bi-compass me-1"></i>Открыть этап #{{ focus_stage }}
               </button>
             {% endif %}
-            <a class="btn btn-light btn-sm" href="{% url 'games:read_before_buy' %}">
+            <a class="btn btn-sm btn-journey-soft" href="{% url 'games:read_before_buy' %}">
               <i class="bi bi-controller me-1"></i>К другим играм
             </a>
           </div>
@@ -79,7 +79,7 @@
     >
       <div class="game-progress-bar" style="width: {{ stage_summary.progress_percent }}%;"></div>
     </div>
-    <div class="small text-white-50 mt-2">
+    <div class="small text-muted mt-2">
       {% if stage_summary.total %}
         Пройдено {{ stage_summary.completed }} из {{ stage_summary.total }} этапов.
       {% else %}
