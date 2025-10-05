@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, time
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
 from math import ceil
 
 from django.db.models import Sum, F, Count
@@ -217,6 +217,100 @@ class BookProgress(models.Model):
         ratio = min(Decimal("1"), max(Decimal("0"), ratio))
         return (Decimal(total_pages) * ratio).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
+    def sync_media_equivalents(self, *, source_medium, equivalent_pages):
+        """Синхронизировать прогресс между активными форматами."""
+
+        total = self.get_effective_total_pages()
+        if total is None or equivalent_pages is None:
+            return
+        try:
+            equivalent_decimal = Decimal(equivalent_pages)
+        except (InvalidOperation, TypeError):
+            return
+        rounded_pages = int(
+            equivalent_decimal.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        )
+        if rounded_pages < 0:
+            rounded_pages = 0
+        total_int = int(total)
+        if rounded_pages > total_int:
+            rounded_pages = total_int
+        desired_override = self.custom_total_pages
+        updated_audio_positions = []
+        for medium in self._iter_active_media():
+            if medium.medium == source_medium or medium.pk is None:
+                continue
+            if medium.medium == self.FORMAT_AUDIO:
+                position = self._sync_audio_medium_from_pages(
+                    medium, rounded_pages, total_int
+                )
+                if position is not None:
+                    updated_audio_positions.append(position)
+            else:
+                self._sync_text_medium_from_pages(
+                    medium,
+                    rounded_pages,
+                    total_int,
+                    desired_override,
+                )
+        if updated_audio_positions:
+            max_position = max(
+                updated_audio_positions, key=lambda value: value.total_seconds()
+            )
+            current_seconds = int((self.audio_position or timedelta()).total_seconds())
+            max_seconds = int(max_position.total_seconds())
+            if max_seconds > current_seconds:
+                self.audio_position = timedelta(seconds=max_seconds)
+                self.save(update_fields=["audio_position"])
+
+    def _sync_text_medium_from_pages(
+        self,
+        medium,
+        rounded_pages,
+        total_pages,
+        desired_override,
+    ):
+        target_page = rounded_pages
+        medium_total = medium.total_pages_override or desired_override or total_pages
+        if medium_total:
+            target_page = min(target_page, int(medium_total))
+        target_page = max(0, target_page)
+        fields = []
+        current = medium.current_page or 0
+        if target_page > current or medium.current_page is None:
+            medium.current_page = target_page
+            fields.append("current_page")
+        if medium.total_pages_override != desired_override:
+            medium.total_pages_override = desired_override
+            fields.append("total_pages_override")
+        if fields:
+            medium.save(update_fields=fields)
+
+    def _sync_audio_medium_from_pages(self, medium, rounded_pages, total_pages):
+        audio_length = medium.audio_length or self.audio_length
+        if not audio_length or total_pages <= 0:
+            return None
+        total_seconds = Decimal(str(audio_length.total_seconds()))
+        if total_seconds <= 0:
+            return None
+        ratio = Decimal(rounded_pages) / Decimal(total_pages)
+        ratio = min(Decimal("1"), max(Decimal("0"), ratio))
+        target_seconds = int((total_seconds * ratio).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        current_seconds = int((medium.audio_position or timedelta()).total_seconds())
+        if target_seconds <= current_seconds:
+            return None
+        new_position = timedelta(seconds=target_seconds)
+        medium.audio_position = new_position
+        fields = ["audio_position"]
+        if medium.audio_length != audio_length:
+            medium.audio_length = audio_length
+            fields.append("audio_length")
+        if not medium.playback_speed and self.audio_playback_speed:
+            medium.playback_speed = self.audio_playback_speed
+            fields.append("playback_speed")
+        medium.save(update_fields=fields)
+        return new_position
+    
     def get_combined_current_pages(self):
         total = self.get_effective_total_pages()
         if total is None:

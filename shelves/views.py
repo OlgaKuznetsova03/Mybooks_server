@@ -604,6 +604,10 @@ def reading_set_page(request, progress_id):
     delta = max(0, page - previous_page)
     if delta > 0:
         progress.record_pages(delta, medium=medium_code)
+        progress.sync_media_equivalents(
+            source_medium=medium_code,
+            equivalent_pages=page,
+        )
     messages.success(request, "Текущая страница обновлена.")
     return redirect("reading_track", book_id=progress.book_id)
 
@@ -694,6 +698,11 @@ def reading_increment(request, progress_id, delta):
         delta_seconds = max(0, new_seconds - previous_seconds)
         if delta_pages > 0 and delta_seconds > 0:
             progress.record_pages(delta_pages, medium=BookProgress.FORMAT_AUDIO, audio_seconds=delta_seconds)
+        if delta_pages > 0:
+            progress.sync_media_equivalents(
+                source_medium=BookProgress.FORMAT_AUDIO,
+                equivalent_pages=new_equivalent,
+            )
         messages.success(request, "Аудиопрогресс обновлён.")
         return redirect("reading_track", book_id=progress.book_id)
     
@@ -725,6 +734,10 @@ def reading_increment(request, progress_id, delta):
     diff = max(0, new_page - cur)
     if diff > 0:
         progress.record_pages(diff, medium=medium_code)
+        progress.sync_media_equivalents(
+            source_medium=medium_code,
+            equivalent_pages=new_page,
+        )
     return redirect("reading_track", book_id=progress.book_id)
 
 
