@@ -593,14 +593,6 @@ def reading_set_page(request, progress_id):
     medium.current_page = page
     medium.total_pages_override = progress.custom_total_pages
     medium.save(update_fields=["current_page", "total_pages_override"])
-    combined = progress.get_combined_current_pages()
-    progress.current_page = (
-        int(combined.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
-        if combined is not None
-        else None
-    )
-    progress.save(update_fields=["current_page"])
-    progress.recalc_percent()
     delta = max(0, page - previous_page)
     if delta > 0:
         progress.record_pages(delta, medium=medium_code)
@@ -608,6 +600,8 @@ def reading_set_page(request, progress_id):
             source_medium=medium_code,
             equivalent_pages=page,
         )
+    progress.refresh_current_page()
+    progress.recalc_percent()
     messages.success(request, "Текущая страница обновлена.")
     return redirect("reading_track", book_id=progress.book_id)
 
@@ -676,19 +670,14 @@ def reading_increment(request, progress_id, delta):
             new_seconds = min(new_seconds, max_seconds)
         medium.audio_position = timedelta(seconds=new_seconds)
         medium.audio_length = audio_length
+        update_fields = ["audio_position", "audio_length"]
         if not medium.playback_speed and progress.audio_playback_speed:
             medium.playback_speed = progress.audio_playback_speed
-        medium.save(update_fields=["audio_position", "audio_length", "playback_speed"])
+            update_fields.append("playback_speed")
+        medium.save(update_fields=update_fields)
         progress.audio_position = medium.audio_position
         progress.save(update_fields=["audio_position"])
-        combined = progress.get_combined_current_pages()
-        progress.current_page = (
-            int(combined.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
-            if combined is not None
-            else None
-        )
-        progress.save(update_fields=["current_page"])
-        progress.recalc_percent()
+        
         new_equivalent = (
             progress._medium_equivalent_pages(medium, total_pages)
             if total_pages
@@ -703,6 +692,8 @@ def reading_increment(request, progress_id, delta):
                 source_medium=BookProgress.FORMAT_AUDIO,
                 equivalent_pages=new_equivalent,
             )
+        progress.refresh_current_page()
+        progress.recalc_percent()
         messages.success(request, "Аудиопрогресс обновлён.")
         return redirect("reading_track", book_id=progress.book_id)
     
@@ -723,14 +714,6 @@ def reading_increment(request, progress_id, delta):
     medium.current_page = new_page
     medium.total_pages_override = progress.custom_total_pages
     medium.save(update_fields=["current_page", "total_pages_override"])
-    combined = progress.get_combined_current_pages()
-    progress.current_page = (
-        int(combined.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
-        if combined is not None
-        else None
-    )
-    progress.save(update_fields=["current_page"])
-    progress.recalc_percent()
     diff = max(0, new_page - cur)
     if diff > 0:
         progress.record_pages(diff, medium=medium_code)
@@ -738,6 +721,8 @@ def reading_increment(request, progress_id, delta):
             source_medium=medium_code,
             equivalent_pages=new_page,
         )
+    progress.refresh_current_page()
+    progress.recalc_percent()
     return redirect("reading_track", book_id=progress.book_id)
 
 

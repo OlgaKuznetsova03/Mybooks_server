@@ -329,6 +329,23 @@ class BookProgress(models.Model):
             return Decimal(self.current_page)
         return None
 
+    def refresh_current_page(self):
+        """Пересчитать текущую страницу на основе данных всех активных форматов."""
+
+        combined = self.get_combined_current_pages()
+        if combined is None:
+            if self.current_page is not None:
+                self.current_page = None
+                self.save(update_fields=["current_page"])
+            return None
+        rounded = int(
+            combined.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        )
+        if self.current_page != rounded:
+            self.current_page = rounded
+            self.save(update_fields=["current_page"])
+        return combined
+    
     def recalc_percent(self):
         total = self.get_effective_total_pages()
         current_decimal = self.get_combined_current_pages()

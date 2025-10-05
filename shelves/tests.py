@@ -198,6 +198,74 @@ class ReadingTrackViewTests(TestCase):
         self.assertEqual(character.name, "Гарри Поттер")
         self.assertEqual(character.description, "Главный герой, волшебник")
 
+    def test_audio_increment_updates_current_page_and_logs_audio(self):
+        progress = self._create_progress()
+        progress.media.get_or_create(
+            medium=BookProgress.FORMAT_PAPER,
+            defaults={"current_page": 0},
+        )
+        progress.media.get_or_create(
+            medium=BookProgress.FORMAT_AUDIO,
+            defaults={
+                "audio_length": timedelta(minutes=200),
+                "audio_position": timedelta(),
+            },
+        )
+
+        response = self.client.post(
+            reverse("reading_increment", args=[progress.pk, 0]),
+            {"medium": BookProgress.FORMAT_AUDIO, "minutes": 30},
+        )
+
+        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+
+        progress.refresh_from_db()
+        self.assertEqual(progress.current_page, 30)
+        self.assertEqual(progress.media.get(medium=BookProgress.FORMAT_PAPER).current_page, 30)
+
+        audio_medium = progress.media.get(medium=BookProgress.FORMAT_AUDIO)
+        self.assertEqual(audio_medium.audio_position, timedelta(minutes=30))
+
+        log = progress.logs.get()
+        self.assertEqual(log.medium, BookProgress.FORMAT_AUDIO)
+        self.assertEqual(log.pages_equivalent, Decimal("30"))
+        self.assertEqual(log.audio_seconds, 1800)
+
+    def test_page_increment_updates_audio_medium_position(self):
+        progress = self._create_progress()
+        paper_medium, _ = progress.media.get_or_create(
+            medium=BookProgress.FORMAT_PAPER,
+            defaults={"current_page": 0},
+        )
+        audio_medium, _ = progress.media.get_or_create(
+            medium=BookProgress.FORMAT_AUDIO,
+            defaults={
+                "audio_length": timedelta(minutes=200),
+                "audio_position": timedelta(),
+            },
+        )
+
+        response = self.client.post(
+            reverse("reading_increment", args=[progress.pk, 20]),
+            {"medium": BookProgress.FORMAT_PAPER},
+        )
+
+        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+
+        audio_medium.refresh_from_db()
+        progress.refresh_from_db()
+        paper_medium.refresh_from_db()
+
+        self.assertEqual(progress.current_page, 20)
+        self.assertEqual(paper_medium.current_page, 20)
+        self.assertEqual(audio_medium.audio_position, timedelta(minutes=20))
+        self.assertEqual(progress.audio_position, timedelta(minutes=20))
+
+        log = progress.logs.get()
+        self.assertEqual(log.medium, BookProgress.FORMAT_PAPER)
+        self.assertEqual(log.pages_equivalent, Decimal("20"))
+        self.assertEqual(log.audio_seconds, 0)
+        
     def test_add_character_invalid_shows_errors(self):
         progress = self._create_progress()
 
