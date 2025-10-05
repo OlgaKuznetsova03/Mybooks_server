@@ -148,7 +148,7 @@
             <div class="game-panel-title mb-1">Как играть</div>
             <p class="small text-muted mb-0">Всего {{ stage_summary.total }} заданий — исследуйте карту в своём темпе.</p>
           </div>
-          <span class="badge rounded-pill text-bg-light text-dark-emphasis">{{ stage_summary.total }} этапов</span>
+          <span class="badge rounded-pill journey-badge">{{ stage_summary.total }} этапов</span>
         </div>
         <ol class="game-checklist small mb-4">
           {% for item in checklist %}
@@ -161,7 +161,7 @@
             После авторизации вы сможете выбирать задания и отслеживать прогресс прямо с карты
           </div>
         {% elif active_stage_number %}
-          <div class="alert alert-primary small mb-0" role="status">
+          <div class="journey-alert journey-alert--active small mb-0" role="status">
             <div class="fw-semibold">Активный этап</div>
             <p class="mb-0">Сейчас в работе этап #{{ active_stage_number }}. Завершите его, чтобы открыть следующий.</p>
           </div>
@@ -172,7 +172,7 @@
       <div class="card-header">
         <div class="d-flex align-items-center justify-content-between gap-3">
           <div class="game-panel-title mb-0">Этапы путешествия</div>
-          <span class="badge rounded-pill text-bg-light text-dark-emphasis">{{ stage_summary.total }} заданий</span>
+          <span class="badge rounded-pill journey-badge">{{ stage_summary.total }} заданий</span>
         </div>
       </div>
       <div class="card-body p-0">
@@ -271,16 +271,16 @@
         {% if assignment_form.non_field_errors %}
           <div class="alert alert-danger py-2 small">{{ assignment_form.non_field_errors|striptags }}</div>
         {% endif %}
-        <button type="submit" class="btn btn-primary w-100">Прикрепить книгу</button>
+        <button type="submit" class="btn btn-journey-primary w-100">Прикрепить книгу</button>
       </form>
       <form method="post" class="mt-3 journey-stage-panel__form d-none" id="journey-stage-release-form">
         {% csrf_token %}
         <input type="hidden" name="action" value="release">
         {{ release_form.stage_number }}
-        <button type="submit" class="btn btn-outline-secondary w-100">Снять книгу с этапа</button>
+        <button type="submit" class="btn btn-journey-ghost w-100">Снять книгу с этапа</button>
       </form>
     {% elif not is_authenticated %}
-      <div class="alert alert-info" role="status">
+      <div class="journey-alert journey-alert--info" role="status">
         Войдите в систему, чтобы прикрепить книгу и отслеживать выполнение задания.
       </div>
     {% endif %}
@@ -387,17 +387,17 @@
         }
         linksEl.innerHTML = '';
         const detailLink = document.createElement('a');
-        detailLink.className = 'btn btn-outline-primary btn-sm';
+        detailLink.className = 'btn btn-journey-ghost btn-sm';
         detailLink.href = stage.assignment.detail_url;
         detailLink.textContent = 'О книге';
         linksEl.appendChild(detailLink);
         const readingLink = document.createElement('a');
-        readingLink.className = 'btn btn-outline-secondary btn-sm';
+        readingLink.className = 'btn btn-journey-ghost btn-sm';
         readingLink.href = stage.assignment.reading_url;
         readingLink.textContent = 'Прогресс чтения';
         linksEl.appendChild(readingLink);
         const reviewLink = document.createElement('a');
-        reviewLink.className = 'btn btn-outline-success btn-sm';
+        reviewLink.className = 'btn btn-journey-success btn-sm';
         reviewLink.href = stage.assignment.review_url;
         reviewLink.textContent = stage.assignment.has_review ? 'Обновить отзыв' : 'Написать отзыв';
         linksEl.appendChild(reviewLink);
