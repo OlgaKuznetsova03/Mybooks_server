@@ -18,28 +18,40 @@
     <h1 class="h5 mb-3">{{ book.title }}</h1>
 
     <div class="mb-2 text-muted">
-      <div class="d-flex flex-column flex-md-row gap-2 align-items-md-center">
-        <span class="badge text-bg-light">{{ progress.get_format_display }}</span>
-        <span>
-          {% if total_pages %}Всего страниц: {{ total_pages }} · {% endif %}
-          {% if not progress.is_audiobook %}
-            Текущая страница: <strong>{{ progress.current_page|default:0 }}</strong>
-            ·
-          {% endif %}
-          Прогресс: <strong>
-            {% if calculated_percent is not None %}
-              {{ calculated_percent|floatformat:-2 }}%
-            {% else %}
-              {{ progress.percent|floatformat:-2 }}%
-            {% endif %}
-          </strong>
-        </span>
+      <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+        {% for medium in media_details %}
+          <span class="badge text-bg-light">{{ medium.label }}</span>
+        {% endfor %}
       </div>
-      {% if progress.is_audiobook and audio_length_display %}
-        <div class="small text-muted mt-1">
-          Длительность: {{ audio_length_display }} · Скорость: {{ progress.audio_playback_speed|default:1.0 }}×
-        </div>
-      {% endif %}
+      <div>
+        {% if total_pages %}Всего страниц: {{ total_pages }} · {% endif %}
+        Прогресс: <strong>{{ progress.percent|floatformat:-2 }}%</strong>
+        {% if combined_pages is not None %}
+          · Эквивалент пройдено: {{ combined_pages|floatformat:-2 }} стр.
+        {% endif %}
+      </div>
+      <div class="small text-muted mt-2">
+        {% for medium in media_details %}
+          {% if medium.current_page is not None %}
+            <div>{{ medium.label }}: страница {{ medium.current_page|default:0 }}</div>
+          {% else %}
+            <div>
+              {{ medium.label }}:
+              {% if medium.audio_position %}
+                прослушано {{ medium.audio_position }}
+              {% else %}
+                прогресс не указан
+              {% endif %}
+              {% if medium.audio_length %}
+                из {{ medium.audio_length }}
+              {% endif %}
+              {% if medium.audio_speed %}
+                · скорость {{ medium.audio_speed }}×
+              {% endif %}
+            </div>
+          {% endif %}
+          {% endfor %}
+      </div>
     </div>
 
     <div class="mb-3">
@@ -51,41 +63,67 @@
       {% endif %}
     </div>
 
-    {% if not progress.is_audiobook %}
-      <form method="post" action="{% url 'reading_set_page' progress.id %}" class="d-flex flex-wrap gap-2 align-items-end mb-3">
-        {% csrf_token %}
-        <div>
-          <label class="form-label mb-1" for="id_page">Указать страницу</label>
-          <input type="number" id="id_page" name="page" class="form-control" style="max-width:160px"
-                 min="0" {% if total_pages %}max="{{ total_pages }}"{% endif %}
-                 value="{{ progress.current_page|default:0 }}">
-        </div>
-        <button type="submit" class="btn btn-primary">Сохранить</button>
-      </form>
-      <div class="d-flex flex-wrap gap-2">
-        <form method="post" action="{% url 'reading_increment' progress.id 5 %}">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-outline-secondary">+5 стр.</button>
-        </form>
-        <form method="post" action="{% url 'reading_increment' progress.id 10 %}">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-outline-secondary">+10 стр.</button>
-        </form>
-        <form method="post" action="{% url 'reading_increment' progress.id 25 %}">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-outline-secondary">+25 стр.</button>
-        </form>
-        <form method="post" action="{% url 'reading_mark_finished' progress.id %}">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-success">Завершил</button>
-        </form>
-      </div>
-    {% else %}
-      <form method="post" action="{% url 'reading_mark_finished' progress.id %}" class="d-inline">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-success mb-3">Завершил аудиокнигу</button>
-      </form>
-      {% endif %}
+    <div class="d-flex flex-column gap-4">
+      {% for medium in media_details %}
+        {% if medium.current_page is not None %}
+          <div>
+            <h3 class="h6 mb-2">{{ medium.label }} — обновление страниц</h3>
+            <form method="post" action="{% url 'reading_set_page' progress.id %}" class="d-flex flex-wrap gap-2 align-items-end mb-2">
+              {% csrf_token %}
+              <input type="hidden" name="medium" value="{{ medium.code }}">
+              <div>
+                <label class="form-label mb-1" for="id_page_{{ medium.code }}">Указать страницу</label>
+                <input type="number" id="id_page_{{ medium.code }}" name="page" class="form-control" style="max-width:160px"
+                       min="0" {% if total_pages %}max="{{ total_pages }}"{% endif %}
+                       value="{{ medium.current_page|default:0 }}">
+              </div>
+              <button type="submit" class="btn btn-primary">Сохранить</button>
+            </form>
+            <div class="d-flex flex-wrap gap-2">
+              <form method="post" action="{% url 'reading_increment' progress.id 5 %}">
+                {% csrf_token %}
+                <input type="hidden" name="medium" value="{{ medium.code }}">
+                <button type="submit" class="btn btn-outline-secondary">+5 стр.</button>
+              </form>
+              <form method="post" action="{% url 'reading_increment' progress.id 10 %}">
+                {% csrf_token %}
+                <input type="hidden" name="medium" value="{{ medium.code }}">
+                <button type="submit" class="btn btn-outline-secondary">+10 стр.</button>
+              </form>
+              <form method="post" action="{% url 'reading_increment' progress.id 25 %}">
+                {% csrf_token %}
+                <input type="hidden" name="medium" value="{{ medium.code }}">
+                <button type="submit" class="btn btn-outline-secondary">+25 стр.</button>
+              </form>
+            </div>
+          </div>
+        {% elif medium.code == progress.FORMAT_AUDIO %}
+          <div>
+            <h3 class="h6 mb-2">{{ medium.label }} — учёт прослушивания</h3>
+            <form method="post" action="{% url 'reading_increment' progress.id 0 %}" class="row g-2 align-items-end">
+              {% csrf_token %}
+              <input type="hidden" name="medium" value="{{ medium.code }}">
+              <div class="col-12 col-md-4">
+                <label class="form-label mb-1" for="id_minutes">Прослушано минут</label>
+                <input type="number" class="form-control" id="id_minutes" name="minutes" min="0" step="1" placeholder="Например, 15">
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label mb-1" for="id_duration">или время (ЧЧ:ММ:СС)</label>
+                <input type="text" class="form-control" id="id_duration" name="duration" placeholder="00:30:00">
+              </div>
+              <div class="col-12 col-md-4">
+                <button type="submit" class="btn btn-outline-secondary w-100">Добавить прослушанное</button>
+              </div>
+            </form>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <form method="post" action="{% url 'reading_mark_finished' progress.id %}" class="mt-3">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-success">Отметить книгу завершённой</button>
+    </form>
   </div>
 </div>
 
@@ -95,11 +133,18 @@
       <h2 class="h6 mb-3">Формат чтения</h2>
       <form method="post" action="{% url 'reading_update_format' progress.id %}" class="row g-3">
         {% csrf_token %}
-        <div class="col-12 col-md-4">
-          <label class="form-label" for="{{ format_form.format.id_for_label }}">{{ format_form.format.label }}</label>
-          {{ format_form.format }}
-          {% if format_form.format.errors %}
-            <div class="invalid-feedback d-block">{{ format_form.format.errors|join:", " }}</div>
+        <div class="col-12">
+          <label class="form-label">{{ format_form.formats.label }}</label>
+          <div class="d-flex flex-wrap gap-3">
+            {% for checkbox in format_form.formats %}
+              <div class="form-check">
+                {{ checkbox.tag }}
+                <label class="form-check-label" for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+              </div>
+            {% endfor %}
+          </div>
+          {% if format_form.formats.errors %}
+            <div class="invalid-feedback d-block">{{ format_form.formats.errors|join:", " }}</div>
           {% endif %}
         </div>
         <div class="col-12 col-md-4">
@@ -111,11 +156,33 @@
           {% endif %}
         </div>
         <div class="col-12 col-md-4">
+          <label class="form-label" for="{{ format_form.paper_current_page.id_for_label }}">{{ format_form.paper_current_page.label }}</label>
+          {{ format_form.paper_current_page }}
+          {% if format_form.paper_current_page.errors %}
+            <div class="invalid-feedback d-block">{{ format_form.paper_current_page.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="{{ format_form.ebook_current_page.id_for_label }}">{{ format_form.ebook_current_page.label }}</label>
+          {{ format_form.ebook_current_page }}
+          {% if format_form.ebook_current_page.errors %}
+            <div class="invalid-feedback d-block">{{ format_form.ebook_current_page.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+        <div class="col-12 col-md-4">
           <label class="form-label" for="{{ format_form.audio_length_input.id_for_label }}">{{ format_form.audio_length_input.label }}</label>
           {{ format_form.audio_length_input }}
           <div class="form-text">{{ format_form.audio_length_input.help_text }}</div>
           {% if format_form.audio_length_input.errors %}
             <div class="invalid-feedback d-block">{{ format_form.audio_length_input.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="{{ format_form.audio_position_input.id_for_label }}">{{ format_form.audio_position_input.label }}</label>
+          {{ format_form.audio_position_input }}
+          <div class="form-text">{{ format_form.audio_position_input.help_text }}</div>
+          {% if format_form.audio_position_input.errors %}
+            <div class="invalid-feedback d-block">{{ format_form.audio_position_input.errors|join:", " }}</div>
           {% endif %}
         </div>
         <div class="col-12 col-md-4">
@@ -251,14 +318,16 @@
         <thead>
           <tr>
             <th scope="col">Дата</th>
-            <th scope="col">Прочитано страниц</th>
+            <th scope="col">Формат</th>
+            <th scope="col">Эквивалент страниц</th>
           </tr>
         </thead>
         <tbody>
           {% for log in daily_logs %}
             <tr>
               <td>{{ log.log_date|date:"d.m.Y" }}</td>
-              <td>{{ log.pages_read|default:0 }}</td>
+              <td>{{ log.get_medium_display }}</td>
+              <td>{{ log.pages_equivalent|floatformat:-2 }}</td>
             </tr>
           {% endfor %}
         </tbody>

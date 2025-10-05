@@ -66,7 +66,8 @@ class ReadingTrackViewTests(TestCase):
         self.assertEqual(progress.current_page, 25)
         self.assertEqual(progress.percent, Decimal("12.5"))
         log = progress.logs.get()
-        self.assertEqual(log.pages_read, 15)
+        self.assertEqual(log.pages_equivalent, Decimal("15"))
+        self.assertEqual(log.medium, BookProgress.FORMAT_PAPER)
         self.assertEqual(log.log_date, localdate())
 
     def test_mark_finished_sets_to_total_pages_and_logs_delta(self):
@@ -79,7 +80,7 @@ class ReadingTrackViewTests(TestCase):
         self.assertEqual(progress.current_page, 200)
         self.assertEqual(progress.percent, Decimal("100"))
         log = progress.logs.get()
-        self.assertEqual(log.pages_read, 200)
+        self.assertEqual(log.pages_equivalent, Decimal("200"))
 
     def test_mark_finished_moves_book_between_default_shelves(self):
         progress = self._create_progress()
@@ -132,19 +133,19 @@ class ReadingTrackViewTests(TestCase):
 
         progress.refresh_from_db()
         log = progress.logs.get()
-        self.assertEqual(log.pages_read, 45)
+        self.assertEqual(log.pages_equivalent, Decimal("45"))
 
     def test_average_speed_and_estimate(self):
         progress = self._create_progress()
         ReadingLog.objects.create(
             progress=progress,
             log_date=localdate() - timedelta(days=1),
-            pages_read=40,
+            pages_equivalent=Decimal("40"),
         )
         ReadingLog.objects.create(
             progress=progress,
             log_date=localdate(),
-            pages_read=60,
+            pages_equivalent=Decimal("60"),
         )
         progress.current_page = 100
         progress.save(update_fields=["current_page"])
@@ -155,7 +156,7 @@ class ReadingTrackViewTests(TestCase):
 
     def test_track_view_context_includes_logs(self):
         progress = self._create_progress()
-        ReadingLog.objects.create(progress=progress, log_date=localdate(), pages_read=20)
+        ReadingLog.objects.create(progress=progress, log_date=localdate(), pages_equivalent=Decimal("20"))
 
         response = self.client.get(reverse("reading_track", args=[self.book.pk]))
 
@@ -165,7 +166,7 @@ class ReadingTrackViewTests(TestCase):
         logs = list(response.context["daily_logs"])
         self.assertIn("chart_scale", response.context)
         self.assertEqual(len(logs), 1)
-        self.assertEqual(logs[0].pages_read, 20)
+        self.assertEqual(logs[0].pages_equivalent, Decimal("20"))
         self.assertGreater(response.context["chart_scale"], 0)
 
     def test_update_notes_persists_text(self):

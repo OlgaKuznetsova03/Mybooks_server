@@ -118,6 +118,12 @@ class BookProgress(models.Model):
         help_text="Скорость прослушивания аудиокниги",
     )
 
+    audio_position = models.DurationField(
+        null=True,
+        blank=True,
+        help_text="Текущее время прослушивания аудиокниги",
+    )
+
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['event', 'user', 'book'], name='uniq_progress_per_event'),
@@ -127,18 +133,113 @@ class BookProgress(models.Model):
         ]
 
     def get_effective_total_pages(self):
-        """Количество страниц для расчёта прогресса с учётом пользовательских данных."""
-        if self.format == self.FORMAT_AUDIO:
+        """Количество страниц для расчёта прогресса с учётом пользовательских данных.
+
+        Для гибридных прогрессов используем базовое количество страниц,
+        указанное пользователем или взятое из книги.
+        """
+        total = self.custom_total_pages or self.book.get_total_pages()
+        if not total or total <= 0:
             return None
-        if self.custom_total_pages:
-            return self.custom_total_pages
-        return self.book.get_total_pages()
+        return total
+
+    def _iter_active_media(self):
+        media = list(self.media.all())
+        if media:
+            return media
+        # Поддержка старых записей без связанных носителей
+        legacy = BookProgressMedium(
+            progress=self,
+            medium=self.format,
+            current_page=self.current_page,
+            total_pages_override=self.custom_total_pages if self.format != self.FORMAT_AUDIO else None,
+            audio_position=getattr(self, "audio_position", None),
+            audio_length=self.audio_length,
+            playback_speed=self.audio_playback_speed,
+        )
+        return [legacy]
+
+    def get_medium(self, medium_code):
+        medium = self.media.filter(medium=medium_code).first()
+        if medium:
+            return medium
+        if self.media.exists() or self.format != medium_code:
+            return None
+        defaults = {}
+        if medium_code == self.FORMAT_AUDIO:
+            defaults.update(
+                {
+                    "audio_position": getattr(self, "audio_position", None),
+                    "audio_length": self.audio_length,
+                    "playback_speed": self.audio_playback_speed,
+                }
+            )
+        else:
+            defaults.update(
+                {
+                    "current_page": self.current_page,
+                    "total_pages_override": self.custom_total_pages,
+                }
+            )
+        return self.media.create(medium=medium_code, **defaults)
+
+    def _get_audio_position_seconds(self, medium):
+        position = medium.audio_position or getattr(self, "audio_position", None)
+        if not position:
+            return None
+        return Decimal(position.total_seconds())
+
+    def _get_audio_length_seconds(self, medium):
+        length = medium.audio_length or self.audio_length
+        if not length:
+            return None
+        return Decimal(length.total_seconds())
+
+    def _medium_equivalent_pages(self, medium, total_pages):
+        if total_pages is None:
+            return None
+        if medium.medium == self.FORMAT_AUDIO:
+            length_seconds = self._get_audio_length_seconds(medium)
+            position_seconds = self._get_audio_position_seconds(medium)
+            if not length_seconds or length_seconds <= 0 or position_seconds is None:
+                return None
+            ratio = position_seconds / length_seconds
+            if ratio < 0:
+                return Decimal("0")
+            ratio = min(Decimal("1"), ratio)
+            return (Decimal(total_pages) * ratio).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        if medium.current_page is None:
+            return None
+        medium_total = medium.total_pages_override or total_pages
+        if not medium_total or medium_total <= 0:
+            return Decimal(medium.current_page)
+        ratio = Decimal(medium.current_page) / Decimal(medium_total)
+        ratio = min(Decimal("1"), max(Decimal("0"), ratio))
+        return (Decimal(total_pages) * ratio).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    def get_combined_current_pages(self):
+        total = self.get_effective_total_pages()
+        if total is None:
+            return None
+        equivalents = [
+            eq
+            for eq in (
+                self._medium_equivalent_pages(medium, total)
+                for medium in self._iter_active_media()
+            )
+            if eq is not None
+        ]
+        if equivalents:
+            return max(equivalents)
+        if self.current_page is not None:
+            return Decimal(self.current_page)
+        return None
 
     def recalc_percent(self):
         total = self.get_effective_total_pages()
-        if total and self.current_page is not None:
+        current_decimal = self.get_combined_current_pages()
+        if total and current_decimal is not None:
             total_decimal = Decimal(total)
-            current_decimal = Decimal(self.current_page)
             percent = current_decimal / (total_decimal / Decimal(100))
             percent = percent.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             self.percent = min(Decimal("100"), percent)
@@ -149,9 +250,10 @@ class BookProgress(models.Model):
     @property
     def pages_left(self):
         total = self.get_effective_total_pages()
-        if not total or self.current_page is None:
+        current = self.get_combined_current_pages()
+        if not total or current is None:
             return None
-        return max(0, total - self.current_page)
+        return max(Decimal("0"), Decimal(total) - current)
 
     @property
     def avg_sec_per_page(self):
@@ -170,6 +272,9 @@ class BookProgress(models.Model):
 
     @property
     def is_audiobook(self):
+        media = list(self.media.values_list("medium", flat=True))
+        if media:
+            return set(media) == {self.FORMAT_AUDIO}
         return self.format == self.FORMAT_AUDIO
 
     def get_audio_adjusted_length(self):
@@ -191,36 +296,42 @@ class BookProgress(models.Model):
             return None
         return int(self.pages_left * spp)
 
-    def record_pages(self, pages_read, log_date=None):
+    def record_pages(self, pages_read, log_date=None, medium=None, audio_seconds=None):
         """Зафиксировать количество прочитанных страниц за конкретный день."""
-        if self.is_audiobook:
-            return
         if not pages_read or pages_read <= 0:
             return
         log_date = log_date or localdate()
+        pages_value = Decimal(pages_read)
         log, created = self.logs.get_or_create(
             log_date=log_date,
-            defaults={"pages_read": pages_read},
+            medium=medium or self.format,
+            defaults={
+                "pages_equivalent": pages_value,
+                "audio_seconds": audio_seconds or 0,
+            },
         )
         if not created:
-            log.pages_read += pages_read
-            log.save(update_fields=["pages_read"])
+            log.pages_equivalent += pages_value
+            if audio_seconds:
+                log.audio_seconds += int(audio_seconds)
+            log.save(update_fields=["pages_equivalent", "audio_seconds"])
         if pages_read > 0:
             from games.services.read_before_buy import ReadBeforeBuyGame
 
             occurred_at = datetime.combine(log_date, time.max)
             if timezone.is_naive(occurred_at):
                 occurred_at = timezone.make_aware(occurred_at)
+            award_pages = pages_value.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
             ReadBeforeBuyGame.award_pages(
                 self.user,
                 self.book,
-                pages_read,
+                int(award_pages),
                 occurred_at=occurred_at,
             )
     @property
     def average_pages_per_day(self):
-        stats = self.logs.filter(pages_read__gt=0).aggregate(
-            total_pages=Sum("pages_read"),
+        stats = self.logs.filter(pages_equivalent__gt=0).aggregate(
+            total_pages=Sum("pages_equivalent"),
             days=Count("id"),
         )
         if not stats["total_pages"] or not stats["days"]:
@@ -237,6 +348,34 @@ class BookProgress(models.Model):
         return max(1, ceil(Decimal(pages_left) / avg))
 
 
+class BookProgressMedium(models.Model):
+    progress = models.ForeignKey(
+        BookProgress,
+        on_delete=models.CASCADE,
+        related_name="media",
+    )
+    medium = models.CharField(
+        max_length=20,
+        choices=BookProgress.FORMAT_CHOICES,
+    )
+    current_page = models.PositiveIntegerField(null=True, blank=True)
+    total_pages_override = models.PositiveIntegerField(null=True, blank=True)
+    audio_position = models.DurationField(null=True, blank=True)
+    audio_length = models.DurationField(null=True, blank=True)
+    playback_speed = models.DecimalField(
+        max_digits=3,
+        decimal_places=1,
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        unique_together = ("progress", "medium")
+
+    def __str__(self):
+        return f"{self.progress.book.title} – {self.get_medium_display()}"
+
+
 class ReadingLog(models.Model):
     progress = models.ForeignKey(
         BookProgress,
@@ -244,14 +383,24 @@ class ReadingLog(models.Model):
         related_name="logs",
     )
     log_date = models.DateField(default=localdate)
-    pages_read = models.PositiveIntegerField(default=0)
+    medium = models.CharField(
+        max_length=20,
+        choices=BookProgress.FORMAT_CHOICES,
+        default=BookProgress.FORMAT_PAPER,
+    )
+    pages_equivalent = models.DecimalField(
+        max_digits=9,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    audio_seconds = models.PositiveIntegerField(default=0)
 
     class Meta:
-        unique_together = ("progress", "log_date")
+        unique_together = ("progress", "log_date", "medium")
         ordering = ["-log_date"]
 
     def __str__(self):
-        return f"{self.log_date}: {self.pages_read} стр."
+        return f"{self.log_date}: {self.pages_equivalent} стр. ({self.get_medium_display()})"
    
 
 class CharacterNote(models.Model):

@@ -1,6 +1,6 @@
 # shelves/views.py
-from decimal import Decimal, ROUND_HALF_UP
-from datetime import date
+from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
+from datetime import date, timedelta
 
 from django.db.models import Count
 from django.shortcuts import render, get_object_or_404, redirect
@@ -435,19 +435,59 @@ def reading_now(request):
     return render(request, "reading/reading_now.html", {"shelf": shelf, "items": items})
 
 
+def _format_duration(duration):
+    if not duration:
+        return None
+    total_seconds = int(duration.total_seconds())
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+
 def _build_reading_track_context(progress, book, *, character_form=None, format_form=None):
     total_pages = progress.get_effective_total_pages()
-    calculated_percent = None
-    if total_pages and progress.current_page is not None:
-        total_decimal = Decimal(total_pages)
-        current_decimal = Decimal(progress.current_page)
-        percent = current_decimal / (total_decimal / Decimal(100))
-        calculated_percent = float(percent.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
-    daily_logs = progress.logs.order_by("-log_date")
+    combined_pages = progress.get_combined_current_pages()
+    calculated_percent = float(progress.percent or Decimal("0"))
+    media_objects = list(progress.media.all())
+    if not media_objects:
+        media_objects = progress._iter_active_media()  # fallback for старых записей
+
+    media_details = []
+    choices = dict(BookProgress.FORMAT_CHOICES)
+    for medium in media_objects:
+        detail = {
+            "code": medium.medium,
+            "label": choices.get(medium.medium, medium.medium),
+            "current_page": None,
+            "audio_position": None,
+            "audio_length": None,
+            "audio_speed": None,
+            "equivalent_pages": None,
+        }
+        if total_pages:
+            equivalent = progress._medium_equivalent_pages(medium, total_pages)
+            if equivalent is not None:
+                detail["equivalent_pages"] = equivalent
+        if medium.medium == BookProgress.FORMAT_AUDIO:
+            position = medium.audio_position or progress.audio_position
+            length = medium.audio_length or progress.audio_length
+            speed = medium.playback_speed or progress.audio_playback_speed
+            detail["audio_position"] = _format_duration(position)
+            detail["audio_length"] = _format_duration(length)
+            detail["audio_speed"] = speed
+        else:
+            detail["current_page"] = medium.current_page
+        media_details.append(detail)
+
+    daily_logs = progress.logs.order_by("-log_date", "-medium")
     notes_form = BookProgressNotesForm(instance=progress)
-    chart_logs = list(progress.logs.order_by("log_date"))
-    chart_labels = [log.log_date.strftime("%d.%m.%Y") for log in chart_logs]
-    chart_pages = [(log.pages_read or 0) for log in chart_logs]
+    chart_logs = progress.logs.order_by("log_date")
+    aggregated = {}
+    for log in chart_logs:
+        aggregated.setdefault(log.log_date, Decimal("0"))
+        aggregated[log.log_date] += log.pages_equivalent or Decimal("0")
+    chart_labels = [date.strftime("%d.%m.%Y") for date in aggregated.keys()]
+    chart_pages = [float(value) for value in aggregated.values()]
     max_pages_for_chart = max(chart_pages) if chart_pages else 0
     if max_pages_for_chart:
         max_chart_height = 160  # px
@@ -461,12 +501,6 @@ def _build_reading_track_context(progress, book, *, character_form=None, format_
     estimated_days_remaining = progress.estimated_days_remaining
     character_form = character_form or CharacterNoteForm()
     format_form = format_form or BookProgressFormatForm(instance=progress, book=book)
-    audio_length_display = None
-    if progress.audio_length:
-        total_seconds = int(progress.audio_length.total_seconds())
-        hours, remainder = divmod(total_seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        audio_length_display = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
     characters = progress.character_entries.all()
     return {
         "book": book,
@@ -483,7 +517,8 @@ def _build_reading_track_context(progress, book, *, character_form=None, format_
         "chart_pages": chart_pages,
         "chart_scale": chart_scale,
         "format_form": format_form,
-        "audio_length_display": audio_length_display,
+        "media_details": media_details,
+        "combined_pages": combined_pages,
     }
 
 def reading_track(request, book_id):
@@ -537,48 +572,159 @@ def reading_update_notes(request, progress_id):
 def reading_set_page(request, progress_id):
     """Ручное выставление текущей страницы."""
     progress = get_object_or_404(BookProgress, pk=progress_id, user=request.user)
-    if progress.is_audiobook:
-        messages.error(request, "Для аудиокниги не нужно указывать страницы.")
+    medium_code = request.POST.get("medium") or BookProgress.FORMAT_PAPER
+    if medium_code == BookProgress.FORMAT_AUDIO:
+        messages.error(request, "Для аудиоформата используйте форму фиксации прослушивания.")
         return redirect("reading_track", book_id=progress.book_id)
-    previous_page = progress.current_page or 0
+    medium = progress.get_medium(medium_code)
+    if not medium:
+        messages.error(request, "Сначала активируйте выбранный формат в настройках прогресса.")
+        return redirect("reading_track", book_id=progress.book_id)
+    previous_page = medium.current_page or 0
     try:
         page = int(request.POST.get("page", 0))
     except (TypeError, ValueError):
         messages.error(request, "Неверное значение страницы.")
         return redirect("reading_track", book_id=progress.book_id)
 
-    total = progress.book.get_total_pages()
+    total = progress.get_effective_total_pages()
     if total:
         page = max(0, min(page, total))
-    progress.current_page = page
+    medium.current_page = page
+    medium.total_pages_override = progress.custom_total_pages
+    medium.save(update_fields=["current_page", "total_pages_override"])
+    combined = progress.get_combined_current_pages()
+    progress.current_page = (
+        int(combined.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        if combined is not None
+        else None
+    )
     progress.save(update_fields=["current_page"])
     progress.recalc_percent()
-    delta = max(0, (progress.current_page or 0) - previous_page)
+    delta = max(0, page - previous_page)
     if delta > 0:
-        progress.record_pages(delta)
+        progress.record_pages(delta, medium=medium_code)
     messages.success(request, "Текущая страница обновлена.")
     return redirect("reading_track", book_id=progress.book_id)
+
+
+def _parse_audio_seconds(request):
+    raw_duration = request.POST.get("duration")
+    if raw_duration:
+        parts = raw_duration.split(":")
+        if len(parts) == 3:
+            try:
+                hours, minutes, seconds = (int(part) for part in parts)
+            except ValueError:
+                return None
+            if hours < 0 or minutes < 0 or minutes >= 60 or seconds < 0 or seconds >= 60:
+                return None
+            return hours * 3600 + minutes * 60 + seconds
+    raw_minutes = request.POST.get("minutes")
+    if raw_minutes:
+        try:
+            minutes = Decimal(raw_minutes)
+        except (InvalidOperation, ValueError):
+            return None
+        if minutes < 0:
+            return None
+        seconds = (minutes * Decimal(60)).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        return int(seconds)
+    raw_seconds = request.POST.get("seconds")
+    if raw_seconds:
+        try:
+            seconds = int(Decimal(raw_seconds))
+        except (InvalidOperation, ValueError):
+            return None
+        if seconds < 0:
+            return None
+        return seconds
+    return None
 
 
 @login_required
 @require_POST
 def reading_increment(request, progress_id, delta):
-    """Быстрые кнопки +N страниц."""
+    """Быстрые кнопки +N страниц или учёт прослушанного аудио."""
     progress = get_object_or_404(BookProgress, pk=progress_id, user=request.user)
-    if progress.is_audiobook:
-        messages.error(request, "Для аудиокниги не нужно указывать страницы.")
+    medium_code = request.POST.get("medium") or BookProgress.FORMAT_PAPER
+    if medium_code == BookProgress.FORMAT_AUDIO:
+        seconds = _parse_audio_seconds(request)
+        if not seconds:
+            messages.error(request, "Укажите, сколько времени вы прослушали.")
+            return redirect("reading_track", book_id=progress.book_id)
+        medium = progress.get_medium(BookProgress.FORMAT_AUDIO)
+        if not medium:
+            messages.error(request, "Сначала активируйте аудиоформат в настройках.")
+            return redirect("reading_track", book_id=progress.book_id)
+        total_pages = progress.get_effective_total_pages()
+        previous_equivalent = (
+            progress._medium_equivalent_pages(medium, total_pages)
+            if total_pages
+            else Decimal("0")
+        )
+        previous_position = medium.audio_position or progress.audio_position or timedelta()
+        previous_seconds = int(previous_position.total_seconds())
+        new_seconds = previous_seconds + seconds
+        audio_length = medium.audio_length or progress.audio_length
+        if audio_length:
+            max_seconds = int(audio_length.total_seconds())
+            new_seconds = min(new_seconds, max_seconds)
+        medium.audio_position = timedelta(seconds=new_seconds)
+        medium.audio_length = audio_length
+        if not medium.playback_speed and progress.audio_playback_speed:
+            medium.playback_speed = progress.audio_playback_speed
+        medium.save(update_fields=["audio_position", "audio_length", "playback_speed"])
+        progress.audio_position = medium.audio_position
+        progress.save(update_fields=["audio_position"])
+        combined = progress.get_combined_current_pages()
+        progress.current_page = (
+            int(combined.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+            if combined is not None
+            else None
+        )
+        progress.save(update_fields=["current_page"])
+        progress.recalc_percent()
+        new_equivalent = (
+            progress._medium_equivalent_pages(medium, total_pages)
+            if total_pages
+            else Decimal("0")
+        )
+        delta_pages = max(Decimal("0"), (new_equivalent or Decimal("0")) - (previous_equivalent or Decimal("0")))
+        delta_seconds = max(0, new_seconds - previous_seconds)
+        if delta_pages > 0 and delta_seconds > 0:
+            progress.record_pages(delta_pages, medium=BookProgress.FORMAT_AUDIO, audio_seconds=delta_seconds)
+        messages.success(request, "Аудиопрогресс обновлён.")
         return redirect("reading_track", book_id=progress.book_id)
-    cur = progress.current_page or 0
-    total = progress.book.get_total_pages()
-    new_page = cur + int(delta)
+    
+    try:
+        step = int(delta)
+    except (TypeError, ValueError):
+        messages.error(request, "Неверное значение шага.")
+        return redirect("reading_track", book_id=progress.book_id)
+    medium = progress.get_medium(medium_code)
+    if not medium:
+        messages.error(request, "Сначала активируйте выбранный формат в настройках прогресса.")
+        return redirect("reading_track", book_id=progress.book_id)
+    cur = medium.current_page or 0
+    total = progress.get_effective_total_pages()
+    new_page = cur + step
     if total:
         new_page = max(0, min(new_page, total))
-    progress.current_page = new_page
+    medium.current_page = new_page
+    medium.total_pages_override = progress.custom_total_pages
+    medium.save(update_fields=["current_page", "total_pages_override"])
+    combined = progress.get_combined_current_pages()
+    progress.current_page = (
+        int(combined.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        if combined is not None
+        else None
+    )
     progress.save(update_fields=["current_page"])
     progress.recalc_percent()
     diff = max(0, new_page - cur)
     if diff > 0:
-        progress.record_pages(diff)
+        progress.record_pages(diff, medium=medium_code)
     return redirect("reading_track", book_id=progress.book_id)
 
 
@@ -587,22 +733,59 @@ def reading_increment(request, progress_id, delta):
 def reading_mark_finished(request, progress_id):
     """Отметить книгу как прочитанную."""
     progress = get_object_or_404(BookProgress, pk=progress_id, user=request.user)
-    if progress.is_audiobook:
+    total_pages = progress.get_effective_total_pages()
+    media_objects = list(progress.media.all())
+    if not media_objects and progress.format:
+        fallback_medium = progress.get_medium(progress.format)
+        if fallback_medium:
+            media_objects = [fallback_medium]
+
+    for medium in media_objects:
+        if medium.medium == BookProgress.FORMAT_AUDIO:
+            previous_equivalent = (
+                progress._medium_equivalent_pages(medium, total_pages)
+                if total_pages
+                else Decimal("0")
+            )
+            previous_position = medium.audio_position or progress.audio_position or timedelta()
+            previous_seconds = int(previous_position.total_seconds())
+            audio_length = medium.audio_length or progress.audio_length
+            if audio_length:
+                length_seconds = int(audio_length.total_seconds())
+                medium.audio_length = audio_length
+                medium.audio_position = audio_length
+                if not medium.playback_speed and progress.audio_playback_speed:
+                    medium.playback_speed = progress.audio_playback_speed
+                medium.save(update_fields=["audio_position", "audio_length", "playback_speed"])
+                progress.audio_position = audio_length
+                progress.save(update_fields=["audio_position"])
+                new_equivalent = (
+                    progress._medium_equivalent_pages(medium, total_pages)
+                    if total_pages
+                    else Decimal("0")
+                )
+                delta_pages = max(Decimal("0"), (new_equivalent or Decimal("0")) - (previous_equivalent or Decimal("0")))
+                delta_seconds = max(0, length_seconds - previous_seconds)
+                if delta_pages > 0 and delta_seconds > 0:
+                    progress.record_pages(delta_pages, medium=BookProgress.FORMAT_AUDIO, audio_seconds=delta_seconds)
+        else:
+            previous_page = medium.current_page or 0
+            if total_pages:
+                medium.current_page = int(total_pages)
+                medium.total_pages_override = progress.custom_total_pages
+                medium.save(update_fields=["current_page", "total_pages_override"])
+                delta_pages = max(0, int(total_pages) - previous_page)
+                if delta_pages > 0:
+                    progress.record_pages(delta_pages, medium=medium.medium)
+
+    combined = progress.get_combined_current_pages()
+    if combined is not None:
+        progress.current_page = int(combined.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        progress.save(update_fields=["current_page"])
+    progress.recalc_percent()
+    if progress.percent < Decimal("100"):
         progress.percent = Decimal("100")
         progress.save(update_fields=["percent", "updated_at"])
-    else:
-        previous_page = progress.current_page or 0
-        total = progress.get_effective_total_pages()
-        if total:
-            progress.current_page = total
-            progress.save(update_fields=["current_page"])
-            progress.recalc_percent()
-            delta = max(0, (progress.current_page or 0) - previous_page)
-            if delta > 0:
-                progress.record_pages(delta)
-        else:
-            progress.percent = Decimal("100")
-            progress.save(update_fields=["percent", "updated_at"])
     move_book_to_read_shelf(request.user, progress.book)
     messages.success(request, "Книга отмечена как прочитанная.")
     review_link = reverse("book_detail", args=[progress.book_id]) + "#write-review"
