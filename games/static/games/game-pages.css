@@ -5,17 +5,17 @@
   --journey-gold: #bcb893;
   --journey-sand: #f6f3e5;
   --journey-cream: #fffdf6;
-  --journey-mist: rgba(188, 184, 147, 0.28);
-  --journey-haze: rgba(95, 92, 59, 0.08);
+  --journey-mist: rgba(188, 184, 147, 0.25);
+  --journey-haze: rgba(95, 92, 59, 0.12);
 }
 
 .game-hero {
   position: relative;
-  border-radius: 1.5rem;
+   border-radius: 1.75rem;
   overflow: hidden;
   color: var(--journey-ink);
-  background: linear-gradient(160deg, rgba(246, 243, 229, 0.9), rgba(255, 253, 246, 0.95));
-  border: 1px solid rgba(188, 184, 147, 0.3);
+  background: linear-gradient(140deg, rgba(246, 243, 229, 0.95), rgba(255, 253, 246, 0.92));
+  border: 1px solid rgba(188, 184, 147, 0.28);
   box-shadow: 0 20px 45px rgba(51, 44, 15, 0.08);
 }
 
@@ -25,26 +25,25 @@
   position: absolute;
   border-radius: 999px;
   background: radial-gradient(circle at center, rgba(188, 184, 147, 0.35), transparent 70%);
-  filter: blur(0.5px);
   pointer-events: none;
 }
 
 .game-hero::before {
-  inset: -28% -32% auto auto;
-  width: clamp(220px, 44vw, 360px);
+  inset: -35% -20% auto auto;
+  width: clamp(220px, 40vw, 340px);
   aspect-ratio: 1 / 1;
 }
 
 .game-hero::after {
-  inset: auto auto -40% -30%;
-  width: clamp(240px, 50vw, 420px);
+  inset: auto auto -40% -25%;
+  width: clamp(240px, 44vw, 360px);
   aspect-ratio: 1 / 1;
-  background: radial-gradient(circle at center, rgba(95, 92, 59, 0.25), transparent 75%);
+  background: radial-gradient(circle at center, rgba(95, 92, 59, 0.28), transparent 70%);
 }
 
 .game-hero .card-body {
   position: relative;
-  padding: clamp(1.5rem, 2.2vw + 1.25rem, 2.75rem);
+  padding: clamp(1.75rem, 2vw + 1.2rem, 2.75rem);
 }
 
 .game-hero-heading {
@@ -60,16 +59,17 @@
 
 .game-hero-meta {
   max-width: 18rem;
-  background: rgba(255, 255, 255, 0.78);
-  border-radius: 1.1rem;
-  padding: 1rem 1.25rem;
-  box-shadow: 0 12px 24px rgba(51, 44, 15, 0.08);
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(188, 184, 147, 0.32);
+  border-radius: 1.2rem;
+  padding: 1rem 1.35rem;
+  box-shadow: 0 12px 26px rgba(51, 44, 15, 0.1);
 }
 
 .game-hero-meta .badge,
 .game-hero-meta .small {
   letter-spacing: 0.02em;
-  color: rgba(51, 44, 15, 0.65);
+  color: rgba(51, 44, 15, 0.55);
 }
 
 .game-hero-meta .fs-4 {
@@ -83,7 +83,7 @@
 }
 
 .game-hero-actions .btn {
-  border-radius: 999px;
+  border-radius: 0.95rem;
 }
 
 .btn-journey-outline {
@@ -212,7 +212,7 @@
   margin-top: 1.35rem;
   height: 10px;
   border-radius: 999px;
-  background: rgba(188, 184, 147, 0.3);
+  background: var(--journey-mist);
   overflow: hidden;
 }
 
@@ -227,7 +227,7 @@
 .game-panel {
   border-radius: 1.35rem;
   border: 1px solid rgba(188, 184, 147, 0.28);
-  background: rgba(255, 255, 255, 0.92);
+  background: linear-gradient(170deg, rgba(255, 253, 246, 0.95), rgba(246, 243, 229, 0.85));
   box-shadow: 0 16px 32px rgba(51, 44, 15, 0.07);
 }
 
@@ -242,7 +242,7 @@
 }
 
 .game-panel--soft {
-  background: linear-gradient(170deg, rgba(246, 243, 229, 0.75), rgba(255, 253, 246, 0.95));
+  background: linear-gradient(170deg, rgba(255, 253, 246, 0.95), rgba(246, 243, 229, 0.85));
 }
 
 .game-panel-title {
@@ -298,9 +298,9 @@
 .journey-map-card {
   border-radius: 1.5rem;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.95);
+  background: linear-gradient(170deg, rgba(255, 253, 246, 0.95), rgba(246, 243, 229, 0.85));
   border: 1px solid rgba(188, 184, 147, 0.28);
-  box-shadow: 0 18px 36px rgba(51, 44, 15, 0.06);
+  box-shadow: 0 18px 36px rgba(51, 44, 15, 0.07);
 }
 
 .journey-map-card .card-header {
@@ -314,7 +314,7 @@
 .journey-map-card .card-footer {
   padding: 1.1rem clamp(1.35rem, 2vw + 1rem, 1.75rem) clamp(1.5rem, 2vw + 1.4rem, 1.9rem);
   border-top: 1px solid rgba(188, 184, 147, 0.28);
-  background: rgba(188, 184, 147, 0.08);
+  background: rgba(188, 184, 147, 0.12);
 }
 
 .journey-map-card .journey-map__canvas {
