@@ -46,6 +46,19 @@
     align-items: stretch;
   }
 
+  .reading-progress-hero::before {
+    content: "";
+    position: absolute;
+    inset: -12px -14px -20px -14px;
+    border-radius: 28px;
+    background: linear-gradient(180deg,
+        rgba(188, 184, 147, 0.15) 0%,
+        rgba(188, 184, 147, 0.45) 35%,
+        rgba(95, 92, 59, 0.55) 100%);
+    z-index: -1;
+    pointer-events: none;
+  }
+
   .reading-progress-hero__cover {
     position: relative;
     border-radius: 22px;
@@ -65,18 +78,6 @@
     border-radius: inherit;
     background: rgba(255, 255, 255, 0.9);
     z-index: 0;
-  }
-
-  .reading-progress-hero__cover::after {
-    content: "";
-    position: absolute;
-    inset: -12px -14px -20px -14px;
-    border-radius: 28px;
-    background: linear-gradient(180deg,
-        rgba(188, 184, 147, 0.15) 0%,
-        rgba(188, 184, 147, 0.45) 35%,
-        rgba(95, 92, 59, 0.55) 100%);
-    z-index: -1;
   }
 
   .reading-progress-hero__cover > * {
@@ -109,18 +110,6 @@
     display: flex;
     flex-direction: column;
     z-index: 1;
-  }
-
-  .reading-progress-hero__meta::after {
-    content: "";
-    position: absolute;
-    inset: -12px -14px -20px -14px;
-    border-radius: 28px;
-    background: linear-gradient(180deg,
-        rgba(188, 184, 147, 0.15) 0%,
-        rgba(188, 184, 147, 0.45) 35%,
-        rgba(95, 92, 59, 0.55) 100%);
-    z-index: -1;
   }
 
   .reading-progress-pills {
