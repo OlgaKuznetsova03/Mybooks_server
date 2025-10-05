@@ -72,6 +72,11 @@
   color: rgba(51, 44, 15, 0.55);
 }
 
+.game-hero .text-muted,
+.game-hero .text-body-secondary {
+  color: rgba(51, 44, 15, 0.6) !important;
+}
+
 .game-hero-meta .fs-4 {
   color: var(--journey-olive);
 }
@@ -170,6 +175,20 @@
   color: #fff;
   border-color: var(--journey-olive);
   box-shadow: 0 0 0 0.2rem rgba(188, 184, 147, 0.2);
+}
+
+.badge-journey-warning {
+  background: rgba(246, 243, 229, 0.9);
+  color: var(--journey-ink);
+  border: 1px solid rgba(188, 184, 147, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.badge-journey-success {
+  background: linear-gradient(140deg, rgba(123, 119, 82, 0.85), rgba(95, 92, 59, 0.75));
+  color: #fff;
+  border: 1px solid rgba(95, 92, 59, 0.5);
+  box-shadow: 0 10px 20px rgba(51, 44, 15, 0.15);
 }
 
 .game-hero-stats {

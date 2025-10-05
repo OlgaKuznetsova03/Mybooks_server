@@ -14,12 +14,12 @@
         <p class="game-hero-description mb-0">{{ game.description }}</p>
       </div>
       <div class="ms-lg-auto text-lg-end game-hero-meta">
-        <div class="small text-white-50 text-uppercase mb-1">Стоимость новой книги</div>
+        <div class="small text-uppercase mb-1">Стоимость новой книги</div>
         <div class="fs-4 fw-semibold">{{ purchase_cost }} баллов</div>
         {% if shelf_count %}
-          <div class="small text-white-50">Подключено полок: {{ shelf_count }}</div>
+          <div class="small">Подключено полок: {{ shelf_count }}</div>
         {% else %}
-          <div class="small text-white-50">Подключите «Домашнюю библиотеку», чтобы начать.</div>
+          <div class="small">Подключите «Домашнюю библиотеку», чтобы начать.</div>
         {% endif %}
         <div class="game-hero-actions mt-3">
           <a class="btn btn-journey-outline btn-sm" href="#enroll-form">
@@ -63,7 +63,7 @@
     >
       <div class="game-progress-bar" style="width: {{ overall.progress_percent }}%;"></div>
     </div>
-    <div class="small text-white-50 mt-2">
+    <div class="small text-muted mt-2">
       {% if overall.available_purchases %}
         Можно приобрести {{ overall.available_purchases }} книг за накопленные баллы.
       {% elif overall.next_purchase_points %}
@@ -105,7 +105,7 @@
               <div class="invalid-feedback d-block">{{ enroll_form.shelf.errors|join:", " }}</div>
             {% endif %}
           </div>
-          <button class="btn btn-primary" type="submit">
+          <button class="btn btn-journey-primary" type="submit">
             <i class="bi bi-plus-lg me-1"></i>Добавить полку
           </button>
         </form>
@@ -132,9 +132,9 @@
                   </div>
                   <div class="text-end">
                     {% if item.points_needed > 0 %}
-                      <span class="badge rounded-pill text-bg-warning">До покупки: {{ item.points_needed }}</span>
+                      <span class="badge rounded-pill badge-journey-warning">До покупки: {{ item.points_needed }}</span>
                     {% else %}
-                      <span class="badge rounded-pill text-bg-success">Можно купить книгу!</span>
+                      <span class="badge rounded-pill badge-journey-success">Можно купить книгу!</span>
                     {% endif %}
                     <div class="small text-muted mt-1">Цена книги: {{ purchase_cost }}</div>
                   </div>
@@ -189,7 +189,7 @@
                       {% if item.available_purchases %}max="{{ item.available_purchases }}"{% else %}disabled{% endif %}
                     >
                   </div>
-                  <button class="btn btn-sm btn-outline-primary" type="submit" {% if not item.available_purchases %}disabled{% endif %}>
+                  <button class="btn btn-sm btn-journey-outline" type="submit" {% if not item.available_purchases %}disabled{% endif %}>
                     <i class="bi bi-bag-check me-1"></i>Списать баллы
                   </button>
                   {% if not item.available_purchases %}
