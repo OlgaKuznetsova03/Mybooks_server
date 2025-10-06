@@ -36,6 +36,7 @@ from .forms import (
     BookProgressNotesForm,
     CharacterNoteForm,
     BookProgressFormatForm,
+    ReadingFeedCommentForm,
     HomeLibraryEntryForm,
     HomeLibraryFilterForm,
 )
