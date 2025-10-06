@@ -19,7 +19,7 @@
   --book-card-width:210px;
   --book-card-gap:1rem;
   display:grid;
-  grid-template-columns:repeat(1,minmax(0,var(--book-card-width)));
+  grid-template-columns:repeat(1,minmax(0,var(--book-card-width,210px)));
   justify-content:center;
   gap:var(--book-card-gap);
   margin:0 auto;
@@ -33,7 +33,7 @@
   width:100%;
   max-width:var(--book-card-width);
   border-radius:1rem;
-  border:1px solid var(--bs-border-color);
+  border:1px solid var(--bs-border-color, #dee2e6);
   overflow:hidden;
 }
 .book-gallery-card__cover{
@@ -53,7 +53,7 @@
   font-size:0.7rem;
   font-weight:600;
   background-color:rgba(var(--bs-primary-rgb),.08) !important;
-  color:var(--journey-haze);
+  color:var(--journey-olive);
 }
 .book-gallery-card .badge:not(:first-child){
   border:1px solid rgba(var(--bs-primary-rgb),.15);
@@ -73,25 +73,25 @@
 }
 @media (min-width: 576px){
   .book-gallery{
-    grid-template-columns:repeat(2,minmax(0,var(--book-card-width)));
+    grid-template-columns:repeat(2,minmax(0,var(--book-card-width,210px)));
   }
 }
 
 @media (min-width: 768px){
   .book-gallery{
-    grid-template-columns:repeat(3,minmax(0,var(--book-card-width)));
+    grid-template-columns:repeat(3,minmax(0,var(--book-card-width,210px)));
   }
 }
 
 @media (min-width: 992px){
   .book-gallery{
-    grid-template-columns:repeat(4,minmax(0,var(--book-card-width)));
+    grid-template-columns:repeat(4,minmax(0,var(--book-card-width,210px)));
   }
 }
 
 @media (min-width: 1200px){
   .book-gallery{
-    grid-template-columns:repeat(5,minmax(0,var(--book-card-width)));
+    grid-template-columns:repeat(5,minmax(0,var(--book-card-width,210px)));
   }
 }
 .navbar .form-control{min-width:260px}
@@ -148,13 +148,13 @@
   background-color:transparent;
   color:var(--bs-body-color);
   padding:0.35rem 0.85rem;
-  white-space:nowrap;
+  
   transition:background-color .12s ease,color .12s ease,box-shadow .12s ease;
 }
-.books-sort .nav-link:hover{background-color:rgba(var(--bs-primary-rgb),.08);color:var(--journey-haze);}
+.books-sort .nav-link:hover{background-color:rgba(var(--bs-primary-rgb),.08);color:var(--journey-olive);}
 .books-sort .nav-link.active{
   background-color:rgba(var(--bs-primary-rgb),.15);
-  color:var(--journey-haze);
+  color:var(--journey-olive);
   box-shadow:0 0 0 0.2rem rgba(var(--bs-primary-rgb),.15);
 }
 .books-empty-state{
@@ -175,7 +175,7 @@
 /* Диаграмма прогресса чтения */
 .reading-chart-card{
   border-radius:0.75rem;
-  border:1px solid var(--bs-border-color);
+  border:1px solid var(--bs-border-color, #dee2e6);
   background-color:var(--bs-body-bg);
   box-shadow:var(--rt-card-shadow);
   padding:1.5rem 1.25rem;
@@ -194,9 +194,10 @@
   }
   .reading-chart-card__canvas{
     height:220px;
+    
   }
-  white-space:nowrap;
 }
+
 
 .marathon-hero{
   background-color:#62769a;
@@ -262,7 +263,7 @@
   gap:0.35rem;
 }
 .star-rating-btn{
-  appearance:none;
+  -webkit-appearance:none; appearance:none;
   background:none;
   border:0;
   color:var(--bs-border-color);
@@ -329,7 +330,7 @@
 .additional-edition-cover:focus-visible .additional-edition-cover__image,
 .additional-edition-cover:hover .additional-edition-cover__image{
   transform:translateY(-2px);
-  border-color:var(--journey-haze);
+  border-color:var(--journey-olive);
   box-shadow:0 0 0 0.2rem rgba(108,92,231,.15);
 }
 
@@ -376,8 +377,8 @@
 }
 
 .book-cover-thumbnails__dot.is-active{
-  background-color:var(--journey-haze);
-  border-color:var(--journey-haze);
+  background-color:var(--journey-olive);
+  border-color:var(--journey-olive);
 }
 
 .book-cover-thumbnails__dot:focus-visible{
@@ -573,4 +574,9 @@
 @media (max-width: 575.98px){
   .journey-map__canvas{min-height:320px;}
   .journey-map__marker{width:38px;height:38px;font-size:0.85rem;}
+}
+
+
+@media (prefers-reduced-motion: reduce){
+  *{ transition:none !important; animation:none !important; }
 }

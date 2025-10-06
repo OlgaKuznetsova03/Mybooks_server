@@ -12,9 +12,9 @@
     </div>
     <div class="col-lg-4 text-lg-end">
       {% if request.user.is_authenticated %}
-        <a class="btn btn-outline-light" href="{% url 'reading_marathons:create' %}"><i class="bi bi-flag me-2"></i>Создать марафон</a>
+        <a class="btn btn-primary" href="{% url 'reading_marathons:create' %}"><i class="bi bi-flag me-2"></i>Создать марафон</a>
       {% else %}
-        <a class="btn btn-outline-light" href="{% url 'login' %}">Войдите, чтобы создать марафон</a>
+        <a class="btn btn-primary" href="{% url 'login' %}">Войдите, чтобы создать марафон</a>
       {% endif %}
     </div>
   </div>
