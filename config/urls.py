@@ -12,6 +12,7 @@ urlpatterns = [
     path("events/", include("shelves.urls")), # подключаем роуты полок с ивентами shelves
     path("games/", include("games.urls")),  # подключаем роуты приложения games
     path("collaborations/", include("collaborations.urls")),
+    path("reading-clubs/", include("reading_clubs.urls")),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

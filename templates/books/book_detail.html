@@ -5,6 +5,7 @@
   {{ block.super }}
   <link rel="stylesheet" href="{% static 'books/book-detail.css' %}">
   <link rel="stylesheet" href="{% static 'books/genre-shelf.css' %}">
+  <link rel="stylesheet" href="{% static 'reading_clubs/style.css' %}">
 {% endblock %}
 {% block content %}
 
@@ -172,6 +173,73 @@
         </div>
       </div>
     {% endif %}
+    {% with active=reading_clubs_by_status.active upcoming=reading_clubs_by_status.upcoming past=reading_clubs_by_status.past %}
+      {% if active or upcoming or past %}
+        <div class="reading-group mb-4">
+          <h2 class="h5 reading-group__title">Совместные чтения по книге</h2>
+          <div class="small text-muted mb-3">Присоединяйтесь к обсуждениям или создайте свои чтения.</div>
+          <div class="vstack gap-3">
+            {% if active %}
+              <div>
+                <h3 class="h6 text-uppercase text-muted">Актуальные</h3>
+                <div class="row g-3">
+                  {% for club in active %}
+                    <div class="col-12 col-md-6">
+                      <article class="reading-card h-100">
+                        <div class="reading-card__title mb-1"><a href="{{ club.get_absolute_url }}">{{ club.title }}</a></div>
+                        <div class="reading-card__meta small">Старт {{ club.start_date|date:"d E Y" }}{% if club.end_date %} · Завершение {{ club.end_date|date:"d E Y" }}{% endif %}</div>
+                        <div class="reading-card__footer mt-3 text-muted">
+                          <span><i class="bi bi-people me-1"></i> {{ club.approved_participant_count }}</span>
+                          <span><i class="bi bi-chat-left-text me-1"></i> {{ club.message_count }}</span>
+                        </div>
+                      </article>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+            {% if upcoming %}
+              <div>
+                <h3 class="h6 text-uppercase text-muted">Предстоящие</h3>
+                <div class="row g-3">
+                  {% for club in upcoming %}
+                    <div class="col-12 col-md-6">
+                      <article class="reading-card h-100">
+                        <div class="reading-card__title mb-1"><a href="{{ club.get_absolute_url }}">{{ club.title }}</a></div>
+                        <div class="reading-card__meta small">Старт {{ club.start_date|date:"d E Y" }}</div>
+                        <p class="text-muted small mb-0">{{ club.description|truncatewords:20 }}</p>
+                      </article>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+            {% if past %}
+              <div>
+                <h3 class="h6 text-uppercase text-muted">Прошедшие</h3>
+                <div class="row g-3">
+                  {% for club in past %}
+                    <div class="col-12 col-md-6">
+                      <article class="reading-card h-100">
+                        <div class="reading-card__title mb-1"><a href="{{ club.get_absolute_url }}">{{ club.title }}</a></div>
+                        <div class="reading-card__meta small">{{ club.start_date|date:"d E Y" }} — {{ club.end_date|date:"d E Y" }}</div>
+                        <div class="reading-card__footer mt-3 text-muted">
+                          <span><i class="bi bi-chat-left-text me-1"></i> {{ club.message_count }}</span>
+                        </div>
+                      </article>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+          </div>
+          <div class="mt-3">
+            <a class="btn btn-sm btn-reading" href="{% url 'reading_clubs:create' %}?book={{ book.pk }}">Создать совместное чтение</a>
+            <a class="btn btn-sm btn-outline-secondary ms-2" href="{% url 'reading_clubs:list' %}">Все совместные чтения</a>
+          </div>
+        </div>
+      {% endif %}
+    {% endwith %}
     <div class="card border-0 shadow-sm">
       <div class="card-body">
         <h2 class="h6 mb-3">Описание</h2>

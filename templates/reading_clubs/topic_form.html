@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Новая норма · {{ reading.title }}{% endblock %}
+
+{% block extra_css %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'reading_clubs/style.css' %}">
+{% endblock %}
+
+{% block content %}
+  <div class="reading-detail-header">
+    <h1 class="h3 mb-3">Добавить норму для «{{ reading.title }}»</h1>
+    <p class="text-muted mb-0">Разбейте книгу на части и назначьте дату открытия обсуждения для каждой нормы.</p>
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+          <div class="mb-3">
+            <label class="form-label" for="id_{{ field.name }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}
+              <div class="form-text">{{ field.help_text }}</div>
+            {% endif %}
+            {% for error in field.errors %}
+              <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endfor %}
+        <button class="btn btn-reading" type="submit">Сохранить норму</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

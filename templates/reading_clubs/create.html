@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Создать совместное чтение{% endblock %}
+
+{% block extra_css %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'reading_clubs/style.css' %}">
+{% endblock %}
+
+{% block content %}
+  <div class="reading-detail-header">
+    <h1 class="h3 mb-2">Создать совместное чтение</h1>
+    <p class="text-muted mb-0">Выберите книгу, задайте даты и пригласите читателей разделить впечатления.</p>
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+          <div class="mb-3">
+            <label class="form-label" for="id_{{ field.name }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}
+              <div class="form-text">{{ field.help_text }}</div>
+            {% endif %}
+            {% for error in field.errors %}
+              <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endfor %}
+        <button class="btn btn-reading" type="submit">Создать</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

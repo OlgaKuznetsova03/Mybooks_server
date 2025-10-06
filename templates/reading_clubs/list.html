@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Совместные чтения · ReadTogether{% endblock %}
+
+{% block extra_css %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'reading_clubs/style.css' %}">
+{% endblock %}
+
+{% block content %}
+  <div class="reading-hero">
+    <h1 class="display-5 mb-3">Совместные чтения</h1>
+    <p class="lead mb-0">Находите единомышленников, обсуждайте любимые книги и вдохновляйтесь новыми историями вместе.</p>
+  </div>
+
+  {% if user.is_authenticated %}
+    <div class="mb-4">
+      <a class="btn btn-reading" href="{% url 'reading_clubs:create' %}">
+        <i class="bi bi-journal-plus me-1"></i> Создать совместное чтение
+      </a>
+    </div>
+  {% endif %}
+
+  <div class="reading-groups">
+    {% for grouping in groupings %}
+      <section id="{{ grouping.slug }}" class="reading-group mb-5">
+        <div class="d-flex justify-content-between align-items-start flex-column flex-md-row mb-3">
+          <div>
+            <h2 class="h4 reading-group__title mb-1">{{ grouping.title }}</h2>
+            <p class="text-muted mb-0">{{ grouping.description }}</p>
+          </div>
+          <span class="badge text-bg-light mt-3 mt-md-0">{{ grouping.queryset|length }} шт.</span>
+        </div>
+
+        {% if grouping.queryset %}
+          <div class="row g-3">
+            {% for club in grouping.queryset %}
+              <div class="col-12 col-md-6 col-xl-4">
+                <article class="reading-card h-100">
+                  <div class="reading-card__title mb-2">
+                    <a href="{{ club.get_absolute_url }}">{{ club.title }}</a>
+                  </div>
+                  <div class="reading-card__meta mb-2">
+                    <div class="mb-1"><i class="bi bi-book me-1"></i> {{ club.book.title }}</div>
+                    <div class="small text-muted">
+                      Начало: {{ club.start_date|date:"d E Y" }}{% if club.end_date %} · Завершение: {{ club.end_date|date:"d E Y" }}{% endif %}
+                    </div>
+                  </div>
+                  <p class="text-muted small mb-3">{{ club.description|truncatewords:24 }}</p>
+                  <div class="reading-card__footer text-muted">
+                    <span><i class="bi bi-people me-1"></i> {{ club.approved_participant_count }} участн.</span>
+                    <span><i class="bi bi-chat-left-text me-1"></i> {{ club.message_count }} сообщений</span>
+                  </div>
+                </article>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted mb-0">Пока пусто. Станьте первым, кто создаст такие чтения.</p>
+        {% endif %}
+      </section>
+    {% endfor %}
+  </div>
+{% endblock %}

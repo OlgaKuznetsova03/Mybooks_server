@@ -35,6 +35,7 @@ from shelves.services import (
     move_book_to_read_shelf,
 )
 from games.services.read_before_buy import ReadBeforeBuyGame
+from reading_clubs.models import ReadingClub
 from .models import Author, Book, Genre, Rating, ISBNModel
 from .forms import BookForm, RatingForm
 from .services import EditionRegistrationResult, register_book_edition
@@ -970,6 +971,22 @@ def book_detail(request, pk):
                 }
             )
 
+    reading_clubs_by_status = {
+        "active": [],
+        "upcoming": [],
+        "past": [],
+    }
+    reading_clubs_qs = (
+        ReadingClub.objects.filter(book=book)
+        .select_related("creator")
+        .prefetch_related("participants__user")
+        .with_message_count()
+    )
+
+    for club in reading_clubs_qs:
+        club.set_prefetched_message_count(club.message_count)
+        reading_clubs_by_status[club.status].append(club)
+
     return render(request, "books/book_detail.html", {
         "book": book,
         "form": form,
@@ -995,6 +1012,7 @@ def book_detail(request, pk):
         "home_library_edit_url": home_library_edit_url,
         "default_shelf_status": default_shelf_status,
         "genre_shelves": genre_shelves,
+        "reading_clubs_by_status": reading_clubs_by_status,
     })
 
 @login_required
