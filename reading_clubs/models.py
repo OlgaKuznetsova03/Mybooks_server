@@ -109,13 +109,14 @@ class ReadingClub(models.Model):
 
     @property
     def message_count(self) -> int:
-        annotated = self.__dict__.get("message_count")
-        if annotated is not None:
-            return int(annotated)
         cached = getattr(self, "_message_count", None)
         if cached is not None:
-            return cached
+            return int(cached)
         return self.posts.count()
+    
+    @message_count.setter
+    def message_count(self, value: int | None) -> None:
+        self._message_count = None if value is None else int(value)
 
     def set_prefetched_message_count(self, value: int) -> None:
         self._message_count = value
@@ -132,11 +133,15 @@ class ReadingClub(models.Model):
 
     @property
     def approved_participant_count(self) -> int:
-        annotated = self.__dict__.get("approved_participant_count")
-        if annotated is not None:
-            return int(annotated)
+        cached = getattr(self, "_approved_participant_count", None)
+        if cached is not None:
+            return int(cached)
         return self.participants.filter(status=ReadingParticipant.Status.APPROVED).count()
 
+    @approved_participant_count.setter
+    def approved_participant_count(self, value: int | None) -> None:
+        self._approved_participant_count = None if value is None else int(value)
+        
 
 class ReadingParticipant(models.Model):
     class Status(models.TextChoices):
