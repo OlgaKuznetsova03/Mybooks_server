@@ -3,6 +3,116 @@
 
 {% block title %}Профиль {{ u.username }}{% endblock %}
 
+{% block extra_css %}
+  {{ block.super }}
+  <style>
+    .reading-calendar-wrapper {
+      border-radius: var(--bs-border-radius-lg);
+      border: 1px solid var(--bs-border-color);
+      overflow: hidden;
+    }
+
+    .reading-calendar {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .reading-calendar thead th,
+    .reading-calendar tbody td {
+      border: 1px solid var(--bs-border-color);
+      background-color: var(--bs-body-bg);
+      padding: 0.75rem;
+      vertical-align: top;
+    }
+
+    .reading-calendar thead th {
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+    }
+
+    .reading-calendar__cell {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      min-height: 140px;
+    }
+
+    .reading-calendar__header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .reading-calendar__header .text-muted {
+      color: var(--bs-secondary-color) !important;
+    }
+
+    .reading-calendar__books {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+
+    .reading-calendar__book-cover,
+    .reading-calendar__book-placeholder {
+      width: 40px;
+      height: 60px;
+      border-radius: var(--bs-border-radius-sm);
+      box-shadow: 0 0.125rem 0.25rem rgba(15, 23, 42, 0.12);
+      flex: 0 0 auto;
+    }
+
+    .reading-calendar__book-cover {
+      object-fit: cover;
+    }
+
+    .reading-calendar__book-placeholder {
+      background: var(--bs-tertiary-bg);
+      border: 1px dashed var(--bs-border-color);
+      color: var(--bs-secondary-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+    }
+
+    @media (max-width: 991.98px) {
+      .reading-calendar__cell {
+        min-height: 120px;
+      }
+    }
+
+    @media (max-width: 575.98px) {
+      .reading-calendar thead th {
+        font-size: 0.65rem;
+      }
+
+      .reading-calendar__cell {
+        min-height: 110px;
+        gap: 0.35rem;
+      }
+
+      .reading-calendar__header {
+        font-size: 0.75rem;
+      }
+
+      .reading-calendar__books {
+        gap: 0.25rem;
+      }
+
+      .reading-calendar__book-cover,
+      .reading-calendar__book-placeholder {
+        width: 32px;
+        height: 48px;
+      }
+    }
+  </style>
+{% endblock %}
+
 {% block content %}
 
 <div class="d-flex flex-column flex-md-row gap-4 align-items-start">
@@ -183,12 +293,12 @@
                 </a>
               </div>
             </div>
-            <div class="table-responsive">
-              <table class="table table-borderless align-middle mb-0">
+            <div class="table-responsive reading-calendar-wrapper">
+              <table class="reading-calendar align-middle mb-0">
                 <thead class="text-muted text-uppercase small">
                   <tr>
                     {% for weekday in calendar.weekday_labels %}
-                      <th scope="col" class="text-center fw-semibold">{{ weekday }}</th>
+                      <th scope="col">{{ weekday }}</th>
                     {% endfor %}
                   </tr>
                 </thead>
@@ -196,27 +306,29 @@
                   {% for week in calendar.weeks %}
                     <tr>
                       {% for day in week %}
-                        <td class="align-top" style="min-width:110px;">
-                          <div class="d-flex justify-content-between align-items-start small fw-semibold">
-                            <span class="{% if not day.in_month %}text-muted{% endif %}">{{ day.date.day }}</span>
-                            {% if day.is_completion_day and day.in_month %}
-                              <i class="bi bi-star-fill text-warning" title="Есть завершённые книги"></i>
+                        <td class="{% if not day.in_month %}opacity-75{% endif %}">
+                          <div class="reading-calendar__cell">
+                            <div class="reading-calendar__header">
+                              <span class="{% if not day.in_month %}text-muted{% endif %}">{{ day.date.day }}</span>
+                              {% if day.is_completion_day and day.in_month %}
+                                <i class="bi bi-star-fill text-warning" title="Есть завершённые книги"></i>
+                              {% endif %}
+                            </div>
+                            {% if day.in_month and day.books %}
+                              <div class="reading-calendar__books">
+                                {% for book in day.books %}
+                                  {% if book.cover_url %}
+                                    <img src="{{ book.cover_url }}" alt="Обложка {{ book.title }}" class="reading-calendar__book-cover">
+                                  {% else %}
+                                    <div class="reading-calendar__book-placeholder">
+                                      <span class="visually-hidden">{{ book.title }}</span>
+                                      Нет
+                                    </div>
+                                  {% endif %}
+                                {% endfor %}
+                              </div>
                             {% endif %}
                           </div>
-                          {% if day.in_month and day.books %}
-                            <div class="d-flex flex-wrap gap-1 mt-2">
-                              {% for book in day.books %}
-                                {% if book.cover_url %}
-                                  <img src="{{ book.cover_url }}" alt="Обложка {{ book.title }}" class="rounded shadow-sm" style="width:40px;height:60px;object-fit:cover;">
-                                {% else %}
-                                  <div class="bg-light border rounded d-flex align-items-center justify-content-center" style="width:40px;height:60px;">
-                                    <span class="visually-hidden">{{ book.title }}</span>
-                                    <span class="text-muted small">Нет</span>
-                                  </div>
-                                {% endif %}
-                              {% endfor %}
-                            </div>
-                          {% endif %}
                         </td>
                       {% endfor %}
                     </tr>
