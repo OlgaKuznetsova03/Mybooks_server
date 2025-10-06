@@ -885,8 +885,14 @@ def reading_update_format(request, progress_id):
 def reading_feed(request):
     entries = (
         ReadingFeedEntry.objects.filter(is_public=True)
-        .select_related("user", "book", "progress")
-        .prefetch_related("comments__user")
+        .select_related(
+            "user",
+            "user__profile",
+            "book",
+            "book__primary_isbn",
+            "progress",
+        )
+        .prefetch_related("comments__user", "comments__user__profile", "book__isbn")
     )
     comment_form = ReadingFeedCommentForm()
     return render(

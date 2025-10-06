@@ -37,9 +37,55 @@
 
   .reading-feed-entry__header {
     display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+    align-items: flex-start;
+  }
+
+  .reading-feed-entry__meta {
+    display: flex;
+    gap: 1rem;
+    flex: 1;
+    align-items: flex-start;
+  }
+
+  .reading-feed-entry__avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: rgba(70, 112, 126, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #1e3b45;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  .reading-feed-entry__avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .reading-feed-entry__avatar span {
+    font-size: 1.1rem;
+  }
+
+  .reading-feed-entry__avatar--placeholder {
+    border: 2px solid rgba(70, 112, 126, 0.24);
+    background: rgba(70, 112, 126, 0.08);
+  }
+
+  .reading-feed-entry__details {
+    display: flex;
     flex-direction: column;
     gap: 0.35rem;
-    margin-bottom: 1rem;
   }
 
   .reading-feed-entry__user {
@@ -60,6 +106,22 @@
     gap: 0.75rem;
     font-size: 0.95rem;
     color: #2d4b55;
+  }
+
+  .reading-feed-entry__cover {
+    width: 96px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: rgba(70, 112, 126, 0.12);
+    box-shadow: 0 12px 24px rgba(25, 53, 63, 0.12);
+    flex-shrink: 0;
+  }
+
+  .reading-feed-entry__cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 
   .reading-feed-entry__badge {
@@ -145,6 +207,19 @@
     .reading-feed-hero {
       padding: 2rem 1.5rem;
     }
+    .reading-feed-entry__header {
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .reading-feed-entry__meta {
+      width: 100%;
+    }
+
+    .reading-feed-entry__cover {
+      width: 100%;
+      max-width: 180px;
+    }
   }
 </style>
 {% endblock %}
@@ -159,19 +234,38 @@
   {% for entry in entries %}
     <article class="reading-feed-entry">
       <header class="reading-feed-entry__header">
-        <span class="reading-feed-entry__user">{{ entry.user.get_full_name|default:entry.user.username }}</span>
-        <span class="reading-feed-entry__book">{{ entry.book.title }}</span>
-        <div class="reading-feed-entry__stats small text-muted">
-          <span>{{ entry.created_at|date:"d E Y, H:i" }}</span>
-          <span class="reading-feed-entry__badge">{{ entry.get_medium_display }}</span>
-          {% if entry.current_page_display %}
-            <span>Страница: {{ entry.current_page_display }}</span>
+        {% with display_name=entry.user.get_full_name|default:entry.user.username cover_url=entry.book.get_cover_url %}
+        <header class="reading-feed-entry__header">
+          <div class="reading-feed-entry__meta">
+            <div class="reading-feed-entry__avatar{% if not entry.user.profile.avatar %} reading-feed-entry__avatar--placeholder{% endif %}">
+              {% if entry.user.profile.avatar %}
+                <img src="{{ entry.user.profile.avatar.url }}" alt="Аватар {{ display_name }}">
+              {% else %}
+                <span>{{ display_name|slice:":1" }}</span>
+              {% endif %}
+            </div>
+            <div class="reading-feed-entry__details">
+              <span class="reading-feed-entry__user">{{ display_name }}</span>
+              <span class="reading-feed-entry__book">{{ entry.book.title }}</span>
+              <div class="reading-feed-entry__stats small text-muted">
+                <span>{{ entry.created_at|date:"d E Y, H:i" }}</span>
+                <span class="reading-feed-entry__badge">{{ entry.get_medium_display }}</span>
+                {% if entry.current_page_display %}
+                  <span>Страница: {{ entry.current_page_display }}</span>
+                {% endif %}
+                {% if entry.percent is not None %}
+                  <span>Прогресс: {{ entry.percent|floatformat:-2 }}%</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% if cover_url %}
+            <div class="reading-feed-entry__cover">
+              <img src="{{ cover_url }}" alt="Обложка книги «{{ entry.book.title }}»">
+            </div>
           {% endif %}
-          {% if entry.percent is not None %}
-            <span>Прогресс: {{ entry.percent|floatformat:-2 }}%</span>
-          {% endif %}
-        </div>
-      </header>
+          </header>
+      {% endwith %}
 
       {% if entry.reaction %}
         <div class="reading-feed-entry__reaction">{{ entry.reaction|linebreaksbr }}</div>
