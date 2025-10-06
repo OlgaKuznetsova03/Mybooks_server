@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 import calendar
+from typing import Optional
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login
@@ -60,7 +61,7 @@ def _build_calendar_url(params, year, month):
     return f"?{query.urlencode()}"
 
 
-def _build_reading_calendar(user: User, params, read_shelf: Shelf | None, period_meta):
+def _build_reading_calendar(user: User, params, read_shelf: Optional[Shelf], period_meta):
     today = timezone.localdate()
     selected_year = period_meta.get("selected_year") or today.year
     selected_month = period_meta.get("selected_month") or today.month
@@ -446,7 +447,7 @@ def _collect_profile_stats(user: User, params):
     }
 
     stats["reading_calendar"] = _build_reading_calendar(user, params, read_shelf, period_meta)
-    
+
     return {
         "stats": stats,
         "stats_period": period_meta,
