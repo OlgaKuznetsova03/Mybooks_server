@@ -15,15 +15,13 @@
       <div class="book-detail-cover text-center" data-role="book-cover-display" data-default-alt="Обложка книги «{{ book.title }}»" data-default-label="{{ cover_label|default_if_none:''|escape }}">
         <img
           src="{% if active_cover and active_cover.image %}{{ active_cover.image }}{% endif %}"
-          class="rounded shadow-sm img-fluid mx-auto{% if not active_cover or not active_cover.image %} d-none{% endif %}"
-          style="max-width: var(--book-cover-width, 240px);"
+          class="book-detail-cover__image rounded shadow-sm img-fluid mx-auto{% if not active_cover or not active_cover.image %} d-none{% endif %}"
           alt="{% if active_cover and active_cover.alt %}{{ active_cover.alt }}{% else %}Обложка книги «{{ book.title }}»{% endif %}"
           loading="lazy"
           data-role="book-cover-image"
         >
         <div
-          class="bg-secondary-subtle rounded d-flex align-items-center justify-content-center mx-auto{% if active_cover and active_cover.image %} d-none{% endif %}"
-          style="max-width: var(--book-cover-width, 240px); min-height: calc(var(--book-cover-width, 240px) * 2 / 3);"
+          class="book-detail-cover__placeholder mx-auto{% if active_cover and active_cover.image %} d-none{% endif %}"
           data-role="book-cover-placeholder"
         >
           <span class="text-muted">Нет обложки</span>

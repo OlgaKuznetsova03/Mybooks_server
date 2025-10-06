@@ -41,9 +41,25 @@
   margin: 0 auto;
 }
 
-.book-detail-cover img {
+.book-detail-cover__image {
   width: 100%;
-  height: auto;
+  aspect-ratio: 2 / 3;
+  object-fit: contain;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.book-detail-cover__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: 0.75rem;
+  background-color: rgba(0, 0, 0, 0.04);
+  color: var(--bs-secondary-color);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .book-detail-thumbnails {

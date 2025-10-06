@@ -49,7 +49,18 @@
           {% with cover_url=b.get_cover_url %}
             {% if cover_url %}
               <a class="book-gallery-card__cover-link" href="{% url 'book_detail' b.pk %}">
-                <img src="{{ cover_url }}" class="book-gallery-card__cover rounded-top" alt="Обложка {{ b.title }}" loading="lazy">
+                <img
+                  src="{{ cover_url }}"
+                  class="book-gallery-card__cover rounded-top"
+                  alt="Обложка {{ b.title }}"
+                  loading="lazy"
+                >
+              </a>
+            {% else %}
+              <a class="book-gallery-card__cover-link" href="{% url 'book_detail' b.pk %}">
+                <div class="book-gallery-card__cover book-gallery-card__cover--placeholder rounded-top">
+                  <span class="book-gallery-card__cover-placeholder-text">Нет обложки</span>
+                </div>
               </a>
             {% endif %}
           {% endwith %}
