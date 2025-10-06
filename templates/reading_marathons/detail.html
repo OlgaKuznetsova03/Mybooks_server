@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}{{ marathon.title }} — Книжный марафон{% endblock %}
+
+{% block content %}
+<div class="card mb-4 overflow-hidden">
+  <div class="row g-0 align-items-stretch" style="background-color:#62769a; color:#fff;">
+    <div class="col-md-4">
+      {% if marathon.cover %}
+        <img class="w-100 h-100 object-fit-cover" src="{{ marathon.cover.url }}" alt="Обложка марафона {{ marathon.title }}">
+      {% else %}
+        <div class="h-100 d-flex align-items-center justify-content-center p-5">
+          <span class="display-6">📚</span>
+        </div>
+      {% endif %}
+    </div>
+    <div class="col-md-8">
+      <div class="p-4 h-100 d-flex flex-column gap-3">
+        <div>
+          <h1 class="h3 mb-2">{{ marathon.title }}</h1>
+          <p class="mb-0">{{ marathon.description|default:"Создатель пока не добавил описание." }}</p>
+        </div>
+        <div class="d-flex flex-wrap gap-3 small">
+          <span><i class="bi bi-calendar-event me-1"></i>Старт: {{ marathon.start_date }}</span>
+          {% if marathon.end_date %}
+            <span><i class="bi bi-flag-checkered me-1"></i>Финиш: {{ marathon.end_date }}</span>
+          {% endif %}
+          <span><i class="bi bi-people me-1"></i>Участников: {{ participants|length }}</span>
+          <span><i class="bi bi-person-badge me-1"></i>Создатель: {{ marathon.creator }}</span>
+        </div>
+        <div class="mt-auto d-flex flex-wrap gap-2">
+          {% if participant %}
+            {% if participant.is_approved %}
+              <a class="btn btn-light" href="#add-book"><i class="bi bi-plus-lg me-2"></i>Добавить книгу</a>
+            {% else %}
+              <span class="badge bg-warning text-dark">Ожидается подтверждение участия</span>
+            {% endif %}
+          {% else %}
+            <a class="btn btn-outline-light" href="{% url 'reading_marathons:join' marathon.slug %}"><i class="bi bi-door-open me-2"></i>Присоединиться</a>
+          {% endif %}
+          {% if marathon.book_submission_policy == marathon.BookSubmissionPolicy.APPROVAL %}
+            <span class="badge bg-light text-dark">Книги добавляются после утверждения</span>
+          {% else %}
+            <span class="badge bg-light text-dark">Книги появляются сразу</span>
+          {% endif %}
+          {% if marathon.completion_policy == marathon.CompletionPolicy.APPROVAL %}
+            <span class="badge bg-light text-dark">Создатель проверяет выполнение этапов</span>
+          {% else %}
+            <span class="badge bg-light text-dark">Этап засчитывается автоматически после отзыва</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="mb-5">
+  <h2 class="h4 mb-3">Темы марафона</h2>
+  <div class="d-flex flex-wrap gap-2">
+    {% for theme in marathon.themes.all %}
+      <div class="marathon-theme-badge">{{ theme.title }}</div>
+    {% empty %}
+      <div class="alert alert-light border mb-0">Темы ещё не добавлены.</div>
+    {% endfor %}
+  </div>
+</section>
+
+{% if participant and participant.is_approved %}
+  <section id="add-book" class="mb-5">
+    <div class="card">
+      <div class="card-header" style="background-color:#62769a; color:#fff;">
+        <h2 class="h5 mb-0">Добавить книгу в марафон</h2>
+      </div>
+      <div class="card-body">
+        <form action="{% url 'reading_marathons:entry_add' marathon.slug %}" method="post">
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-md-4">{{ entry_form.theme }}</div>
+            <div class="col-md-4">{{ entry_form.book }}</div>
+            <div class="col-md-2">{{ entry_form.status }}</div>
+            <div class="col-md-2">{{ entry_form.progress }}</div>
+            <div class="col-12">{{ entry_form.notes }}</div>
+          </div>
+          <button class="btn btn-primary mt-3" type="submit">Добавить книгу</button>
+        </form>
+      </div>
+    </div>
+  </section>
+{% endif %}
+
+<section>
+  <h2 class="h4 mb-3">Мини-полки участников</h2>
+  <div class="row g-4">
+    {% for participant_obj, entries in participant_entries %}
+      <div class="col-md-6">
+        <div class="card h-100">
+          <div class="card-header d-flex justify-content-between align-items-center" style="background-color:#62769a; color:#fff;">
+            <div>
+              <h3 class="h6 mb-0">{{ participant_obj.user.get_full_name|default:participant_obj.user.username }}</h3>
+              {% if not participant_obj.is_approved %}
+                <small class="text-warning">Ожидает подтверждения участия</small>
+              {% endif %}
+            </div>
+            {% if marathon.creator == request.user and participant_obj.status == participant_obj.Status.PENDING %}
+              <a class="btn btn-sm btn-outline-light" href="{% url 'reading_marathons:participant_approve' participant_obj.pk %}">Одобрить</a>
+            {% endif %}
+          </div>
+          <div class="card-body">
+              {% if entries %}
+                <div class="marathon-entry-list">
+                  {% for entry in entries %}
+                    <div class="marathon-entry">
+                      <div class="d-flex justify-content-between align-items-center">
+                        <div class="small text-uppercase text-muted">{{ entry.theme.title }}</div>
+                        {% if entry.status == entry_status.COMPLETED and entry.completion_status == completion_status.CONFIRMED %}
+                          <span class="badge bg-success"><i class="bi bi-check2 me-1"></i>Завершено</span>
+                        {% elif entry.status == entry_status.COMPLETED %}
+                          <span class="badge bg-warning text-dark">Ожидает подтверждения</span>
+                        {% elif entry.status == entry_status.READING %}
+                          <span class="badge bg-info text-dark">Читаю</span>
+                        {% else %}
+                          <span class="badge bg-light text-dark">Запланировано</span>
+                        {% endif %}
+                      </div>
+                      <div class="d-flex align-items-center justify-content-between mt-2">
+                        <div>
+                          <div class="fw-semibold">{{ entry.book.title }}</div>
+                          <div class="marathon-entry__progress">
+                          {% if not entry.book_approved %}
+                              Ожидает подтверждения книги.
+                            {% elif entry.status == entry_status.COMPLETED %}
+                              Прочитано. Отзыв: {% if entry.has_review %}есть{% else %}ещё нет{% endif %}.
+                              {% if marathon.completion_policy == marathon.CompletionPolicy.AUTO and entry.completion_status == completion_status.AWAITING_REVIEW %}
+                                Добавьте отзыв, чтобы этап засчитался автоматически.
+                              {% endif %}
+                            {% elif entry.status == entry_status.READING %}
+                              Прогресс: {{ entry.progress }}%
+                            {% else %}
+                              Запланировано к чтению
+                            {% endif %}
+                          </div>
+                        </div>
+                        {% if participant and participant.pk == participant_obj.pk %}
+                          <a class="btn btn-sm btn-outline-primary" href="{% url 'reading_marathons:entry_update' entry.pk %}">Обновить</a>
+                        {% endif %}
+                      </div>
+                      {% if marathon.creator == request.user %}
+                        <div class="mt-3 d-flex flex-wrap gap-2">
+                          {% if not entry.book_approved and marathon.book_submission_policy == marathon.BookSubmissionPolicy.APPROVAL %}
+                            <a class="btn btn-sm btn-outline-success" href="{% url 'reading_marathons:entry_approve' entry.pk %}">Подтвердить книгу</a>
+                          {% endif %}
+                          {% if entry.status == entry_status.COMPLETED and entry.completion_status == completion_status.AWAITING_REVIEW %}
+                            <a class="btn btn-sm btn-success" href="{% url 'reading_marathons:entry_confirm' entry.pk %}">Зачесть этап</a>
+                          {% endif %}
+                        </div>
+                      {% endif %}
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <div class="alert alert-light border mb-0">Пока нет добавленных книг.</div>
+              {% endif %}
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="col-12">
+        <div class="alert alert-light border">Пока нет участников.</div>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

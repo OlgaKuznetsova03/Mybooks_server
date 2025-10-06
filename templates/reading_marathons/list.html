@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Книжные марафоны — ReadTogether{% endblock %}
+
+{% block content %}
+<section class="marathon-hero mb-4">
+  <div class="row align-items-center g-4">
+    <div class="col-lg-8">
+      <h1 class="h2 mb-3">Книжные марафоны</h1>
+      <p class="lead mb-0">Создавайте тематические забеги по чтению, приглашайте друзей и делитесь прогрессом по выбранным книгам.</p>
+    </div>
+    <div class="col-lg-4 text-lg-end">
+      {% if request.user.is_authenticated %}
+        <a class="btn btn-outline-light" href="{% url 'reading_marathons:create' %}"><i class="bi bi-flag me-2"></i>Создать марафон</a>
+      {% else %}
+        <a class="btn btn-outline-light" href="{% url 'login' %}">Войдите, чтобы создать марафон</a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<div class="row g-4">
+  {% for marathon in marathons %}
+    <div class="col-md-6 col-lg-4">
+      <div class="card marathon-card h-100">
+        {% if marathon.cover %}
+          <img class="card-img-top object-fit-cover" src="{{ marathon.cover.url }}" alt="Обложка марафона {{ marathon.title }}">
+        {% endif %}
+        <div class="card-body d-flex flex-column">
+          <h2 class="h5">{{ marathon.title }}</h2>
+          <p class="text-muted flex-grow-1">{{ marathon.description|truncatewords:30 }}</p>
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            {% for theme in marathon.themes.all|slice:':3' %}
+              <span class="marathon-theme-badge">{{ theme.title }}</span>
+            {% endfor %}
+            {% if marathon.themes.all|length > 3 %}
+              <span class="badge bg-light text-dark">+{{ marathon.themes.all|length|add:'-3' }} тем</span>
+            {% endif %}
+          </div>
+          <a class="btn btn-outline-primary mt-auto" href="{% url 'reading_marathons:detail' marathon.slug %}">Открыть марафон</a>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <div class="col-12">
+      <div class="alert alert-light border">
+        Пока нет созданных марафонов. Будьте первым, кто запустит новый забег по чтению!
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

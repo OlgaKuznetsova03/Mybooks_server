@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     'games.apps.GamesConfig',
     'collaborations.apps.CollaborationsConfig',
     'reading_clubs.apps.ReadingClubsConfig',
+    'reading_marathons.apps.ReadingMarathonsConfig',
 ]
 
 MIDDLEWARE = [

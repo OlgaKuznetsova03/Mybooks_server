@@ -198,6 +198,59 @@
   white-space:nowrap;
 }
 
+.marathon-hero{
+  background-color:#62769a;
+  color:#fff;
+  border-radius:1.25rem;
+  padding:2rem;
+  box-shadow:var(--rt-card-shadow);
+}
+
+.marathon-hero a.btn-outline-light{
+  border-color:rgba(255,255,255,.7);
+  color:#fff;
+}
+
+.marathon-card{
+  border:1px solid rgba(98,118,154,.2);
+  box-shadow:var(--rt-card-shadow);
+  border-radius:1rem;
+}
+
+.marathon-theme-badge{
+  background-color:rgba(98,118,154,.15);
+  color:#62769a;
+  border-radius:999px;
+  padding:0.2rem 0.75rem;
+  font-size:0.75rem;
+  font-weight:600;
+}
+
+.marathon-entry-list{
+  display:flex;
+  flex-direction:column;
+  gap:0.75rem;
+}
+
+.marathon-entry{
+  border:1px solid rgba(98,118,154,.18);
+  border-radius:0.85rem;
+  padding:0.75rem 1rem;
+  background-color:#fff;
+  box-shadow:0 6px 12px rgba(0,0,0,.04);
+}
+
+.marathon-entry__status{
+  font-size:0.8rem;
+  font-weight:600;
+  color:#62769a;
+}
+
+.marathon-entry__progress{
+  font-size:0.75rem;
+  color:#4a5875;
+}
+
 /* Виджет оценок звёздами */
 .star-rating-field{
   display:inline-flex;
