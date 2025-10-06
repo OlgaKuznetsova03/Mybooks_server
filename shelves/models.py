@@ -195,6 +195,17 @@ class BookProgress(models.Model):
             return None
         return Decimal(length.total_seconds())
 
+    def get_effective_playback_speed(self, medium=None):
+        """Возвращает скорость прослушивания для вычислений прогресса."""
+        speed = None
+        if medium and medium.playback_speed is not None:
+            speed = medium.playback_speed
+        elif self.audio_playback_speed is not None:
+            speed = self.audio_playback_speed
+        if not speed or speed <= 0:
+            return Decimal("1.0")
+        return Decimal(speed)
+    
     def _medium_equivalent_pages(self, medium, total_pages):
         if total_pages is None:
             return None

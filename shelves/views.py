@@ -663,7 +663,11 @@ def reading_increment(request, progress_id, delta):
         )
         previous_position = medium.audio_position or progress.audio_position or timedelta()
         previous_seconds = int(previous_position.total_seconds())
-        new_seconds = previous_seconds + seconds
+        playback_speed = progress.get_effective_playback_speed(medium)
+        adjusted_seconds = (
+            Decimal(seconds) * playback_speed
+        ).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        new_seconds = previous_seconds + int(adjusted_seconds)
         audio_length = medium.audio_length or progress.audio_length
         if audio_length:
             max_seconds = int(audio_length.total_seconds())

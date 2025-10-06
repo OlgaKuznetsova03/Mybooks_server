@@ -231,6 +231,45 @@ class ReadingTrackViewTests(TestCase):
         self.assertEqual(log.pages_equivalent, Decimal("30"))
         self.assertEqual(log.audio_seconds, 1800)
 
+    def test_audio_increment_respects_playback_speed(self):
+        progress = self._create_progress()
+        progress.audio_length = timedelta(minutes=200)
+        progress.audio_playback_speed = Decimal("2.0")
+        progress.save(update_fields=["audio_length", "audio_playback_speed"])
+
+        paper_medium, _ = progress.media.get_or_create(
+            medium=BookProgress.FORMAT_PAPER,
+            defaults={"current_page": 0},
+        )
+        audio_medium, _ = progress.media.get_or_create(
+            medium=BookProgress.FORMAT_AUDIO,
+            defaults={
+                "audio_length": timedelta(minutes=200),
+                "audio_position": timedelta(),
+                "playback_speed": Decimal("2.0"),
+            },
+        )
+
+        response = self.client.post(
+            reverse("reading_increment", args=[progress.pk, 0]),
+            {"medium": BookProgress.FORMAT_AUDIO, "minutes": 15},
+        )
+
+        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+
+        progress.refresh_from_db()
+        audio_medium.refresh_from_db()
+        paper_medium.refresh_from_db()
+
+        self.assertEqual(audio_medium.audio_position, timedelta(minutes=30))
+        self.assertEqual(progress.current_page, 30)
+        self.assertEqual(paper_medium.current_page, 30)
+
+        log = progress.logs.get()
+        self.assertEqual(log.medium, BookProgress.FORMAT_AUDIO)
+        self.assertEqual(log.pages_equivalent, Decimal("30"))
+        self.assertEqual(log.audio_seconds, 1800)
+        
     def test_page_increment_updates_audio_medium_position(self):
         progress = self._create_progress()
         paper_medium, _ = progress.media.get_or_create(
@@ -265,7 +304,7 @@ class ReadingTrackViewTests(TestCase):
         self.assertEqual(log.medium, BookProgress.FORMAT_PAPER)
         self.assertEqual(log.pages_equivalent, Decimal("20"))
         self.assertEqual(log.audio_seconds, 0)
-        
+
     def test_add_character_invalid_shows_errors(self):
         progress = self._create_progress()
 
