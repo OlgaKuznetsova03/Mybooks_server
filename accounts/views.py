@@ -11,7 +11,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 
-from shelves.models import Shelf, BookProgress, HomeLibraryEntry
+from shelves.models import Shelf, BookProgress, HomeLibraryEntry, ReadingLog
 from shelves.services import DEFAULT_HOME_LIBRARY_SHELF
 from books.models import Rating, Book
 
@@ -30,6 +30,156 @@ MONTH_NAMES = [
     "Ноябрь",
     "Декабрь",
 ]
+
+
+WEEKDAY_LABELS = [
+    "Пн",
+    "Вт",
+    "Ср",
+    "Чт",
+    "Пт",
+    "Сб",
+    "Вс",
+]
+
+
+def _parse_int(value, default):
+    if value in (None, ""):
+        return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _build_calendar_url(params, year, month):
+    query = params.copy()
+    query["tab"] = "stats"
+    query["calendar_year"] = str(year)
+    query["calendar_month"] = str(month)
+    return f"?{query.urlencode()}"
+
+
+def _build_reading_calendar(user: User, params, read_shelf: Shelf | None, period_meta):
+    today = timezone.localdate()
+    selected_year = period_meta.get("selected_year") or today.year
+    selected_month = period_meta.get("selected_month") or today.month
+
+    calendar_year = _parse_int(params.get("calendar_year"), selected_year)
+    calendar_month = _parse_int(params.get("calendar_month"), selected_month)
+    if calendar_month < 1 or calendar_month > 12:
+        calendar_month = selected_month
+
+    first_day = date(calendar_year, calendar_month, 1)
+    _, last_day_num = calendar.monthrange(calendar_year, calendar_month)
+    last_day = date(calendar_year, calendar_month, last_day_num)
+
+    day_records: dict[date, dict[str, object]] = {}
+
+    def ensure_day(day: date):
+        return day_records.setdefault(
+            day,
+            {
+                "books": {},
+                "completed_ids": set(),
+            },
+        )
+
+    logs = (
+        ReadingLog.objects.filter(
+            progress__user=user,
+            log_date__gte=first_day,
+            log_date__lte=last_day,
+        )
+        .select_related("progress__book")
+        .order_by("log_date", "progress__book__title")
+    )
+    for log in logs:
+        book = log.progress.book
+        record = ensure_day(log.log_date)
+        books_map = record["books"]
+        if book.id not in books_map:
+            books_map[book.id] = {
+                "id": book.id,
+                "title": book.title,
+                "cover_url": _resolve_cover(book),
+            }
+
+    if read_shelf:
+        completed_items = (
+            read_shelf.items.filter(
+                added_at__date__gte=first_day,
+                added_at__date__lte=last_day,
+            )
+            .select_related("book")
+            .order_by("added_at")
+        )
+        for item in completed_items:
+            added_at = timezone.localtime(item.added_at)
+            finished_day = added_at.date()
+            book = item.book
+            record = ensure_day(finished_day)
+            books_map = record["books"]
+            if book.id not in books_map:
+                books_map[book.id] = {
+                    "id": book.id,
+                    "title": book.title,
+                    "cover_url": _resolve_cover(book),
+                }
+            record["completed_ids"].add(book.id)
+
+    cal = calendar.Calendar(firstweekday=0)
+    weeks = []
+    has_activity = False
+    for week in cal.monthdatescalendar(calendar_year, calendar_month):
+        week_days = []
+        for day in week:
+            record = day_records.get(day)
+            books = []
+            is_completion_day = False
+            if record and day.month == calendar_month:
+                completion_ids = record["completed_ids"]
+                books = sorted(
+                    (
+                        {
+                            "id": book_id,
+                            "title": info["title"],
+                            "cover_url": info["cover_url"],
+                            "is_completion": book_id in completion_ids,
+                        }
+                        for book_id, info in record["books"].items()
+                    ),
+                    key=lambda entry: entry["title"].lower(),
+                )
+                is_completion_day = bool(completion_ids)
+                has_activity = True
+            week_days.append(
+                {
+                    "date": day,
+                    "in_month": day.month == calendar_month,
+                    "books": books,
+                    "is_completion_day": is_completion_day,
+                }
+            )
+        weeks.append(week_days)
+
+    prev_month_anchor = first_day - timedelta(days=1)
+    next_month_anchor = last_day + timedelta(days=1)
+    prev_month_start = date(prev_month_anchor.year, prev_month_anchor.month, 1)
+    next_month_start = date(next_month_anchor.year, next_month_anchor.month, 1)
+
+    month_name = MONTH_NAMES[calendar_month] if 1 <= calendar_month < len(MONTH_NAMES) else str(calendar_month)
+
+    return {
+        "year": calendar_year,
+        "month": calendar_month,
+        "month_name": month_name,
+        "weeks": weeks,
+        "weekday_labels": WEEKDAY_LABELS,
+        "has_activity": has_activity,
+        "prev_url": _build_calendar_url(params, prev_month_start.year, prev_month_start.month),
+        "next_url": _build_calendar_url(params, next_month_start.year, next_month_start.month),
+    }
 
 
 def _format_duration(value):
@@ -188,6 +338,7 @@ def _collect_profile_stats(user: User, params):
             "selected_year": today.year,
             "selected_month": today.month,
         }
+        calendar_payload = _build_reading_calendar(user, params, None, period_meta)
         return {
             "stats": {
                 "books": [],
@@ -198,6 +349,7 @@ def _collect_profile_stats(user: User, params):
                 "audio_total_display": None,
                 "audio_adjusted_display": None,
                 "home_library": home_summary,
+                "reading_calendar": calendar_payload,
             },
             "stats_period": period_meta,
         }
@@ -293,6 +445,8 @@ def _collect_profile_stats(user: User, params):
         "home_library": home_summary,
     }
 
+    stats["reading_calendar"] = _build_reading_calendar(user, params, read_shelf, period_meta)
+    
     return {
         "stats": stats,
         "stats_period": period_meta,

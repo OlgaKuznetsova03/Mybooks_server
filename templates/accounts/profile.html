@@ -162,6 +162,76 @@
 
     <p class="text-muted">Период: {{ stats_period.label }} ({{ stats_period.start|date:"d.m.Y" }} — {{ stats_period.end|date:"d.m.Y" }})</p>
 
+    {% with calendar=stats.reading_calendar %}
+      {% if calendar %}
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-body">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+              <div>
+                <h3 class="h6 mb-1">Календарь чтения</h3>
+                <p class="text-muted small mb-0">Сколько вы прочитали в этом месяце?</p>
+              </div>
+              <div class="btn-group btn-group-sm" role="group" aria-label="Навигация по месяцам">
+                <a class="btn btn-outline-secondary" href="{{ calendar.prev_url }}" aria-label="Предыдущий месяц">
+                  <i class="bi bi-chevron-left"></i>
+                </a>
+                <span class="btn btn-light disabled text-nowrap">
+                  {{ calendar.month_name }} {{ calendar.year }}
+                </span>
+                <a class="btn btn-outline-secondary" href="{{ calendar.next_url }}" aria-label="Следующий месяц">
+                  <i class="bi bi-chevron-right"></i>
+                </a>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-borderless align-middle mb-0">
+                <thead class="text-muted text-uppercase small">
+                  <tr>
+                    {% for weekday in calendar.weekday_labels %}
+                      <th scope="col" class="text-center fw-semibold">{{ weekday }}</th>
+                    {% endfor %}
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for week in calendar.weeks %}
+                    <tr>
+                      {% for day in week %}
+                        <td class="align-top" style="min-width:110px;">
+                          <div class="d-flex justify-content-between align-items-start small fw-semibold">
+                            <span class="{% if not day.in_month %}text-muted{% endif %}">{{ day.date.day }}</span>
+                            {% if day.is_completion_day and day.in_month %}
+                              <i class="bi bi-star-fill text-warning" title="Есть завершённые книги"></i>
+                            {% endif %}
+                          </div>
+                          {% if day.in_month and day.books %}
+                            <div class="d-flex flex-wrap gap-1 mt-2">
+                              {% for book in day.books %}
+                                {% if book.cover_url %}
+                                  <img src="{{ book.cover_url }}" alt="Обложка {{ book.title }}" class="rounded shadow-sm" style="width:40px;height:60px;object-fit:cover;">
+                                {% else %}
+                                  <div class="bg-light border rounded d-flex align-items-center justify-content-center" style="width:40px;height:60px;">
+                                    <span class="visually-hidden">{{ book.title }}</span>
+                                    <span class="text-muted small">Нет</span>
+                                  </div>
+                                {% endif %}
+                              {% endfor %}
+                            </div>
+                          {% endif %}
+                        </td>
+                      {% endfor %}
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% if not calendar.has_activity %}
+              <p class="text-muted small mb-0 mt-3">В этом месяце пока нет активностей чтения.</p>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    {% endwith %}
+
     <div class="row g-3 mb-4">
       <div class="col-12 col-md-4">
         <div class="card border-0 shadow-sm h-100">
