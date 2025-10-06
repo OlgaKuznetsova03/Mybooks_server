@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}Лента чтения{% endblock %}
+
+{% block extra_css %}
+<style>
+  .reading-feed-wrapper {
+    max-width: 900px;
+  }
+
+  .reading-feed-hero {
+    background: linear-gradient(145deg, rgba(70, 112, 126, 0.18) 0%, rgba(70, 112, 126, 0.05) 100%);
+    border-radius: 28px;
+    padding: 2.5rem 2rem;
+    color: #23404a;
+    box-shadow: 0 24px 40px rgba(25, 53, 63, 0.08);
+  }
+
+  .reading-feed-hero h1 {
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+  }
+
+  .reading-feed-hero p {
+    margin: 0;
+    font-size: 1rem;
+    max-width: 620px;
+  }
+
+  .reading-feed-entry {
+    background: #ffffff;
+    border-radius: 22px;
+    padding: 1.5rem 1.75rem;
+    margin-top: 1.5rem;
+    box-shadow: 0 18px 36px rgba(25, 53, 63, 0.08);
+    border: 1px solid rgba(70, 112, 126, 0.12);
+  }
+
+  .reading-feed-entry__header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 1rem;
+  }
+
+  .reading-feed-entry__user {
+    font-weight: 600;
+    color: #1e3b45;
+    font-size: 1rem;
+  }
+
+  .reading-feed-entry__book {
+    font-size: 1.05rem;
+    color: #46707e;
+    font-weight: 600;
+  }
+
+  .reading-feed-entry__stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 0.95rem;
+    color: #2d4b55;
+  }
+
+  .reading-feed-entry__badge {
+    background: rgba(70, 112, 126, 0.12);
+    border-radius: 999px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.85rem;
+    color: #2d4b55;
+  }
+
+  .reading-feed-entry__reaction {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #243f49;
+    background: rgba(70, 112, 126, 0.08);
+    border-radius: 16px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .reading-feed-comments {
+    margin-top: 1.25rem;
+    border-top: 1px solid rgba(70, 112, 126, 0.16);
+    padding-top: 1rem;
+  }
+
+  .reading-feed-comment {
+    padding: 0.75rem 0;
+    border-bottom: 1px dashed rgba(70, 112, 126, 0.1);
+  }
+
+  .reading-feed-comment:last-child {
+    border-bottom: none;
+  }
+
+  .reading-feed-comment strong {
+    color: #1e3b45;
+  }
+
+  .reading-feed-comment small {
+    color: rgba(30, 59, 69, 0.65);
+  }
+
+  .reading-feed-comment p {
+    margin: 0.35rem 0 0;
+    color: #2c4a54;
+  }
+
+  .reading-feed-comment-form textarea {
+    resize: vertical;
+    border-radius: 14px;
+    border: 1px solid rgba(70, 112, 126, 0.24);
+  }
+
+  .reading-feed-comment-form .reading-btn-primary {
+    background-color: #46707e;
+    border-color: #46707e;
+    border-radius: 999px;
+    padding-inline: 1.5rem;
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  .reading-feed-comment-form .reading-btn-primary:hover {
+    background-color: #385c68;
+    border-color: #385c68;
+  }
+
+  .reading-feed-empty {
+    margin-top: 2rem;
+    background: rgba(70, 112, 126, 0.08);
+    border-radius: 22px;
+    padding: 2rem;
+    text-align: center;
+    color: #2a4751;
+  }
+
+  @media (max-width: 576px) {
+    .reading-feed-entry {
+      padding: 1.25rem;
+    }
+
+    .reading-feed-hero {
+      padding: 2rem 1.5rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 reading-feed-wrapper">
+  <section class="reading-feed-hero mb-4">
+    <h1>Общая лента чтения</h1>
+    <p>Делитесь своими впечатлениями прямо в момент чтения: друзья увидят, на какой странице вы остановились, и смогут поддержать вас комментариями.</p>
+  </section>
+
+  {% for entry in entries %}
+    <article class="reading-feed-entry">
+      <header class="reading-feed-entry__header">
+        <span class="reading-feed-entry__user">{{ entry.user.get_full_name|default:entry.user.username }}</span>
+        <span class="reading-feed-entry__book">{{ entry.book.title }}</span>
+        <div class="reading-feed-entry__stats small text-muted">
+          <span>{{ entry.created_at|date:"d E Y, H:i" }}</span>
+          <span class="reading-feed-entry__badge">{{ entry.get_medium_display }}</span>
+          {% if entry.current_page_display %}
+            <span>Страница: {{ entry.current_page_display }}</span>
+          {% endif %}
+          {% if entry.percent is not None %}
+            <span>Прогресс: {{ entry.percent|floatformat:-2 }}%</span>
+          {% endif %}
+        </div>
+      </header>
+
+      {% if entry.reaction %}
+        <div class="reading-feed-entry__reaction">{{ entry.reaction|linebreaksbr }}</div>
+      {% endif %}
+
+      <div class="reading-feed-comments">
+        {% for comment in entry.comments.all %}
+          <div class="reading-feed-comment">
+            <strong>{{ comment.user.get_full_name|default:comment.user.username }}</strong>
+            <small class="ms-2">{{ comment.created_at|date:"d.m.Y H:i" }}</small>
+            <p>{{ comment.body|linebreaksbr }}</p>
+          </div>
+        {% empty %}
+          <p class="text-muted mb-3">Пока нет комментариев — будьте первым, кто поддержит читателя!</p>
+        {% endfor %}
+
+        {% if request.user.is_authenticated %}
+          <form method="post" action="{% url 'reading_feed_comment' entry.id %}" class="reading-feed-comment-form mt-3">
+            {% csrf_token %}
+            <div class="mb-2">
+              <label class="form-label" for="id_body_{{ entry.id }}">Оставить комментарий</label>
+              <textarea id="id_body_{{ entry.id }}" name="body" rows="2" class="form-control" placeholder="Поддержите читателя или задайте вопрос..."></textarea>
+            </div>
+            <button type="submit" class="btn reading-btn-primary">Отправить</button>
+          </form>
+        {% else %}
+          <p class="text-muted small mt-3 mb-0">Авторизуйтесь, чтобы оставлять комментарии.</p>
+        {% endif %}
+      </div>
+    </article>
+  {% empty %}
+    <div class="reading-feed-empty">
+      Пока что никто не поделился публичным прогрессом. Добавьте обновление со страницы книги, чтобы начать беседу!
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

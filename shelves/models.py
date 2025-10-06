@@ -542,6 +542,81 @@ class CharacterNote(models.Model):
         return f"{self.name} — {self.progress.book.title}"
 
 
+class ReadingFeedEntry(models.Model):
+    """Публичная запись о прогрессе чтения."""
+
+    progress = models.ForeignKey(
+        BookProgress,
+        on_delete=models.CASCADE,
+        related_name="feed_entries",
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="reading_feed_entries",
+    )
+    book = models.ForeignKey(
+        Book,
+        on_delete=models.CASCADE,
+        related_name="reading_feed_entries",
+    )
+    medium = models.CharField(
+        max_length=20,
+        choices=BookProgress.FORMAT_CHOICES,
+    )
+    current_page = models.DecimalField(
+        max_digits=7,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Текущая страница или эквивалент страниц в момент обновления.",
+    )
+    percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    reaction = models.TextField(blank=True)
+    is_public = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.username}: {self.book.title} ({self.created_at:%Y-%m-%d %H:%M})"
+
+    @property
+    def current_page_display(self):
+        if self.current_page is None:
+            return None
+        if self.current_page == self.current_page.quantize(Decimal("1")):
+            return int(self.current_page)
+        return self.current_page.normalize()
+
+
+class ReadingFeedComment(models.Model):
+    entry = models.ForeignKey(
+        ReadingFeedEntry,
+        on_delete=models.CASCADE,
+        related_name="comments",
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="reading_feed_comments",
+    )
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"Комментарий {self.user.username} к {self.entry_id}"
+
+
 class HomeLibraryEntry(models.Model):
     """Дополнительные сведения о книге на полке «Моя домашняя библиотека».
 

@@ -11,7 +11,16 @@ from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.http import url_has_allowed_host_and_scheme
 from books.models import Book, Genre
-from .models import Shelf, ShelfItem, BookProgress, Event, EventParticipant, HomeLibraryEntry
+from .models import (
+    Shelf,
+    ShelfItem,
+    BookProgress,
+    Event,
+    EventParticipant,
+    HomeLibraryEntry,
+    ReadingFeedEntry,
+)
+
 from .services import (
     move_book_to_read_shelf,
     remove_book_from_want_shelf,
@@ -573,6 +582,8 @@ def reading_set_page(request, progress_id):
     """Ручное выставление текущей страницы."""
     progress = get_object_or_404(BookProgress, pk=progress_id, user=request.user)
     medium_code = request.POST.get("medium") or BookProgress.FORMAT_PAPER
+    reaction_text = (request.POST.get("reaction") or "").strip()
+    is_public = _parse_public_flag(request)
     if medium_code == BookProgress.FORMAT_AUDIO:
         messages.error(request, "Для аудиоформата используйте форму фиксации прослушивания.")
         return redirect("reading_track", book_id=progress.book_id)
@@ -594,6 +605,7 @@ def reading_set_page(request, progress_id):
     medium.total_pages_override = progress.custom_total_pages
     medium.save(update_fields=["current_page", "total_pages_override"])
     delta = max(0, page - previous_page)
+    progress_changed = delta > 0
     if delta > 0:
         progress.record_pages(delta, medium=medium_code)
         progress.sync_media_equivalents(
@@ -602,6 +614,13 @@ def reading_set_page(request, progress_id):
         )
     progress.refresh_current_page()
     progress.recalc_percent()
+    if progress_changed:
+        _maybe_publish_feed_entry(
+            progress,
+            medium_code=medium_code,
+            reaction=reaction_text,
+            is_public=is_public,
+        )
     messages.success(request, "Текущая страница обновлена.")
     return redirect("reading_track", book_id=progress.book_id)
 
@@ -640,12 +659,40 @@ def _parse_audio_seconds(request):
     return None
 
 
+def _parse_public_flag(request):
+    raw_flag = str(request.POST.get("is_public", "")).strip().lower()
+    return raw_flag in {"1", "true", "on", "yes"}
+
+
+def _maybe_publish_feed_entry(progress, *, medium_code, reaction, is_public):
+    if not is_public:
+        return
+    combined = progress.get_combined_current_pages()
+    current_page = None
+    if combined is not None:
+        current_page = combined.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    percent_value = progress.percent if progress.percent is not None else None
+    ReadingFeedEntry.objects.create(
+        progress=progress,
+        user=progress.user,
+        book=progress.book,
+        medium=medium_code,
+        current_page=current_page,
+        percent=percent_value,
+        reaction=(reaction or "").strip(),
+        is_public=True,
+    )
+
+
 @login_required
 @require_POST
 def reading_increment(request, progress_id, delta):
     """Быстрые кнопки +N страниц или учёт прослушанного аудио."""
     progress = get_object_or_404(BookProgress, pk=progress_id, user=request.user)
     medium_code = request.POST.get("medium") or BookProgress.FORMAT_PAPER
+    reaction_text = (request.POST.get("reaction") or "").strip()
+    is_public = _parse_public_flag(request)
+    progress_changed = False
     if medium_code == BookProgress.FORMAT_AUDIO:
         seconds = _parse_audio_seconds(request)
         if not seconds:
@@ -696,8 +743,16 @@ def reading_increment(request, progress_id, delta):
                 source_medium=BookProgress.FORMAT_AUDIO,
                 equivalent_pages=new_equivalent,
             )
+            progress_changed = True
         progress.refresh_current_page()
         progress.recalc_percent()
+        if progress_changed:
+            _maybe_publish_feed_entry(
+                progress,
+                medium_code=BookProgress.FORMAT_AUDIO,
+                reaction=reaction_text,
+                is_public=is_public,
+            )
         messages.success(request, "Аудиопрогресс обновлён.")
         return redirect("reading_track", book_id=progress.book_id)
     
@@ -725,8 +780,17 @@ def reading_increment(request, progress_id, delta):
             source_medium=medium_code,
             equivalent_pages=new_page,
         )
+        progress_changed = True
     progress.refresh_current_page()
     progress.recalc_percent()
+    if progress_changed:
+        _maybe_publish_feed_entry(
+            progress,
+            medium_code=medium_code,
+            reaction=reaction_text,
+            is_public=is_public,
+        )
+        messages.success(request, "Прогресс обновлён.")
     return redirect("reading_track", book_id=progress.book_id)
 
 
@@ -815,3 +879,36 @@ def reading_update_format(request, progress_id):
     context = _build_reading_track_context(progress, book, format_form=form)
     messages.error(request, "Не удалось сохранить формат чтения. Проверьте данные и попробуйте снова.")
     return render(request, "reading/track.html", context)
+
+
+def reading_feed(request):
+    entries = (
+        ReadingFeedEntry.objects.filter(is_public=True)
+        .select_related("user", "book", "progress")
+        .prefetch_related("comments__user")
+    )
+    comment_form = ReadingFeedCommentForm()
+    return render(
+        request,
+        "reading/feed.html",
+        {
+            "entries": entries,
+            "comment_form": comment_form,
+        },
+    )
+
+
+@login_required
+@require_POST
+def reading_feed_comment(request, entry_id):
+    entry = get_object_or_404(ReadingFeedEntry, pk=entry_id, is_public=True)
+    form = ReadingFeedCommentForm(request.POST)
+    if form.is_valid():
+        comment = form.save(commit=False)
+        comment.entry = entry
+        comment.user = request.user
+        comment.save()
+        messages.success(request, "Комментарий опубликован.")
+    else:
+        messages.error(request, "Не удалось сохранить комментарий. Проверьте текст и попробуйте снова.")
+    return redirect("reading_feed")

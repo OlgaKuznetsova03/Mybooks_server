@@ -12,6 +12,7 @@ from .models import (
     CharacterNote,
     Shelf,
     ShelfItem,
+    ReadingFeedEntry,
 )
 
 
@@ -169,6 +170,42 @@ class ReadingTrackViewTests(TestCase):
         self.assertEqual(logs[0].pages_equivalent, Decimal("20"))
         self.assertGreater(response.context["chart_scale"], 0)
 
+    def test_public_update_creates_feed_entry(self):
+        progress = self._create_progress()
+
+        response = self.client.post(
+            reverse("reading_set_page", args=[progress.pk]),
+            {"page": 40, "reaction": "От книги не оторваться!", "is_public": "on"},
+        )
+
+        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        entry = ReadingFeedEntry.objects.get()
+        self.assertEqual(entry.book, self.book)
+        self.assertEqual(entry.reaction, "От книги не оторваться!")
+        self.assertEqual(entry.current_page_display, 40)
+
+    def test_user_can_comment_on_feed_entry(self):
+        progress = self._create_progress()
+        self.client.post(
+            reverse("reading_set_page", args=[progress.pk]),
+            {"page": 30, "is_public": "on"},
+        )
+        entry = ReadingFeedEntry.objects.get()
+
+        friend = User.objects.create_user(username="friend", password="secret-pass")
+        self.client.logout()
+        self.client.login(username="friend", password="secret-pass")
+
+        response = self.client.post(
+            reverse("reading_feed_comment", args=[entry.pk]),
+            {"body": "Отличное продвижение!"},
+        )
+
+        self.assertRedirects(response, reverse("reading_feed"))
+        entry.refresh_from_db()
+        self.assertEqual(entry.comments.count(), 1)
+        self.assertEqual(entry.comments.first().body, "Отличное продвижение!")
+
     def test_update_notes_persists_text(self):
         progress = self._create_progress()
         payload = {
@@ -269,7 +306,7 @@ class ReadingTrackViewTests(TestCase):
         self.assertEqual(log.medium, BookProgress.FORMAT_AUDIO)
         self.assertEqual(log.pages_equivalent, Decimal("30"))
         self.assertEqual(log.audio_seconds, 1800)
-        
+
     def test_page_increment_updates_audio_medium_position(self):
         progress = self._create_progress()
         paper_medium, _ = progress.media.get_or_create(

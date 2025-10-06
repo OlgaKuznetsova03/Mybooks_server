@@ -15,6 +15,7 @@ from .models import (
     BookProgressMedium,
     CharacterNote,
     HomeLibraryEntry,
+    ReadingFeedComment,
 )
 class ShelfCreateForm(forms.ModelForm):
     class Meta:
@@ -102,6 +103,22 @@ class CharacterNoteForm(forms.ModelForm):
         }
 
 
+class ReadingFeedCommentForm(forms.ModelForm):
+    class Meta:
+        model = ReadingFeedComment
+        fields = ["body"]
+        labels = {"body": "Комментарий"}
+        widgets = {
+            "body": forms.Textarea(
+                attrs={
+                    "rows": 2,
+                    "class": "form-control",
+                    "placeholder": "Поддержите читателя или задайте вопрос...",
+                }
+            )
+        }
+
+        
 class BookProgressFormatForm(forms.ModelForm):
     formats = forms.MultipleChoiceField(
         choices=BookProgress.FORMAT_CHOICES,
