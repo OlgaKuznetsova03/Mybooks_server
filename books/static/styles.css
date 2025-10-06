@@ -39,7 +39,8 @@
 .book-gallery-card__cover{
   width:100%;
   aspect-ratio:2/3;
-  object-fit:cover;
+  object-fit:contain;
+  background-color:rgba(0,0,0,.04);
 }
 .book-gallery-card__cover-link{display:block;}
 .book-gallery-card .card-body{
@@ -319,7 +320,8 @@
   width:100%;
   max-width:100%;
   aspect-ratio:2/3;
-  object-fit:cover;
+  object-fit:contain;
+  background-color:rgba(0,0,0,.04);
   border-radius:0.75rem;
   border:1px solid transparent;
   box-shadow:var(--rt-card-shadow);
