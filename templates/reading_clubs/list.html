@@ -37,7 +37,7 @@
           <div class="row g-3">
             {% for club in grouping.queryset %}
               <div class="col-12 col-md-6 col-xl-4">
-                <article class="reading-card h-100">
+                <article class="reading-card reading-card--compact h-100">
                   <div class="reading-card__cover mb-3">
                     {% with cover_url=club.book.get_cover_url %}
                       {% if cover_url %}

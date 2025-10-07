@@ -44,18 +44,18 @@
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
-  --reading-card-cover-width: 92px;
+  --reading-card-cover-width: 24px;
 }
 
 @media (min-width: 768px) {
   .reading-card {
-    --reading-card-cover-width: 108px;
+    --reading-card-cover-width: 24px;
   }
 }
 
 @media (min-width: 1200px) {
   .reading-card {
-    --reading-card-cover-width: 120px;
+    --reading-card-cover-width: 24px;
   }
 }
 
@@ -86,6 +86,26 @@
 .reading-card__cover-placeholder {
   font-size: 1.65rem;
   color: rgba(76, 87, 96, 0.35);
+}
+
+reading-card--compact {
+  --reading-card-cover-width: 64px;
+}
+
+@media (min-width: 768px) {
+  .reading-card--compact {
+    --reading-card-cover-width: 72px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .reading-card--compact {
+    --reading-card-cover-width: 84px;
+  }
+}
+
+.reading-card--compact .reading-card__cover-placeholder {
+  font-size: 1.35rem;
 }
 
 .reading-card__body {
