@@ -38,19 +38,30 @@
             {% for club in grouping.queryset %}
               <div class="col-12 col-md-6 col-xl-4">
                 <article class="reading-card h-100">
-                  <div class="reading-card__title mb-2">
-                    <a href="{{ club.get_absolute_url }}">{{ club.title }}</a>
+                  <div class="reading-card__cover mb-3">
+                    {% with cover_url=club.book.get_cover_url %}
+                      {% if cover_url %}
+                        <img class="reading-card__cover-image" src="{{ cover_url }}" alt="Обложка книги {{ club.book.title }}">
+                      {% else %}
+                        <div class="reading-card__cover-placeholder" aria-hidden="true">📘</div>
+                      {% endif %}
+                    {% endwith %}
                   </div>
-                  <div class="reading-card__meta mb-2">
-                    <div class="mb-1"><i class="bi bi-book me-1"></i> {{ club.book.title }}</div>
-                    <div class="small text-muted">
-                      Начало: {{ club.start_date|date:"d E Y" }}{% if club.end_date %} · Завершение: {{ club.end_date|date:"d E Y" }}{% endif %}
+                  <div class="reading-card__body">
+                    <div class="reading-card__title mb-2">
+                      <a href="{{ club.get_absolute_url }}">{{ club.title }}</a>
                     </div>
-                  </div>
-                  <p class="text-muted small mb-3">{{ club.description|truncatewords:24 }}</p>
-                  <div class="reading-card__footer text-muted">
-                    <span><i class="bi bi-people me-1"></i> {{ club.approved_participant_count }} участн.</span>
-                    <span><i class="bi bi-chat-left-text me-1"></i> {{ club.message_count }} сообщений</span>
+                    <div class="reading-card__meta mb-2">
+                      <div class="mb-1"><i class="bi bi-book me-1"></i> {{ club.book.title }}</div>
+                      <div class="small text-muted">
+                        Начало: {{ club.start_date|date:"d E Y" }}{% if club.end_date %} · Завершение: {{ club.end_date|date:"d E Y" }}{% endif %}
+                      </div>
+                    </div>
+                    <p class="text-muted small mb-3">{{ club.description|truncatewords:24 }}</p>
+                    <div class="reading-card__footer text-muted">
+                      <span><i class="bi bi-people me-1"></i> {{ club.approved_participant_count }} участн.</span>
+                      <span><i class="bi bi-chat-left-text me-1"></i> {{ club.message_count }} сообщений</span>
+                    </div>
                   </div>
                 </article>
               </div>

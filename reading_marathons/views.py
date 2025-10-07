@@ -76,7 +76,8 @@ class MarathonDetailView(DetailView):
         groups: Dict[MarathonParticipant, list] = defaultdict(list)
         entries = (
             MarathonEntry.objects.filter(participant__marathon=marathon)
-            .select_related("participant__user", "theme", "book")
+            .select_related("participant__user", "theme", "book", "book__primary_isbn")
+            .prefetch_related("book__isbn")
             .order_by("participant__user__username", "theme__order", "created_at")
         )
         for entry in entries:

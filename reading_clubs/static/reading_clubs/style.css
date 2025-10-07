@@ -42,11 +42,41 @@
   padding: 1rem 1.25rem;
   background: var(--reading-background);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 .reading-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 12px 24px rgba(76, 87, 96, 0.18);
+}
+
+.reading-card__cover {
+  border-radius: 0.65rem;
+  overflow: hidden;
+  background: linear-gradient(140deg, rgba(76, 87, 96, 0.08), rgba(76, 87, 96, 0.18));
+  aspect-ratio: 2 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reading-card__cover-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.reading-card__cover-placeholder {
+  font-size: 2.75rem;
+  color: rgba(76, 87, 96, 0.35);
+}
+
+.reading-card__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
 }
 
 .reading-card__title a {

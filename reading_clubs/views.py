@@ -31,9 +31,9 @@ class ReadingClubListView(ListView):
 
     def get_queryset(self):  # type: ignore[override]
         base_qs = (
-            ReadingClub.objects.select_related("book", "creator")
+            ReadingClub.objects.select_related("book", "book__primary_isbn", "creator")
             .with_message_count()
-            .prefetch_related("participants")
+            .prefetch_related("participants", "book__isbn")
             .order_by("start_date", "title")
         )
         today = timezone.localdate()
