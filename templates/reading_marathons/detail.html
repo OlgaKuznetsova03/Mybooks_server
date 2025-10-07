@@ -20,6 +20,25 @@
           <h1 class="h3 mb-2">{{ marathon.title }}</h1>
           <p class="mb-0">{{ marathon.description|default:"Создатель пока не добавил описание." }}</p>
         </div>
+        {% with themes=marathon.themes.all %}
+          {% if themes %}
+            <div>
+              <h2 class="h6 text-uppercase text-white-50 mb-2">Задания марафона</h2>
+              <ol class="mb-0 ps-3 d-flex flex-column gap-2">
+                {% for theme in themes %}
+                  <li>
+                    <div class="fw-semibold">{{ theme.title }}</div>
+                    {% if theme.description %}
+                      <div class="small text-white-50">{{ theme.description }}</div>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ol>
+            </div>
+          {% else %}
+            <div class="alert alert-light text-dark mb-0">Создатель ещё не добавил задания.</div>
+          {% endif %}
+        {% endwith %}
         <div class="d-flex flex-wrap gap-3 small">
           <span><i class="bi bi-calendar-event me-1"></i>Старт: {{ marathon.start_date }}</span>
           {% if marathon.end_date %}
@@ -54,17 +73,6 @@
   </div>
 </div>
 
-<section class="mb-5">
-  <h2 class="h4 mb-3">Темы марафона</h2>
-  <div class="d-flex flex-wrap gap-2">
-    {% for theme in marathon.themes.all %}
-      <div class="marathon-theme-badge">{{ theme.title }}</div>
-    {% empty %}
-      <div class="alert alert-light border mb-0">Темы ещё не добавлены.</div>
-    {% endfor %}
-  </div>
-</section>
-
 {% if participant and participant.is_approved %}
   <section id="add-book" class="mb-5">
     <div class="card">
@@ -74,12 +82,66 @@
       <div class="card-body">
         <form action="{% url 'reading_marathons:entry_add' marathon.slug %}" method="post">
           {% csrf_token %}
+          {% if entry_form.non_field_errors %}
+            <div class="alert alert-danger" role="alert">
+              {{ entry_form.non_field_errors|join:" " }}
+            </div>
+          {% endif %}
           <div class="row g-3">
-            <div class="col-md-4">{{ entry_form.theme }}</div>
-            <div class="col-md-4">{{ entry_form.book }}</div>
-            <div class="col-md-2">{{ entry_form.status }}</div>
-            <div class="col-md-2">{{ entry_form.progress }}</div>
-            <div class="col-12">{{ entry_form.notes }}</div>
+            <div class="col-md-4">
+              <label class="form-label" for="{{ entry_form.theme.id_for_label }}">Задание марафона</label>
+              {{ entry_form.theme }}
+              {% if entry_form.theme.help_text %}
+                <div class="form-text">{{ entry_form.theme.help_text }}</div>
+              {% endif %}
+              {% if entry_form.theme.errors %}
+                <div class="invalid-feedback d-block">{{ entry_form.theme.errors|join:", " }}</div>
+              {% else %}
+                <div class="form-text">Выберите тему, которую хотите пройти.</div>
+              {% endif %}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="{{ entry_form.book.id_for_label }}">Книга для задания</label>
+              {{ entry_form.book }}
+              {% if entry_form.book.help_text %}
+                <div class="form-text">{{ entry_form.book.help_text }}</div>
+              {% endif %}
+              {% if entry_form.book.errors %}
+                <div class="invalid-feedback d-block">{{ entry_form.book.errors|join:", " }}</div>
+              {% else %}
+                <div class="form-text">Выберите книгу из своей библиотеки или полок.</div>
+              {% endif %}
+            </div>
+            <div class="col-md-2">
+              <label class="form-label" for="{{ entry_form.status.id_for_label }}">Статус чтения</label>
+              {{ entry_form.status }}
+              {% if entry_form.status.help_text %}
+                <div class="form-text">{{ entry_form.status.help_text }}</div>
+              {% endif %}
+              {% if entry_form.status.errors %}
+                <div class="invalid-feedback d-block">{{ entry_form.status.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-2">
+              <label class="form-label" for="{{ entry_form.progress.id_for_label }}">Прогресс, %</label>
+              {{ entry_form.progress }}
+              {% if entry_form.progress.help_text %}
+                <div class="form-text">{{ entry_form.progress.help_text }}</div>
+              {% endif %}
+              {% if entry_form.progress.errors %}
+                <div class="invalid-feedback d-block">{{ entry_form.progress.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="{{ entry_form.notes.id_for_label }}">Заметки</label>
+              {{ entry_form.notes }}
+              {% if entry_form.notes.help_text %}
+                <div class="form-text">{{ entry_form.notes.help_text }}</div>
+              {% endif %}
+              {% if entry_form.notes.errors %}
+                <div class="invalid-feedback d-block">{{ entry_form.notes.errors|join:", " }}</div>
+              {% endif %}
+            </div>
           </div>
           <button class="btn btn-primary mt-3" type="submit">Добавить книгу</button>
         </form>
