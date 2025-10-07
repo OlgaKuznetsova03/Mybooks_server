@@ -7,7 +7,7 @@
   <div class="row g-0 align-items-stretch" style="background-color:#62769a; color:#fff;">
     <div class="col-md-4">
       {% if marathon.cover %}
-        <img class="w-100 h-100 object-fit-cover" src="{{ marathon.cover.url }}" alt="Обложка марафона {{ marathon.title }}">
+        <img class="marathon-detail__cover w-100 h-100 object-fit-cover" src="{{ marathon.cover.url }}" alt="Обложка марафона {{ marathon.title }}">
       {% else %}
         <div class="h-100 d-flex align-items-center justify-content-center p-5">
           <span class="display-6">📚</span>

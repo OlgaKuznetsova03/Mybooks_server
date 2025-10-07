@@ -25,7 +25,7 @@
     <div class="col-md-6 col-lg-4">
       <div class="card marathon-card h-100">
         {% if marathon.cover %}
-          <img class="card-img-top object-fit-cover" src="{{ marathon.cover.url }}" alt="Обложка марафона {{ marathon.title }}">
+          <img class="marathon-card__cover card-img-top object-fit-cover" src="{{ marathon.cover.url }}" alt="Обложка марафона {{ marathon.title }}">
         {% endif %}
         <div class="card-body d-flex flex-column">
           <h2 class="h5">{{ marathon.title }}</h2>
