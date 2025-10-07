@@ -246,7 +246,6 @@ class BookProgress(models.Model):
         total_int = int(total)
         if rounded_pages > total_int:
             rounded_pages = total_int
-        desired_override = self.custom_total_pages
         updated_audio_positions = []
         for medium in self._iter_active_media():
             if medium.medium == source_medium or medium.pk is None:
@@ -258,6 +257,7 @@ class BookProgress(models.Model):
                 if position is not None:
                     updated_audio_positions.append(position)
             else:
+                desired_override = medium.total_pages_override or self.custom_total_pages
                 self._sync_text_medium_from_pages(
                     medium,
                     rounded_pages,
@@ -524,7 +524,16 @@ class ReadingLog(models.Model):
     def __str__(self):
         return f"{self.log_date}: {self.pages_equivalent} стр. ({self.get_medium_display()})"
    
-
+    @property
+    def audio_duration_display(self):
+        if self.medium != BookProgress.FORMAT_AUDIO or not self.audio_seconds:
+            return None
+        total_seconds = int(self.audio_seconds)
+        hours, remainder = divmod(total_seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    
+    
 class CharacterNote(models.Model):
     progress = models.ForeignKey(
         BookProgress,

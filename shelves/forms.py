@@ -118,7 +118,7 @@ class ReadingFeedCommentForm(forms.ModelForm):
             )
         }
 
-        
+
 class BookProgressFormatForm(forms.ModelForm):
     formats = forms.MultipleChoiceField(
         choices=BookProgress.FORMAT_CHOICES,
@@ -134,11 +134,37 @@ class BookProgressFormatForm(forms.ModelForm):
         widget=forms.NumberInput(attrs={"class": "form-control", "min": "0"}),
     )
 
+    aper_total_pages = forms.IntegerField(
+        required=False,
+        min_value=1,
+        label="Страниц в бумажном издании",
+        widget=forms.NumberInput(
+            attrs={
+                "class": "form-control",
+                "min": "1",
+            }
+        ),
+        help_text="Используем для синхронизации прогресса между форматами.",
+    )
+
     ebook_current_page = forms.IntegerField(
         required=False,
         min_value=0,
         label="Текущая страница (электронный формат)",
         widget=forms.NumberInput(attrs={"class": "form-control", "min": "0"}),
+    )
+
+    ebook_total_pages = forms.IntegerField(
+        required=False,
+        min_value=1,
+        label="Страниц в электронном издании",
+        widget=forms.NumberInput(
+            attrs={
+                "class": "form-control",
+                "min": "1",
+            }
+        ),
+        help_text="Помогает правильно пересчитывать страницы из e-book в бумажный формат.",
     )
 
     audio_length_input = forms.CharField(
@@ -215,11 +241,19 @@ class BookProgressFormatForm(forms.ModelForm):
         elif self.instance and self.instance.format == BookProgress.FORMAT_PAPER and self.instance.current_page is not None:
             self.initial.setdefault("paper_current_page", self.instance.current_page)
 
+        if paper_medium and paper_medium.total_pages_override:
+            self.initial.setdefault("paper_total_pages", paper_medium.total_pages_override)
+        elif self.instance and self.instance.custom_total_pages:
+            self.initial.setdefault("paper_total_pages", self.instance.custom_total_pages)
+
         ebook_medium = media_map.get(BookProgress.FORMAT_EBOOK)
         if ebook_medium and ebook_medium.current_page is not None:
             self.initial.setdefault("ebook_current_page", ebook_medium.current_page)
         elif self.instance and self.instance.format == BookProgress.FORMAT_EBOOK and self.instance.current_page is not None:
             self.initial.setdefault("ebook_current_page", self.instance.current_page)
+
+        if ebook_medium and ebook_medium.total_pages_override:
+            self.initial.setdefault("ebook_total_pages", ebook_medium.total_pages_override)
 
         audio_medium = media_map.get(BookProgress.FORMAT_AUDIO)
         audio_length = None
@@ -286,12 +320,20 @@ class BookProgressFormatForm(forms.ModelForm):
         formats = cleaned.get("formats") or []
         if not formats:
             raise ValidationError("Выберите хотя бы один формат")
-        
+
         custom_pages = cleaned.get("custom_total_pages")
-        base_total = custom_pages or (self.book.get_total_pages() if self.book else None)
+        paper_total = cleaned.get("paper_total_pages")
+        ebook_total = cleaned.get("ebook_total_pages")
+        base_total = custom_pages or paper_total or (self.book.get_total_pages() if self.book else None) or ebook_total
         requires_pages = any(fmt in {BookProgress.FORMAT_PAPER, BookProgress.FORMAT_EBOOK} for fmt in formats)
         if requires_pages and not base_total:
             raise ValidationError("Введите количество страниц для этой книги")
+
+        if not custom_pages and not (self.book and self.book.get_total_pages()):
+            if paper_total:
+                cleaned["custom_total_pages"] = paper_total
+            elif ebook_total:
+                cleaned["custom_total_pages"] = ebook_total
 
         for fmt, field in (
             (BookProgress.FORMAT_PAPER, "paper_current_page"),
@@ -303,6 +345,14 @@ class BookProgressFormatForm(forms.ModelForm):
                     self.add_error(field, "Значение не может быть отрицательным")
                 if value is not None and base_total and value > base_total:
                     self.add_error(field, "Текущее значение не может превышать количество страниц")
+
+        for fmt, field in (
+            (BookProgress.FORMAT_PAPER, "paper_total_pages"),
+            (BookProgress.FORMAT_EBOOK, "ebook_total_pages"),
+        ):
+            if cleaned.get(field) is not None and fmt not in formats:
+                self.cleaned_data[field] = None
+                cleaned[field] = None
 
         audio_length = self.cleaned_data.get("audio_length_input")
         audio_position = self.cleaned_data.get("audio_position_input")
@@ -357,6 +407,10 @@ class BookProgressFormatForm(forms.ModelForm):
             BookProgress.FORMAT_PAPER: "paper_current_page",
             BookProgress.FORMAT_EBOOK: "ebook_current_page",
         }
+        override_fields = {
+            BookProgress.FORMAT_PAPER: "paper_total_pages",
+            BookProgress.FORMAT_EBOOK: "ebook_total_pages",
+        }
         for medium_code in formats:
             medium_obj = existing.get(medium_code)
             if not medium_obj:
@@ -364,7 +418,11 @@ class BookProgressFormatForm(forms.ModelForm):
             if medium_code in page_fields:
                 value = self.cleaned_data.get(page_fields[medium_code])
                 medium_obj.current_page = value if value is not None else None
-                medium_obj.total_pages_override = progress.custom_total_pages
+                override_value = self.cleaned_data.get(override_fields.get(medium_code))
+                if override_value:
+                    medium_obj.total_pages_override = override_value
+                else:
+                    medium_obj.total_pages_override = progress.custom_total_pages
                 medium_obj.audio_position = None
                 medium_obj.audio_length = None
                 medium_obj.playback_speed = None

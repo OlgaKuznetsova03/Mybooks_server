@@ -1,6 +1,7 @@
 # shelves/views.py
 from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
 from datetime import date, timedelta
+from typing import Optional
 
 from django.db.models import Count
 from django.shortcuts import render, get_object_or_404, redirect
@@ -473,6 +474,7 @@ def _build_reading_track_context(progress, book, *, character_form=None, format_
             "audio_length": None,
             "audio_speed": None,
             "equivalent_pages": None,
+            "total_pages": medium.total_pages_override or total_pages,
         }
         if total_pages:
             equivalent = progress._medium_equivalent_pages(medium, total_pages)
@@ -593,26 +595,82 @@ def reading_set_page(request, progress_id):
         messages.error(request, "Сначала активируйте выбранный формат в настройках прогресса.")
         return redirect("reading_track", book_id=progress.book_id)
     previous_page = medium.current_page or 0
-    try:
-        page = int(request.POST.get("page", 0))
-    except (TypeError, ValueError):
-        messages.error(request, "Неверное значение страницы.")
-        return redirect("reading_track", book_id=progress.book_id)
+    raw_percent = (request.POST.get("percent") or "").strip()
+    page: Optional[int]
+    percent_decimal: Optional[Decimal] = None
+    medium_total_override = (
+        medium.total_pages_override
+        or progress.custom_total_pages
+        or (progress.book.get_total_pages() if progress.book else None)
+    )
+    if raw_percent:
+        try:
+            percent_decimal = Decimal(raw_percent.replace(",", "."))
+        except (InvalidOperation, ValueError):
+            messages.error(request, "Укажите корректное значение процента.")
+            return redirect("reading_track", book_id=progress.book_id)
+        if percent_decimal < 0 or percent_decimal > Decimal("100"):
+            messages.error(request, "Процент прогресса должен быть от 0 до 100.")
+            return redirect("reading_track", book_id=progress.book_id)
+        if not medium_total_override:
+            messages.error(
+                request,
+                "Сначала укажите количество страниц для этого формата в настройках.",
+            )
+            return redirect("reading_track", book_id=progress.book_id)
+        page_decimal = (
+            Decimal(medium_total_override)
+            * percent_decimal
+            / Decimal("100")
+        ).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        page = int(page_decimal)
+    else:
+        try:
+            page = int(request.POST.get("page", 0))
+        except (TypeError, ValueError):
+            messages.error(request, "Неверное значение страницы.")
+            return redirect("reading_track", book_id=progress.book_id)
 
-    total = progress.get_effective_total_pages()
-    if total:
-        page = max(0, min(page, total))
+    clamp_total = medium.total_pages_override or medium_total_override
+    if clamp_total:
+        clamp_int = int(clamp_total)
+        page = max(0, min(page, clamp_int))
+    else:
+        page = max(0, page)
+
     medium.current_page = page
-    medium.total_pages_override = progress.custom_total_pages
-    medium.save(update_fields=["current_page", "total_pages_override"])
-    delta = max(0, page - previous_page)
-    progress_changed = delta > 0
-    if delta > 0:
-        progress.record_pages(delta, medium=medium_code)
-        progress.sync_media_equivalents(
-            source_medium=medium_code,
-            equivalent_pages=page,
-        )
+    update_fields = ["current_page"]
+    if medium.total_pages_override is None and progress.custom_total_pages:
+        medium.total_pages_override = progress.custom_total_pages
+        update_fields.append("total_pages_override")
+    medium.save(update_fields=update_fields)
+
+    total_base = progress.get_effective_total_pages()
+
+    def _equivalent(page_value: int) -> Decimal:
+        if total_base:
+            denominator = medium.total_pages_override or clamp_total or total_base
+            if denominator and denominator > 0:
+                ratio = Decimal(page_value) / Decimal(denominator)
+                ratio = max(Decimal("0"), min(Decimal("1"), ratio))
+                return (
+                    Decimal(total_base)
+                    * ratio
+                ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            return Decimal(page_value)
+        return Decimal(page_value)
+
+    previous_equivalent = _equivalent(previous_page)
+    new_equivalent = _equivalent(page)
+    delta_equivalent = max(Decimal("0"), new_equivalent - previous_equivalent)
+    progress_changed = delta_equivalent > 0
+    if delta_equivalent > 0:
+        progress.record_pages(delta_equivalent, medium=medium_code)
+        if total_base:
+            progress.sync_media_equivalents(
+                source_medium=medium_code,
+                equivalent_pages=new_equivalent,
+            )
     progress.refresh_current_page()
     progress.recalc_percent()
     if progress_changed:
@@ -767,20 +825,48 @@ def reading_increment(request, progress_id, delta):
         messages.error(request, "Сначала активируйте выбранный формат в настройках прогресса.")
         return redirect("reading_track", book_id=progress.book_id)
     cur = medium.current_page or 0
-    total = progress.get_effective_total_pages()
+    medium_total_override = (
+        medium.total_pages_override
+        or progress.custom_total_pages
+        or (progress.book.get_total_pages() if progress.book else None)
+    )
     new_page = cur + step
-    if total:
-        new_page = max(0, min(new_page, total))
+    if medium_total_override:
+        new_page = max(0, min(new_page, int(medium_total_override)))
+    else:
+        new_page = max(0, new_page)
     medium.current_page = new_page
-    medium.total_pages_override = progress.custom_total_pages
-    medium.save(update_fields=["current_page", "total_pages_override"])
-    diff = max(0, new_page - cur)
-    if diff > 0:
-        progress.record_pages(diff, medium=medium_code)
-        progress.sync_media_equivalents(
-            source_medium=medium_code,
-            equivalent_pages=new_page,
-        )
+    update_fields = ["current_page"]
+    if medium.total_pages_override is None and progress.custom_total_pages:
+        medium.total_pages_override = progress.custom_total_pages
+        update_fields.append("total_pages_override")
+    medium.save(update_fields=update_fields)
+
+    total_base = progress.get_effective_total_pages()
+
+    def _equivalent(page_value: int) -> Decimal:
+        if total_base:
+            denominator = medium.total_pages_override or medium_total_override or total_base
+            if denominator and denominator > 0:
+                ratio = Decimal(page_value) / Decimal(denominator)
+                ratio = max(Decimal("0"), min(Decimal("1"), ratio))
+                return (
+                    Decimal(total_base)
+                    * ratio
+                ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            return Decimal(page_value)
+        return Decimal(page_value)
+
+    previous_equivalent = _equivalent(cur)
+    new_equivalent = _equivalent(new_page)
+    diff_equivalent = max(Decimal("0"), new_equivalent - previous_equivalent)
+    if diff_equivalent > 0:
+        progress.record_pages(diff_equivalent, medium=medium_code)
+        if total_base:
+            progress.sync_media_equivalents(
+                source_medium=medium_code,
+                equivalent_pages=new_equivalent,
+            )
         progress_changed = True
     progress.refresh_current_page()
     progress.recalc_percent()
@@ -837,13 +923,37 @@ def reading_mark_finished(request, progress_id):
                     progress.record_pages(delta_pages, medium=BookProgress.FORMAT_AUDIO, audio_seconds=delta_seconds)
         else:
             previous_page = medium.current_page or 0
-            if total_pages:
-                medium.current_page = int(total_pages)
+            target_total = (
+                medium.total_pages_override
+                or progress.custom_total_pages
+                or total_pages
+            )
+            update_fields = []
+            if target_total:
+                medium.current_page = int(target_total)
+                update_fields.append("current_page")
+            if medium.total_pages_override is None and progress.custom_total_pages:
                 medium.total_pages_override = progress.custom_total_pages
-                medium.save(update_fields=["current_page", "total_pages_override"])
-                delta_pages = max(0, int(total_pages) - previous_page)
-                if delta_pages > 0:
-                    progress.record_pages(delta_pages, medium=medium.medium)
+                update_fields.append("total_pages_override")
+            if update_fields:
+                medium.save(update_fields=update_fields)
+
+            if total_pages:
+                denominator = medium.total_pages_override or target_total or total_pages
+                if denominator and denominator > 0:
+                    def _equivalent_from_value(page_value: int) -> Decimal:
+                        ratio = Decimal(page_value) / Decimal(denominator)
+                        ratio = max(Decimal("0"), min(Decimal("1"), ratio))
+                        return (
+                            Decimal(total_pages)
+                            * ratio
+                        ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+                    new_equiv = _equivalent_from_value(medium.current_page or 0)
+                    prev_equiv = _equivalent_from_value(previous_page)
+                    delta_pages = max(Decimal("0"), new_equiv - prev_equiv)
+                    if delta_pages > 0:
+                        progress.record_pages(delta_pages, medium=medium.medium)
 
     combined = progress.get_combined_current_pages()
     if combined is not None:

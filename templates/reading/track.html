@@ -344,7 +344,12 @@
           <div class="small">
             {% for medium in media_details %}
               {% if medium.current_page is not None %}
-                <div>{{ medium.label }} · страница <strong>{{ medium.current_page|default:0 }}</strong></div>
+                <div>
+                  {{ medium.label }} · страница <strong>{{ medium.current_page|default:0 }}</strong>
+                  {% if medium.total_pages %}
+                    из {{ medium.total_pages }}
+                  {% endif %}
+                </div>
               {% else %}
                 <div>
                   {{ medium.label }} ·
@@ -399,9 +404,23 @@
               <div class="col-12 col-sm-6 col-md-4 col-lg-3">
                 <label class="form-label mb-1" for="id_page_{{ medium.code }}">Указать страницу</label>
                 <input type="number" id="id_page_{{ medium.code }}" name="page" class="form-control"
-                       min="0" {% if total_pages %}max="{{ total_pages }}"{% endif %}
+                       min="0" {% if medium.total_pages %}max="{{ medium.total_pages }}"{% elif total_pages %}max="{{ total_pages }}"{% endif %}
                        value="{{ medium.current_page|default:0 }}">
+                {% if medium.total_pages %}
+                  <div class="form-text">Всего в этом формате: {{ medium.total_pages }}</div>
+                {% endif %}
               </div>
+              {% if medium.code == progress.FORMAT_EBOOK %}
+                <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                  <label class="form-label mb-1" for="id_percent_{{ medium.code }}">или прогресс в %</label>
+                  <div class="input-group">
+                    <input type="number" id="id_percent_{{ medium.code }}" name="percent" class="form-control"
+                           min="0" max="100" step="0.1" placeholder="Например, 25">
+                    <span class="input-group-text">%</span>
+                  </div>
+                  <div class="form-text">Мы пересчитаем в страницы автоматически.</div>
+                </div>
+              {% endif %}
               <div class="col-12 col-md-6 col-lg-5">
                 <label class="form-label mb-1" for="id_reaction_{{ medium.code }}">Реакция на момент</label>
                 <textarea id="id_reaction_{{ medium.code }}" name="reaction" rows="2" class="form-control"
@@ -495,10 +514,26 @@
         {% endif %}
       </div>
       <div class="col-12 col-md-4">
+        <label class="form-label" for="{{ format_form.paper_total_pages.id_for_label }}">{{ format_form.paper_total_pages.label }}</label>
+        {{ format_form.paper_total_pages }}
+        <div class="form-text">{{ format_form.paper_total_pages.help_text }}</div>
+        {% if format_form.paper_total_pages.errors %}
+          <div class="invalid-feedback d-block">{{ format_form.paper_total_pages.errors|join:", " }}</div>
+        {% endif %}
+      </div>
+      <div class="col-12 col-md-4">
         <label class="form-label" for="{{ format_form.paper_current_page.id_for_label }}">{{ format_form.paper_current_page.label }}</label>
         {{ format_form.paper_current_page }}
         {% if format_form.paper_current_page.errors %}
           <div class="invalid-feedback d-block">{{ format_form.paper_current_page.errors|join:", " }}</div>
+        {% endif %}
+      </div>
+      <div class="col-12 col-md-4">
+        <label class="form-label" for="{{ format_form.ebook_total_pages.id_for_label }}">{{ format_form.ebook_total_pages.label }}</label>
+        {{ format_form.ebook_total_pages }}
+        <div class="form-text">{{ format_form.ebook_total_pages.help_text }}</div>
+        {% if format_form.ebook_total_pages.errors %}
+          <div class="invalid-feedback d-block">{{ format_form.ebook_total_pages.errors|join:", " }}</div>
         {% endif %}
       </div>
       <div class="col-12 col-md-4">
@@ -659,7 +694,7 @@ const palette = getPalette();
             <tr>
               <th scope="col">Дата</th>
               <th scope="col">Формат</th>
-              <th scope="col">Эквивалент страниц</th>
+              <th scope="col">Прогресс</th>
             </tr>
           </thead>
           <tbody>
@@ -667,7 +702,13 @@ const palette = getPalette();
               <tr>
                 <td>{{ log.log_date|date:"d.m.Y" }}</td>
                 <td>{{ log.get_medium_display }}</td>
-                <td>{{ log.pages_equivalent|floatformat:-2 }}</td>
+                <td>
+                  {% if log.medium == progress.FORMAT_AUDIO and log.audio_duration_display %}
+                    {{ log.audio_duration_display }}
+                  {% else %}
+                    {{ log.pages_equivalent|floatformat:-2 }} стр.
+                  {% endif %}
+                </td>
               </tr>
             {% endfor %}
           </tbody>
