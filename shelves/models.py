@@ -228,21 +228,23 @@ class BookProgress(models.Model):
         ratio = min(Decimal("1"), max(Decimal("0"), ratio))
         return (Decimal(total_pages) * ratio).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
-    def sync_media_equivalents(self, *, source_medium, equivalent_pages):
-        """Синхронизировать прогресс между активными форматами."""
+    def sync_media_equivalents(self, *, source_medium, percent_complete):
+        """Синхронизировать прогресс между активными форматами по проценту."""
 
-        total = self.get_effective_total_pages()
-        if total is None or equivalent_pages is None:
-            return
         try:
-            equivalent_decimal = Decimal(equivalent_pages)
+            percent_decimal = Decimal(percent_complete)
         except (InvalidOperation, TypeError):
             return
-        total_decimal = Decimal(total)
-        if total_decimal <= 0:
-            return
-        equivalent_decimal = max(Decimal("0"), min(total_decimal, equivalent_decimal))
-        ratio = equivalent_decimal / total_decimal
+        percent_decimal = max(Decimal("0"), min(Decimal("100"), percent_decimal))
+        ratio = percent_decimal / Decimal("100")
+        total = self.get_effective_total_pages()
+        equivalent_decimal = None
+        if total:
+            total_decimal = Decimal(total)
+            if total_decimal > 0:
+                equivalent_decimal = (
+                    total_decimal * ratio
+                ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         updated_audio_positions = []
         for medium in self._iter_active_media():
             if medium.medium == source_medium or medium.pk is None:
@@ -255,12 +257,14 @@ class BookProgress(models.Model):
                     updated_audio_positions.append(position)
             else:
                 desired_override = medium.total_pages_override or self.custom_total_pages
+                if not desired_override and not total:
+                    continue
                 self._sync_text_medium_from_equivalent(
                     medium,
                     total,
                     desired_override,
                     ratio=ratio,
-                    equivalent=equivalent_decimal,
+                    equivalent=equivalent_decimal or Decimal("0"),
                 )
         if updated_audio_positions:
             max_position = max(

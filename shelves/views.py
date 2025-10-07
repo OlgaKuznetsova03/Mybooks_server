@@ -647,30 +647,49 @@ def reading_set_page(request, progress_id):
 
     total_base = progress.get_effective_total_pages()
 
-    def _equivalent(page_value: int) -> Decimal:
-        if total_base:
-            denominator = medium.total_pages_override or clamp_total or total_base
-            if denominator and denominator > 0:
-                ratio = Decimal(page_value) / Decimal(denominator)
-                ratio = max(Decimal("0"), min(Decimal("1"), ratio))
-                return (
-                    Decimal(total_base)
-                    * ratio
-                ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            return Decimal(page_value)
-        return Decimal(page_value)
+    def _percent_from_page(page_value: int) -> Decimal:
+        denominator = medium.total_pages_override or clamp_total or total_base
+        if denominator and denominator > 0:
+            percent_value = (
+                Decimal(page_value)
+                / Decimal(denominator)
+                * Decimal("100")
+            )
+            return percent_value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        return Decimal("0")
 
-    previous_equivalent = _equivalent(previous_page)
-    new_equivalent = _equivalent(page)
+    def _equivalent_from_percent(percent_value: Decimal) -> Decimal:
+        if total_base:
+            return (
+                Decimal(total_base)
+                * percent_value
+                / Decimal("100")
+            ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        denominator = medium.total_pages_override or clamp_total
+        if denominator:
+            return (
+                Decimal(denominator)
+                * percent_value
+                / Decimal("100")
+            ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        return Decimal("0")
+
+    previous_percent = _percent_from_page(previous_page)
+    new_percent = (
+        percent_decimal
+        if percent_decimal is not None
+        else _percent_from_page(page)
+    )
+    previous_equivalent = _equivalent_from_percent(previous_percent)
+    new_equivalent = _equivalent_from_percent(new_percent)
     delta_equivalent = max(Decimal("0"), new_equivalent - previous_equivalent)
     progress_changed = delta_equivalent > 0
     if delta_equivalent > 0:
         progress.record_pages(delta_equivalent, medium=medium_code)
-        if total_base:
-            progress.sync_media_equivalents(
-                source_medium=medium_code,
-                equivalent_pages=new_equivalent,
-            )
+        progress.sync_media_equivalents(
+            source_medium=medium_code,
+            percent_complete=new_percent,
+        )
     progress.refresh_current_page()
     progress.recalc_percent()
     if progress_changed:
@@ -761,12 +780,6 @@ def reading_increment(request, progress_id, delta):
         if not medium:
             messages.error(request, "Сначала активируйте аудиоформат в настройках.")
             return redirect("reading_track", book_id=progress.book_id)
-        total_pages = progress.get_effective_total_pages()
-        previous_equivalent = (
-            progress._medium_equivalent_pages(medium, total_pages)
-            if total_pages
-            else Decimal("0")
-        )
         previous_position = medium.audio_position or progress.audio_position or timedelta()
         previous_seconds = int(previous_position.total_seconds())
         playback_speed = progress.get_effective_playback_speed(medium)
@@ -787,20 +800,42 @@ def reading_increment(request, progress_id, delta):
         medium.save(update_fields=update_fields)
         progress.audio_position = medium.audio_position
         progress.save(update_fields=["audio_position"])
-        
-        new_equivalent = (
-            progress._medium_equivalent_pages(medium, total_pages)
-            if total_pages
-            else Decimal("0")
-        )
-        delta_pages = max(Decimal("0"), (new_equivalent or Decimal("0")) - (previous_equivalent or Decimal("0")))
+        total_base = progress.get_effective_total_pages()
+
+        def _percent_from_seconds(value_seconds: int) -> Decimal:
+            if not audio_length:
+                return Decimal("0")
+            length_decimal = Decimal(str(audio_length.total_seconds()))
+            if length_decimal <= 0:
+                return Decimal("0")
+            percent_value = (
+                Decimal(value_seconds)
+                / length_decimal
+                * Decimal("100")
+            )
+            return percent_value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+        def _equivalent_from_percent(percent_value: Decimal) -> Decimal:
+            if total_base:
+                return (
+                    Decimal(total_base)
+                    * percent_value
+                    / Decimal("100")
+                ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            return Decimal("0")
+
+        previous_percent = _percent_from_seconds(previous_seconds)
+        new_percent = _percent_from_seconds(new_seconds)
+        new_equivalent = _equivalent_from_percent(new_percent)
+        previous_equivalent = _equivalent_from_percent(previous_percent)
+        delta_pages = max(Decimal("0"), new_equivalent - previous_equivalent)
         delta_seconds = max(0, new_seconds - previous_seconds)
         if delta_pages > 0 and delta_seconds > 0:
             progress.record_pages(delta_pages, medium=BookProgress.FORMAT_AUDIO, audio_seconds=delta_seconds)
-        if delta_pages > 0:
+        if new_percent > previous_percent:
             progress.sync_media_equivalents(
                 source_medium=BookProgress.FORMAT_AUDIO,
-                equivalent_pages=new_equivalent,
+                percent_complete=new_percent,
             )
             progress_changed = True
         progress.refresh_current_page()
@@ -844,29 +879,46 @@ def reading_increment(request, progress_id, delta):
 
     total_base = progress.get_effective_total_pages()
 
-    def _equivalent(page_value: int) -> Decimal:
-        if total_base:
-            denominator = medium.total_pages_override or medium_total_override or total_base
-            if denominator and denominator > 0:
-                ratio = Decimal(page_value) / Decimal(denominator)
-                ratio = max(Decimal("0"), min(Decimal("1"), ratio))
-                return (
-                    Decimal(total_base)
-                    * ratio
-                ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            return Decimal(page_value)
-        return Decimal(page_value)
+    def _percent_from_page(page_value: int) -> Decimal:
+        denominator = medium.total_pages_override or medium_total_override or total_base
+        if denominator and denominator > 0:
+            percent_value = (
+                Decimal(page_value)
+                / Decimal(denominator)
+                * Decimal("100")
+            )
+            return percent_value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        return Decimal("0")
 
-    previous_equivalent = _equivalent(cur)
-    new_equivalent = _equivalent(new_page)
+    def _equivalent_from_percent(percent_value: Decimal) -> Decimal:
+        if total_base:
+            return (
+                Decimal(total_base)
+                * percent_value
+                / Decimal("100")
+            ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        denominator = medium.total_pages_override or medium_total_override
+        if denominator:
+            return (
+                Decimal(denominator)
+                * percent_value
+                / Decimal("100")
+            ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        return Decimal("0")
+
+    previous_percent = _percent_from_page(cur)
+    new_percent = _percent_from_page(new_page)
+    previous_equivalent = _equivalent_from_percent(previous_percent)
+    new_equivalent = _equivalent_from_percent(new_percent)
     diff_equivalent = max(Decimal("0"), new_equivalent - previous_equivalent)
     if diff_equivalent > 0:
         progress.record_pages(diff_equivalent, medium=medium_code)
-        if total_base:
-            progress.sync_media_equivalents(
-                source_medium=medium_code,
-                equivalent_pages=new_equivalent,
-            )
+        progress_changed = True
+    if new_percent > previous_percent:
+        progress.sync_media_equivalents(
+            source_medium=medium_code,
+            percent_complete=new_percent,
+        )
         progress_changed = True
     progress.refresh_current_page()
     progress.recalc_percent()
@@ -895,11 +947,6 @@ def reading_mark_finished(request, progress_id):
 
     for medium in media_objects:
         if medium.medium == BookProgress.FORMAT_AUDIO:
-            previous_equivalent = (
-                progress._medium_equivalent_pages(medium, total_pages)
-                if total_pages
-                else Decimal("0")
-            )
             previous_position = medium.audio_position or progress.audio_position or timedelta()
             previous_seconds = int(previous_position.total_seconds())
             audio_length = medium.audio_length or progress.audio_length
@@ -912,12 +959,32 @@ def reading_mark_finished(request, progress_id):
                 medium.save(update_fields=["audio_position", "audio_length", "playback_speed"])
                 progress.audio_position = audio_length
                 progress.save(update_fields=["audio_position"])
-                new_equivalent = (
-                    progress._medium_equivalent_pages(medium, total_pages)
-                    if total_pages
-                    else Decimal("0")
-                )
-                delta_pages = max(Decimal("0"), (new_equivalent or Decimal("0")) - (previous_equivalent or Decimal("0")))
+                total_base = progress.get_effective_total_pages()
+
+                def _percent_from_seconds(value_seconds: int) -> Decimal:
+                    if length_seconds <= 0:
+                        return Decimal("0")
+                    percent_value = (
+                        Decimal(value_seconds)
+                        / Decimal(length_seconds)
+                        * Decimal("100")
+                    )
+                    return percent_value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+                def _equivalent_from_percent(percent_value: Decimal) -> Decimal:
+                    if total_base:
+                        return (
+                            Decimal(total_base)
+                            * percent_value
+                            / Decimal("100")
+                        ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                    return Decimal("0")
+
+                previous_percent = _percent_from_seconds(previous_seconds)
+                new_percent = Decimal("100")
+                new_equivalent = _equivalent_from_percent(new_percent)
+                previous_equivalent = _equivalent_from_percent(previous_percent)
+                delta_pages = max(Decimal("0"), new_equivalent - previous_equivalent)
                 delta_seconds = max(0, length_seconds - previous_seconds)
                 if delta_pages > 0 and delta_seconds > 0:
                     progress.record_pages(delta_pages, medium=BookProgress.FORMAT_AUDIO, audio_seconds=delta_seconds)
@@ -938,22 +1005,38 @@ def reading_mark_finished(request, progress_id):
             if update_fields:
                 medium.save(update_fields=update_fields)
 
-            if total_pages:
-                denominator = medium.total_pages_override or target_total or total_pages
-                if denominator and denominator > 0:
-                    def _equivalent_from_value(page_value: int) -> Decimal:
-                        ratio = Decimal(page_value) / Decimal(denominator)
-                        ratio = max(Decimal("0"), min(Decimal("1"), ratio))
-                        return (
-                            Decimal(total_pages)
-                            * ratio
-                        ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
-                    new_equiv = _equivalent_from_value(medium.current_page or 0)
-                    prev_equiv = _equivalent_from_value(previous_page)
-                    delta_pages = max(Decimal("0"), new_equiv - prev_equiv)
+            denominator = medium.total_pages_override or target_total or total_pages
+            if denominator and denominator > 0:
+                previous_percent = (
+                    Decimal(previous_page)
+                    / Decimal(denominator)
+                    * Decimal("100")
+                ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                new_percent = (
+                    Decimal(medium.current_page or 0)
+                    / Decimal(denominator)
+                    * Decimal("100")
+                ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                if total_pages:
+                    previous_equivalent = (
+                        Decimal(total_pages)
+                        * previous_percent
+                        / Decimal("100")
+                    ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                    new_equivalent = (
+                        Decimal(total_pages)
+                        * new_percent
+                        / Decimal("100")
+                    ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                    delta_pages = max(Decimal("0"), new_equivalent - previous_equivalent)
                     if delta_pages > 0:
                         progress.record_pages(delta_pages, medium=medium.medium)
+                if new_percent > previous_percent:
+                    progress.sync_media_equivalents(
+                        source_medium=medium.medium,
+                        percent_complete=new_percent,
+                    )
+
 
     combined = progress.get_combined_current_pages()
     if combined is not None:
