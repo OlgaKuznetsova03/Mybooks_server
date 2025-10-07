@@ -18,6 +18,9 @@
         <i class="bi bi-megaphone me-1"></i>{% trans "Заявки блогеров" %}
       </span>
     </div>
+    <a href="{% url 'collaborations:blogger_community' %}" class="btn btn-outline-secondary w-100">
+      <i class="bi bi-people-fill me-1"></i>{% trans "Блогерский хаб" %}
+    </a>
     {% if request.user.is_authenticated %}
       <div class="btn-group">
         <a href="{% url 'collaborations:blogger_request_create' %}" class="btn btn-primary">

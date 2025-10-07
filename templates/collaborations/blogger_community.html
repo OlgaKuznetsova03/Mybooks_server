@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Блогерский хаб" %} · {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="mb-4 text-center text-md-start">
+    <h1 class="display-6 mb-2">{% trans "Блогерский хаб" %}</h1>
+    <p class="text-muted mb-0">{% trans "Делитесь ссылками на свои книжные каналы и рассказывайте об актуальных розыгрышах." %}</p>
+  </div>
+
+  <ul class="nav nav-tabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link{% if active_tab == 'invitations' %} active{% endif %}" id="invites-tab" data-bs-toggle="tab" data-bs-target="#invites" type="button" role="tab" aria-controls="invites" aria-selected="{% if active_tab == 'invitations' %}true{% else %}false{% endif %}">
+        <i class="bi bi-broadcast-pin me-1"></i>{% trans "Приглашения" %}
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link{% if active_tab == 'giveaways' %} active{% endif %}" id="giveaways-tab" data-bs-toggle="tab" data-bs-target="#giveaways" type="button" role="tab" aria-controls="giveaways" aria-selected="{% if active_tab == 'giveaways' %}true{% else %}false{% endif %}">
+        <i class="bi bi-gift-fill me-1"></i>{% trans "Розыгрыши" %}
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content border border-top-0 rounded-bottom bg-body p-4">
+    <div class="tab-pane fade{% if active_tab == 'invitations' %} show active{% endif %}" id="invites" role="tabpanel" aria-labelledby="invites-tab">
+      <div class="mb-4">
+        <h2 class="h4 mb-3">{% trans "Поделитесь своим книжным пространством" %}</h2>
+        {% if can_post %}
+          <form method="post" class="card shadow-sm">
+            {% csrf_token %}
+            <input type="hidden" name="section" value="invitations">
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label" for="{{ invitation_form.platform.id_for_label }}">{{ invitation_form.platform.label }}</label>
+                  {{ invitation_form.platform }}
+                  {% if invitation_form.platform.errors %}
+                    <div class="invalid-feedback d-block">{{ invitation_form.platform.errors|join:', ' }}</div>
+                  {% endif %}
+                  {% if invitation_form.platform.help_text %}
+                    <div class="form-text">{{ invitation_form.platform.help_text }}</div>
+                  {% endif %}
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="{{ invitation_form.link.id_for_label }}">{{ invitation_form.link.label }}</label>
+                  {{ invitation_form.link }}
+                  {% if invitation_form.link.errors %}
+                    <div class="invalid-feedback d-block">{{ invitation_form.link.errors|join:', ' }}</div>
+                  {% endif %}
+                  {% if invitation_form.link.help_text %}
+                    <div class="form-text">{{ invitation_form.link.help_text }}</div>
+                  {% endif %}
+                </div>
+                <div class="col-12">
+                  <label class="form-label" for="{{ invitation_form.title.id_for_label }}">{{ invitation_form.title.label }}</label>
+                  {{ invitation_form.title }}
+                  {% if invitation_form.title.errors %}
+                    <div class="invalid-feedback d-block">{{ invitation_form.title.errors|join:', ' }}</div>
+                  {% endif %}
+                  {% if invitation_form.title.help_text %}
+                    <div class="form-text">{{ invitation_form.title.help_text }}</div>
+                  {% endif %}
+                </div>
+                <div class="col-12">
+                  <label class="form-label" for="{{ invitation_form.description.id_for_label }}">{{ invitation_form.description.label }}</label>
+                  {{ invitation_form.description }}
+                  {% if invitation_form.description.errors %}
+                    <div class="invalid-feedback d-block">{{ invitation_form.description.errors|join:', ' }}</div>
+                  {% endif %}
+                  <div class="form-text">{{ invitation_form.description.help_text }}</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-footer d-flex justify-content-end gap-2 bg-body-secondary">
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-send-fill me-1"></i>{% trans "Опубликовать приглашение" %}
+              </button>
+            </div>
+          </form>
+        {% else %}
+          <div class="alert alert-info" role="alert">
+            <i class="bi bi-info-circle-fill me-2"></i>{% trans "Войдите как блогер, чтобы делиться своими ссылками." %}
+          </div>
+        {% endif %}
+      </div>
+
+      {% if invitations %}
+        <div class="row g-4">
+          {% for invitation in invitations %}
+            <div class="col-12 col-lg-6">
+              <div class="card h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                  <div class="d-flex justify-content-between align-items-start mb-3">
+                    <span class="badge text-bg-primary">{{ invitation.get_platform_display }}</span>
+                    <small class="text-muted">{{ invitation.created_at|date:"j E Y" }}</small>
+                  </div>
+                  <h3 class="h5 mb-2">{{ invitation.title }}</h3>
+                  {% if invitation.description %}
+                    <p class="text-muted flex-grow-1">{{ invitation.description }}</p>
+                  {% endif %}
+                  <div class="mt-auto d-flex justify-content-between align-items-center">
+                    <a href="{{ invitation.link }}" class="btn btn-outline-primary" target="_blank" rel="noopener">
+                      <i class="bi bi-box-arrow-up-right me-1"></i>{% trans "Перейти" %}
+                    </a>
+                    <small class="text-muted">{{ invitation.blogger.get_full_name|default:invitation.blogger.username }}</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-center py-5">
+          <p class="lead mb-2">{% trans "Пока нет приглашений." %}</p>
+          {% if can_post %}
+            <p class="text-muted">{% trans "Станьте первым, кто расскажет о своём книжном сообществе." %}</p>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="tab-pane fade{% if active_tab == 'giveaways' %} show active{% endif %}" id="giveaways" role="tabpanel" aria-labelledby="giveaways-tab">
+      <div class="alert alert-warning d-flex" role="alert">
+        <i class="bi bi-shield-lock-fill me-2 fs-4"></i>
+        <div>
+          <p class="mb-1 fw-semibold">{% trans "Будьте осторожны!" %}</p>
+          <p class="mb-0">{% trans "Не вводите личные данные, не переводите деньги и не сообщайте реквизиты банковских карт. Официальные конкурсы не требуют предоплаты или конфиденциальной информации." %}</p>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <h2 class="h4 mb-3">{% trans "Актуальные розыгрыши" %}</h2>
+        {% if can_post %}
+          <form method="post" class="card shadow-sm">
+            {% csrf_token %}
+            <input type="hidden" name="section" value="giveaways">
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-8">
+                  <label class="form-label" for="{{ giveaway_form.title.id_for_label }}">{{ giveaway_form.title.label }}</label>
+                  {{ giveaway_form.title }}
+                  {% if giveaway_form.title.errors %}
+                    <div class="invalid-feedback d-block">{{ giveaway_form.title.errors|join:', ' }}</div>
+                  {% endif %}
+                  {% if giveaway_form.title.help_text %}
+                    <div class="form-text">{{ giveaway_form.title.help_text }}</div>
+                  {% endif %}
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label" for="{{ giveaway_form.deadline.id_for_label }}">{{ giveaway_form.deadline.label }}</label>
+                  {{ giveaway_form.deadline }}
+                  {% if giveaway_form.deadline.errors %}
+                    <div class="invalid-feedback d-block">{{ giveaway_form.deadline.errors|join:', ' }}</div>
+                  {% endif %}
+                </div>
+                <div class="col-12">
+                  <label class="form-label" for="{{ giveaway_form.link.id_for_label }}">{{ giveaway_form.link.label }}</label>
+                  {{ giveaway_form.link }}
+                  {% if giveaway_form.link.errors %}
+                    <div class="invalid-feedback d-block">{{ giveaway_form.link.errors|join:', ' }}</div>
+                  {% endif %}
+                  {% if giveaway_form.link.help_text %}
+                    <div class="form-text">{{ giveaway_form.link.help_text }}</div>
+                  {% endif %}
+                </div>
+                <div class="col-12">
+                  <label class="form-label" for="{{ giveaway_form.description.id_for_label }}">{{ giveaway_form.description.label }}</label>
+                  {{ giveaway_form.description }}
+                  {% if giveaway_form.description.errors %}
+                    <div class="invalid-feedback d-block">{{ giveaway_form.description.errors|join:', ' }}</div>
+                  {% endif %}
+                  <div class="form-check mt-3">
+                    {{ giveaway_form.is_active }}
+                    <label class="form-check-label" for="{{ giveaway_form.is_active.id_for_label }}">{{ giveaway_form.is_active.label }}</label>
+                  </div>
+                  {% if giveaway_form.description.help_text %}
+                    <div class="form-text mt-1">{{ giveaway_form.description.help_text }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="card-footer d-flex justify-content-end gap-2 bg-body-secondary">
+              <button type="submit" class="btn btn-success">
+                <i class="bi bi-megaphone-fill me-1"></i>{% trans "Опубликовать розыгрыш" %}
+              </button>
+            </div>
+          </form>
+        {% else %}
+          <div class="alert alert-info" role="alert">
+            <i class="bi bi-info-circle-fill me-2"></i>{% trans "Только блогеры могут публиковать информацию о розыгрышах." %}
+          </div>
+        {% endif %}
+      </div>
+
+      {% if giveaways %}
+        <div class="row g-4">
+          {% for giveaway in giveaways %}
+            <div class="col-12 col-lg-6">
+              <div class="card h-100 shadow-sm border-success">
+                <div class="card-body d-flex flex-column">
+                  <div class="d-flex justify-content-between align-items-start mb-3">
+                    <span class="badge text-bg-success">{% trans "Активно" %}</span>
+                    <small class="text-muted">
+                      {% if giveaway.deadline %}
+                        {% trans "До" %} {{ giveaway.deadline|date:"j E Y" }}
+                      {% else %}
+                        {% trans "Без дедлайна" %}
+                      {% endif %}
+                    </small>
+                  </div>
+                  <h3 class="h5 mb-2">{{ giveaway.title }}</h3>
+                  {% if giveaway.description %}
+                    <p class="text-muted flex-grow-1">{{ giveaway.description }}</p>
+                  {% endif %}
+                  <div class="mt-auto d-flex justify-content-between align-items-center">
+                    <a href="{{ giveaway.link }}" class="btn btn-outline-success" target="_blank" rel="noopener">
+                      <i class="bi bi-box-arrow-up-right me-1"></i>{% trans "Условия" %}
+                    </a>
+                    <small class="text-muted">{{ giveaway.blogger.get_full_name|default:giveaway.blogger.username }}</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-center py-5">
+          <p class="lead mb-2">{% trans "Сейчас нет активных розыгрышей." %}</p>
+          {% if can_post %}
+            <p class="text-muted">{% trans "Расскажите аудитории о своём конкурсе и добавьте ссылку." %}</p>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -18,6 +18,8 @@ from .forms import (
     AuthorOfferResponseForm,
     AuthorOfferResponseAcceptForm,
     AuthorOfferResponseCommentForm,
+    BloggerGiveawayForm,
+    BloggerInvitationForm,
     BloggerPlatformPresenceFormSet,
     BloggerRequestForm,
     BloggerRequestResponseAcceptForm,
@@ -31,6 +33,8 @@ from .models import (
     BloggerRequest,
     BloggerRequestResponse,
     BloggerRequestResponseComment,
+    BloggerGiveaway,
+    BloggerInvitation,
     Collaboration,
     CollaborationStatusUpdate,
 )
@@ -115,6 +119,106 @@ def _get_request_response_context(
         "can_respond": can_respond,
         "response_conversation_url": conversation_url,
     }
+
+
+class BloggerCommunityView(View):
+    template_name = "collaborations/blogger_community.html"
+
+    def get(self, request):
+        active_tab = request.GET.get("tab", "invitations")
+        return self._render(request, active_tab=self._sanitize_tab(active_tab))
+
+    def post(self, request):
+        section = request.POST.get("section", "invitations")
+        active_tab = self._sanitize_tab(section)
+        if not request.user.is_authenticated:
+            messages.error(
+                request,
+                _("Войдите в аккаунт блогера, чтобы добавлять приглашения и розыгрыши."),
+            )
+            login_url = f"{reverse('login')}?next={request.path}"
+            return redirect(login_url)
+
+        if not _user_is_blogger(request.user):
+            messages.error(
+                request,
+                _("Добавлять информацию могут только блогеры."),
+            )
+            return self._render(request, active_tab=active_tab)
+
+        if active_tab == "giveaways":
+            giveaway_form = BloggerGiveawayForm(request.POST)
+            invitation_form = BloggerInvitationForm()
+            if giveaway_form.is_valid():
+                giveaway = giveaway_form.save(commit=False)
+                giveaway.blogger = request.user
+                giveaway.save()
+                messages.success(
+                    request,
+                    _("Розыгрыш опубликован! Не забудьте обновить информацию после его завершения."),
+                )
+                redirect_url = f"{request.path}?tab=giveaways"
+                return redirect(redirect_url)
+            return self._render(
+                request,
+                invitation_form=invitation_form,
+                giveaway_form=giveaway_form,
+                active_tab="giveaways",
+            )
+
+        invitation_form = BloggerInvitationForm(request.POST)
+        giveaway_form = BloggerGiveawayForm()
+        if invitation_form.is_valid():
+            invitation = invitation_form.save(commit=False)
+            invitation.blogger = request.user
+            invitation.save()
+            messages.success(
+                request,
+                _("Приглашение опубликовано!"),
+            )
+            return redirect(request.path)
+        return self._render(
+            request,
+            invitation_form=invitation_form,
+            giveaway_form=giveaway_form,
+            active_tab="invitations",
+        )
+
+    def _render(
+        self,
+        request,
+        *,
+        invitation_form: BloggerInvitationForm | None = None,
+        giveaway_form: BloggerGiveawayForm | None = None,
+        active_tab: str = "invitations",
+    ):
+        invitations = (
+            BloggerInvitation.objects.select_related("blogger")
+            .order_by("-created_at")
+        )
+        today = timezone.now().date()
+        giveaways = (
+            BloggerGiveaway.objects.select_related("blogger")
+            .filter(is_active=True)
+            .filter(Q(deadline__isnull=True) | Q(deadline__gte=today))
+            .order_by("-created_at")
+        )
+        can_post = request.user.is_authenticated and _user_is_blogger(request.user)
+        context = {
+            "invitations": invitations,
+            "giveaways": giveaways,
+            "invitation_form": invitation_form or BloggerInvitationForm(),
+            "giveaway_form": giveaway_form or BloggerGiveawayForm(),
+            "active_tab": active_tab,
+            "can_post": can_post,
+        }
+        return render(request, self.template_name, context)
+
+    @staticmethod
+    def _sanitize_tab(tab: str) -> str:
+        if tab not in {"invitations", "giveaways"}:
+            return "invitations"
+        return tab
 
 
 class OfferListView(ListView):

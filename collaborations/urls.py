@@ -5,6 +5,11 @@ from . import views
 app_name = "collaborations"
 
 urlpatterns = [
+    path(
+        "bloggers/community/",
+        views.BloggerCommunityView.as_view(),
+        name="blogger_community",
+    ),
     path("offers/", views.OfferListView.as_view(), name="offer_list"),
     path("offers/create/", views.OfferCreateView.as_view(), name="offer_create"),
     path("offers/<int:pk>/", views.OfferDetailView.as_view(), name="offer_detail"),

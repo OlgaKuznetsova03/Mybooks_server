@@ -12,6 +12,8 @@ from .models import (
     AuthorOffer,
     AuthorOfferResponse,
     AuthorOfferResponseComment,
+    BloggerGiveaway,
+    BloggerInvitation,
     BloggerPlatformPresence,
     BloggerRequest,
     BloggerRequestResponse,
@@ -199,6 +201,53 @@ class BloggerRequestResponseForm(BootstrapModelForm):
         model = BloggerRequestResponse
         fields = ["message", "book"]
         widgets = {"message": forms.Textarea(attrs={"rows": 4})}
+
+
+class BloggerInvitationForm(BootstrapModelForm):
+    class Meta:
+        model = BloggerInvitation
+        fields = ["platform", "title", "link", "description"]
+        widgets = {
+            "platform": forms.Select(attrs={"class": "form-select"}),
+            "title": forms.TextInput(
+                attrs={
+                    "placeholder": _("Например: Подпишитесь на обзоры новинок каждую неделю"),
+                }
+            ),
+            "link": forms.URLInput(
+                attrs={
+                    "placeholder": "https://t.me/username",
+                }
+            ),
+            "description": forms.Textarea(
+                attrs={
+                    "rows": 3,
+                    "placeholder": _("Поделитесь уникальностью вашего канала."),
+                }
+            ),
+        }
+
+
+class BloggerGiveawayForm(BootstrapModelForm):
+    class Meta:
+        model = BloggerGiveaway
+        fields = ["title", "link", "description", "deadline", "is_active"]
+        widgets = {
+            "title": forms.TextInput(
+                attrs={
+                    "placeholder": _("Например: Розыгрыш набора фэнтези-новинок"),
+                }
+            ),
+            "link": forms.URLInput(
+                attrs={"placeholder": "https://vk.com/wall..."}),
+            "description": forms.Textarea(
+                attrs={
+                    "rows": 4,
+                    "placeholder": _("Опишите условия участия и сроки."),
+                }
+            ),
+            "deadline": forms.DateInput(attrs={"type": "date"}),
+        }
 
 
 class CollaborationReviewForm(BootstrapModelForm):

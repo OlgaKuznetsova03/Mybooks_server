@@ -4,6 +4,8 @@ from .models import (
     AuthorOffer,
     AuthorOfferResponse,
     AuthorOfferResponseComment,
+    BloggerGiveaway,
+    BloggerInvitation,
     BloggerPlatformPresence,
     BloggerRating,
     BloggerRequest,
@@ -85,3 +87,17 @@ class AuthorOfferResponseCommentAdmin(admin.ModelAdmin):
         "author__last_name",
     )
     date_hierarchy = "created_at"
+
+
+@admin.register(BloggerInvitation)
+class BloggerInvitationAdmin(admin.ModelAdmin):
+    list_display = ("title", "blogger", "platform", "created_at")
+    list_filter = ("platform",)
+    search_fields = ("title", "description", "blogger__username")
+
+
+@admin.register(BloggerGiveaway)
+class BloggerGiveawayAdmin(admin.ModelAdmin):
+    list_display = ("title", "blogger", "is_active", "deadline", "created_at")
+    list_filter = ("is_active",)
+    search_fields = ("title", "description", "blogger__username")

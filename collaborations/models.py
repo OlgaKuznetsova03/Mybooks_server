@@ -458,7 +458,106 @@ class BloggerRequestResponseComment(models.Model):
     def __str__(self) -> str:
         return f"{self.author} → {self.response.request.title}"
     
-    
+
+class BloggerInvitation(models.Model):
+    """Короткое приглашение в блогерские каналы и сообщества."""
+
+    class Platform(models.TextChoices):
+        TELEGRAM = "telegram", _("Telegram")
+        VK = "vk", _("ВКонтакте")
+        TIKTOK = "tiktok", _("TikTok")
+        YOUTUBE = "youtube", _("YouTube")
+        BOOSTY = "boosty", _("Boosty")
+        DZENN = "dzen", _("Яндекс Дзен")
+        OTHER = "other", _("Другая платформа")
+
+    blogger = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="blogger_invitations",
+        verbose_name=_("Блогер"),
+    )
+    platform = models.CharField(
+        max_length=20,
+        choices=Platform.choices,
+        default=Platform.OTHER,
+        verbose_name=_("Платформа"),
+    )
+    title = models.CharField(
+        max_length=150,
+        verbose_name=_("Приглашение"),
+        help_text=_("Коротко расскажите, зачем подписываться на ваш канал."),
+    )
+    link = models.URLField(
+        verbose_name=_("Ссылка"),
+        help_text=_("Добавьте прямую ссылку на канал или сообщество."),
+    )
+    description = models.TextField(
+        blank=True,
+        verbose_name=_("Подробнее"),
+        help_text=_("Расскажите о тематике, расписании публикаций или особенностях."),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        verbose_name = _("Приглашение блогера")
+        verbose_name_plural = _("Приглашения блогеров")
+
+    def __str__(self) -> str:
+        return f"{self.get_platform_display()} — {self.title}"
+
+
+class BloggerGiveaway(models.Model):
+    """Информация об актуальных розыгрышах блогеров."""
+
+    blogger = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="blogger_giveaways",
+        verbose_name=_("Блогер"),
+    )
+    title = models.CharField(
+        max_length=200,
+        verbose_name=_("Название розыгрыша"),
+        help_text=_("Укажите, что можно выиграть или условия участия."),
+    )
+    description = models.TextField(
+        blank=True,
+        verbose_name=_("Детали"),
+        help_text=_("Расскажите коротко об условиях и сроках."),
+    )
+    link = models.URLField(
+        verbose_name=_("Ссылка"),
+        help_text=_("Добавьте ссылку на пост или страницу с условиями."),
+    )
+    deadline = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name=_("Окончание"),
+        help_text=_("Если есть конечная дата, укажите её."),
+    )
+    is_active = models.BooleanField(default=True, verbose_name=_("Активно"))
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        verbose_name = _("Розыгрыш блогера")
+        verbose_name_plural = _("Розыгрыши блогеров")
+
+    def __str__(self) -> str:
+        return self.title
+
+    @property
+    def is_open(self) -> bool:
+        if not self.is_active:
+            return False
+        if self.deadline is None:
+            return True
+        today = timezone.now().date()
+        return self.deadline >= today
+
+
 class Collaboration(models.Model):
     """Фактическое сотрудничество между автором и блогером/читателем."""
 
