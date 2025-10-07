@@ -44,18 +44,18 @@
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
-  --reading-card-cover-width: 24px;
+  --reading-card-cover-width: 96px;
 }
 
 @media (min-width: 768px) {
   .reading-card {
-    --reading-card-cover-width: 24px;
+    --reading-card-cover-width: 96px;
   }
 }
 
 @media (min-width: 1200px) {
   .reading-card {
-    --reading-card-cover-width: 24px;
+    --reading-card-cover-width: 96px;
   }
 }
 
@@ -79,7 +79,7 @@
 .reading-card__cover-image {
   width: 100%;
   height: auto;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 
@@ -88,19 +88,26 @@
   color: rgba(76, 87, 96, 0.35);
 }
 
-reading-card--compact {
-  --reading-card-cover-width: 64px;
+.reading-card--compact {
+  --reading-card-cover-width: 96px;
 }
 
 @media (min-width: 768px) {
   .reading-card--compact {
-    --reading-card-cover-width: 72px;
+    --reading-card-cover-width: 96px;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 1.25rem;
+  }
+
+  .reading-card--compact .reading-card__cover {
+    margin-inline: 0;
   }
 }
 
 @media (min-width: 1200px) {
   .reading-card--compact {
-    --reading-card-cover-width: 84px;
+    --reading-card-cover-width: 96px;
   }
 }
 
