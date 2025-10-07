@@ -307,6 +307,45 @@ class ReadingTrackViewTests(TestCase):
         self.assertEqual(log.pages_equivalent, Decimal("30"))
         self.assertEqual(log.audio_seconds, 1800)
 
+    def test_audio_increment_scales_medium_with_custom_total(self):
+        progress = self._create_progress()
+        paper_medium, _ = progress.media.get_or_create(
+            medium=BookProgress.FORMAT_PAPER,
+            defaults={"current_page": 0},
+        )
+        ebook_medium, _ = progress.media.get_or_create(
+            medium=BookProgress.FORMAT_EBOOK,
+            defaults={
+                "current_page": 0,
+                "total_pages_override": 250,
+            },
+        )
+        audio_medium, _ = progress.media.get_or_create(
+            medium=BookProgress.FORMAT_AUDIO,
+            defaults={
+                "audio_length": timedelta(minutes=200),
+                "audio_position": timedelta(),
+            },
+        )
+
+        response = self.client.post(
+            reverse("reading_increment", args=[progress.pk, 0]),
+            {"medium": BookProgress.FORMAT_AUDIO, "minutes": 60},
+        )
+
+        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+
+        progress.refresh_from_db()
+        paper_medium.refresh_from_db()
+        ebook_medium.refresh_from_db()
+        audio_medium.refresh_from_db()
+
+        self.assertEqual(paper_medium.current_page, 60)
+        self.assertEqual(ebook_medium.current_page, 75)
+        self.assertEqual(ebook_medium.total_pages_override, 250)
+        self.assertEqual(audio_medium.audio_position, timedelta(minutes=60))
+        self.assertEqual(progress.current_page, 60)
+        
     def test_page_increment_updates_audio_medium_position(self):
         progress = self._create_progress()
         paper_medium, _ = progress.media.get_or_create(

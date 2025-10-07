@@ -238,31 +238,29 @@ class BookProgress(models.Model):
             equivalent_decimal = Decimal(equivalent_pages)
         except (InvalidOperation, TypeError):
             return
-        rounded_pages = int(
-            equivalent_decimal.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
-        )
-        if rounded_pages < 0:
-            rounded_pages = 0
-        total_int = int(total)
-        if rounded_pages > total_int:
-            rounded_pages = total_int
+        total_decimal = Decimal(total)
+        if total_decimal <= 0:
+            return
+        equivalent_decimal = max(Decimal("0"), min(total_decimal, equivalent_decimal))
+        ratio = equivalent_decimal / total_decimal
         updated_audio_positions = []
         for medium in self._iter_active_media():
             if medium.medium == source_medium or medium.pk is None:
                 continue
             if medium.medium == self.FORMAT_AUDIO:
-                position = self._sync_audio_medium_from_pages(
-                    medium, rounded_pages, total_int
+                position = self._sync_audio_medium_from_equivalent(
+                    medium, ratio
                 )
                 if position is not None:
                     updated_audio_positions.append(position)
             else:
                 desired_override = medium.total_pages_override or self.custom_total_pages
-                self._sync_text_medium_from_pages(
+                self._sync_text_medium_from_equivalent(
                     medium,
-                    rounded_pages,
-                    total_int,
+                    total,
                     desired_override,
+                    ratio=ratio,
+                    equivalent=equivalent_decimal,
                 )
         if updated_audio_positions:
             max_position = max(
@@ -270,25 +268,33 @@ class BookProgress(models.Model):
             )
             current_seconds = int((self.audio_position or timedelta()).total_seconds())
             max_seconds = int(max_position.total_seconds())
-            if max_seconds > current_seconds:
+            if max_seconds != current_seconds:
                 self.audio_position = timedelta(seconds=max_seconds)
                 self.save(update_fields=["audio_position"])
 
     def _sync_text_medium_from_pages(
         self,
         medium,
-        rounded_pages,
         total_pages,
         desired_override,
+        *,
+        ratio,
+        equivalent,
     ):
-        target_page = rounded_pages
         medium_total = medium.total_pages_override or desired_override or total_pages
         if medium_total:
-            target_page = min(target_page, int(medium_total))
+            target_decimal = Decimal(medium_total) * ratio
+        else:
+            target_decimal = equivalent
+        target_page = int(
+            target_decimal.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        )
+        if medium_total:
+            medium_total_int = int(medium_total)
+            target_page = min(target_page, medium_total_int)
         target_page = max(0, target_page)
         fields = []
-        current = medium.current_page or 0
-        if target_page > current or medium.current_page is None:
+        if medium.current_page != target_page:
             medium.current_page = target_page
             fields.append("current_page")
         if medium.total_pages_override != desired_override:
@@ -297,29 +303,30 @@ class BookProgress(models.Model):
         if fields:
             medium.save(update_fields=fields)
 
-    def _sync_audio_medium_from_pages(self, medium, rounded_pages, total_pages):
+    def _sync_audio_medium_from_equivalent(self, medium, ratio):
         audio_length = medium.audio_length or self.audio_length
-        if not audio_length or total_pages <= 0:
+        if not audio_length:
             return None
         total_seconds = Decimal(str(audio_length.total_seconds()))
         if total_seconds <= 0:
             return None
-        ratio = Decimal(rounded_pages) / Decimal(total_pages)
         ratio = min(Decimal("1"), max(Decimal("0"), ratio))
-        target_seconds = int((total_seconds * ratio).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
-        current_seconds = int((medium.audio_position or timedelta()).total_seconds())
-        if target_seconds <= current_seconds:
-            return None
+        target_seconds = int(
+            (total_seconds * ratio).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        )
         new_position = timedelta(seconds=target_seconds)
-        medium.audio_position = new_position
-        fields = ["audio_position"]
+        fields = []
+        if medium.audio_position != new_position:
+            medium.audio_position = new_position
+            fields.append("audio_position")
         if medium.audio_length != audio_length:
             medium.audio_length = audio_length
             fields.append("audio_length")
         if not medium.playback_speed and self.audio_playback_speed:
             medium.playback_speed = self.audio_playback_speed
             fields.append("playback_speed")
-        medium.save(update_fields=fields)
+        if fields:
+            medium.save(update_fields=fields)
         return new_position
     
     def get_combined_current_pages(self):
@@ -533,7 +540,7 @@ class ReadingLog(models.Model):
         minutes, seconds = divmod(remainder, 60)
         return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
     
-    
+
 class CharacterNote(models.Model):
     progress = models.ForeignKey(
         BookProgress,
