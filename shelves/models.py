@@ -307,6 +307,33 @@ class BookProgress(models.Model):
         if fields:
             medium.save(update_fields=fields)
 
+    def _sync_text_medium_from_equivalent(
+        self,
+        medium,
+        total_pages,
+        desired_override,
+        *,
+        ratio,
+        equivalent,
+    ):
+        self._sync_text_medium_from_pages(
+            medium,
+            total_pages,
+            desired_override,
+            ratio=ratio,
+            equivalent=equivalent,
+        )
+        if medium.medium != self.FORMAT_AUDIO and medium.medium == self.format:
+            fields = []
+            if self.current_page != medium.current_page:
+                self.current_page = medium.current_page
+                fields.append("current_page")
+            if desired_override and self.custom_total_pages != desired_override:
+                self.custom_total_pages = desired_override
+                fields.append("custom_total_pages")
+            if fields:
+                self.save(update_fields=fields)
+
     def _sync_audio_medium_from_equivalent(self, medium, ratio):
         audio_length = medium.audio_length or self.audio_length
         if not audio_length:
