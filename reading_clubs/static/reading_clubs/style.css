@@ -44,6 +44,19 @@
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
+  --reading-card-cover-width: 92px;
+}
+
+@media (min-width: 768px) {
+  .reading-card {
+    --reading-card-cover-width: 108px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .reading-card {
+    --reading-card-cover-width: 120px;
+  }
 }
 
 .reading-card:hover {
@@ -59,17 +72,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  width: min(var(--reading-card-cover-width), 100%);
+  margin-inline: auto;
 }
 
 .reading-card__cover-image {
   width: 100%;
-  height: 100%;
+  height: auto;
   object-fit: cover;
   display: block;
 }
 
 .reading-card__cover-placeholder {
-  font-size: 2.75rem;
+  font-size: 1.65rem;
   color: rgba(76, 87, 96, 0.35);
 }
 

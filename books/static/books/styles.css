@@ -269,6 +269,7 @@
   padding:0.75rem 1rem;
   background-color:#fff;
   box-shadow:0 6px 12px rgba(0,0,0,.04);
+  --marathon-entry-cover-height: 78px;
 }
 
 .marathon-entry__content{
@@ -278,9 +279,9 @@
 }
 
 .marathon-entry__cover{
-  flex:0 0 56px;
-  width:56px;
-  aspect-ratio:2/3;
+  flex:0 0 calc(var(--marathon-entry-cover-height, 78px) * 2 / 3);
+  width:calc(var(--marathon-entry-cover-height, 78px) * 2 / 3);
+  height:var(--marathon-entry-cover-height, 78px);
   border-radius:0.5rem;
   overflow:hidden;
   background:linear-gradient(135deg, rgba(98,118,154,.18), rgba(98,118,154,.05));
@@ -297,7 +298,7 @@
 }
 
 .marathon-entry__cover-placeholder{
-  font-size:1.75rem;
+  font-size:1.3rem;
   color:rgba(98,118,154,.35);
 }
 
