@@ -1,13 +1,15 @@
 from datetime import date, timedelta
+from decimal import Decimal, ROUND_HALF_UP
 import calendar
 from typing import Optional
 
 from django.shortcuts import render, redirect, get_object_or_404
+
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from .forms import SignUpForm, ProfileForm, RoleForm
-from django.db.models import Count
+from django.db.models import Count, Sum
 from django.urls import reverse
 from django.utils import timezone
 
@@ -345,10 +347,14 @@ def _collect_profile_stats(user: User, params):
                 "books": [],
                 "genre_labels": [],
                 "genre_values": [],
+                "format_labels": [],
+                "format_values": [],
+                "format_palette": [],
                 "pages_total": 0,
                 "pages_average": None,
                 "audio_total_display": None,
                 "audio_adjusted_display": None,
+                "audio_tracked_display": None,
                 "home_library": home_summary,
                 "reading_calendar": calendar_payload,
             },
@@ -420,6 +426,36 @@ def _collect_profile_stats(user: User, params):
     genre_labels = [row["genres__name"] for row in genre_stats]
     genre_values = [row["total"] for row in genre_stats]
 
+    logs_aggregate = (
+        ReadingLog.objects.filter(
+            progress__user=user,
+            log_date__gte=start,
+            log_date__lte=end,
+        )
+        .values("medium")
+        .annotate(
+            pages_total=Sum("pages_equivalent"),
+            audio_total=Sum("audio_seconds"),
+        )
+    )
+    format_totals = {
+        code: Decimal("0")
+        for code, _ in BookProgress.FORMAT_CHOICES
+    }
+    audio_tracked_seconds = 0
+    for entry in logs_aggregate:
+        medium = entry.get("medium")
+        pages_total = entry.get("pages_total") or Decimal("0")
+        if not isinstance(pages_total, Decimal):
+            pages_total = Decimal(str(pages_total))
+        if medium in format_totals:
+            format_totals[medium] += pages_total
+        if (
+            medium == BookProgress.FORMAT_AUDIO
+            and entry.get("audio_total")
+        ):
+            audio_tracked_seconds += int(entry["audio_total"] or 0)
+
     audio_total = timedelta()
     audio_adjusted = timedelta()
     for book_id in book_ids:
@@ -430,6 +466,42 @@ def _collect_profile_stats(user: User, params):
         adjusted = progress.get_audio_adjusted_length()
         audio_adjusted += adjusted or progress.audio_length
 
+    format_display_map = dict(BookProgress.FORMAT_CHOICES)
+    format_palette_map = {
+        BookProgress.FORMAT_PAPER: "#f59f00",
+        BookProgress.FORMAT_EBOOK: "#4c6ef5",
+        BookProgress.FORMAT_AUDIO: "#be4bdb",
+    }
+    total_equivalent = sum(format_totals.values(), Decimal("0"))
+    format_labels: list[str] = []
+    format_values: list[float] = []
+    format_palette: list[str] = []
+    if total_equivalent > 0:
+        for medium_code in (
+            BookProgress.FORMAT_PAPER,
+            BookProgress.FORMAT_EBOOK,
+            BookProgress.FORMAT_AUDIO,
+        ):
+            value = format_totals.get(medium_code) or Decimal("0")
+            if value <= 0:
+                continue
+            percent = (
+                value
+                / total_equivalent
+                * Decimal("100")
+            ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            format_labels.append(format_display_map.get(medium_code, medium_code))
+            format_values.append(float(percent))
+            format_palette.append(
+                format_palette_map.get(medium_code, "#4dabf7")
+            )
+
+    audio_tracked_display = None
+    if audio_tracked_seconds > 0:
+        audio_tracked_display = _format_duration(
+            timedelta(seconds=audio_tracked_seconds)
+        )
+
     days_count = max(1, (end - start).days + 1)
     pages_average = None
     if total_pages:
@@ -439,10 +511,14 @@ def _collect_profile_stats(user: User, params):
         "books": book_entries,
         "genre_labels": genre_labels,
         "genre_values": genre_values,
+        "format_labels": format_labels,
+        "format_values": format_values,
+        "format_palette": format_palette,
         "pages_total": total_pages,
         "pages_average": pages_average,
         "audio_total_display": _format_duration(audio_total),
         "audio_adjusted_display": _format_duration(audio_adjusted),
+        "audio_tracked_display": audio_tracked_display,
         "home_library": home_summary,
     }
 

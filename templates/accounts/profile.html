@@ -347,7 +347,7 @@
     {% endwith %}
 
     <div class="row g-3 mb-4">
-      <div class="col-12 col-md-4">
+      <div class="col-12 col-lg-6 col-xl-3">
         <div class="card border-0 shadow-sm h-100">
           <div class="card-body">
             <h3 class="h6 mb-2">Прочитано страниц</h3>
@@ -360,20 +360,43 @@
           </div>
         </div>
       </div>
-      <div class="col-12 col-md-4">
+      <div class="col-12 col-lg-6 col-xl-3">
         <div class="card border-0 shadow-sm h-100">
           <div class="card-body">
             <h3 class="h6 mb-2">Аудиокниги</h3>
-            {% if stats.audio_total_display %}
-              <p class="mb-1">Общая длительность: <strong>{{ stats.audio_total_display }}</strong></p>
-              <p class="text-muted mb-0">С учётом скорости: {{ stats.audio_adjusted_display }}</p>
-            {% else %}
+            {% if stats.audio_tracked_display %}
+              <p class="mb-1">Учтено прослушивания: <strong>{{ stats.audio_tracked_display }}</strong></p>
+            {% endif %}
+            {% if stats.audio_total_display or stats.audio_adjusted_display %}
+              <p class="text-muted mb-0">
+                {% if stats.audio_total_display %}
+                  Длительность книг: {{ stats.audio_total_display }}
+                {% endif %}
+                {% if stats.audio_adjusted_display %}
+                  <br>С учётом скорости: {{ stats.audio_adjusted_display }}
+                {% endif %}
+              </p>
+            {% elif not stats.audio_tracked_display %}
               <p class="text-muted mb-0">Аудиокниги в этот период не учитывались.</p>
             {% endif %}
           </div>
         </div>
       </div>
-      <div class="col-12 col-md-4">
+      <div class="col-12 col-lg-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <h3 class="h6 mb-2">Форматы чтения</h3>
+            {% if stats.format_labels %}
+              <div class="ratio ratio-1x1">
+                <canvas id="readingFormatChart"></canvas>
+              </div>
+            {% else %}
+              <p class="text-muted mb-0">Нет данных о форматах в выбранный период.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-6 col-xl-3">
         <div class="card border-0 shadow-sm h-100">
           <div class="card-body">
             <h3 class="h6 mb-2">Жанры</h3>
@@ -521,44 +544,84 @@
       {% endif %}
     </div>
 
-    {% if stats.genre_labels %}
-      {{ stats.genre_labels|json_script:"genre-chart-labels" }}
-      {{ stats.genre_values|json_script:"genre-chart-values" }}
+    {% if stats.genre_labels or stats.format_labels %}
+      {% if stats.genre_labels %}
+        {{ stats.genre_labels|json_script:"genre-chart-labels" }}
+        {{ stats.genre_values|json_script:"genre-chart-values" }}
+      {% endif %}
+      {% if stats.format_labels %}
+        {{ stats.format_labels|json_script:"reading-format-chart-labels" }}
+        {{ stats.format_values|json_script:"reading-format-chart-values" }}
+        {{ stats.format_palette|json_script:"reading-format-chart-colors" }}
+      {% endif %}
       <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" crossorigin="anonymous"></script>
       <script>
         (function () {
-          const labelsEl = document.getElementById('genre-chart-labels');
-          const valuesEl = document.getElementById('genre-chart-values');
-          const canvas = document.getElementById('genreChart');
-          if (!labelsEl || !valuesEl || !canvas || typeof Chart === 'undefined') {
+          if (typeof Chart === 'undefined') {
             return;
           }
-          const labels = JSON.parse(labelsEl.textContent);
-          const values = JSON.parse(valuesEl.textContent);
-          const palette = labels.map((_, index) => {
-            const hue = (index * 57) % 360;
-            return `hsl(${hue}, 70%, 55%)`;
-          });
-          new Chart(canvas.getContext('2d'), {
-            type: 'doughnut',
-            data: {
-              labels,
-              datasets: [{
-                data: values,
-                backgroundColor: palette,
-                borderColor: '#ffffff',
-                borderWidth: 2,
-              }],
-            },
-            options: {
-              responsive: true,
-              plugins: {
-                legend: {
-                  position: 'bottom',
+          
+          const genreLabelsEl = document.getElementById('genre-chart-labels');
+          const genreValuesEl = document.getElementById('genre-chart-values');
+          const genreCanvas = document.getElementById('genreChart');
+          if (genreLabelsEl && genreValuesEl && genreCanvas) {
+            const labels = JSON.parse(genreLabelsEl.textContent);
+            const values = JSON.parse(genreValuesEl.textContent);
+            const palette = labels.map((_, index) => {
+              const hue = (index * 57) % 360;
+              return `hsl(${hue}, 70%, 55%)`;
+            });
+            new Chart(genreCanvas.getContext('2d'), {
+              type: 'doughnut',
+              data: {
+                labels,
+                datasets: [{
+                  data: values,
+                  backgroundColor: palette,
+                  borderColor: '#ffffff',
+                  borderWidth: 2,
+                }],
+              },
+              options: {
+                responsive: true,
+                plugins: {
+                  legend: {
+                    position: 'bottom',
+                  },
                 },
               },
-            },
-          });
+              });
+          }
+
+          const formatLabelsEl = document.getElementById('reading-format-chart-labels');
+          const formatValuesEl = document.getElementById('reading-format-chart-values');
+          const formatColorsEl = document.getElementById('reading-format-chart-colors');
+          const formatCanvas = document.getElementById('readingFormatChart');
+          if (formatLabelsEl && formatValuesEl && formatColorsEl && formatCanvas) {
+            const labels = JSON.parse(formatLabelsEl.textContent);
+            const values = JSON.parse(formatValuesEl.textContent);
+            const colors = JSON.parse(formatColorsEl.textContent);
+            new Chart(formatCanvas.getContext('2d'), {
+              type: 'doughnut',
+              data: {
+                labels,
+                datasets: [{
+                  data: values,
+                  backgroundColor: colors,
+                  borderColor: '#ffffff',
+                  borderWidth: 2,
+                }],
+              },
+              options: {
+                responsive: true,
+                plugins: {
+                  legend: {
+                    position: 'bottom',
+                  },
+                },
+              },
+            });
+          }
         })();
       </script>
     {% endif %}
