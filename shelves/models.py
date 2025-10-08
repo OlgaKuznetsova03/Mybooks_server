@@ -589,8 +589,42 @@ class CharacterNote(models.Model):
         return f"{self.name} — {self.progress.book.title}"
 
 
+class ProgressAnnotation(models.Model):
+    """Цитаты и краткие заметки, связанные с прогрессом чтения."""
+
+    KIND_QUOTE = "quote"
+    KIND_NOTE = "note"
+    KIND_CHOICES = [
+        (KIND_QUOTE, "Цитата"),
+        (KIND_NOTE, "Заметка"),
+    ]
+
+    progress = models.ForeignKey(
+        BookProgress,
+        on_delete=models.CASCADE,
+        related_name="annotations",
+    )
+    kind = models.CharField(max_length=20, choices=KIND_CHOICES)
+    body = models.TextField()
+    location = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Страница, глава или отметка, где сделана заметка.",
+    )
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+
+    def __str__(self):
+        return f"{self.get_kind_display()} — {self.progress.book.title}"
+
+
 class ReadingFeedEntry(models.Model):
     """Публичная запись о прогрессе чтения."""
+
 
     progress = models.ForeignKey(
         BookProgress,

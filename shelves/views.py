@@ -17,10 +17,12 @@ from .models import (
     Shelf,
     ShelfItem,
     BookProgress,
+    CharacterNote,
     Event,
     EventParticipant,
     HomeLibraryEntry,
     ReadingFeedEntry,
+    ProgressAnnotation,
 )
 
 from .services import (
@@ -39,6 +41,8 @@ from .forms import (
     CharacterNoteForm,
     BookProgressFormatForm,
     ReadingFeedCommentForm,
+    ProgressQuoteForm,
+    ProgressNoteEntryForm,
     HomeLibraryEntryForm,
     HomeLibraryFilterForm,
 )
@@ -456,7 +460,18 @@ def _format_duration(duration):
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
 
-def _build_reading_track_context(progress, book, *, character_form=None, format_form=None):
+def _build_reading_track_context(
+    progress,
+    book,
+    *,
+    character_form=None,
+    format_form=None,
+    character_forms=None,
+    quote_form=None,
+    note_entry_form=None,
+    quote_forms=None,
+    note_forms=None,
+):
     total_pages = progress.get_effective_total_pages()
     combined_pages = progress.get_combined_current_pages()
     calculated_percent = float(progress.percent or Decimal("0"))
@@ -533,7 +548,46 @@ def _build_reading_track_context(progress, book, *, character_form=None, format_
     estimated_days_remaining = progress.estimated_days_remaining
     character_form = character_form or CharacterNoteForm()
     format_form = format_form or BookProgressFormatForm(instance=progress, book=book)
-    characters = progress.character_entries.all()
+    characters = list(progress.character_entries.all())
+    character_forms = character_forms or {}
+    character_edit_forms = {
+        character.pk: character_forms.get(character.pk)
+        or CharacterNoteForm(instance=character, prefix=f"character-{character.pk}")
+        for character in characters
+    }
+    character_rows = [
+        (character, character_edit_forms[character.pk])
+        for character in characters
+    ]
+
+    quote_form = quote_form or ProgressQuoteForm()
+    note_entry_form = note_entry_form or ProgressNoteEntryForm()
+    quote_forms = quote_forms or {}
+    note_forms = note_forms or {}
+    quote_entries = list(
+        progress.annotations.filter(kind=ProgressAnnotation.KIND_QUOTE)
+    )
+    note_entries = list(
+        progress.annotations.filter(kind=ProgressAnnotation.KIND_NOTE)
+    )
+    quote_edit_forms = {
+        entry.pk: quote_forms.get(entry.pk)
+        or ProgressQuoteForm(instance=entry, prefix=f"quote-{entry.pk}")
+        for entry in quote_entries
+    }
+    quote_rows = [
+        (entry, quote_edit_forms[entry.pk])
+        for entry in quote_entries
+    ]
+    note_edit_forms = {
+        entry.pk: note_forms.get(entry.pk)
+        or ProgressNoteEntryForm(instance=entry, prefix=f"note-{entry.pk}")
+        for entry in note_entries
+    }
+    note_rows = [
+        (entry, note_edit_forms[entry.pk])
+        for entry in note_entries
+    ]
     return {
         "book": book,
         "progress": progress,
@@ -543,6 +597,8 @@ def _build_reading_track_context(progress, book, *, character_form=None, format_
         "notes_form": notes_form,
         "character_form": character_form,
         "characters": characters,
+        "character_edit_forms": character_edit_forms,
+        "character_rows": character_rows,
         "average_pages_per_day": average_pages_per_day,
         "estimated_days_remaining": estimated_days_remaining,
         "chart_labels": chart_labels,
@@ -557,6 +613,14 @@ def _build_reading_track_context(progress, book, *, character_form=None, format_
         "media_details": media_details,
         "combined_pages": combined_pages,
         "audio_logs": audio_logs,
+        "quote_form": quote_form,
+        "quote_entries": quote_entries,
+        "quote_edit_forms": quote_edit_forms,
+        "quote_rows": quote_rows,
+        "note_entry_form": note_entry_form,
+        "note_entries": note_entries,
+        "note_edit_forms": note_edit_forms,
+        "note_rows": note_rows,
     }
 
 def reading_track(request, book_id):
@@ -586,9 +650,134 @@ def reading_add_character(request, progress_id):
         messages.success(request, "Герой добавлен.")
         return redirect("reading_track", book_id=progress.book_id)
 
-    book = progress.book
-    context = _build_reading_track_context(progress, book, character_form=form)
+    context = _build_reading_track_context(progress, progress.book, character_form=form)
     messages.error(request, "Не удалось добавить героя. Исправьте ошибки и попробуйте снова.")
+    return render(request, "reading/track.html", context)
+
+
+@login_required
+@require_POST
+def reading_update_character(request, progress_id, character_id):
+    progress = get_object_or_404(BookProgress, pk=progress_id, user=request.user)
+    character = get_object_or_404(CharacterNote, pk=character_id, progress=progress)
+    form = CharacterNoteForm(
+        request.POST,
+        instance=character,
+        prefix=f"character-{character.pk}",
+    )
+    if form.is_valid():
+        form.save()
+        messages.success(request, "Герой обновлён.")
+        return redirect("reading_track", book_id=progress.book_id)
+
+    context = _build_reading_track_context(
+        progress,
+        progress.book,
+        character_forms={character.pk: form},
+    )
+    messages.error(request, "Не удалось обновить героя. Проверьте данные и попробуйте снова.")
+    return render(request, "reading/track.html", context)
+
+
+@login_required
+@require_POST
+def reading_add_quote(request, progress_id):
+    progress = get_object_or_404(BookProgress, pk=progress_id, user=request.user)
+    form = ProgressQuoteForm(request.POST)
+    if form.is_valid():
+        quote = form.save(commit=False)
+        quote.progress = progress
+        quote.kind = ProgressAnnotation.KIND_QUOTE
+        quote.save()
+        messages.success(request, "Цитата сохранена.")
+        return redirect("reading_track", book_id=progress.book_id)
+
+    context = _build_reading_track_context(
+        progress,
+        progress.book,
+        quote_form=form,
+    )
+    messages.error(request, "Не удалось сохранить цитату. Исправьте ошибки и попробуйте снова.")
+    return render(request, "reading/track.html", context)
+
+
+@login_required
+@require_POST
+def reading_update_quote(request, progress_id, quote_id):
+    progress = get_object_or_404(BookProgress, pk=progress_id, user=request.user)
+    quote = get_object_or_404(
+        ProgressAnnotation,
+        pk=quote_id,
+        progress=progress,
+        kind=ProgressAnnotation.KIND_QUOTE,
+    )
+    form = ProgressQuoteForm(
+        request.POST,
+        instance=quote,
+        prefix=f"quote-{quote.pk}",
+    )
+    if form.is_valid():
+        form.save()
+        messages.success(request, "Цитата обновлена.")
+        return redirect("reading_track", book_id=progress.book_id)
+
+    context = _build_reading_track_context(
+        progress,
+        progress.book,
+        quote_forms={quote.pk: form},
+    )
+    messages.error(request, "Не удалось обновить цитату. Проверьте данные и попробуйте снова.")
+    return render(request, "reading/track.html", context)
+
+
+@login_required
+@require_POST
+def reading_add_note_entry(request, progress_id):
+    progress = get_object_or_404(BookProgress, pk=progress_id, user=request.user)
+    form = ProgressNoteEntryForm(request.POST)
+    if form.is_valid():
+        note = form.save(commit=False)
+        note.progress = progress
+        note.kind = ProgressAnnotation.KIND_NOTE
+        note.save()
+        messages.success(request, "Заметка сохранена.")
+        return redirect("reading_track", book_id=progress.book_id)
+
+    context = _build_reading_track_context(
+        progress,
+        progress.book,
+        note_entry_form=form,
+    )
+    messages.error(request, "Не удалось сохранить заметку. Исправьте ошибки и попробуйте снова.")
+    return render(request, "reading/track.html", context)
+
+
+@login_required
+@require_POST
+def reading_update_note_entry(request, progress_id, note_id):
+    progress = get_object_or_404(BookProgress, pk=progress_id, user=request.user)
+    note = get_object_or_404(
+        ProgressAnnotation,
+        pk=note_id,
+        progress=progress,
+        kind=ProgressAnnotation.KIND_NOTE,
+    )
+    form = ProgressNoteEntryForm(
+        request.POST,
+        instance=note,
+        prefix=f"note-{note.pk}",
+    )
+    if form.is_valid():
+        form.save()
+        messages.success(request, "Заметка обновлена.")
+        return redirect("reading_track", book_id=progress.book_id)
+
+    context = _build_reading_track_context(
+        progress,
+        progress.book,
+        note_forms={note.pk: form},
+    )
+    messages.error(request, "Не удалось обновить заметку. Проверьте данные и попробуйте снова.")
     return render(request, "reading/track.html", context)
 
 @login_required

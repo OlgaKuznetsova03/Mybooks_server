@@ -10,6 +10,7 @@ from .models import (
     BookProgress,
     ReadingLog,
     CharacterNote,
+    ProgressAnnotation,
     Shelf,
     ShelfItem,
     ReadingFeedEntry,
@@ -279,6 +280,110 @@ class ReadingTrackViewTests(TestCase):
         character = CharacterNote.objects.get(progress=progress)
         self.assertEqual(character.name, "Гарри Поттер")
         self.assertEqual(character.description, "Главный герой, волшебник")
+
+    def test_update_character_changes_existing_entry(self):
+        progress = self._create_progress()
+        character = CharacterNote.objects.create(
+            progress=progress,
+            name="Гермиона",
+            description="Подруга главного героя",
+        )
+
+        response = self.client.post(
+            reverse("reading_update_character", args=[progress.pk, character.pk]),
+            {
+                f"character-{character.pk}-name": "Гермиона Грейнджер",
+                f"character-{character.pk}-description": "Лучший друг и голос разума",
+            },
+        )
+
+        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        character.refresh_from_db()
+        self.assertEqual(character.name, "Гермиона Грейнджер")
+        self.assertEqual(character.description, "Лучший друг и голос разума")
+
+    def test_add_quote_creates_annotation(self):
+        progress = self._create_progress()
+
+        response = self.client.post(
+            reverse("reading_add_quote", args=[progress.pk]),
+            {
+                "location": "Стр. 42",
+                "body": "Счастье можно найти даже в самые тёмные времена...",
+                "comment": "Любимая цитата Дамблдора",
+            },
+        )
+
+        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        quote = ProgressAnnotation.objects.get(progress=progress)
+        self.assertEqual(quote.kind, ProgressAnnotation.KIND_QUOTE)
+        self.assertEqual(quote.location, "Стр. 42")
+        self.assertIn("Счастье можно найти", quote.body)
+
+    def test_update_quote_changes_existing_annotation(self):
+        progress = self._create_progress()
+        quote = ProgressAnnotation.objects.create(
+            progress=progress,
+            kind=ProgressAnnotation.KIND_QUOTE,
+            body="Первоначальная цитата",
+            location="Стр. 10",
+        )
+
+        response = self.client.post(
+            reverse("reading_update_quote", args=[progress.pk, quote.pk]),
+            {
+                f"quote-{quote.pk}-location": "Стр. 120",
+                f"quote-{quote.pk}-body": "Обновлённая цитата",
+                f"quote-{quote.pk}-comment": "Отмечаю кульминацию",
+            },
+        )
+
+        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        quote.refresh_from_db()
+        self.assertEqual(quote.location, "Стр. 120")
+        self.assertEqual(quote.body, "Обновлённая цитата")
+        self.assertEqual(quote.comment, "Отмечаю кульминацию")
+
+    def test_add_note_entry_creates_annotation(self):
+        progress = self._create_progress()
+
+        response = self.client.post(
+            reverse("reading_add_note_entry", args=[progress.pk]),
+            {
+                "location": "Глава 3",
+                "body": "Автор раскрывает второстепенную линию",
+                "comment": "Понравилась динамика",
+            },
+        )
+
+        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        note = ProgressAnnotation.objects.get(progress=progress)
+        self.assertEqual(note.kind, ProgressAnnotation.KIND_NOTE)
+        self.assertEqual(note.location, "Глава 3")
+        self.assertIn("второстепенную", note.body)
+
+    def test_update_note_entry_changes_annotation(self):
+        progress = self._create_progress()
+        note = ProgressAnnotation.objects.create(
+            progress=progress,
+            kind=ProgressAnnotation.KIND_NOTE,
+            body="Черновик заметки",
+        )
+
+        response = self.client.post(
+            reverse("reading_update_note_entry", args=[progress.pk, note.pk]),
+            {
+                f"note-{note.pk}-location": "Эпилог",
+                f"note-{note.pk}-body": "Финал удивил",
+                f"note-{note.pk}-comment": "Жду продолжение",
+            },
+        )
+
+        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        note.refresh_from_db()
+        self.assertEqual(note.location, "Эпилог")
+        self.assertEqual(note.body, "Финал удивил")
+        self.assertEqual(note.comment, "Жду продолжение")
 
     def test_audio_increment_updates_current_page_and_logs_audio(self):
         progress = self._create_progress()

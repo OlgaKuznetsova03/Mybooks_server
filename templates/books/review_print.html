@@ -197,6 +197,54 @@
       white-space: pre-wrap;
     }
     
+    .annotations {
+      list-style: none;
+      padding: 0;
+      margin: 18px 0 0;
+      display: grid;
+      gap: 12px;
+    }
+
+    .annotations li {
+      background: rgba(255, 255, 255, 0.75);
+      border: 1px solid rgba(194, 106, 90, 0.18);
+      border-radius: 12px;
+      padding: 14px 18px;
+      box-shadow: 0 10px 18px rgba(194, 106, 90, 0.12);
+    }
+
+    .annotation-meta {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .annotation-body {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 500;
+      color: #2d2d2d;
+    }
+
+    .annotation-comment {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    blockquote {
+      margin: 0;
+      padding-left: 16px;
+      border-left: 4px solid rgba(194, 106, 90, 0.35);
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 18px;
+      line-height: 1.7;
+      color: var(--accent-dark);
+    }
+
     .characters {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -388,8 +436,44 @@
 
       <section>
         <h2>Комментарии и цитаты</h2>
-        {% if notes %}
-          <div class="notes">{{ notes|linebreaksbr }}</div>
+        {% if notes or saved_notes or saved_quotes %}
+          {% if notes %}
+            <div class="notes">{{ notes|linebreaksbr }}</div>
+          {% endif %}
+
+          {% if saved_notes %}
+            <h3>Короткие заметки</h3>
+            <ul class="annotations">
+              {% for note in saved_notes %}
+                <li>
+                  {% if note.location %}
+                    <div class="annotation-meta">{{ note.location }}</div>
+                  {% endif %}
+                  <div class="annotation-body">{{ note.body|linebreaksbr }}</div>
+                  {% if note.comment %}
+                    <div class="annotation-comment">{{ note.comment|linebreaksbr }}</div>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+
+          {% if saved_quotes %}
+            <h3>Цитаты</h3>
+            <ul class="annotations">
+              {% for quote in saved_quotes %}
+                <li>
+                  {% if quote.location %}
+                    <div class="annotation-meta">{{ quote.location }}</div>
+                  {% endif %}
+                  <blockquote>{{ quote.body|linebreaksbr }}</blockquote>
+                  {% if quote.comment %}
+                    <div class="annotation-comment">{{ quote.comment|linebreaksbr }}</div>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          {% endif %}
         {% else %}
           <p class="empty-note">Здесь можно записывать любимые моменты и цитаты.</p>
         {% endif %}

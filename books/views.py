@@ -26,7 +26,7 @@ from django.utils.html import mark_safe
 from django.utils.text import slugify
 from django.views.decorators.http import require_GET, require_POST
 from shelves.forms import HomeLibraryQuickAddForm
-from shelves.models import BookProgress, ShelfItem, HomeLibraryEntry
+from shelves.models import BookProgress, ShelfItem, HomeLibraryEntry, ProgressAnnotation
 from shelves.services import (
     DEFAULT_READ_SHELF,
     DEFAULT_READING_SHELF,
@@ -1187,6 +1187,8 @@ def book_review_print(request, pk):
     reading_end = None
     notes = ""
     characters = []
+    saved_quotes = []
+    saved_notes = []
 
     if progress:
         period = progress.logs.aggregate(start=Min("log_date"), end=Max("log_date"))
@@ -1198,6 +1200,12 @@ def book_review_print(request, pk):
             reading_end = progress.updated_at.date()
         notes = progress.reading_notes
         characters = list(progress.character_entries.all())
+        saved_quotes = list(
+            progress.annotations.filter(kind=ProgressAnnotation.KIND_QUOTE)
+        )
+        saved_notes = list(
+            progress.annotations.filter(kind=ProgressAnnotation.KIND_NOTE)
+        )
 
     cover_url = request.build_absolute_uri(book.cover.url) if book.cover else None
 
@@ -1209,6 +1217,8 @@ def book_review_print(request, pk):
         "reading_start": reading_start,
         "reading_end": reading_end,
         "notes": notes,
+        "saved_quotes": saved_quotes,
+        "saved_notes": saved_notes,
         "characters": characters,
     }
 

@@ -941,20 +941,76 @@
       <h2 class="reading-section__title">Герои книги</h2>
       <p class="reading-section__note">Записывайте персонажей, чтобы не потерять их истории.</p>
     </div>
-    {% if characters %}
+    {% if character_rows %}
       <div class="table-responsive mb-3">
         <table class="table table-sm align-middle mb-0">
           <thead>
             <tr>
               <th scope="col" style="width: 200px;">Имя</th>
               <th scope="col">Описание</th>
+              <th scope="col" class="text-end">Действия</th>
             </tr>
           </thead>
           <tbody>
-            {% for character in characters %}
+            {% for character, form in character_rows %}
               <tr>
                 <td class="fw-semibold">{{ character.name }}</td>
-                <td>{{ character.description|linebreaksbr }}</td>
+                <td>{{ character.description|default:"—"|linebreaksbr }}</td>
+                <td class="text-end">
+                  <button
+                    class="btn btn-outline-secondary btn-sm"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#character-edit-{{ character.id }}"
+                    aria-expanded="false"
+                    aria-controls="character-edit-{{ character.id }}"
+                  >
+                    Редактировать
+                  </button>
+                </td>
+              </tr>
+              <tr class="collapse" id="character-edit-{{ character.id }}">
+                <td colspan="3">
+                  <form
+                    method="post"
+                    action="{% url 'reading_update_character' progress.id character.id %}"
+                    class="row g-3"
+                  >
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                      <div class="col-12">
+                        <div class="alert alert-danger mb-0">
+                          {{ form.non_field_errors|join:"<br>"|safe }}
+                        </div>
+                      </div>
+                    {% endif %}
+                    <div class="col-12 col-md-4">
+                      <label class="form-label" for="{{ form.name.id_for_label }}">
+                        {{ form.name.label }}
+                      </label>
+                      {{ form.name }}
+                      {% if form.name.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.name.errors|join:", " }}
+                        </div>
+                      {% endif %}
+                    </div>
+                    <div class="col-12 col-md-8">
+                      <label class="form-label" for="{{ form.description.id_for_label }}">
+                        {{ form.description.label }}
+                      </label>
+                      {{ form.description }}
+                      {% if form.description.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.description.errors|join:", " }}
+                        </div>
+                      {% endif %}
+                    </div>
+                    <div class="col-12 d-flex justify-content-end">
+                      <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4">Сохранить изменения</button>
+                    </div>
+                  </form>
+                </td>
               </tr>
             {% endfor %}
           </tbody>
@@ -1004,35 +1060,264 @@
     </div>
   </section>
 
+  <section class="reading-section">
+    <div class="reading-section__header">
+      <h2 class="reading-section__title">Любимые цитаты</h2>
+      <p class="reading-section__note">Сохраняйте фразы, к которым хочется возвращаться.</p>
+    </div>
+    {% if quote_rows %}
+      <div class="list-group mb-3">
+        {% for quote, form in quote_rows %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between align-items-start gap-3">
+              <div class="flex-grow-1">
+                {% if quote.location %}
+                  <div class="text-muted small mb-1">{{ quote.location }}</div>
+                {% endif %}
+                <div>{{ quote.body|linebreaksbr }}</div>
+                {% if quote.comment %}
+                  <div class="text-muted small mt-2">{{ quote.comment|linebreaksbr }}</div>
+                {% endif %}
+              </div>
+              <button
+                class="btn btn-outline-secondary btn-sm"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#quote-edit-{{ quote.id }}"
+                aria-expanded="false"
+                aria-controls="quote-edit-{{ quote.id }}"
+              >
+                Редактировать
+              </button>
+            </div>
+            <div class="collapse mt-3" id="quote-edit-{{ quote.id }}">
+              <form
+                method="post"
+                action="{% url 'reading_update_quote' progress.id quote.id %}"
+                class="row g-3"
+              >
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                  <div class="col-12">
+                    <div class="alert alert-danger mb-0">
+                      {{ form.non_field_errors|join:"<br>"|safe }}
+                    </div>
+                  </div>
+                {% endif %}
+                <div class="col-12 col-md-4">
+                  <label class="form-label" for="{{ form.location.id_for_label }}">{{ form.location.label }}</label>
+                  {{ form.location }}
+                  {% if form.location.errors %}
+                    <div class="invalid-feedback d-block">{{ form.location.errors|join:", " }}</div>
+                  {% endif %}
+                </div>
+                <div class="col-12">
+                  <label class="form-label" for="{{ form.body.id_for_label }}">{{ form.body.label }}</label>
+                  {{ form.body }}
+                  {% if form.body.errors %}
+                    <div class="invalid-feedback d-block">{{ form.body.errors|join:", " }}</div>
+                  {% endif %}
+                </div>
+                <div class="col-12">
+                  <label class="form-label" for="{{ form.comment.id_for_label }}">{{ form.comment.label }}</label>
+                  {{ form.comment }}
+                  {% if form.comment.errors %}
+                    <div class="invalid-feedback d-block">{{ form.comment.errors|join:", " }}</div>
+                  {% endif %}
+                </div>
+                <div class="col-12 d-flex justify-content-end">
+                  <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4">Сохранить изменения</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-muted">Пока нет сохранённых цитат.</p>
+    {% endif %}
+
+    <div class="reading-subsection mt-3">
+      <h3 class="h6 mb-3">Добавить цитату</h3>
+      <form method="post" action="{% url 'reading_add_quote' progress.id %}" class="row g-3">
+        {% csrf_token %}
+        {% if quote_form.non_field_errors %}
+          <div class="col-12">
+            <div class="alert alert-danger mb-0">
+              {{ quote_form.non_field_errors|join:"<br>"|safe }}
+            </div>
+          </div>
+        {% endif %}
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="{{ quote_form.location.id_for_label }}">{{ quote_form.location.label }}</label>
+          {{ quote_form.location }}
+          {% if quote_form.location.errors %}
+            <div class="invalid-feedback d-block">{{ quote_form.location.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+        <div class="col-12">
+          <label class="form-label" for="{{ quote_form.body.id_for_label }}">{{ quote_form.body.label }}</label>
+          {{ quote_form.body }}
+          {% if quote_form.body.errors %}
+            <div class="invalid-feedback d-block">{{ quote_form.body.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+        <div class="col-12">
+          <label class="form-label" for="{{ quote_form.comment.id_for_label }}">{{ quote_form.comment.label }}</label>
+          {{ quote_form.comment }}
+          {% if quote_form.comment.errors %}
+            <div class="invalid-feedback d-block">{{ quote_form.comment.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+        <div class="col-12 d-flex justify-content-end">
+          <button type="submit" class="btn btn-outline-primary rounded-pill">Сохранить цитату</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
   <section class="reading-section reading-note-area">
     <div class="reading-section__header">
       <h2 class="reading-section__title">Личные заметки</h2>
       <p class="reading-section__note">Записывайте впечатления и любимые цитаты.</p>
     </div>
-    <form method="post" action="{% url 'reading_update_notes' progress.id %}" class="row g-3">
-      {% csrf_token %}
-      {% if notes_form.non_field_errors %}
-        <div class="col-12">
-          <div class="alert alert-danger mb-0">
-            {{ notes_form.non_field_errors|join:"<br>"|safe }}
+    {% if note_rows %}
+      <div class="list-group mb-3">
+        {% for note, form in note_rows %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between align-items-start gap-3">
+              <div class="flex-grow-1">
+                {% if note.location %}
+                  <div class="text-muted small mb-1">{{ note.location }}</div>
+                {% endif %}
+                <div>{{ note.body|linebreaksbr }}</div>
+                {% if note.comment %}
+                  <div class="text-muted small mt-2">{{ note.comment|linebreaksbr }}</div>
+                {% endif %}
+              </div>
+              <button
+                class="btn btn-outline-secondary btn-sm"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#note-edit-{{ note.id }}"
+                aria-expanded="false"
+                aria-controls="note-edit-{{ note.id }}"
+              >
+                Редактировать
+              </button>
+            </div>
+            <div class="collapse mt-3" id="note-edit-{{ note.id }}">
+              <form
+                method="post"
+                action="{% url 'reading_update_note_entry' progress.id note.id %}"
+                class="row g-3"
+              >
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                  <div class="col-12">
+                    <div class="alert alert-danger mb-0">
+                      {{ form.non_field_errors|join:"<br>"|safe }}
+                    </div>
+                  </div>
+                {% endif %}
+                <div class="col-12 col-md-4">
+                  <label class="form-label" for="{{ form.location.id_for_label }}">{{ form.location.label }}</label>
+                  {{ form.location }}
+                  {% if form.location.errors %}
+                    <div class="invalid-feedback d-block">{{ form.location.errors|join:", " }}</div>
+                  {% endif %}
+                </div>
+                <div class="col-12">
+                  <label class="form-label" for="{{ form.body.id_for_label }}">{{ form.body.label }}</label>
+                  {{ form.body }}
+                  {% if form.body.errors %}
+                    <div class="invalid-feedback d-block">{{ form.body.errors|join:", " }}</div>
+                  {% endif %}
+                </div>
+                <div class="col-12">
+                  <label class="form-label" for="{{ form.comment.id_for_label }}">{{ form.comment.label }}</label>
+                  {{ form.comment }}
+                  {% if form.comment.errors %}
+                    <div class="invalid-feedback d-block">{{ form.comment.errors|join:", " }}</div>
+                  {% endif %}
+                </div>
+                <div class="col-12 d-flex justify-content-end">
+                  <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4">Сохранить изменения</button>
+                </div>
+              </form>
+            </div>
           </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-muted">Пока нет коротких заметок.</p>
+    {% endif %}
+
+    <div class="reading-subsection mt-3">
+      <h3 class="h6 mb-3">Добавить заметку</h3>
+      <form method="post" action="{% url 'reading_add_note_entry' progress.id %}" class="row g-3">
+        {% csrf_token %}
+        {% if note_entry_form.non_field_errors %}
+          <div class="col-12">
+            <div class="alert alert-danger mb-0">
+              {{ note_entry_form.non_field_errors|join:"<br>"|safe }}
+            </div>
+          </div>
+          {% endif %}
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="{{ note_entry_form.location.id_for_label }}">{{ note_entry_form.location.label }}</label>
+          {{ note_entry_form.location }}
+          {% if note_entry_form.location.errors %}
+            <div class="invalid-feedback d-block">{{ note_entry_form.location.errors|join:", " }}</div>
+          {% endif %}
         </div>
-      {% endif %}
+        <div class="col-12">
+          <label class="form-label" for="{{ note_entry_form.body.id_for_label }}">{{ note_entry_form.body.label }}</label>
+          {{ note_entry_form.body }}
+          {% if note_entry_form.body.errors %}
+            <div class="invalid-feedback d-block">{{ note_entry_form.body.errors|join:", " }}</div>
+          {% endif %}
+        </div>
       <div class="col-12">
-        <label class="form-label" for="{{ notes_form.reading_notes.id_for_label }}">
-          {{ notes_form.reading_notes.label }}
-        </label>
-        {{ notes_form.reading_notes }}
-        {% if notes_form.reading_notes.errors %}
-          <div class="invalid-feedback d-block">
-            {{ notes_form.reading_notes.errors|join:", " }}
+          <label class="form-label" for="{{ note_entry_form.comment.id_for_label }}">{{ note_entry_form.comment.label }}</label>
+          {{ note_entry_form.comment }}
+          {% if note_entry_form.comment.errors %}
+            <div class="invalid-feedback d-block">{{ note_entry_form.comment.errors|join:", " }}</div>
+          {% endif %}
+        </div>
+        <div class="col-12 d-flex justify-content-end">
+          <button type="submit" class="btn btn-outline-primary rounded-pill">Сохранить заметку</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="reading-subsection mt-4">
+      <h3 class="h6 mb-3">Общие заметки</h3>
+      <form method="post" action="{% url 'reading_update_notes' progress.id %}" class="row g-3">
+        {% csrf_token %}
+        {% if notes_form.non_field_errors %}
+          <div class="col-12">
+            <div class="alert alert-danger mb-0">
+              {{ notes_form.non_field_errors|join:"<br>"|safe }}
+            </div>
           </div>
         {% endif %}
-      </div>
-      <div class="col-12 d-flex justify-content-end">
-        <button type="submit" class="btn btn-primary rounded-pill px-4">Сохранить заметки</button>
-      </div>
-    </form>
+      <div class="col-12">
+          <label class="form-label" for="{{ notes_form.reading_notes.id_for_label }}">
+            {{ notes_form.reading_notes.label }}
+          </label>
+          {{ notes_form.reading_notes }}
+          {% if notes_form.reading_notes.errors %}
+            <div class="invalid-feedback d-block">
+              {{ notes_form.reading_notes.errors|join:", " }}
+            </div>
+          {% endif %}
+        </div>
+        <div class="col-12 d-flex justify-content-end">
+          <button type="submit" class="btn btn-primary rounded-pill px-4">Сохранить заметки</button>
+        </div>
+      </form>
+    </div>
   </section>
 </div>
 {% endblock %}

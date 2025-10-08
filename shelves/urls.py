@@ -30,5 +30,26 @@ urlpatterns = [
     path("reading/finish/<int:progress_id>/", views.reading_mark_finished, name="reading_mark_finished"),
     path("reading/notes/<int:progress_id>/", views.reading_update_notes, name="reading_update_notes"),
     path("reading/characters/<int:progress_id>/", views.reading_add_character, name="reading_add_character"),
+    path(
+        "reading/characters/<int:progress_id>/<int:character_id>/",
+        views.reading_update_character,
+        name="reading_update_character",
+    ),
+    path("reading/quotes/<int:progress_id>/", views.reading_add_quote, name="reading_add_quote"),
+    path(
+        "reading/quotes/<int:progress_id>/<int:quote_id>/",
+        views.reading_update_quote,
+        name="reading_update_quote",
+    ),
+    path(
+        "reading/note-entries/<int:progress_id>/",
+        views.reading_add_note_entry,
+        name="reading_add_note_entry",
+    ),
+    path(
+        "reading/note-entries/<int:progress_id>/<int:note_id>/",
+        views.reading_update_note_entry,
+        name="reading_update_note_entry",
+    ),
     path("reading/format/<int:progress_id>/", views.reading_update_format, name="reading_update_format"),
 ]

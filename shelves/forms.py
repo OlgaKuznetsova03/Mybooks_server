@@ -14,6 +14,7 @@ from .models import (
     BookProgress,
     BookProgressMedium,
     CharacterNote,
+    ProgressAnnotation,
     HomeLibraryEntry,
     ReadingFeedComment,
 )
@@ -100,6 +101,69 @@ class CharacterNoteForm(forms.ModelForm):
                     "placeholder": "Кем является герой, как связан с сюжетом...",
                 }
             ),
+        }
+
+
+class ProgressAnnotationForm(forms.ModelForm):
+    base_body_placeholder = ""
+    base_comment_placeholder = ""
+
+    class Meta:
+        model = ProgressAnnotation
+        fields = ["body", "location", "comment"]
+        widgets = {
+            "body": forms.Textarea(
+                attrs={
+                    "rows": 3,
+                    "class": "form-control",
+                }
+            ),
+            "location": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                }
+            ),
+            "comment": forms.Textarea(
+                attrs={
+                    "rows": 2,
+                    "class": "form-control",
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.base_body_placeholder:
+            self.fields["body"].widget.attrs.setdefault(
+                "placeholder", self.base_body_placeholder
+            )
+        if self.base_comment_placeholder:
+            self.fields["comment"].widget.attrs.setdefault(
+                "placeholder", self.base_comment_placeholder
+            )
+
+
+class ProgressQuoteForm(ProgressAnnotationForm):
+    base_body_placeholder = "Запишите точный текст цитаты..."
+    base_comment_placeholder = "Что вас зацепило в этой цитате? (необязательно)"
+
+    class Meta(ProgressAnnotationForm.Meta):
+        labels = {
+            "body": "Текст цитаты",
+            "location": "Страница или отметка",
+            "comment": "Комментарий",
+        }
+
+
+class ProgressNoteEntryForm(ProgressAnnotationForm):
+    base_body_placeholder = "Кратко опишите идею, мысль или момент из книги..."
+    base_comment_placeholder = "Дополнительные детали (необязательно)"
+
+    class Meta(ProgressAnnotationForm.Meta):
+        labels = {
+            "body": "Текст заметки",
+            "location": "Глава или сцена",
+            "comment": "Комментарий",
         }
 
 
