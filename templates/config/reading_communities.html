@@ -14,136 +14,156 @@
     <p class="lead text-muted mb-0">Выбирайте удобный формат общения вокруг книг: регулярные обсуждения или динамичные читательские забеги.</p>
   </div>
 
-  <section class="mb-5" id="reading-clubs">
-    <div class="d-flex justify-content-between align-items-start flex-column flex-md-row mb-4">
-      <div class="me-md-4">
-        <h2 class="h3 mb-2">Совместные чтения</h2>
-        <p class="text-muted mb-0">Обсуждаем одну книгу по частям, делимся впечатлениями и поддерживаем друг друга в процессе чтения.</p>
-      </div>
-      <div class="d-flex gap-2 mt-3 mt-md-0">
-        <a class="btn btn-outline-primary" href="{% url 'reading_clubs:list' %}"><i class="bi bi-journal-text me-2"></i>Все чтения</a>
-        {% if request.user.is_authenticated %}
-          <a class="btn btn-primary" href="{% url 'reading_clubs:create' %}"><i class="bi bi-plus-lg me-1"></i>Создать чтение</a>
-        {% endif %}
-      </div>
-    </div>
+  <section class="reading-section mb-5" id="reading-clubs">
+    <button class="reading-section__toggle" type="button" data-bs-toggle="collapse" data-bs-target="#reading-clubs-content" aria-expanded="false" aria-controls="reading-clubs-content">
+      <span class="reading-section__toggle-text"><i class="bi bi-people me-2"></i>Совместные чтения</span>
+      <span class="reading-section__toggle-hint" data-label-closed="Показать" data-label-open="Скрыть"></span>
+      <i class="bi bi-chevron-down reading-section__icon" aria-hidden="true"></i>
+    </button>
 
-    {% for group in club_groups %}
-      <section class="mb-4" id="{{ group.slug }}">
-        <div class="d-flex justify-content-between align-items-start flex-column flex-md-row mb-3">
+    <div class="collapse reading-section__content" id="reading-clubs-content">
+      <div class="reading-section__inner">
+        <div class="reading-section__intro d-flex justify-content-between align-items-start flex-column flex-md-row mb-4">
           <div class="me-md-4">
-            <h3 class="h5 mb-1">{{ group.title }}</h3>
-            <p class="text-muted mb-0">{{ group.description }}</p>
+            <h2 class="h3 mb-2">Совместные чтения</h2>
+            <p class="text-muted mb-0">Обсуждаем одну книгу по частям, делимся впечатлениями и поддерживаем друг друга в процессе чтения.</p>
           </div>
-          <span class="badge text-bg-light mt-3 mt-md-0">{{ group.total }} шт.</span>
+          <div class="d-flex flex-column flex-sm-row gap-2 mt-3 mt-md-0 reading-section__actions">
+            <a class="btn btn-outline-primary" href="{% url 'reading_clubs:list' %}"><i class="bi bi-journal-text me-2"></i>Все чтения</a>
+            {% if request.user.is_authenticated %}
+              <a class="btn btn-primary" href="{% url 'reading_clubs:create' %}"><i class="bi bi-plus-lg me-1"></i>Создать чтение</a>
+            {% endif %}
+          </div>
         </div>
-        {% if group.preview %}
-          <div class="row g-3">
-            {% for club in group.preview %}
-              <div class="col-12 col-md-6 col-xl-4">
-                <article class="reading-card reading-card--compact h-100">
-                  <div class="reading-card__cover mb-3 mb-md-0">
-                    {% with cover_url=club.book.get_cover_url %}
-                      {% if cover_url %}
-                        <img class="reading-card__cover-image" src="{{ cover_url }}" alt="Обложка книги {{ club.book.title }}">
-                      {% else %}
-                        <div class="reading-card__cover-placeholder" aria-hidden="true">📘</div>
-                      {% endif %}
-                    {% endwith %}
-                  </div>
-                  <div class="reading-card__body">
-                    <div class="reading-card__title mb-2">
-                      <a href="{{ club.get_absolute_url }}">{{ club.title }}</a>
-                    </div>
-                    <div class="reading-card__meta mb-2">
-                      <div class="mb-1"><i class="bi bi-book me-1"></i> {{ club.book.title }}</div>
-                      <div class="small text-muted">
-                        Начало: {{ club.start_date|date:"d E Y" }}{% if club.end_date %} · Завершение: {{ club.end_date|date:"d E Y" }}{% endif %}
+        
+        {% for group in club_groups %}
+          <section class="mb-4" id="{{ group.slug }}">
+            <div class="d-flex justify-content-between align-items-start flex-column flex-md-row mb-3">
+              <div class="me-md-4">
+                <h3 class="h5 mb-1">{{ group.title }}</h3>
+                <p class="text-muted mb-0">{{ group.description }}</p>
+              </div>
+              <span class="badge text-bg-light mt-3 mt-md-0">{{ group.total }} шт.</span>
+            </div>
+            {% if group.preview %}
+              <div class="row g-3">
+                {% for club in group.preview %}
+                  <div class="col-12 col-md-6 col-xl-4">
+                    <article class="reading-card reading-card--compact h-100">
+                      <div class="reading-card__cover mb-3 mb-md-0">
+                        {% with cover_url=club.book.get_cover_url %}
+                          {% if cover_url %}
+                            <img class="reading-card__cover-image" src="{{ cover_url }}" alt="Обложка книги {{ club.book.title }}">
+                          {% else %}
+                            <div class="reading-card__cover-placeholder" aria-hidden="true">📘</div>
+                          {% endif %}
+                        {% endwith %}
                       </div>
-                    </div>
-                    <p class="text-muted small mb-3">{{ club.description|truncatewords:24 }}</p>
-                    <div class="reading-card__footer text-muted">
-                      <span><i class="bi bi-people me-1"></i> {{ club.approved_participant_count }} участн.</span>
-                      <span><i class="bi bi-chat-left-text me-1"></i> {{ club.message_count }} сообщений</span>
-                    </div>
+                    <div class="reading-card__body">
+                        <div class="reading-card__title mb-2">
+                          <a href="{{ club.get_absolute_url }}">{{ club.title }}</a>
+                        </div>
+                        <div class="reading-card__meta mb-2">
+                          <div class="mb-1"><i class="bi bi-book me-1"></i> {{ club.book.title }}</div>
+                          <div class="small text-muted">
+                            Начало: {{ club.start_date|date:"d E Y" }}{% if club.end_date %} · Завершение: {{ club.end_date|date:"d E Y" }}{% endif %}
+                          </div>
+                        </div>
+                        <p class="text-muted small mb-3">{{ club.description|truncatewords:24 }}</p>
+                        <div class="reading-card__footer text-muted">
+                          <span><i class="bi bi-people me-1"></i> {{ club.approved_participant_count }} участн.</span>
+                          <span><i class="bi bi-chat-left-text me-1"></i> {{ club.message_count }} сообщений</span>
+                        </div>
+                      </div>
+                    {% endfor %}
                   </div>
                 </article>
               </div>
-            {% endfor %}
-          </div>
-          {% if group.extra > 0 %}
-            <div class="mt-3 small text-muted">
-              И ещё {{ group.extra }} на <a class="link-secondary" href="{% url 'reading_clubs:list' %}{% if group.anchor %}#{{ group.anchor }}{% endif %}">странице всех чтений</a>.
-            </div>
-          {% endif %}
-        {% else %}
-          <p class="text-muted mb-0">Пока нет предложений в этой категории.</p>
-        {% endif %}
-      </section>
-    {% endfor %}
-  </section>
-
-  <section id="reading-marathons">
-    <div class="d-flex justify-content-between align-items-start flex-column flex-md-row mb-4">
-      <div class="me-md-4">
-        <h2 class="h3 mb-2">Книжные марафоны</h2>
-        <p class="text-muted mb-0">Темы, дедлайны и коллективная мотивация — выбирайте марафон, чтобы прочитать больше.</p>
-      </div>
-      <div class="d-flex gap-2 mt-3 mt-md-0">
-        <a class="btn btn-outline-primary" href="{% url 'reading_marathons:list' %}"><i class="bi bi-flag me-2"></i>Все марафоны</a>
-        {% if request.user.is_authenticated %}
-          <a class="btn btn-primary" href="{% url 'reading_marathons:create' %}"><i class="bi bi-plus-lg me-1"></i>Создать марафон</a>
-        {% endif %}
+            {% if group.extra > 0 %}
+                <div class="mt-3 small text-muted">
+                  И ещё {{ group.extra }} на <a class="link-secondary" href="{% url 'reading_clubs:list' %}{% if group.anchor %}#{{ group.anchor }}{% endif %}">странице всех чтений</a>.
+                </div>
+              {% endif %}
+            {% else %}
+              <p class="text-muted mb-0">Пока нет предложений в этой категории.</p>
+            {% endif %}
+          </section>
+        {% endfor %}
       </div>
     </div>
+  </section>
 
-    {% for group in marathon_groups %}
-      <section class="mb-4" id="{{ group.slug }}">
-        <div class="d-flex justify-content-between align-items-start flex-column flex-md-row mb-3">
+    <section class="reading-section" id="reading-marathons">
+    <button class="reading-section__toggle" type="button" data-bs-toggle="collapse" data-bs-target="#reading-marathons-content" aria-expanded="false" aria-controls="reading-marathons-content">
+      <span class="reading-section__toggle-text"><i class="bi bi-flag me-2"></i>Книжные марафоны</span>
+      <span class="reading-section__toggle-hint" data-label-closed="Показать" data-label-open="Скрыть"></span>
+      <i class="bi bi-chevron-down reading-section__icon" aria-hidden="true"></i>
+    </button>
+
+    <div class="collapse reading-section__content" id="reading-marathons-content">
+      <div class="reading-section__inner">
+        <div class="reading-section__intro d-flex justify-content-between align-items-start flex-column flex-md-row mb-4">
           <div class="me-md-4">
-            <h3 class="h5 mb-1">{{ group.title }}</h3>
-            <p class="text-muted mb-0">{{ group.description }}</p>
+            <h2 class="h3 mb-2">Книжные марафоны</h2>
+            <p class="text-muted mb-0">Темы, дедлайны и коллективная мотивация — выбирайте марафон, чтобы прочитать больше.</p>
           </div>
-          <span class="badge text-bg-light mt-3 mt-md-0">{{ group.total }} шт.</span>
+          <div class="d-flex flex-column flex-sm-row gap-2 mt-3 mt-md-0 reading-section__actions">
+            <a class="btn btn-outline-primary" href="{% url 'reading_marathons:list' %}"><i class="bi bi-flag me-2"></i>Все марафоны</a>
+            {% if request.user.is_authenticated %}
+              <a class="btn btn-primary" href="{% url 'reading_marathons:create' %}"><i class="bi bi-plus-lg me-1"></i>Создать марафон</a>
+            {% endif %}
+          </div>
         </div>
-        {% if group.preview %}
-          <div class="row g-4">
-            {% for marathon in group.preview %}
-              <div class="col-12 col-md-6 col-xl-4">
-                <div class="card h-100 shadow-sm border-0">
-                  {% if marathon.cover %}
-                    <img class="card-img-top object-fit-cover" src="{{ marathon.cover.url }}" alt="Обложка марафона {{ marathon.title }}">
-                  {% endif %}
-                  <div class="card-body d-flex flex-column">
-                    <h3 class="h5 mb-2">{{ marathon.title }}</h3>
-                    <p class="text-muted flex-grow-1">{{ marathon.description|truncatewords:26 }}</p>
-                    <div class="d-flex flex-wrap gap-2 mb-3">
-                      {% with themes=marathon.themes.all %}
-                        {% for theme in themes|slice:':3' %}
-                          <span class="badge bg-light text-dark">{{ theme.title }}</span>
-                        {% endfor %}
-                        {% with themes|length as theme_count %}
-                          {% if theme_count > 3 %}
-                            <span class="badge bg-light text-dark">+{{ theme_count|add:'-3' }} тем</span>
-                          {% endif %}
-                        {% endwith %}
-                      {% endwith %}
+        
+        {% for group in marathon_groups %}
+          <section class="mb-4" id="{{ group.slug }}">
+            <div class="d-flex justify-content-between align-items-start flex-column flex-md-row mb-3">
+              <div class="me-md-4">
+                <h3 class="h5 mb-1">{{ group.title }}</h3>
+                <p class="text-muted mb-0">{{ group.description }}</p>
+              </div>
+              <span class="badge text-bg-light mt-3 mt-md-0">{{ group.total }} шт.</span>
+            </div>
+            {% if group.preview %}
+              <div class="row g-4">
+                {% for marathon in group.preview %}
+                  <div class="col-12 col-md-6 col-xl-4">
+                    <div class="card h-100 shadow-sm border-0">
+                      {% if marathon.cover %}
+                        <img class="card-img-top object-fit-cover" src="{{ marathon.cover.url }}" alt="Обложка марафона {{ marathon.title }}">
+                      {% endif %}
+                      <div class="card-body d-flex flex-column">
+                        <h3 class="h5 mb-2">{{ marathon.title }}</h3>
+                        <p class="text-muted flex-grow-1">{{ marathon.description|truncatewords:26 }}</p>
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                          {% with themes=marathon.themes.all %}
+                            {% for theme in themes|slice:':3' %}
+                              <span class="badge bg-light text-dark">{{ theme.title }}</span>
+                            {% endfor %}
+                            {% with themes|length as theme_count %}
+                              {% if theme_count > 3 %}
+                                <span class="badge bg-light text-dark">+{{ theme_count|add:'-3' }} тем</span>
+                              {% endif %}
+                            {% endwith %}
+                          {% endwith %}
+                        </div>
+                        <a class="btn btn-outline-primary mt-auto" href="{{ marathon.get_absolute_url }}">Открыть марафон</a>
+                      </div>
                     </div>
-                    <a class="btn btn-outline-primary mt-auto" href="{{ marathon.get_absolute_url }}">Открыть марафон</a>
                   </div>
                 </div>
               </div>
-            {% endfor %}
-          </div>
-          {% if group.extra > 0 %}
-            <div class="mt-3 small text-muted">
-              И ещё {{ group.extra }} на <a class="link-secondary" href="{% url 'reading_marathons:list' %}">странице всех марафонов</a>.
-            </div>
-          {% endif %}
-        {% else %}
-          <p class="text-muted mb-0">Пока нет марафонов в этой категории.</p>
-        {% endif %}
-      </section>
-    {% endfor %}
+           {% if group.extra > 0 %}
+                <div class="mt-3 small text-muted">
+                  И ещё {{ group.extra }} на <a class="link-secondary" href="{% url 'reading_marathons:list' %}">странице всех марафонов</a>.
+                </div>
+              {% endif %}
+            {% else %}
+              <p class="text-muted mb-0">Пока нет марафонов в этой категории.</p>
+            {% endif %}
+          </section>
+        {% endfor %}
+      </div>
+    </div>
   </section>
 {% endblock %}
