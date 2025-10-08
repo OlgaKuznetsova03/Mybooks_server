@@ -703,62 +703,164 @@
 
       {{ chart_labels|json_script:"reading-chart-labels" }}
       {{ chart_pages|json_script:"reading-chart-pages" }}
+      {{ chart_mediums|json_script:"reading-chart-mediums" }}
+      {{ chart_medium_pages|json_script:"reading-chart-medium-pages" }}
 
       <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" crossorigin="anonymous"></script>
       <script>
       (function () {
         const labelsEl = document.getElementById('reading-chart-labels');
         const pagesEl = document.getElementById('reading-chart-pages');
+        const mediumsEl = document.getElementById('reading-chart-mediums');
+        const mediumPagesEl = document.getElementById('reading-chart-medium-pages');
         const canvas = document.getElementById('readingHistoryChart');
-        if (!labelsEl || !pagesEl || !canvas || typeof Chart === 'undefined') {
+        if (!labelsEl || !pagesEl || !mediumsEl || !mediumPagesEl || !canvas || typeof Chart === 'undefined') {
           return;
         }
 
         const labels = JSON.parse(labelsEl.textContent);
         const pages = JSON.parse(pagesEl.textContent);
+        const mediums = JSON.parse(mediumsEl.textContent);
+        const mediumPages = JSON.parse(mediumPagesEl.textContent);
 
         const getPalette = () => {
           const root = getComputedStyle(document.documentElement);
-          const primaryRgb = (root.getPropertyValue('--bs-primary-rgb') || '108,92,231').trim();
-          const borderColor = `rgba(${primaryRgb}, 0.85)`;
-          const backgroundColor = `rgba(${primaryRgb}, 0.25)`;
-          const hoverBackgroundColor = `rgba(${primaryRgb}, 0.35)`;
-          const bodyColor = (root.getPropertyValue('--bs-body-color') || '#212529').trim();
-          const border = (root.getPropertyValue('--bs-border-color') || 'rgba(0,0,0,0.1)').trim();
-          return { borderColor, backgroundColor, hoverBackgroundColor, bodyColor, border };
+          const parseCssColor = (value, fallbackRgb) => {
+            const trimmed = (value || '').trim();
+            if (trimmed.startsWith('#')) {
+              let hex = trimmed.slice(1);
+              if (hex.length === 3) {
+                hex = hex.split('').map((char) => char + char).join('');
+              }
+              if (hex.length === 6) {
+                const intValue = parseInt(hex, 16);
+                if (!Number.isNaN(intValue)) {
+                  return [
+                    (intValue >> 16) & 255,
+                    (intValue >> 8) & 255,
+                    intValue & 255,
+                  ];
+                }
+              }
+            }
+            const rgbMatch = trimmed.match(/rgba?\(([^)]+)\)/i);
+            if (rgbMatch) {
+              const parts = rgbMatch[1].split(',').map((part) => Number.parseFloat(part.trim()));
+              if (parts.length >= 3 && parts.slice(0, 3).every((num) => !Number.isNaN(num))) {
+                return parts.slice(0, 3);
+              }
+            }
+            return fallbackRgb;
+          };
+
+          const buildScheme = (rgb, { backgroundAlpha = 0.35, hoverAlpha = 0.45, borderAlpha = 0.9 } = {}) => {
+            const [r, g, b] = rgb;
+            return {
+              borderColor: `rgba(${r}, ${g}, ${b}, ${borderAlpha})`,
+              backgroundColor: `rgba(${r}, ${g}, ${b}, ${backgroundAlpha})`,
+              hoverBackgroundColor: `rgba(${r}, ${g}, ${b}, ${hoverAlpha})`,
+            };
+          };
+
+          const primaryRgbRaw = (root.getPropertyValue('--bs-primary-rgb') || '108,92,231').trim();
+          const primaryRgb = primaryRgbRaw.split(',').map((num) => Number.parseFloat(num.trim()));
+          const defaultRgb = primaryRgb.length === 3 && primaryRgb.every((num) => !Number.isNaN(num))
+            ? primaryRgb
+            : [108, 92, 231];
+
+          const palette = {
+            bodyColor: (root.getPropertyValue('--bs-body-color') || '#212529').trim(),
+            border: (root.getPropertyValue('--bs-border-color') || 'rgba(0,0,0,0.1)').trim(),
+            defaultBar: buildScheme(defaultRgb, { backgroundAlpha: 0.25, hoverAlpha: 0.35, borderAlpha: 0.85 }),
+            mediums: {},
+          };
+
+          palette.mediums.paper = buildScheme(
+            parseCssColor(root.getPropertyValue('--journey-fern'), [123, 119, 82])
+          );
+          palette.mediums.ebook = buildScheme(
+            parseCssColor(root.getPropertyValue('--journey-gold'), [188, 184, 147])
+          );
+          palette.mediums.audiobook = buildScheme(defaultRgb, { backgroundAlpha: 0.25, hoverAlpha: 0.35, borderAlpha: 0.85 });
+
+          return palette;
         };
 
         let chartInstance;
 
         const renderChart = () => {
-const palette = getPalette();
+          const palette = getPalette();
           if (chartInstance) {
             chartInstance.destroy();
           }
+          const mediumsWithData = Array.isArray(mediums)
+            ? mediums.filter((medium) => {
+                const data = mediumPages?.[medium.code];
+                return Array.isArray(data) && data.some((value) => Number(value) > 0);
+              })
+            : [];
+          const hasMediumData = mediumsWithData.length > 0;
+          const datasets = hasMediumData
+            ? mediumsWithData.map((medium) => {
+                const scheme = palette.mediums?.[medium.code] || palette.defaultBar;
+                const data = Array.isArray(mediumPages?.[medium.code])
+                  ? mediumPages[medium.code]
+                  : new Array(labels.length).fill(0);
+                return {
+                  label: medium.label,
+                  data,
+                  borderWidth: 1.5,
+                  borderRadius: 10,
+                  borderColor: scheme.borderColor,
+                  backgroundColor: scheme.backgroundColor,
+                  hoverBackgroundColor: scheme.hoverBackgroundColor,
+                  maxBarThickness: 48,
+                  stack: 'pages',
+                };
+              })
+            : [{
+                data: pages,
+                borderWidth: 1.5,
+                borderRadius: 10,
+                borderColor: palette.defaultBar.borderColor,
+                backgroundColor: palette.defaultBar.backgroundColor,
+                hoverBackgroundColor: palette.defaultBar.hoverBackgroundColor,
+                maxBarThickness: 48,
+              }];
           chartInstance = new Chart(canvas.getContext('2d'), {
             type: 'bar',
             data: {
               labels,
-              datasets: [{
-                data: pages,
-                borderWidth: 1.5,
-                borderRadius: 10,
-                borderColor: palette.borderColor,
-                backgroundColor: palette.backgroundColor,
-                hoverBackgroundColor: palette.hoverBackgroundColor,
-                maxBarThickness: 48,
-              }],
+              datasets,
             },
             options: {
               responsive: true,
               maintainAspectRatio: false,
               plugins: {
-                legend: { display: false },
+                legend: {
+                  display: hasMediumData,
+                  labels: {
+                    color: palette.bodyColor,
+                    usePointStyle: true,
+                  },
+                },
                 tooltip: {
-                  displayColors: false,
                   callbacks: {
                     title: (context) => context[0]?.label ?? '',
-                    label: (context) => `${context.parsed.y ?? 0} стр.`,
+                    label: (context) => {
+                      const value = context.parsed.y ?? 0;
+                      if (context.dataset?.label) {
+                        return `${context.dataset.label}: ${value} стр.`;
+                      }
+                      return `${value} стр.`;
+                    },
+                    footer: (items) => {
+                      if (!items?.length) {
+                        return '';
+                      }
+                      const total = items.reduce((sum, item) => sum + (item.parsed.y ?? 0), 0);
+                      return `Итого: ${total} стр.`;
+                    },
                   },
                 },
               },
@@ -767,6 +869,7 @@ const palette = getPalette();
               },
               scales: {
                 x: {
+                  stacked: hasMediumData,
                   grid: { display: false },
                   ticks: {
                     color: palette.bodyColor,
@@ -776,6 +879,7 @@ const palette = getPalette();
                   },
                 },
                 y: {
+                  stacked: hasMediumData,
                   beginAtZero: true,
                   grid: {
                     color: palette.border,

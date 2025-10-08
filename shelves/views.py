@@ -1,5 +1,6 @@
 # shelves/views.py
 from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
+from collections import OrderedDict
 from datetime import date, timedelta
 from typing import Optional
 
@@ -494,12 +495,30 @@ def _build_reading_track_context(progress, book, *, character_form=None, format_
     daily_logs = progress.logs.order_by("-log_date", "-medium")
     notes_form = BookProgressNotesForm(instance=progress)
     chart_logs = progress.logs.order_by("log_date")
-    aggregated = {}
+    tracked_mediums = [
+        BookProgress.FORMAT_PAPER,
+        BookProgress.FORMAT_EBOOK,
+        BookProgress.FORMAT_AUDIO,
+    ]
+    aggregated = OrderedDict()
     for log in chart_logs:
-        aggregated.setdefault(log.log_date, Decimal("0"))
-        aggregated[log.log_date] += log.pages_equivalent or Decimal("0")
+        entry = aggregated.setdefault(
+            log.log_date,
+            {
+                "total": Decimal("0"),
+                "mediums": {code: Decimal("0") for code in tracked_mediums},
+            },
+        )
+        pages_value = log.pages_equivalent or Decimal("0")
+        entry["total"] += pages_value
+        if log.medium in entry["mediums"]:
+            entry["mediums"][log.medium] += pages_value
     chart_labels = [date.strftime("%d.%m.%Y") for date in aggregated.keys()]
-    chart_pages = [float(value) for value in aggregated.values()]
+    chart_pages = [float(data["total"]) for data in aggregated.values()]
+    chart_medium_pages = {
+        code: [float(data["mediums"][code]) for data in aggregated.values()]
+        for code in tracked_mediums
+    }
     max_pages_for_chart = max(chart_pages) if chart_pages else 0
     if max_pages_for_chart:
         max_chart_height = 160  # px
@@ -527,6 +546,11 @@ def _build_reading_track_context(progress, book, *, character_form=None, format_
         "estimated_days_remaining": estimated_days_remaining,
         "chart_labels": chart_labels,
         "chart_pages": chart_pages,
+        "chart_mediums": [
+            {"code": code, "label": choices.get(code, code)}
+            for code in tracked_mediums
+        ],
+        "chart_medium_pages": chart_medium_pages,
         "chart_scale": chart_scale,
         "format_form": format_form,
         "media_details": media_details,

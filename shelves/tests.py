@@ -170,6 +170,46 @@ class ReadingTrackViewTests(TestCase):
         self.assertEqual(logs[0].pages_equivalent, Decimal("20"))
         self.assertGreater(response.context["chart_scale"], 0)
 
+    def test_chart_breakdown_includes_medium_details(self):
+        progress = self._create_progress()
+        today = localdate()
+        ReadingLog.objects.create(
+            progress=progress,
+            log_date=today,
+            medium=BookProgress.FORMAT_PAPER,
+            pages_equivalent=Decimal("12"),
+        )
+        ReadingLog.objects.create(
+            progress=progress,
+            log_date=today,
+            medium=BookProgress.FORMAT_EBOOK,
+            pages_equivalent=Decimal("8"),
+        )
+        ReadingLog.objects.create(
+            progress=progress,
+            log_date=today,
+            medium=BookProgress.FORMAT_AUDIO,
+            pages_equivalent=Decimal("5"),
+        )
+
+        response = self.client.get(reverse("reading_track", args=[self.book.pk]))
+
+        self.assertIn("chart_mediums", response.context)
+        self.assertIn("chart_medium_pages", response.context)
+        mediums = response.context["chart_mediums"]
+        medium_codes = {medium["code"] for medium in mediums}
+        self.assertIn(BookProgress.FORMAT_PAPER, medium_codes)
+        self.assertIn(BookProgress.FORMAT_EBOOK, medium_codes)
+        self.assertIn(BookProgress.FORMAT_AUDIO, medium_codes)
+
+        medium_pages = response.context["chart_medium_pages"]
+        labels = response.context["chart_labels"]
+        self.assertEqual(labels, [today.strftime("%d.%m.%Y")])
+        self.assertEqual(response.context["chart_pages"], [25.0])
+        self.assertEqual(medium_pages[BookProgress.FORMAT_PAPER], [12.0])
+        self.assertEqual(medium_pages[BookProgress.FORMAT_EBOOK], [8.0])
+        self.assertEqual(medium_pages[BookProgress.FORMAT_AUDIO], [5.0])
+
     def test_public_update_creates_feed_entry(self):
         progress = self._create_progress()
 
@@ -345,7 +385,7 @@ class ReadingTrackViewTests(TestCase):
         self.assertEqual(ebook_medium.total_pages_override, 250)
         self.assertEqual(audio_medium.audio_position, timedelta(minutes=60))
         self.assertEqual(progress.current_page, 60)
-        
+
     def test_page_increment_updates_audio_medium_position(self):
         progress = self._create_progress()
         paper_medium, _ = progress.media.get_or_create(
