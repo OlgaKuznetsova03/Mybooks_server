@@ -694,7 +694,7 @@
       <h2 class="reading-section__title">История чтения</h2>
       <p class="reading-section__note">Сколько вы прочитали по дням и в каком формате.</p>
     </div>
-    {% if daily_logs %}
+    {% if chart_labels %}
       <div class="reading-chart-card mb-3" role="img" aria-label="Диаграмма прочитанных страниц по дням">
         <div class="reading-chart-card__canvas">
           <canvas id="readingHistoryChart" aria-label="Прочитанные страницы по дням"></canvas>
@@ -781,7 +781,6 @@
           palette.mediums.ebook = buildScheme(
             parseCssColor(root.getPropertyValue('--journey-gold'), [188, 184, 147])
           );
-          palette.mediums.audiobook = buildScheme(defaultRgb, { backgroundAlpha: 0.25, hoverAlpha: 0.35, borderAlpha: 0.85 });
 
           return palette;
         };
@@ -815,7 +814,6 @@
                   backgroundColor: scheme.backgroundColor,
                   hoverBackgroundColor: scheme.hoverBackgroundColor,
                   maxBarThickness: 48,
-                  stack: 'pages',
                 };
               })
             : [{
@@ -869,7 +867,7 @@
               },
               scales: {
                 x: {
-                  stacked: hasMediumData,
+                  stacked: false,
                   grid: { display: false },
                   ticks: {
                     color: palette.bodyColor,
@@ -879,7 +877,7 @@
                   },
                 },
                 y: {
-                  stacked: hasMediumData,
+                  stacked: false,
                   beginAtZero: true,
                   grid: {
                     color: palette.border,
@@ -902,7 +900,9 @@
         });
       })();
     </script>
+    {% endif %}
 
+    {% if audio_logs %}
       <div class="table-responsive">
         <table class="table table-sm align-middle mb-0">
           <thead>
@@ -913,12 +913,12 @@
             </tr>
           </thead>
           <tbody>
-            {% for log in daily_logs %}
+            {% for log in audio_logs %}
               <tr>
                 <td>{{ log.log_date|date:"d.m.Y" }}</td>
                 <td>{{ log.get_medium_display }}</td>
                 <td>
-                  {% if log.medium == progress.FORMAT_AUDIO and log.audio_duration_display %}
+                  {% if log.audio_duration_display %}
                     {{ log.audio_duration_display }}
                   {% else %}
                     {{ log.pages_equivalent|floatformat:-2 }} стр.
@@ -929,6 +929,8 @@
           </tbody>
         </table>
       </div>
+    {% elif chart_labels %}
+      <p class="text-muted mb-0">Пока нет записей по аудиокниге.</p>
     {% else %}
       <p class="text-muted mb-0">Пока нет записей о прочитанных страницах.</p>
     {% endif %}

@@ -196,19 +196,24 @@ class ReadingTrackViewTests(TestCase):
 
         self.assertIn("chart_mediums", response.context)
         self.assertIn("chart_medium_pages", response.context)
+        self.assertIn("audio_logs", response.context)
         mediums = response.context["chart_mediums"]
         medium_codes = {medium["code"] for medium in mediums}
         self.assertIn(BookProgress.FORMAT_PAPER, medium_codes)
         self.assertIn(BookProgress.FORMAT_EBOOK, medium_codes)
-        self.assertIn(BookProgress.FORMAT_AUDIO, medium_codes)
+        self.assertNotIn(BookProgress.FORMAT_AUDIO, medium_codes)
 
         medium_pages = response.context["chart_medium_pages"]
         labels = response.context["chart_labels"]
         self.assertEqual(labels, [today.strftime("%d.%m.%Y")])
-        self.assertEqual(response.context["chart_pages"], [25.0])
+        self.assertEqual(response.context["chart_pages"], [20.0])
         self.assertEqual(medium_pages[BookProgress.FORMAT_PAPER], [12.0])
         self.assertEqual(medium_pages[BookProgress.FORMAT_EBOOK], [8.0])
-        self.assertEqual(medium_pages[BookProgress.FORMAT_AUDIO], [5.0])
+        self.assertNotIn(BookProgress.FORMAT_AUDIO, medium_pages)
+
+        audio_logs = list(response.context["audio_logs"])
+        self.assertEqual(len(audio_logs), 1)
+        self.assertEqual(audio_logs[0].medium, BookProgress.FORMAT_AUDIO)
 
     def test_public_update_creates_feed_entry(self):
         progress = self._create_progress()
