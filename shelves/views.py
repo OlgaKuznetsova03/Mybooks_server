@@ -12,7 +12,8 @@ from django.contrib import messages
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.http import url_has_allowed_host_and_scheme
-from books.models import Book, Genre
+from books.models import Book, Genre, Rating
+from books.forms import RatingCommentForm
 from .models import (
     Shelf,
     ShelfItem,
@@ -1302,13 +1303,24 @@ def reading_feed(request):
         )
         .prefetch_related("comments__user", "comments__user__profile", "book__isbn")
     )
-    comment_form = ReadingFeedCommentForm()
+    reviews = (
+        Rating.objects.exclude(review__isnull=True)
+        .exclude(review__exact="")
+        .select_related(
+            "user",
+            "user__profile",
+            "book",
+            "book__primary_isbn",
+        )
+        .prefetch_related("book__isbn", "comments__user", "comments__user__profile")
+        .order_by("-created_at")
+    )
     return render(
         request,
         "reading/feed.html",
         {
             "entries": entries,
-            "comment_form": comment_form,
+            "reviews": reviews,
         },
     )
 
@@ -1327,3 +1339,22 @@ def reading_feed_comment(request, entry_id):
     else:
         messages.error(request, "Не удалось сохранить комментарий. Проверьте текст и попробуйте снова.")
     return redirect("reading_feed")
+
+
+@login_required
+@require_POST
+def reading_feed_review_comment(request, review_id):
+    rating = get_object_or_404(
+        Rating.objects.exclude(review__isnull=True).exclude(review__exact=""),
+        pk=review_id,
+    )
+    form = RatingCommentForm(request.POST)
+    if form.is_valid():
+        comment = form.save(commit=False)
+        comment.rating = rating
+        comment.user = request.user
+        comment.save()
+        messages.success(request, "Комментарий опубликован.")
+    else:
+        messages.error(request, "Не удалось сохранить комментарий. Проверьте текст и попробуйте снова.")
+    return redirect(f"{reverse('reading_feed')}#review-{rating.pk}")

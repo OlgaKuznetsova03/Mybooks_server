@@ -459,3 +459,26 @@ class Rating(models.Model):
             for field_name, label in self.CATEGORY_FIELDS
             if getattr(self, field_name) is not None
         ]
+
+
+class RatingComment(models.Model):
+    """Комментарий к пользовательскому отзыву."""
+
+    rating = models.ForeignKey(
+        Rating,
+        on_delete=models.CASCADE,
+        related_name="comments",
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="rating_comments",
+    )
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"Комментарий {self.user.username} к отзыву {self.rating_id}"

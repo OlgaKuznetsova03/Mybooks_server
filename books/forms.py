@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
 from .models import (
     Author, Publisher, Genre, ISBNModel,
-    AudioBook, Book, Rating
+    AudioBook, Book, Rating, RatingComment
 )
 from .utils import normalize_isbn
 
@@ -382,3 +382,19 @@ class RatingForm(forms.ModelForm):
             raise ValidationError("Вы уже оставляли отзыв на эту книгу.")
 
         return cleaned_data
+
+
+class RatingCommentForm(forms.ModelForm):
+    class Meta:
+        model = RatingComment
+        fields = ["body"]
+        labels = {"body": "Комментарий"}
+        widgets = {
+            "body": forms.Textarea(
+                attrs={
+                    "rows": 2,
+                    "class": "form-control",
+                    "placeholder": "Поддержите автора отзыва или задайте вопрос...",
+                }
+            )
+        }

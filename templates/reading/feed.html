@@ -54,6 +54,24 @@
     border: 1px solid rgba(70, 112, 126, 0.12);
   }
 
+  .reading-feed-section-title {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .reading-feed-section-title h2 {
+    margin: 0;
+    font-weight: 700;
+    color: #1e3b45;
+  }
+
+  .reading-feed-section-title p {
+    margin: 0;
+    color: rgba(30, 59, 69, 0.75);
+  }
+
   .reading-feed-entry__header {
     display: flex;
     flex-direction: row;
@@ -161,6 +179,24 @@
     margin-bottom: 1.25rem;
   }
 
+  .reading-feed-review__text {
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: #243f49;
+    margin-bottom: 1.25rem;
+  }
+
+  .reading-feed-review__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .reading-feed-review__score {
+    background: rgba(246, 158, 91, 0.16);
+    color: #b4551a;
+  }
+
   .reading-feed-comments {
     margin-top: 1.25rem;
     border-top: 1px solid rgba(70, 112, 126, 0.16);
@@ -254,6 +290,10 @@
       width: 100%;
       max-width: 180px;
     }
+
+    .reading-feed-section-title {
+      text-align: center;
+    }
   }
 </style>
 {% endblock %}
@@ -270,75 +310,156 @@
     </div>
   </section>
 
-  {% for entry in entries %}
-    <article class="reading-feed-entry">
-      <header class="reading-feed-entry__header">
-        {% with display_name=entry.user.get_full_name|default:entry.user.username cover_url=entry.book.get_cover_url %}
-        <header class="reading-feed-entry__header">
-          <div class="reading-feed-entry__meta">
-            <div class="reading-feed-entry__avatar{% if not entry.user.profile.avatar %} reading-feed-entry__avatar--placeholder{% endif %}">
-              {% if entry.user.profile.avatar %}
-                <img src="{{ entry.user.profile.avatar.url }}" alt="Аватар {{ display_name }}">
-              {% else %}
-                <span>{{ display_name|slice:":1" }}</span>
+  {% if reviews %}
+    <section class="reading-feed-reviews" aria-labelledby="reading-feed-reviews-title">
+      <div class="reading-feed-section-title">
+        <h2 id="reading-feed-reviews-title">Свежие отзывы читателей</h2>
+        <p>Собрали все опубликованные впечатления о книгах — делитесь своими мыслями и обсуждайте прочитанное.</p>
+      </div>
+      {% for review in reviews %}
+        {% with display_name=review.user.get_full_name|default:review.user.username cover_url=review.book.get_cover_url %}
+          <article class="reading-feed-entry reading-feed-review" id="review-{{ review.id }}">
+            <div class="reading-feed-entry__header">
+              <div class="reading-feed-entry__meta">
+                <div class="reading-feed-entry__avatar{% if not review.user.profile.avatar %} reading-feed-entry__avatar--placeholder{% endif %}">
+                  {% if review.user.profile.avatar %}
+                    <img src="{{ review.user.profile.avatar.url }}" alt="Аватар {{ display_name }}">
+                  {% else %}
+                    <span>{{ display_name|slice:":1" }}</span>
+                  {% endif %}
+                </div>
+                <div class="reading-feed-entry__details">
+                  <span class="reading-feed-entry__user">{{ display_name }}</span>
+                  <span class="reading-feed-entry__book">{{ review.book.title }}</span>
+                  <div class="reading-feed-entry__stats small text-muted">
+                    <span>{{ review.created_at|date:"d E Y, H:i" }}</span>
+                  </div>
+                  <div class="reading-feed-review__badges">
+                    {% if review.score %}
+                      <span class="reading-feed-entry__badge reading-feed-review__score">Оценка: {{ review.score }}/10</span>
+                    {% endif %}
+                    {% for label, value in review.get_category_scores %}
+                      <span class="reading-feed-entry__badge">{{ label }}: {{ value }}/10</span>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+              {% if cover_url %}
+                <div class="reading-feed-entry__cover">
+                  <img src="{{ cover_url }}" alt="Обложка книги «{{ review.book.title }}»">
+                </div>
               {% endif %}
             </div>
-            <div class="reading-feed-entry__details">
-              <span class="reading-feed-entry__user">{{ display_name }}</span>
-              <span class="reading-feed-entry__book">{{ entry.book.title }}</span>
-              <div class="reading-feed-entry__stats small text-muted">
-                <span>{{ entry.created_at|date:"d E Y, H:i" }}</span>
-                <span class="reading-feed-entry__badge">{{ entry.get_medium_display }}</span>
-                {% if entry.current_page_display %}
-                  <span>Страница: {{ entry.current_page_display }}</span>
-                {% endif %}
-                {% if entry.percent is not None %}
-                  <span>Прогресс: {{ entry.percent|floatformat:-2 }}%</span>
+
+            {% if review.review %}
+              <div class="reading-feed-review__text">{{ review.review|linebreaksbr }}</div>
+            {% endif %}
+
+            <div class="reading-feed-comments">
+              {% for comment in review.comments.all %}
+                <div class="reading-feed-comment">
+                  <strong>{{ comment.user.get_full_name|default:comment.user.username }}</strong>
+                  <small class="ms-2">{{ comment.created_at|date:"d.m.Y H:i" }}</small>
+                  <p>{{ comment.body|linebreaksbr }}</p>
+                </div>
+              {% empty %}
+                <p class="text-muted mb-3">Пока нет комментариев — поделитесь своими впечатлениями о книге.</p>
+              {% endfor %}
+
+              {% if request.user.is_authenticated %}
+                <form method="post" action="{% url 'reading_feed_review_comment' review.id %}" class="reading-feed-comment-form mt-3">
+                  {% csrf_token %}
+                  <div class="mb-2">
+                    <label class="form-label" for="id_review_body_{{ review.id }}">Оставить комментарий</label>
+                    <textarea id="id_review_body_{{ review.id }}" name="body" rows="2" class="form-control" placeholder="Поддержите автора отзыва или задайте вопрос..."></textarea>
+                  </div>
+                  <button type="submit" class="btn reading-btn-primary">Отправить</button>
+                </form>
+              {% else %}
+                <p class="text-muted small mt-3 mb-0">Авторизуйтесь, чтобы обсуждать отзывы.</p>
+              {% endif %}
+            </div>
+            </article>
+        {% endwith %}
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  <section class="reading-feed-progress" aria-labelledby="reading-feed-progress-title">
+    <div class="reading-feed-section-title">
+      <h2 id="reading-feed-progress-title">Обновления чтения</h2>
+      <p>Следите за прогрессом друзей и поддерживайте их комментариями.</p>
+    </div>
+
+    {% for entry in entries %}
+      <article class="reading-feed-entry" id="entry-{{ entry.id }}">
+        {% with display_name=entry.user.get_full_name|default:entry.user.username cover_url=entry.book.get_cover_url %}
+          <div class="reading-feed-entry__header">
+            <div class="reading-feed-entry__meta">
+              <div class="reading-feed-entry__avatar{% if not entry.user.profile.avatar %} reading-feed-entry__avatar--placeholder{% endif %}">
+                {% if entry.user.profile.avatar %}
+                  <img src="{{ entry.user.profile.avatar.url }}" alt="Аватар {{ display_name }}">
+                {% else %}
+                  <span>{{ display_name|slice:":1" }}</span>
                 {% endif %}
               </div>
+              <div class="reading-feed-entry__details">
+                <span class="reading-feed-entry__user">{{ display_name }}</span>
+                <span class="reading-feed-entry__book">{{ entry.book.title }}</span>
+                <div class="reading-feed-entry__stats small text-muted">
+                  <span>{{ entry.created_at|date:"d E Y, H:i" }}</span>
+                  <span class="reading-feed-entry__badge">{{ entry.get_medium_display }}</span>
+                  {% if entry.current_page_display %}
+                    <span>Страница: {{ entry.current_page_display }}</span>
+                  {% endif %}
+                  {% if entry.percent is not None %}
+                    <span>Прогресс: {{ entry.percent|floatformat:-2 }}%</span>
+                  {% endif %}
+                </div>
+              </div>
             </div>
+            {% if cover_url %}
+              <div class="reading-feed-entry__cover">
+                <img src="{{ cover_url }}" alt="Обложка книги «{{ entry.book.title }}»">
+              </div>
+            {% endif %}
           </div>
-          {% if cover_url %}
-            <div class="reading-feed-entry__cover">
-              <img src="{{ cover_url }}" alt="Обложка книги «{{ entry.book.title }}»">
-            </div>
-          {% endif %}
-          </header>
-      {% endwith %}
+          {% endwith %}
 
-      {% if entry.reaction %}
-        <div class="reading-feed-entry__reaction">{{ entry.reaction|linebreaksbr }}</div>
-      {% endif %}
-
-      <div class="reading-feed-comments">
-        {% for comment in entry.comments.all %}
-          <div class="reading-feed-comment">
-            <strong>{{ comment.user.get_full_name|default:comment.user.username }}</strong>
-            <small class="ms-2">{{ comment.created_at|date:"d.m.Y H:i" }}</small>
-            <p>{{ comment.body|linebreaksbr }}</p>
-          </div>
-        {% empty %}
-          <p class="text-muted mb-3">Пока нет комментариев — будьте первым, кто поддержит читателя!</p>
-        {% endfor %}
-
-        {% if request.user.is_authenticated %}
-          <form method="post" action="{% url 'reading_feed_comment' entry.id %}" class="reading-feed-comment-form mt-3">
-            {% csrf_token %}
-            <div class="mb-2">
-              <label class="form-label" for="id_body_{{ entry.id }}">Оставить комментарий</label>
-              <textarea id="id_body_{{ entry.id }}" name="body" rows="2" class="form-control" placeholder="Поддержите читателя или задайте вопрос..."></textarea>
-            </div>
-            <button type="submit" class="btn reading-btn-primary">Отправить</button>
-          </form>
-        {% else %}
-          <p class="text-muted small mt-3 mb-0">Авторизуйтесь, чтобы оставлять комментарии.</p>
+        {% if entry.reaction %}
+          <div class="reading-feed-entry__reaction">{{ entry.reaction|linebreaksbr }}</div>
         {% endif %}
+
+        <div class="reading-feed-comments">
+          {% for comment in entry.comments.all %}
+            <div class="reading-feed-comment">
+              <strong>{{ comment.user.get_full_name|default:comment.user.username }}</strong>
+              <small class="ms-2">{{ comment.created_at|date:"d.m.Y H:i" }}</small>
+              <p>{{ comment.body|linebreaksbr }}</p>
+            </div>
+            {% empty %}
+            <p class="text-muted mb-3">Пока нет комментариев — будьте первым, кто поддержит читателя!</p>
+          {% endfor %}
+
+          {% if request.user.is_authenticated %}
+            <form method="post" action="{% url 'reading_feed_comment' entry.id %}" class="reading-feed-comment-form mt-3">
+              {% csrf_token %}
+              <div class="mb-2">
+                <label class="form-label" for="id_body_{{ entry.id }}">Оставить комментарий</label>
+                <textarea id="id_body_{{ entry.id }}" name="body" rows="2" class="form-control" placeholder="Поддержите читателя или задайте вопрос..."></textarea>
+              </div>
+              <button type="submit" class="btn reading-btn-primary">Отправить</button>
+            </form>
+          {% else %}
+            <p class="text-muted small mt-3 mb-0">Авторизуйтесь, чтобы оставлять комментарии.</p>
+          {% endif %}
+          </div>
+      </article>
+    {% empty %}
+      <div class="reading-feed-empty">
+        Пока что никто не поделился публичным прогрессом. Добавьте обновление со страницы книги, чтобы начать беседу!
       </div>
-    </article>
-  {% empty %}
-    <div class="reading-feed-empty">
-      Пока что никто не поделился публичным прогрессом. Добавьте обновление со страницы книги, чтобы начать беседу!
-    </div>
-  {% endfor %}
+    {% endfor %}
+  </section>
 </div>
 {% endblock %}
