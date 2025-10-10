@@ -1,6 +1,6 @@
 :root{
-  --bs-primary:#40535c;            /* фиолетовый бренд */
-  --bs-primary-rgb:64,83,106;
+  --bs-primary:var(--rt-primary,#40535c);
+  --bs-primary-rgb:var(--rt-primary-rgb,64,83,92);
   --rt-card-shadow:0 10px 24px rgba(0,0,0,.06);
   --journey-ink:#332c0f;
   --journey-olive:#5f5c3b;
