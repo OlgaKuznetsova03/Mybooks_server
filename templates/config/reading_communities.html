@@ -9,172 +9,148 @@
   <link rel="stylesheet" href="{% static 'config/reading_communities.css' %}">
   <link rel="stylesheet" href="{% static 'reading_clubs/style.css' %}">
 
-  <!-- ✅ Локальная цветовая тема для этой страницы -->
+  <!-- Локальная тема + яркий заголовок в #40534c -->
   <style>
-    /* ==================== ТЕМА СТРАНИЦЫ ==================== */
-    .page-theme-communities {
-      /* Основной цвет */
-      --page-primary: #1a3636;
-      --page-primary-rgb: 26,54,54;
-      --page-primary-light: #40534c;
+    /* ====== ЛОКАЛЬНАЯ ТЕМА СТРАНИЦЫ ====== */
+    .page-theme-communities{
+      /* базовый фирменный оттенок страницы (кнопки/табы и т.п.) */
+      --page-primary:#1a3636;
+      --page-primary-rgb:26,54,54;
+      --page-primary-light:#40534c;
 
-      /* Привязка к твоим кастомным переменным */
-      --reading-communities-accent: var(--page-primary);
-      --reading-communities-accent-light: var(--page-primary-light);
-      --reading-communities-accent-soft: rgba(var(--page-primary-rgb), 0.12);
-      --reading-communities-shadow: rgba(var(--page-primary-rgb), 0.18);
+      /* акцент для шапки/заголовка (просили #40534c) */
+      --headline:#1a3636;
+      --headline-rgb:26,54,54;
 
-      /* Перекрашиваем bootstrap-переменные */
-      --bs-primary: var(--page-primary);
-      --bs-primary-rgb: var(--page-primary-rgb);
+      /* прокидываем в ваши кастомные переменные */
+      --reading-communities-accent:var(--page-primary);
+      --reading-communities-accent-light:var(--page-primary-light);
+      --reading-communities-accent-soft:rgba(var(--page-primary-rgb), .12);
+      --reading-communities-shadow:rgba(var(--page-primary-rgb), .18);
+
+      /* и в bootstrap */
+      --bs-primary:var(--page-primary);
+      --bs-primary-rgb:var(--page-primary-rgb);
     }
 
-    /* ==================== КНОПКИ Bootstrap ==================== */
-    .page-theme-communities .btn-primary {
-      --bs-btn-bg: var(--page-primary);
-      --bs-btn-border-color: var(--page-primary);
-      --bs-btn-hover-bg: var(--page-primary-light);
-      --bs-btn-hover-border-color: var(--page-primary-light);
-      --bs-btn-active-bg: var(--page-primary);
-      --bs-btn-active-border-color: var(--page-primary);
-      --bs-btn-focus-shadow-rgb: var(--page-primary-rgb);
+    /* Кнопки Bootstrap под тему */
+    .page-theme-communities .btn-primary{
+      --bs-btn-bg:var(--page-primary);
+      --bs-btn-border-color:var(--page-primary);
+      --bs-btn-hover-bg:var(--page-primary-light);
+      --bs-btn-hover-border-color:var(--page-primary-light);
+      --bs-btn-active-bg:var(--page-primary);
+      --bs-btn-active-border-color:var(--page-primary);
+      --bs-btn-focus-shadow-rgb:var(--page-primary-rgb);
+    }
+    .page-theme-communities .btn-outline-primary{
+      --bs-btn-color:var(--page-primary);
+      --bs-btn-border-color:var(--page-primary);
+      --bs-btn-hover-bg:var(--page-primary);
+      --bs-btn-hover-border-color:var(--page-primary);
+      --bs-btn-active-bg:var(--page-primary);
+      --bs-btn-active-border-color:var(--page-primary);
     }
 
-    .page-theme-communities .btn-outline-primary {
-      --bs-btn-color: var(--page-primary);
-      --bs-btn-border-color: var(--page-primary);
-      --bs-btn-hover-bg: var(--page-primary);
-      --bs-btn-hover-border-color: var(--page-primary);
-      --bs-btn-active-bg: var(--page-primary);
-      --bs-btn-active-border-color: var(--page-primary);
+    /* Фокус инпутов */
+    .page-theme-communities .form-control:focus{
+      border-color:rgba(var(--page-primary-rgb), .45);
+      box-shadow:0 0 0 .25rem rgba(var(--page-primary-rgb), .25);
     }
 
-    /* ==================== Фокус у инпутов ==================== */
-    .page-theme-communities .form-control:focus {
-      border-color: rgba(var(--page-primary-rgb), .45);
-      box-shadow: 0 0 0 .25rem rgba(var(--page-primary-rgb), .25);
+    /* Nav-pills (табы) — активный фон = фирменный */
+    .reading-communities-tabs.nav-pills{
+      --bs-nav-pills-link-active-bg:var(--page-primary);
+      --bs-nav-pills-link-active-color:#fff;
+      --bs-primary:var(--page-primary);
+      --bs-primary-rgb:var(--page-primary-rgb);
+    }
+    .reading-communities-tabs .nav-link{
+      border-radius:999px;
+      border:1px solid rgba(var(--page-primary-rgb), .35);
+      color:var(--page-primary);
+      background:rgba(var(--page-primary-rgb), .10);
+      font-weight:600;
+      padding:.625rem 1.5rem;
+      transition:transform .2s ease, box-shadow .2s ease, background-color .2s ease;
+    }
+    .reading-communities-tabs .nav-link:hover,
+    .reading-communities-tabs .nav-link:focus{
+      background:rgba(var(--page-primary-rgb), .18);
+      color:var(--page-primary);
+      transform:translateY(-1px);
+    }
+    .reading-communities-tabs.nav.nav-pills .nav-link.active,
+    .reading-communities-tabs.nav.nav-pills .show > .nav-link{
+      background:var(--bs-nav-pills-link-active-bg) !important;
+      color:var(--bs-nav-pills-link-active-color) !important;
+      border-color:transparent !important;
+      box-shadow:0 12px 28px rgba(var(--page-primary-rgb), .30) !important;
     }
 
-    <style>
-  /* цвет темы */
-  :root:where(.page-theme-communities, .page-theme-communities *) { /* страховка, если обёртка есть */
-    --page-primary: #1a3636;
-    --page-primary-rgb: 26,54,54;
-    --page-primary-light: #40534c;
-  }
+    /* ====== КРАСИВЫЙ ФОН ШАПКИ + ЯРКИЙ ЗАГОЛОВОК #40534c ====== */
+    .page-theme-communities .reading-communities-hero{
+      position:relative;
+      border-radius:1.25rem;
+      padding:3rem clamp(1.5rem, 4vw, 3rem);
+      background: var(--page-primary-light);
+      border: 1px solid rgba(var(--headline-rgb, 64,83,76), .18);
+      box-shadow: 0 18px 40px rgba(var(--headline-rgb, 64,83,76), .12);
+      overflow:hidden;
+    }
+    .page-theme-communities .reading-communities-hero::before{
+      content: None !important;
+    }
+    .page-theme-communities .reading-communities-hero::after{
+      content: None !important;
+    }
+    .page-theme-communities .reading-communities-hero h1{
+      color: #fff
+    }
+    .page-theme-communities .reading-communities-hero p{
+      color:#fff
+    }
+    [data-bs-theme="dark"] .page-theme-communities .reading-communities-hero{
+      background:
+        linear-gradient(135deg,
+          rgba(var(--headline-rgb), .38) 0%,
+          rgba(var(--headline-rgb), .24) 55%,
+          rgba(var(--page-primary-rgb), .18) 100%);
+      border-color:rgba(var(--headline-rgb), .45);
+      box-shadow:0 24px 55px rgba(0,0,0,.35);
+    }
 
-  /* ✅ навигационные табы: переопределяем переменные Bootstrap только для этого блока */
-  .reading-communities-tabs.nav-pills{
-    /* bootstrap-переменные именно для nav-pills */
-    --bs-nav-pills-link-active-bg: var(--page-primary);
-    --bs-nav-pills-link-active-color: #fff;
-    --bs-primary: var(--page-primary);              /* на случай, если где-то внутри обращаются к первичному */
-    --bs-primary-rgb: var(--page-primary-rgb);
-  }
-
-  /* состояния ссылок (неактивных) — в твоём стиле */
-  .reading-communities-tabs .nav-link{
-    border-radius: 999px;
-    border: 1px solid rgba(var(--page-primary-rgb, 26,54,54), .35);
-    color: var(--page-primary, #1a3636);
-    background: rgba(var(--page-primary-rgb, 26,54,54), .10);
-    font-weight: 600;
-    padding: 0.625rem 1.5rem;
-    transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease;
-  }
-  .reading-communities-tabs .nav-link:hover,
-  .reading-communities-tabs .nav-link:focus{
-    background: rgba(var(--page-primary-rgb, 26,54,54), .18);
-    color: var(--page-primary, #1a3636);
-    transform: translateY(-1px);
-  }
-
-  /* активная — точно перебиваем Bootstrap */
-  .reading-communities-tabs.nav.nav-pills .nav-link.active,
-  .reading-communities-tabs.nav.nav-pills .show > .nav-link{
-    background: var(--bs-nav-pills-link-active-bg) !important;
-    color: var(--bs-nav-pills-link-active-color) !important;
-    border-color: transparent !important;
-    box-shadow: 0 12px 28px rgba(var(--page-primary-rgb, 26,54,54), .30) !important;
-  }
-
-  .page-theme-communities{
-    --page-primary:#1a3636;
-    --page-primary-rgb:26,54,54;
-    --page-primary-light:#40534c;
-
-    --reading-communities-accent:var(--page-primary);
-    --reading-communities-accent-light:var(--page-primary-light);
-    --reading-communities-accent-soft:rgba(var(--page-primary-rgb),.12);
-    --reading-communities-shadow:rgba(var(--page-primary-rgb),.18);
-
-    --bs-primary:var(--page-primary);
-    --bs-primary-rgb:var(--page-primary-rgb);
-  }
-
-  /* === красивый фон шапки с градиентом основного цвета === */
-  .page-theme-communities .reading-communities-hero{
-    position:relative;
-    border-radius:1.25rem;
-    padding:3rem clamp(1.5rem, 4vw, 3rem);
-
-    /* базовый мягкий градиент в двух тонах твоего цвета */
-    background:
-      linear-gradient(135deg,
-        rgba(var(--page-primary-rgb), .16) 0%,
-        rgba(var(--page-primary-rgb), .08) 100%);
-    border:1px solid rgba(var(--page-primary-rgb), .22);
-    box-shadow:0 24px 55px rgba(var(--page-primary-rgb), .15);
-    overflow:hidden;
-  }
-
-  /* светлое «пятно» слева сверху — создаёт объём */
-  .page-theme-communities .reading-communities-hero::before{
-    content:"";
-    position:absolute;
-    left:-20%;
-    top:-35%;
-    width:520px;
-    height:320px;
-    pointer-events:none;
-    background:radial-gradient(400px 240px at 50% 50%,
-      rgba(255,255,255,.45) 0%,
-      rgba(255,255,255,0) 70%);
-  }
-
-  /* мягкая цветная «аура» справа — подчёркивает фирменный оттенок */
-  .page-theme-communities .reading-communities-hero::after{
-    content:"";
-    position:absolute;
-    right:-18%;
-    bottom:-28%;
-    width:560px;
-    height:380px;
-    pointer-events:none;
-    background:radial-gradient(420px 260px at 55% 45%,
-      rgba(var(--page-primary-rgb), .22) 0%,
-      rgba(var(--page-primary-rgb), 0) 70%);
-  }
-
-  /* чуть приглушаем вторичный текст прямо в хедере */
-  .page-theme-communities .reading-communities-hero p{
-    color:rgba(0,0,0,.65);
-  }
-
-  /* темная тема — градиент насыщеннее, границы контрастнее */
-  [data-bs-theme="dark"] .page-theme-communities .reading-communities-hero{
-    background:
-      linear-gradient(135deg,
-        rgba(var(--page-primary-rgb), .22) 70%,
-        rgba(var(--page-primary-rgb), .12) 100%);
-    border-color:rgba(var(--page-primary-rgb), .35);
-    box-shadow:0 24px 55px rgba(0,0,0,.35);
-  }
+    /* ====== Мобилка ====== */
+    @media (max-width: 767.98px){
+      .page-theme-communities .reading-communities-hero{
+        text-align:center;
+        padding:2.5rem 1.75rem;
+      }
+      .page-theme-communities .reading-communities-hero::before{
+        left:-45%; top:-45%; width:360px; height:240px;
+      }
+      .page-theme-communities .reading-communities-hero::after{
+        right:-45%; bottom:-45%; width:420px; height:300px;
+      }
+      .reading-communities-controls{ align-items:stretch !important; }
+      .reading-communities-controls__hint{ text-align:center; }
+      .reading-communities-tabs{
+        width:100%; flex-wrap:nowrap; overflow-x:auto;
+        padding-bottom:.75rem; margin-bottom:.25rem; gap:.75rem;
+        scrollbar-width:thin;
+      }
+      .reading-communities-tabs::-webkit-scrollbar{ height:6px; }
+      .reading-communities-tabs::-webkit-scrollbar-thumb{
+        background:rgba(var(--page-primary-rgb), .35); border-radius:999px;
+      }
+      .reading-communities-tabs .nav-link{ flex:1 0 auto; white-space:nowrap; }
+      .reading-communities-actions{ width:100%; }
+      .reading-communities-actions .btn{ width:100%; }
+    }
   </style>
 {% endblock %}
 
 {% block content %}
-<!-- ✅ Всё содержимое страницы внутри темы -->
 <div class="page-theme-communities">
 
   <section class="reading-communities-hero mb-5">
@@ -199,7 +175,7 @@
   </div>
 
   <div class="tab-content reading-communities-tab-content">
-    <!-- ==================== Совместные чтения ==================== -->
+    <!-- Совместные чтения -->
     <div class="tab-pane fade show active" id="reading-clubs-pane" role="tabpanel" aria-labelledby="tab-reading-clubs">
       <section class="reading-section mb-5" id="reading-clubs">
         <div class="reading-section__inner">
@@ -272,7 +248,7 @@
       </section>
     </div>
 
-    <!-- ==================== Книжные марафоны ==================== -->
+    <!-- Книжные марафоны -->
     <div class="tab-pane fade" id="reading-marathons-pane" role="tabpanel" aria-labelledby="tab-reading-marathons">
       <section class="reading-section reading-section--marathons" id="reading-marathons">
         <div class="reading-section__inner">
