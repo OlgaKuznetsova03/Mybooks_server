@@ -118,6 +118,7 @@ def _build_group(
         "slug": slug,
         "description": description,
         "preview": preview,
+        "items": items,
         "total": total,
         "extra": max(total - len(preview), 0),
         "anchor": anchor,
