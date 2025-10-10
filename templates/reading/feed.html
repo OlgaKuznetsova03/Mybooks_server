@@ -13,6 +13,25 @@
     padding: 2.5rem 2rem;
     color: #23404a;
     box-shadow: 0 24px 40px rgba(25, 53, 63, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+
+  .reading-feed-hero__content {
+    max-width: 520px;
+  }
+
+  .reading-feed-hero__image {
+    max-width: 240px;
+    flex-shrink: 0;
+  }
+
+  .reading-feed-hero__image img {
+    width: 100%;
+    height: auto;
+    display: block;
   }
 
   .reading-feed-hero h1 {
@@ -199,6 +218,21 @@
     color: #2a4751;
   }
 
+  @media (max-width: 768px) {
+    .reading-feed-hero {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .reading-feed-hero__content {
+      max-width: none;
+    }
+
+    .reading-feed-hero__image {
+      max-width: 200px;
+    }
+  }
+
   @media (max-width: 576px) {
     .reading-feed-entry {
       padding: 1.25rem;
@@ -227,8 +261,13 @@
 {% block content %}
 <div class="container py-4 reading-feed-wrapper">
   <section class="reading-feed-hero mb-4">
-    <h1>Общая лента чтения</h1>
-    <p>Делитесь своими впечатлениями прямо в момент чтения: друзья увидят, на какой странице вы остановились, и смогут поддержать вас комментариями.</p>
+    <div class="reading-feed-hero__content">
+      <h1>Общая лента чтения</h1>
+      <p>Делитесь своими впечатлениями прямо в момент чтения: друзья увидят, на какой странице вы остановились, и смогут поддержать вас комментариями.</p>
+    </div>
+    <div class="reading-feed-hero__image">
+      <img src="{{ MEDIA_URL }}config/img/readgirl.png" alt="Иллюстрация чтения">
+    </div>
   </section>
 
   {% for entry in entries %}
