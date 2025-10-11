@@ -6,6 +6,22 @@
 {% block extra_css %}
 {{ block.super }}
 <link rel="stylesheet" href="{% static 'games/games-index.css' %}">
+<style>
+  /* уменьшить логотип независимо от остального */
+  .games-heading .games-heading__logo {
+    height: auto !important;      /* не тянуть по высоте контейнера */
+    width: auto !important;
+    max-height: 160px !important;  /* ← поставьте нужную высоту: было X, делим на 5 */
+    max-width: 100% !important;
+    object-fit: contain !important;
+  }
+
+  /* при желании можно ограничить и «рамку» вокруг логотипа */
+  .games-heading .games-heading__logo-wrapper {
+    width: auto !important;
+    max-width: 180px !important;  /* подберите ширину под ваш макет */
+  }
+</style>
 {% endblock %}
 
 {% block content %}

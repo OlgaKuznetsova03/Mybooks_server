@@ -8,6 +8,8 @@
 }
 
 .games-heading {
+  --games-logo-size: clamp(105px, 11vw, 145px);
+  --games-logo-height: clamp(88px, 9vw, 120px);
   border-radius: 1.5rem;
   background: linear-gradient(140deg, rgba(241, 246, 242, 0.95), rgba(217, 228, 219, 0.9));
   border: 1px solid rgba(84, 106, 80, 0.25);
@@ -29,8 +31,11 @@
 }
 
 .games-heading__logo-wrapper {
-  flex: 0 0 auto;
-  max-width: clamp(120px, 11vw, 180px);
+  flex: none;
+  inline-size: var(--games-logo-size);
+  width: var(--games-logo-size);
+  max-inline-size: 100%;
+  max-width: 100%;
   filter: drop-shadow(0 16px 28px rgba(43, 62, 52, 0.12));
   align-self: center;
   display: flex;
@@ -40,31 +45,13 @@
 
 .games-heading__logo {
   display: block;
-  width: 100%;
-  max-height: clamp(96px, 10vw, 150px);
+  inline-size: min(100%, var(--games-logo-size));
+  width: min(100%, var(--games-logo-size));
+  max-inline-size: 100%;
+  max-block-size: var(--games-logo-height);
   height: auto;
   border-radius: 1.25rem;
   object-fit: contain;
-}
-
-@media (max-width: 992px) {
-  .games-heading__logo-wrapper {
-    max-width: clamp(130px, 18vw, 200px);
-  }
-
-  .games-heading__logo {
-    max-height: clamp(110px, 18vw, 180px);
-  }
-}
-
-@media (max-width: 576px) {
-  .games-heading__logo-wrapper {
-    max-width: clamp(140px, 55vw, 190px);
-  }
-
-  .games-heading__logo {
-    max-height: clamp(120px, 46vw, 170px);
-  }
 }
 
 .games-section {
@@ -223,6 +210,11 @@
 }
 
 @media (max-width: 991.98px) {
+  .games-heading {
+    --games-logo-size: clamp(130px, 35vw, 200px);
+    --games-logo-height: clamp(110px, 30vw, 180px);
+  }
+
   .games-heading .card-body {
     text-align: center;
     align-items: center;
@@ -230,7 +222,6 @@
   }
 
   .games-heading__logo-wrapper {
-    max-width: clamp(140px, 40vw, 220px);
     margin-inline: auto;
   }
 
@@ -241,18 +232,19 @@
   }
 }
 
-@media (max-width: 575.98px) {
-  .games-heading__meta {
-    gap: 0.25rem;
-    padding: 0.75rem 1rem;
-  }
+  @media (max-width: 575.98px) {
+    .games-heading {
+    --games-logo-size: clamp(150px, 62vw, 210px);
+    --games-logo-height: clamp(130px, 50vw, 190px);
+    }
 
-  .games-heading__logo {
-    max-height: 180px;
-  }
+    .games-heading__meta {
+      gap: 0.25rem;
+      padding: 0.75rem 1rem;
+    }
 
-  .games-card {
-    border-radius: 1rem;
+    .games-card {
+      border-radius: 1rem;
   }
 }
 
