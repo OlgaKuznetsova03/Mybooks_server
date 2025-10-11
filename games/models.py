@@ -4,6 +4,8 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from user_ratings.services import award_for_game_stage_completion
+
 
 class ForgottenBookEntry(models.Model):
     """Книга, выбранная пользователем для челленджа «12 забытых книг»."""
@@ -271,6 +273,7 @@ class BookJourneyAssignment(models.Model):
         self.status = self.Status.COMPLETED
         self.completed_at = timezone.now()
         self.save(update_fields=["status", "completed_at", "updated_at"])
+        award_for_game_stage_completion(self)
 
     def apply_completion_state(self, *, finished: bool, has_review: bool) -> bool:
         """Пометить задание выполненным, если выполнены условия."""
@@ -282,6 +285,7 @@ class BookJourneyAssignment(models.Model):
         self.status = self.Status.COMPLETED
         self.completed_at = timezone.now()
         self.save(update_fields=["status", "completed_at", "updated_at"])
+        award_for_game_stage_completion(self)
         return True
 
     @classmethod

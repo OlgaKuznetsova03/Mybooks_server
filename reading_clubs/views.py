@@ -13,6 +13,8 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.generic import DetailView, FormView, ListView
 
+from user_ratings.services import award_for_discussion_post
+
 from .forms import DiscussionPostForm, ReadingClubForm, ReadingNormForm
 from .models import DiscussionPost, ReadingClub, ReadingNorm, ReadingParticipant
 
@@ -271,6 +273,7 @@ class DiscussionPostCreateView(View):
             post.topic = topic
             post.author = request.user
             post.save()
+            award_for_discussion_post(post)
             messages.success(request, "Сообщение добавлено.")
             return redirect(topic.get_absolute_url())
         context = {

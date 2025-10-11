@@ -11,6 +11,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import CreateView, DetailView, ListView
 
+from user_ratings.services import award_for_marathon_confirmation
+
 from .forms import (
     MarathonEntryForm,
     MarathonEntryStatusForm,
@@ -163,22 +165,33 @@ def marathon_entry_update(request: HttpRequest, pk: int) -> HttpResponse:
         return HttpResponseForbidden()
 
     if request.method == "POST":
+        previous_completion = entry.completion_status
         form = MarathonEntryStatusForm(request.POST, instance=entry)
         if form.is_valid():
+            previous_completion = entry.completion_status
             entry = form.save()
             if (
                 entry.status == MarathonEntry.Status.COMPLETED
                 and marathon.completion_policy == ReadingMarathon.CompletionPolicy.AUTO
                 and entry.has_review()
             ):
-                entry.completion_status = MarathonEntry.CompletionStatus.CONFIRMED
-                entry.save(update_fields=["completion_status"])
+                if entry.completion_status != MarathonEntry.CompletionStatus.CONFIRMED:
+                    entry.completion_status = MarathonEntry.CompletionStatus.CONFIRMED
+                    entry.save(update_fields=["completion_status", "updated_at"])
+                    completion_became_confirmed = True
             elif entry.status == MarathonEntry.Status.COMPLETED:
-                entry.completion_status = MarathonEntry.CompletionStatus.AWAITING_REVIEW
-                entry.save(update_fields=["completion_status"])
+                if entry.completion_status != MarathonEntry.CompletionStatus.AWAITING_REVIEW:
+                    entry.completion_status = MarathonEntry.CompletionStatus.AWAITING_REVIEW
+                    entry.save(update_fields=["completion_status", "updated_at"])
             elif entry.status != MarathonEntry.Status.COMPLETED:
-                entry.completion_status = MarathonEntry.CompletionStatus.IN_PROGRESS
-                entry.save(update_fields=["completion_status"])
+                if entry.completion_status != MarathonEntry.CompletionStatus.IN_PROGRESS:
+                    entry.completion_status = MarathonEntry.CompletionStatus.IN_PROGRESS
+                    entry.save(update_fields=["completion_status", "updated_at"])
+            if (
+                entry.completion_status == MarathonEntry.CompletionStatus.CONFIRMED
+                and (completion_became_confirmed or previous_completion != MarathonEntry.CompletionStatus.CONFIRMED)
+            ):
+                award_for_marathon_confirmation(entry)
             messages.success(request, _("Прогресс по книге обновлён."))
             return redirect(marathon.get_absolute_url())
     else:
@@ -220,7 +233,10 @@ def marathon_entry_confirm_completion(request: HttpRequest, pk: int) -> HttpResp
         messages.error(request, _("Участник ещё не завершил чтение книги."))
         return redirect(marathon.get_absolute_url())
 
+    previous_completion = entry.completion_status
     entry.completion_status = MarathonEntry.CompletionStatus.CONFIRMED
     entry.save(update_fields=["completion_status", "updated_at"])
+    if previous_completion != MarathonEntry.CompletionStatus.CONFIRMED:
+        award_for_marathon_confirmation(entry)
     messages.success(request, _("Этап зачтён."))
     return redirect(marathon.get_absolute_url())

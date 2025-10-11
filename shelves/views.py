@@ -48,6 +48,7 @@ from .forms import (
     HomeLibraryFilterForm,
 )
 from games.services.read_before_buy import ReadBeforeBuyGame
+from user_ratings.services import award_for_book_completion
 
 
 def event_list(request):
@@ -1263,6 +1264,7 @@ def reading_mark_finished(request, progress_id):
         progress.percent = Decimal("100")
         progress.save(update_fields=["percent", "updated_at"])
     move_book_to_read_shelf(request.user, progress.book)
+    award_for_book_completion(request.user, progress.book)
     messages.success(request, "Книга отмечена как прочитанная.")
     review_link = reverse("book_detail", args=[progress.book_id]) + "#write-review"
     messages.info(

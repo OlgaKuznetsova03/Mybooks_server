@@ -35,6 +35,7 @@ from shelves.services import (
     move_book_to_read_shelf,
 )
 from games.services.read_before_buy import ReadBeforeBuyGame
+from user_ratings.services import award_for_review
 from reading_clubs.models import ReadingClub
 from .models import Author, Book, Genre, Rating, ISBNModel
 from .forms import BookForm, RatingForm
@@ -1149,6 +1150,8 @@ def rate_book(request, pk):
             rating.book = book
             rating.user = request.user
             rating.save()
+            if rating.review and str(rating.review).strip():
+                award_for_review(request.user, rating)
             ReadBeforeBuyGame.handle_review(request.user, book, rating.review)
             move_book_to_read_shelf(request.user, book)
             print_url = reverse("book_review_print", args=[book.pk])

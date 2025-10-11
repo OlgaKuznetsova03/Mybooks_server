@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     'collaborations.apps.CollaborationsConfig',
     'reading_clubs.apps.ReadingClubsConfig',
     'reading_marathons.apps.ReadingMarathonsConfig',
+    'user_ratings.apps.UserRatingsConfig',
 ]
 
 MIDDLEWARE = [
