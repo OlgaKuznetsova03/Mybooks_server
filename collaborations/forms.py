@@ -14,6 +14,7 @@ from .models import (
     AuthorOfferResponseComment,
     BloggerGiveaway,
     BloggerInvitation,
+    CommunityBookClub,
     BloggerPlatformPresence,
     BloggerRequest,
     BloggerRequestResponse,
@@ -247,6 +248,47 @@ class BloggerGiveawayForm(BootstrapModelForm):
                 }
             ),
             "deadline": forms.DateInput(attrs={"type": "date"}),
+        }
+
+
+class CommunityBookClubForm(BootstrapModelForm):
+    class Meta:
+        model = CommunityBookClub
+        fields = [
+            "title",
+            "city",
+            "meeting_format",
+            "meeting_schedule",
+            "link",
+            "description",
+        ]
+        widgets = {
+            "title": forms.TextInput(
+                attrs={
+                    "placeholder": _("Например: Литературный вечер по средам"),
+                }
+            ),
+            "city": forms.TextInput(
+                attrs={
+                    "placeholder": _("Москва, Минск, Онлайн"),
+                }
+            ),
+            "meeting_schedule": forms.TextInput(
+                attrs={
+                    "placeholder": _("Каждый второй четверг"),
+                }
+            ),
+            "link": forms.URLInput(
+                attrs={
+                    "placeholder": "https://t.me/club_link",
+                }
+            ),
+            "description": forms.Textarea(
+                attrs={
+                    "rows": 4,
+                    "placeholder": _("Расскажите о формате, книгах и участниках."),
+                }
+            ),
         }
 
 

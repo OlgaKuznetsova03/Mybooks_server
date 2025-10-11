@@ -558,6 +558,65 @@ class BloggerGiveaway(models.Model):
         return self.deadline >= today
 
 
+class CommunityBookClub(models.Model):
+    """Описание книжных клубов, которые рекомендует сообщество."""
+
+    class MeetingFormat(models.TextChoices):
+        OFFLINE = "offline", _("Офлайн")
+        ONLINE = "online", _("Онлайн")
+        HYBRID = "hybrid", _("Гибридно")
+
+    submitted_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="community_book_clubs",
+        verbose_name=_("Автор записи"),
+    )
+    title = models.CharField(
+        max_length=200,
+        verbose_name=_("Название клуба"),
+        help_text=_("Укажите название или тему клуба."),
+    )
+    city = models.CharField(
+        max_length=120,
+        blank=True,
+        verbose_name=_("Город"),
+        help_text=_("Если встречи проходят офлайн, напишите город."),
+    )
+    meeting_format = models.CharField(
+        max_length=20,
+        choices=MeetingFormat.choices,
+        default=MeetingFormat.OFFLINE,
+        verbose_name=_("Формат"),
+    )
+    meeting_schedule = models.CharField(
+        max_length=150,
+        blank=True,
+        verbose_name=_("Расписание"),
+        help_text=_("Например: каждое воскресенье или раз в месяц."),
+    )
+    link = models.URLField(
+        blank=True,
+        verbose_name=_("Ссылка"),
+        help_text=_("Добавьте ссылку на чат или страницу клуба."),
+    )
+    description = models.TextField(
+        blank=True,
+        verbose_name=_("Описание"),
+        help_text=_("Коротко расскажите о формате и темах обсуждений."),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        verbose_name = _("Книжный клуб сообщества")
+        verbose_name_plural = _("Книжные клубы сообщества")
+
+    def __str__(self) -> str:  # pragma: no cover - текстовое представление
+        location = self.city or _("Онлайн")
+        return f"{self.title} — {location}"
+
+
 class Collaboration(models.Model):
     """Фактическое сотрудничество между автором и блогером/читателем."""
 

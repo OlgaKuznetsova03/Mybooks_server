@@ -5,6 +5,7 @@ from .models import (
     AuthorOfferResponse,
     AuthorOfferResponseComment,
     BloggerGiveaway,
+    CommunityBookClub,
     BloggerInvitation,
     BloggerPlatformPresence,
     BloggerRating,
@@ -101,3 +102,10 @@ class BloggerGiveawayAdmin(admin.ModelAdmin):
     list_display = ("title", "blogger", "is_active", "deadline", "created_at")
     list_filter = ("is_active",)
     search_fields = ("title", "description", "blogger__username")
+
+
+@admin.register(CommunityBookClub)
+class CommunityBookClubAdmin(admin.ModelAdmin):
+    list_display = ("title", "city", "meeting_format", "created_at")
+    list_filter = ("meeting_format", "city")
+    search_fields = ("title", "city", "description")

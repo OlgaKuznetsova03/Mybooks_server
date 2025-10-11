@@ -20,6 +20,7 @@ from .forms import (
     AuthorOfferResponseCommentForm,
     BloggerGiveawayForm,
     BloggerInvitationForm,
+    CommunityBookClubForm,
     BloggerPlatformPresenceFormSet,
     BloggerRequestForm,
     BloggerRequestResponseAcceptForm,
@@ -35,6 +36,7 @@ from .models import (
     BloggerRequestResponseComment,
     BloggerGiveaway,
     BloggerInvitation,
+    CommunityBookClub,
     Collaboration,
     CollaborationStatusUpdate,
 )
@@ -131,6 +133,32 @@ class BloggerCommunityView(View):
     def post(self, request):
         section = request.POST.get("section", "invitations")
         active_tab = self._sanitize_tab(section)
+        if active_tab == "clubs":
+            if not request.user.is_authenticated:
+                messages.error(
+                    request,
+                    _("Войдите, чтобы поделиться информацией о книжном клубе."),
+                )
+                login_url = f"{reverse('login')}?next={request.path}"
+                return redirect(login_url)
+
+            club_form = CommunityBookClubForm(request.POST)
+            if club_form.is_valid():
+                club = club_form.save(commit=False)
+                club.submitted_by = request.user
+                club.save()
+                messages.success(
+                    request,
+                    _("Клуб добавлен! Спасибо, что делитесь активностями сообществ."),
+                )
+                redirect_url = f"{request.path}?tab=clubs"
+                return redirect(redirect_url)
+            return self._render(
+                request,
+                club_form=club_form,
+                active_tab="clubs",
+            )
+        
         if not request.user.is_authenticated:
             messages.error(
                 request,
@@ -190,6 +218,7 @@ class BloggerCommunityView(View):
         *,
         invitation_form: BloggerInvitationForm | None = None,
         giveaway_form: BloggerGiveawayForm | None = None,
+        club_form: CommunityBookClubForm | None = None,
         active_tab: str = "invitations",
     ):
         invitations = (
@@ -203,20 +232,30 @@ class BloggerCommunityView(View):
             .filter(Q(deadline__isnull=True) | Q(deadline__gte=today))
             .order_by("-created_at")
         )
-        can_post = request.user.is_authenticated and _user_is_blogger(request.user)
+        book_clubs = (
+            CommunityBookClub.objects.select_related("submitted_by")
+            .order_by("-created_at")
+        )
+        can_share_blogger_content = (
+            request.user.is_authenticated and _user_is_blogger(request.user)
+        )
+        can_share_book_clubs = request.user.is_authenticated
         context = {
             "invitations": invitations,
             "giveaways": giveaways,
+            "book_clubs": book_clubs,
             "invitation_form": invitation_form or BloggerInvitationForm(),
             "giveaway_form": giveaway_form or BloggerGiveawayForm(),
+            "club_form": club_form or CommunityBookClubForm(),
             "active_tab": active_tab,
-            "can_post": can_post,
+            "can_share_blogger_content": can_share_blogger_content,
+            "can_share_book_clubs": can_share_book_clubs,
         }
         return render(request, self.template_name, context)
 
     @staticmethod
     def _sanitize_tab(tab: str) -> str:
-        if tab not in {"invitations", "giveaways"}:
+        if tab not in {"invitations", "giveaways", "clubs"}:
             return "invitations"
         return tab
 

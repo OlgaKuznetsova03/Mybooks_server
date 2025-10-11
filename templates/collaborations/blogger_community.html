@@ -7,7 +7,7 @@
 <div class="container py-4">
   <div class="mb-4 text-center text-md-start">
     <h1 class="display-6 mb-2">{% trans "Блогерский хаб" %}</h1>
-    <p class="text-muted mb-0">{% trans "Делитесь ссылками на свои книжные каналы и рассказывайте об актуальных розыгрышах." %}</p>
+    <p class="text-muted mb-0">{% trans "Делитесь ссылками на свои книжные площадки, актуальными розыгрышами и приглашайте в клубы." %}</p>
   </div>
 
   <ul class="nav nav-tabs" role="tablist">
@@ -21,13 +21,18 @@
         <i class="bi bi-gift-fill me-1"></i>{% trans "Розыгрыши" %}
       </button>
     </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link{% if active_tab == 'clubs' %} active{% endif %}" id="clubs-tab" data-bs-toggle="tab" data-bs-target="#clubs" type="button" role="tab" aria-controls="clubs" aria-selected="{% if active_tab == 'clubs' %}true{% else %}false{% endif %}">
+        <i class="bi bi-people-fill me-1"></i>{% trans "Книжные клубы" %}
+      </button>
+    </li>
   </ul>
 
   <div class="tab-content border border-top-0 rounded-bottom bg-body p-4">
     <div class="tab-pane fade{% if active_tab == 'invitations' %} show active{% endif %}" id="invites" role="tabpanel" aria-labelledby="invites-tab">
       <div class="mb-4">
         <h2 class="h4 mb-3">{% trans "Поделитесь своим книжным пространством" %}</h2>
-        {% if can_post %}
+        {% if can_share_blogger_content %}
           <form method="post" class="card shadow-sm">
             {% csrf_token %}
             <input type="hidden" name="section" value="invitations">
@@ -114,7 +119,7 @@
       {% else %}
         <div class="text-center py-5">
           <p class="lead mb-2">{% trans "Пока нет приглашений." %}</p>
-          {% if can_post %}
+          {% if can_share_blogger_content %}
             <p class="text-muted">{% trans "Станьте первым, кто расскажет о своём книжном сообществе." %}</p>
           {% endif %}
         </div>
@@ -132,7 +137,7 @@
 
       <div class="mb-4">
         <h2 class="h4 mb-3">{% trans "Актуальные розыгрыши" %}</h2>
-        {% if can_post %}
+        {% if can_share_blogger_content %}
           <form method="post" class="card shadow-sm">
             {% csrf_token %}
             <input type="hidden" name="section" value="giveaways">
@@ -228,8 +233,133 @@
       {% else %}
         <div class="text-center py-5">
           <p class="lead mb-2">{% trans "Сейчас нет активных розыгрышей." %}</p>
-          {% if can_post %}
+          {% if can_share_blogger_content %}
             <p class="text-muted">{% trans "Расскажите аудитории о своём конкурсе и добавьте ссылку." %}</p>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+    <div class="tab-pane fade{% if active_tab == 'clubs' %} show active{% endif %}" id="clubs" role="tabpanel" aria-labelledby="clubs-tab">
+      <div class="mb-4">
+        <h2 class="h4 mb-3">{% trans "Поделитесь книжным клубом" %}</h2>
+        {% if can_share_book_clubs %}
+          <form method="post" class="card shadow-sm">
+            {% csrf_token %}
+            <input type="hidden" name="section" value="clubs">
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-12">
+                  <label class="form-label" for="{{ club_form.title.id_for_label }}">{{ club_form.title.label }}</label>
+                  {{ club_form.title }}
+                  {% if club_form.title.errors %}
+                    <div class="invalid-feedback d-block">{{ club_form.title.errors|join:', ' }}</div>
+                  {% endif %}
+                  {% if club_form.title.help_text %}
+                    <div class="form-text">{{ club_form.title.help_text }}</div>
+                  {% endif %}
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="{{ club_form.city.id_for_label }}">{{ club_form.city.label }}</label>
+                  {{ club_form.city }}
+                  {% if club_form.city.errors %}
+                    <div class="invalid-feedback d-block">{{ club_form.city.errors|join:', ' }}</div>
+                  {% endif %}
+                  {% if club_form.city.help_text %}
+                    <div class="form-text">{{ club_form.city.help_text }}</div>
+                  {% endif %}
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="{{ club_form.meeting_format.id_for_label }}">{{ club_form.meeting_format.label }}</label>
+                  {{ club_form.meeting_format }}
+                  {% if club_form.meeting_format.errors %}
+                    <div class="invalid-feedback d-block">{{ club_form.meeting_format.errors|join:', ' }}</div>
+                  {% endif %}
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="{{ club_form.meeting_schedule.id_for_label }}">{{ club_form.meeting_schedule.label }}</label>
+                  {{ club_form.meeting_schedule }}
+                  {% if club_form.meeting_schedule.errors %}
+                    <div class="invalid-feedback d-block">{{ club_form.meeting_schedule.errors|join:', ' }}</div>
+                  {% endif %}
+                  {% if club_form.meeting_schedule.help_text %}
+                    <div class="form-text">{{ club_form.meeting_schedule.help_text }}</div>
+                  {% endif %}
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="{{ club_form.link.id_for_label }}">{{ club_form.link.label }}</label>
+                  {{ club_form.link }}
+                  {% if club_form.link.errors %}
+                    <div class="invalid-feedback d-block">{{ club_form.link.errors|join:', ' }}</div>
+                  {% endif %}
+                  {% if club_form.link.help_text %}
+                    <div class="form-text">{{ club_form.link.help_text }}</div>
+                  {% endif %}
+                </div>
+                <div class="col-12">
+                  <label class="form-label" for="{{ club_form.description.id_for_label }}">{{ club_form.description.label }}</label>
+                  {{ club_form.description }}
+                  {% if club_form.description.errors %}
+                    <div class="invalid-feedback d-block">{{ club_form.description.errors|join:', ' }}</div>
+                  {% endif %}
+                  {% if club_form.description.help_text %}
+                    <div class="form-text">{{ club_form.description.help_text }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="card-footer d-flex justify-content-end gap-2 bg-body-secondary">
+              <button type="submit" class="btn btn-outline-primary">
+                <i class="bi bi-people-fill me-1"></i>{% trans "Добавить клуб" %}
+              </button>
+            </div>
+          </form>
+        {% else %}
+          <div class="alert alert-info" role="alert">
+            <i class="bi bi-info-circle-fill me-2"></i>{% trans "Войдите, чтобы рассказать о книжном клубе в своём городе или онлайн." %}
+          </div>
+        {% endif %}
+      </div>
+
+      {% if book_clubs %}
+        <div class="row g-4">
+          {% for club in book_clubs %}
+            <div class="col-12 col-lg-6">
+              <div class="card h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                  <div class="d-flex justify-content-between align-items-start mb-3">
+                    <span class="badge text-bg-secondary">{{ club.get_meeting_format_display }}</span>
+                    <small class="text-muted">{{ club.created_at|date:"j E Y" }}</small>
+                  </div>
+                  <h3 class="h5 mb-1">{{ club.title }}</h3>
+                  {% if club.city %}
+                    <p class="text-muted small mb-2"><i class="bi bi-geo-alt-fill me-1"></i>{{ club.city }}</p>
+                  {% endif %}
+                  {% if club.meeting_schedule %}
+                    <p class="text-muted small mb-3"><i class="bi bi-calendar-event me-1"></i>{{ club.meeting_schedule }}</p>
+                  {% endif %}
+                  {% if club.description %}
+                    <p class="text-muted flex-grow-1">{{ club.description }}</p>
+                  {% endif %}
+                  <div class="mt-auto d-flex justify-content-between align-items-center">
+                    {% if club.link %}
+                      <a href="{{ club.link }}" class="btn btn-outline-secondary" target="_blank" rel="noopener">
+                        <i class="bi bi-box-arrow-up-right me-1"></i>{% trans "Подробнее" %}
+                      </a>
+                    {% else %}
+                      <span class="text-muted small">{% trans "Ссылка не указана" %}</span>
+                    {% endif %}
+                    <small class="text-muted">{{ club.submitted_by.get_full_name|default:club.submitted_by.username }}</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-center py-5">
+          <p class="lead mb-2">{% trans "Клубы пока не добавлены." %}</p>
+          {% if can_share_book_clubs %}
+            <p class="text-muted">{% trans "Расскажите об активности в своём городе или онлайн." %}</p>
           {% endif %}
         </div>
       {% endif %}
