@@ -30,7 +30,7 @@
 
 .games-heading__logo-wrapper {
   flex: 0 0 auto;
-  max-width: clamp(140px, 14vw, 220px);
+  max-width: clamp(120px, 11vw, 180px);
   filter: drop-shadow(0 16px 28px rgba(43, 62, 52, 0.12));
   align-self: center;
   display: flex;
@@ -41,15 +41,29 @@
 .games-heading__logo {
   display: block;
   width: 100%;
-  max-height: clamp(120px, 12vw, 200px);
+  max-height: clamp(96px, 10vw, 150px);
   height: auto;
   border-radius: 1.25rem;
   object-fit: contain;
 }
 
+@media (max-width: 992px) {
+  .games-heading__logo-wrapper {
+    max-width: clamp(130px, 18vw, 200px);
+  }
+
+  .games-heading__logo {
+    max-height: clamp(110px, 18vw, 180px);
+  }
+}
+
 @media (max-width: 576px) {
   .games-heading__logo-wrapper {
-    max-width: clamp(160px, 60vw, 240px);
+    max-width: clamp(140px, 55vw, 190px);
+  }
+
+  .games-heading__logo {
+    max-height: clamp(120px, 46vw, 170px);
   }
 }
 
