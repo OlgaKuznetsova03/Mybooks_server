@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ club.title }} · {% trans "Книжный клуб сообщества" %} · {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'collaborations:blogger_community' %}?tab=clubs">{% trans "Блогерский хаб" %}</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{ club.title }}</li>
+    </ol>
+  </nav>
+
+  <div class="alert alert-warning d-flex align-items-start" role="alert">
+    <i class="bi bi-shield-exclamation me-2 fs-4"></i>
+    <div>
+      <p class="fw-semibold mb-1">{% trans "Проверьте ссылку перед переходом" %}</p>
+      <p class="mb-0">{% trans "Мы не модерируем внешние ресурсы. Убедитесь, что доверяете организаторам клуба, прежде чем делиться личными данными или переходить по ссылкам." %}</p>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h1 class="h3 mb-3">{{ club.title }}</h1>
+      <div class="text-muted small mb-3">
+        <i class="bi bi-clock-history me-1"></i>{% trans "Добавлено" %} {{ club.created_at|date:"j E Y" }} ·
+        <i class="bi bi-person-circle ms-1 me-1"></i>{{ club.submitted_by.get_full_name|default:club.submitted_by.username }}
+      </div>
+      <div class="row row-cols-1 row-cols-md-2 g-3 mb-4">
+        {% if club.city %}
+          <div class="col">
+            <div class="border rounded p-3 h-100 bg-body-secondary">
+              <div class="text-uppercase text-muted small mb-1">{% trans "Город" %}</div>
+              <div class="fw-semibold">{{ club.city }}</div>
+            </div>
+          </div>
+        {% endif %}
+        <div class="col">
+          <div class="border rounded p-3 h-100 bg-body-secondary">
+            <div class="text-uppercase text-muted small mb-1">{% trans "Формат" %}</div>
+            <div class="fw-semibold">{{ club.get_meeting_format_display }}</div>
+          </div>
+        </div>
+        {% if club.meeting_schedule %}
+          <div class="col">
+            <div class="border rounded p-3 h-100 bg-body-secondary">
+              <div class="text-uppercase text-muted small mb-1">{% trans "Расписание" %}</div>
+              <div class="fw-semibold">{{ club.meeting_schedule }}</div>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+
+      {% if club.description %}
+        <div class="mb-4">
+          <h2 class="h5 mb-3">{% trans "О клубе" %}</h2>
+          <div class="text-body-secondary">{{ club.description|linebreaks }}</div>
+        </div>
+      {% endif %}
+
+      <div class="d-flex flex-wrap gap-2">
+        {% if club.link %}
+          <a href="{{ club.link }}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+            <i class="bi bi-box-arrow-up-right me-1"></i>{% trans "Перейти на сайт клуба" %}
+          </a>
+        {% endif %}
+        <a href="{{ community_url }}" class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-left-short me-1"></i>{% trans "Вернуться к списку" %}
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

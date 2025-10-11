@@ -10,6 +10,11 @@ urlpatterns = [
         views.BloggerCommunityView.as_view(),
         name="blogger_community",
     ),
+    path(
+        "bloggers/community/clubs/<int:pk>/",
+        views.CommunityBookClubDetailView.as_view(),
+        name="community_book_club_detail",
+    ),
     path("offers/", views.OfferListView.as_view(), name="offer_list"),
     path("offers/create/", views.OfferCreateView.as_view(), name="offer_create"),
     path("offers/<int:pk>/", views.OfferDetailView.as_view(), name="offer_detail"),

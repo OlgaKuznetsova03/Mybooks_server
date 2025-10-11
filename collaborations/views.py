@@ -260,6 +260,20 @@ class BloggerCommunityView(View):
         return tab
 
 
+class CommunityBookClubDetailView(DetailView):
+    model = CommunityBookClub
+    template_name = "collaborations/community_book_club_detail.html"
+    context_object_name = "club"
+
+    def get_queryset(self):
+        return super().get_queryset().select_related("submitted_by")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["community_url"] = f"{reverse('collaborations:blogger_community')}?tab=clubs"
+        return context
+
+
 class OfferListView(ListView):
     model = AuthorOffer
     template_name = "collaborations/offer_list.html"
