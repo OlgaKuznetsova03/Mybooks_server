@@ -30,18 +30,19 @@
 
 .games-heading__logo-wrapper {
   flex: 0 0 auto;
-  max-width: max(200px, 30vw);
+  max-width: clamp(160px, 22vw, 260px);
   filter: drop-shadow(0 16px 28px rgba(43, 62, 52, 0.12));
-  align-self: stretch;
+  align-self: center;
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
 .games-heading__logo {
   display: block;
-  max-width: 100%;
-  height: 100%;
-  width: auto;
+  width: 100%;
+  max-height: 220px;
+  height: auto;
   border-radius: 1.25rem;
   object-fit: contain;
 }
@@ -198,6 +199,40 @@
 .games-card__highlights--muted li::before {
   background: rgba(84, 106, 80, 0.12);
   color: rgba(43, 62, 52, 0.6);
+}
+
+@media (max-width: 991.98px) {
+  .games-heading .card-body {
+    text-align: center;
+    align-items: center;
+    padding: clamp(1.5rem, 4vw + 1rem, 2.25rem);
+  }
+
+  .games-heading__logo-wrapper {
+    max-width: clamp(140px, 40vw, 220px);
+    margin-inline: auto;
+  }
+
+  .games-heading__meta {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .games-heading__meta {
+    gap: 0.25rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .games-heading__logo {
+    max-height: 180px;
+  }
+
+  .games-card {
+    border-radius: 1rem;
+  }
 }
 
 .games-card__note {
