@@ -30,7 +30,7 @@
 
 .games-heading__logo-wrapper {
   flex: 0 0 auto;
-  max-width: clamp(160px, 22vw, 260px);
+  max-width: clamp(14px, 2.05rem, 21px);
   filter: drop-shadow(0 16px 28px rgba(43, 62, 52, 0.12));
   align-self: center;
   display: flex;
@@ -40,12 +40,19 @@
 
 .games-heading__logo {
   display: block;
-  width: 100%;
-  max-height: 220px;
+  width: 20%;
+  max-height: clamp(14px, 2vh, 18px);
   height: auto;
   border-radius: 1.25rem;
   object-fit: contain;
 }
+
+@media (max-width: 576px) {
+  .games-heading__logo-wrapper {
+    max-width: clamp(12px, 4vw, 16px);
+  }
+}
+
 .games-section {
   color: var(--games-ink);
 }
