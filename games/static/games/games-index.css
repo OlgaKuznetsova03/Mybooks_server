@@ -28,6 +28,23 @@
   color: rgba(43, 62, 52, 0.7);
 }
 
+.games-heading__logo-wrapper {
+  flex: 0 0 auto;
+  max-width: max(200px, 30vw);
+  filter: drop-shadow(0 16px 28px rgba(43, 62, 52, 0.12));
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+}
+
+.games-heading__logo {
+  display: block;
+  max-width: 100%;
+  height: 100%;
+  width: auto;
+  border-radius: 1.25rem;
+  object-fit: contain;
+}
 .games-section {
   color: var(--games-ink);
 }
