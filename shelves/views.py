@@ -1303,6 +1303,7 @@ def reading_feed(request):
         )
         .prefetch_related("comments__user", "comments__user__profile", "book__isbn")
     )
+    reactions = entries.exclude(reaction__isnull=True).exclude(reaction__exact="")
     reviews = (
         Rating.objects.exclude(review__isnull=True)
         .exclude(review__exact="")
@@ -1319,8 +1320,10 @@ def reading_feed(request):
         request,
         "reading/feed.html",
         {
-            "entries": entries,
+            "reactions": reactions,
             "reviews": reviews,
+            "has_reactions": reactions.exists(),
+            "has_reviews": reviews.exists(),
         },
     )
 

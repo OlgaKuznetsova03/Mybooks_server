@@ -179,6 +179,38 @@
     margin-bottom: 1.25rem;
   }
 
+  .reading-feed-switcher {
+    display: inline-flex;
+    gap: 0.75rem;
+    align-items: center;
+    background: rgba(70, 112, 126, 0.08);
+    padding: 0.5rem;
+    border-radius: 999px;
+    margin-bottom: 2rem;
+  }
+
+  .reading-feed-switcher__button {
+    border: none;
+    background: transparent;
+    padding: 0.5rem 1.5rem;
+    border-radius: 999px;
+    font-weight: 600;
+    color: #30515b;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .reading-feed-switcher__button[aria-pressed="true"] {
+    background: #ffffff;
+    color: #1e3b45;
+    box-shadow: 0 8px 20px rgba(25, 53, 63, 0.12);
+  }
+
+  .reading-feed-switcher__button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(70, 112, 126, 0.3);
+  }
+
   .reading-feed-review__text {
     font-size: 1.05rem;
     line-height: 1.7;
@@ -310,13 +342,18 @@
     </div>
   </section>
 
-  {% if reviews %}
-    <section class="reading-feed-reviews" aria-labelledby="reading-feed-reviews-title">
-      <div class="reading-feed-section-title">
-        <h2 id="reading-feed-reviews-title">Свежие отзывы читателей</h2>
-        <p>Собрали все опубликованные впечатления о книгах — делитесь своими мыслями и обсуждайте прочитанное.</p>
-      </div>
-      {% for review in reviews %}
+  <div class="reading-feed-switcher" role="tablist" aria-label="Переключение между отзывами и реакциями" data-default-panel="{% if has_reviews %}reviews{% elif has_reactions %}reactions{% else %}reviews{% endif %}">
+    <button type="button" class="reading-feed-switcher__button" data-target="reviews" role="tab" aria-selected="{% if has_reviews or not has_reactions %}true{% else %}false{% endif %}" aria-pressed="{% if has_reviews or not has_reactions %}true{% else %}false{% endif %}">Отзывы</button>
+    <button type="button" class="reading-feed-switcher__button" data-target="reactions" role="tab" aria-selected="{% if not has_reviews and has_reactions %}true{% else %}false{% endif %}" aria-pressed="{% if not has_reviews and has_reactions %}true{% else %}false{% endif %}">Реакции в моменте</button>
+  </div>
+
+  <section class="reading-feed-reviews" aria-labelledby="reading-feed-reviews-title" data-feed-panel="reviews" {% if not has_reviews and has_reactions %}hidden{% endif %}>
+    <div class="reading-feed-section-title">
+      <h2 id="reading-feed-reviews-title">Свежие отзывы читателей</h2>
+      <p>Собрали все опубликованные впечатления о книгах — делитесь своими мыслями и обсуждайте прочитанное.</p>
+    </div>
+      {% if has_reviews %}
+        {% for review in reviews %}
         {% with display_name=review.user.get_full_name|default:review.user.username cover_url=review.book.get_cover_url %}
           <article class="reading-feed-entry reading-feed-review" id="review-{{ review.id }}">
             <div class="reading-feed-entry__header">
@@ -382,16 +419,21 @@
             </article>
         {% endwith %}
       {% endfor %}
-    </section>
-  {% endif %}
+    {% else %}
+        <div class="reading-feed-empty">
+          Отзывы пока не опубликованы — поделитесь своими впечатлениями о книге.
+        </div>
+      {% endif %}
+  </section>
 
-  <section class="reading-feed-progress" aria-labelledby="reading-feed-progress-title">
+  <section class="reading-feed-progress" aria-labelledby="reading-feed-progress-title" data-feed-panel="reactions" {% if has_reviews or not has_reactions %}hidden{% endif %}>
     <div class="reading-feed-section-title">
       <h2 id="reading-feed-progress-title">Обновления чтения</h2>
       <p>Следите за прогрессом друзей и поддерживайте их комментариями.</p>
     </div>
 
-    {% for entry in entries %}
+    {% if has_reactions %}
+      {% for entry in reactions %}
       <article class="reading-feed-entry" id="entry-{{ entry.id }}">
         {% with display_name=entry.user.get_full_name|default:entry.user.username cover_url=entry.book.get_cover_url %}
           <div class="reading-feed-entry__header">
@@ -455,11 +497,49 @@
           {% endif %}
           </div>
       </article>
-    {% empty %}
+      {% endfor %}
+    {% else %}
       <div class="reading-feed-empty">
-        Пока что никто не поделился публичным прогрессом. Добавьте обновление со страницы книги, чтобы начать беседу!
+        Пока никто не делился реакциями в моменте. Оставьте заметку во время чтения, чтобы вдохновить других!
       </div>
-    {% endfor %}
+    {% endif %}
   </section>
 </div>
+<script>
+  (function () {
+    const switcher = document.querySelector('.reading-feed-switcher');
+    if (!switcher) {
+      return;
+    }
+
+    const buttons = Array.from(switcher.querySelectorAll('[data-target]'));
+    const panels = document.querySelectorAll('[data-feed-panel]');
+    const defaultPanel = switcher.dataset.defaultPanel || 'reviews';
+
+    function activate(panelName) {
+      buttons.forEach((button) => {
+        const isActive = button.dataset.target === panelName;
+        button.setAttribute('aria-pressed', String(isActive));
+        button.setAttribute('aria-selected', String(isActive));
+      });
+
+      panels.forEach((panel) => {
+        const matches = panel.dataset.feedPanel === panelName;
+        if (matches) {
+          panel.removeAttribute('hidden');
+        } else {
+          panel.setAttribute('hidden', '');
+        }
+      });
+    }
+
+    activate(defaultPanel);
+
+    buttons.forEach((button) => {
+      button.addEventListener('click', () => {
+        activate(button.dataset.target);
+      });
+    });
+  })();
+</script>
 {% endblock %}
