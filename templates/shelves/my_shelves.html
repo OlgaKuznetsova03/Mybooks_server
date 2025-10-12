@@ -7,5 +7,5 @@
     <i class="bi bi-plus-lg me-1"></i>Создать полку
   </a>
 </div>
-{% include "shelves/_shelf_cards.html" with shelves=shelves allow_manage=True empty_message="У вас пока нет полок." %}
+{% include "shelves/_shelf_cards.html" with shelves=shelves allow_manage=True empty_message="У вас пока нет полок." default_reading_shelf_name=default_reading_shelf_name reading_progress_label=reading_progress_label %}
 {% endblock %}

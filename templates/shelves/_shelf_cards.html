@@ -48,7 +48,20 @@
   .shelf-card__body {
     position: relative;
     padding: 2.5rem 1.75rem 2rem;
-    background: linear-gradient(160deg, rgba(241, 225, 206, 0.35), rgba(214, 197, 178, 0.55));
+    background-color: #f3ebe1;
+    background-image: url("{{ MEDIA_URL }}accounts/img/shelvesbild.PNG");
+    background-repeat: repeat-x;
+    background-size: cover;
+    background-position: center bottom;
+    overflow: hidden;
+  }
+
+  .shelf-card__body::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.6), rgba(214, 197, 178, 0.25));
+    z-index: 0;
   }
 
   .shelf-card__body::after {
@@ -61,14 +74,35 @@
     border-radius: 999px;
     background: linear-gradient(90deg, #9c6b3f, #c58d54, #9c6b3f);
     box-shadow: 0 0.45rem 1.2rem rgba(108, 63, 28, 0.4);
+    z-index: 0;
+  }
+
+  .shelf-card__body > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .book-shelf-wrapper {
+    position: relative;
   }
 
   .book-shelf {
     display: flex;
     gap: 1.5rem;
     overflow-x: auto;
-    padding-bottom: 2.5rem;
+    padding: 0 0 2.5rem;
     scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scroll-padding: 0 2.75rem;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+  }
+
+  .book-shelf::before,
+  .book-shelf::after {
+    content: "";
+    flex: 0 0 2.75rem;
+    pointer-events: none;
   }
 
   .book-shelf::-webkit-scrollbar {
@@ -86,6 +120,7 @@
     flex: 0 0 auto;
     text-align: center;
     scroll-snap-align: start;
+    scroll-snap-stop: always;
   }
 
   .book-cover {
@@ -97,12 +132,24 @@
     box-shadow: 0 1.25rem 1.75rem rgba(33, 37, 41, 0.18);
     border: 3px solid rgba(255, 255, 255, 0.5);
     background: linear-gradient(130deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.2));
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
 
   .book-cover img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+
+  .book-cover:hover,
+  .book-cover:focus-visible {
+    transform: translateY(-4px);
+    box-shadow: 0 1.5rem 2.25rem rgba(33, 37, 41, 0.25);
+  }
+
+  .book-cover:focus-visible {
+    outline: 3px solid rgba(79, 70, 229, 0.45);
+    outline-offset: 2px;
   }
 
   .book-cover__placeholder {
@@ -136,11 +183,61 @@
     opacity: 0;
     transform: translateY(-0.25rem);
     transition: all 0.2s ease;
+    z-index: 2;
   }
 
   .book-item:hover .book-remove {
     opacity: 1;
     transform: translateY(0);
+  }
+
+  .book-shelf__nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 999px;
+    border: none;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 0.75rem 1.5rem rgba(33, 37, 41, 0.15);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: #8b5a2b;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    z-index: 2;
+  }
+
+  .book-shelf__nav:hover:not(:disabled),
+  .book-shelf__nav:focus-visible:not(:disabled) {
+    background: rgba(255, 255, 255, 0.95);
+    color: #6f451c;
+    transform: translateY(-50%) scale(1.05);
+  }
+
+  .book-shelf__nav:focus-visible {
+    outline: 3px solid rgba(139, 90, 43, 0.35);
+    outline-offset: 2px;
+  }
+
+  .book-shelf__nav:disabled {
+    opacity: 0.4;
+    cursor: default;
+    box-shadow: none;
+  }
+
+  .book-shelf__nav--prev {
+    left: 1rem;
+  }
+
+  .book-shelf__nav--next {
+    right: 1rem;
+  }
+
+  .book-shelf-wrapper--overflow .book-shelf__nav {
+    display: inline-flex;
   }
 
   .shelf-empty {
@@ -151,6 +248,16 @@
   }
 
   @media (max-width: 575.98px) {
+    .book-shelf {
+      gap: 1.25rem;
+      scroll-padding: 0 2.25rem;
+    }
+
+    .book-shelf::before,
+    .book-shelf::after {
+      flex-basis: 2.25rem;
+    }
+
     .book-item {
       width: 96px;
     }
@@ -158,6 +265,19 @@
     .book-cover {
       width: 96px;
       height: 150px;
+    }
+
+    .book-shelf__nav {
+      width: 2.5rem;
+      height: 2.5rem;
+    }
+
+    .book-shelf__nav--prev {
+      left: 0.5rem;
+    }
+
+    .book-shelf__nav--next {
+      right: 0.5rem;
     }
 
     .shelf-card__body {
@@ -197,32 +317,46 @@
     {% with shelf_books|length as shelf_count %}
       {% if shelf_count %}
         <div class="shelf-card__body">
-          <div class="book-shelf">
-            {% for it in shelf_books %}
-              <div class="book-item">
-                <a class="book-cover" href="{% url 'book_detail' it.book.pk %}">
-                  {% with cover_url=it.book.get_cover_url %}
-                    {% if cover_url %}
-                      <img src="{{ cover_url }}" alt="Обложка {{ it.book.title }}">
-                    {% else %}
-                      <div class="book-cover__placeholder">{{ it.book.title|default_if_none:"?"|slice:":1"|upper }}</div>
-                    {% endif %}
-                  {% endwith %}
-                </a>
-                {% if allow_manage %}
-                  <div class="book-remove">
-                    <a class="btn btn-sm btn-danger"
-                       href="{% url 'remove_book_from_shelf' shelf.id it.book.id %}{% if return_path %}?next={{ return_path|urlencode }}{% endif %}"
-                       aria-label="Удалить {{ it.book.title }} с полки {{ shelf.name }}"
-                       title="Удалить с полки">
-                      <i class="bi bi-trash"></i>
+          <div class="book-shelf-wrapper">
+            <button class="book-shelf__nav book-shelf__nav--prev" type="button" aria-label="Прокрутить полку назад">
+              <span class="visually-hidden">Прокрутить полку назад</span>
+              <i class="bi bi-chevron-left" aria-hidden="true"></i>
+            </button>
+            {% with normalized_name=shelf.name|lower normalized_default=default_reading_shelf_name|default:'Читаю'|lower normalized_progress=reading_progress_label|default:'Читаю сейчас'|lower %}
+              <div class="book-shelf">
+                {% for it in shelf_books %}
+                  <div class="book-item">
+                    <a class="book-cover"
+                       href="{% if normalized_name == normalized_default or normalized_name == normalized_progress %}{% url 'reading_track' it.book.pk %}{% else %}{% url 'book_detail' it.book.pk %}{% endif %}"
+                       title="{% if normalized_name == normalized_default or normalized_name == normalized_progress %}Открыть прогресс чтения{% else %}Открыть книгу{% endif %}">
+                      {% with cover_url=it.book.get_cover_url %}
+                        {% if cover_url %}
+                          <img src="{{ cover_url }}" alt="Обложка {{ it.book.title }}">
+                        {% else %}
+                          <div class="book-cover__placeholder">{{ it.book.title|default_if_none:"?"|slice:":1"|upper }}</div>
+                        {% endif %}
+                      {% endwith %}
                     </a>
+                    {% if allow_manage %}
+                      <div class="book-remove">
+                        <a class="btn btn-sm btn-danger"
+                           href="{% url 'remove_book_from_shelf' shelf.id it.book.id %}{% if return_path %}?next={{ return_path|urlencode }}{% endif %}"
+                           aria-label="Удалить {{ it.book.title }} с полки {{ shelf.name }}"
+                           title="Удалить с полки">
+                          <i class="bi bi-trash"></i>
+                        </a>
+                      </div>
+                    {% endif %}
+                    <div class="book-title">{{ it.book.title }}</div>
+                    <div class="book-author">{{ it.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
                   </div>
-                {% endif %}
-                <div class="book-title">{{ it.book.title }}</div>
-                <div class="book-author">{{ it.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
+                {% endfor %}
               </div>
-            {% endfor %}
+            {% endwith %}
+            <button class="book-shelf__nav book-shelf__nav--next" type="button" aria-label="Прокрутить полку вперёд">
+              <span class="visually-hidden">Прокрутить полку вперёд</span>
+              <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </button>
           </div>
         </div>
       {% else %}
@@ -234,4 +368,92 @@
 {% empty %}
   <div class="alert alert-light border">{{ empty_message|default:"Пока нет полок." }}</div>
 {% endfor %}
+<script>
+  (function () {
+    if (window.__bookShelfScrollerInitialized) {
+      return;
+    }
+    window.__bookShelfScrollerInitialized = true;
+
+    const initShelfNavigation = () => {
+      const wrappers = document.querySelectorAll(".book-shelf-wrapper");
+      wrappers.forEach((wrapper) => {
+        if (wrapper.dataset.shelfNavBound === "true") {
+          return;
+        }
+
+        const shelf = wrapper.querySelector(".book-shelf");
+        const prev = wrapper.querySelector(".book-shelf__nav--prev");
+        const next = wrapper.querySelector(".book-shelf__nav--next");
+        if (!shelf || !prev || !next) {
+          return;
+        }
+
+        wrapper.dataset.shelfNavBound = "true";
+
+        const updateState = () => {
+          const maxScroll = Math.max(shelf.scrollWidth - shelf.clientWidth, 0);
+          const hasOverflow = maxScroll > 1;
+          wrapper.classList.toggle("book-shelf-wrapper--overflow", hasOverflow);
+          prev.disabled = !hasOverflow || shelf.scrollLeft <= 1;
+          next.disabled = !hasOverflow || shelf.scrollLeft >= maxScroll - 1;
+        };
+
+        const scrollShelf = (direction) => {
+          const distance = direction * Math.max(shelf.clientWidth * 0.8, 200);
+          if (typeof shelf.scrollBy === "function") {
+            try {
+              shelf.scrollBy({ left: distance, behavior: "smooth" });
+              requestUpdate();
+              return;
+            } catch (error) {
+              // browsers that do not support object-form scrollBy fallback below
+            }
+          }
+          shelf.scrollLeft += distance;
+          requestUpdate();
+        };
+
+        const requestUpdate = () => {
+          window.requestAnimationFrame(updateState);
+        };
+
+        prev.addEventListener("click", (event) => {
+          event.preventDefault();
+          scrollShelf(-1);
+        });
+        next.addEventListener("click", (event) => {
+          event.preventDefault();
+          scrollShelf(1);
+        });
+
+        shelf.addEventListener("scroll", requestUpdate, { passive: true });
+
+        const handleResize = () => updateState();
+
+        if (typeof ResizeObserver !== "undefined") {
+          const resizeObserver = new ResizeObserver(updateState);
+          resizeObserver.observe(shelf);
+        } else {
+          window.addEventListener("resize", handleResize);
+        }
+
+        shelf.querySelectorAll("img").forEach((img) => {
+          if (img.complete) {
+            return;
+          }
+          img.addEventListener("load", updateState, { once: true });
+        });
+
+        updateState();
+      });
+    };
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initShelfNavigation, { once: true });
+    } else {
+      initShelfNavigation();
+    }
+  })();
+</script>
 {% endwith %}

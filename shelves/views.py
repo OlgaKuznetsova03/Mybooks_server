@@ -35,6 +35,7 @@ from .services import (
     DEFAULT_WANT_SHELF,
     DEFAULT_READING_SHELF,
     DEFAULT_READ_SHELF,
+    READING_PROGRESS_LABEL,
     get_home_library_shelf,
 )
 from .forms import (
@@ -84,7 +85,15 @@ def my_shelves(request):
         .prefetch_related("items__book")
         .order_by("-is_default", "name")
     )
-    return render(request, "shelves/my_shelves.html", {"shelves": shelves})
+    return render(
+        request,
+        "shelves/my_shelves.html",
+        {
+            "shelves": shelves,
+            "default_reading_shelf_name": DEFAULT_READING_SHELF,
+            "reading_progress_label": READING_PROGRESS_LABEL,
+        },
+    )
 
 
 @login_required

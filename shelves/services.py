@@ -15,6 +15,7 @@ DEFAULT_WANT_SHELF = "Хочу прочитать"
 DEFAULT_READING_SHELF = "Читаю"
 DEFAULT_READ_SHELF = "Прочитал"
 DEFAULT_HOME_LIBRARY_SHELF = "Моя домашняя библиотека"
+READING_PROGRESS_LABEL = "Читаю сейчас"
 
 
 def _get_default_shelf(user: User, name: str, *, is_public: bool = True) -> Shelf:

@@ -16,7 +16,11 @@ from django.utils import timezone
 
 
 from shelves.models import Shelf, BookProgress, HomeLibraryEntry, ReadingLog
-from shelves.services import DEFAULT_HOME_LIBRARY_SHELF
+from shelves.services import (
+    DEFAULT_HOME_LIBRARY_SHELF,
+    DEFAULT_READING_SHELF,
+    READING_PROGRESS_LABEL,
+)
 from books.models import Rating, Book
 
 MONTH_NAMES = [
@@ -586,6 +590,8 @@ def profile(request, username=None):
         "active_tab": active_tab,
         "user_shelves": user_shelves,
         "allow_shelf_management": request.user == user_obj,
+        "default_reading_shelf_name": DEFAULT_READING_SHELF,
+        "reading_progress_label": READING_PROGRESS_LABEL,
         "user_reviews": user_reviews,
     }
     return render(request, "accounts/profile.html", context)
