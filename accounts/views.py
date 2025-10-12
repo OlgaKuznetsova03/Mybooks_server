@@ -5,6 +5,7 @@ from typing import Optional
 
 from django.shortcuts import render, redirect, get_object_or_404
 
+from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -535,7 +536,12 @@ def signup(request):
         form = SignUpForm(request.POST)
         if form.is_valid():
             user = form.save()
-            login(request, user)
+            backend = (
+                settings.AUTHENTICATION_BACKENDS[0]
+                if settings.AUTHENTICATION_BACKENDS
+                else "django.contrib.auth.backends.ModelBackend"
+            )
+            login(request, user, backend=backend)
             return redirect("book_list")
     else:
         form = SignUpForm()
