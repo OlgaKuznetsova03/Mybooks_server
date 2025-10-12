@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% load shelf_extras %}
+
+{% block title %}Рейтинг читателей{% endblock %}
+
+{% block extra_css %}
+<style>
+  .reading-leaderboard-wrapper {
+    max-width: 980px;
+  }
+
+  .reading-leaderboard-hero {
+    background: linear-gradient(145deg, rgba(70, 112, 126, 0.18) 0%, rgba(70, 112, 126, 0.05) 100%);
+    border-radius: 28px;
+    padding: 2.5rem 2rem;
+    color: #23404a;
+    box-shadow: 0 24px 40px rgba(25, 53, 63, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .reading-leaderboard-hero h1 {
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+  }
+
+  .reading-leaderboard-hero p {
+    margin: 0;
+    font-size: 1rem;
+    max-width: 620px;
+  }
+
+  .reading-leaderboard-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .reading-leaderboard-actions .reading-btn-primary {
+    background-color: #46707e;
+    border-color: #46707e;
+    border-radius: 999px;
+    padding-inline: 1.5rem;
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  .reading-leaderboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.75rem;
+    margin-top: 2.5rem;
+  }
+
+  .leaderboard-card {
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 1.75rem 1.5rem;
+    box-shadow: 0 18px 36px rgba(25, 53, 63, 0.08);
+    border: 1px solid rgba(70, 112, 126, 0.12);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .leaderboard-card__header h2 {
+    margin: 0;
+    font-weight: 700;
+    color: #1e3b45;
+  }
+
+  .leaderboard-card__header span {
+    display: block;
+    margin-top: 0.25rem;
+    color: rgba(30, 59, 69, 0.65);
+    font-size: 0.9rem;
+  }
+
+  .leaderboard-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .leaderboard-entry {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 18px;
+    background: rgba(70, 112, 126, 0.08);
+    border: 1px solid rgba(70, 112, 126, 0.12);
+  }
+
+  .leaderboard-entry--first {
+    background: rgba(255, 215, 141, 0.25);
+    border-color: rgba(230, 180, 60, 0.4);
+  }
+
+  .leaderboard-entry--second {
+    background: rgba(202, 214, 255, 0.25);
+    border-color: rgba(120, 150, 240, 0.35);
+  }
+
+  .leaderboard-entry--third {
+    background: rgba(255, 191, 191, 0.25);
+    border-color: rgba(230, 120, 120, 0.35);
+  }
+
+  .leaderboard-entry__position {
+    font-weight: 700;
+    font-size: 1.35rem;
+    color: #1e3b45;
+    min-width: 2.5rem;
+    text-align: center;
+  }
+
+  .leaderboard-entry__avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: rgba(70, 112, 126, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #1e3b45;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  .leaderboard-entry__avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .leaderboard-entry__avatar--placeholder {
+    border: 2px solid rgba(70, 112, 126, 0.24);
+    background: rgba(70, 112, 126, 0.08);
+  }
+
+  .leaderboard-entry__details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .leaderboard-entry__name {
+    font-weight: 600;
+    color: #1e3b45;
+  }
+
+  .leaderboard-entry__pages {
+    font-size: 0.95rem;
+    color: #2d4b55;
+  }
+
+  .leaderboard-empty {
+    margin: 0;
+    padding: 1rem 1.25rem;
+    border-radius: 18px;
+    background: rgba(70, 112, 126, 0.08);
+    color: #2a4751;
+    font-size: 0.95rem;
+  }
+
+  @media (max-width: 768px) {
+    .reading-leaderboard-hero {
+      padding: 2rem 1.5rem;
+    }
+
+    .leaderboard-card {
+      padding: 1.5rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 reading-leaderboard-wrapper">
+  <section class="reading-leaderboard-hero mb-4">
+    <div>
+      <h1>Рейтинг читателей</h1>
+      <p>Суммируем страницы, записанные в дневник чтения, и показываем, кто сейчас лидирует среди читателей за выбранный период.</p>
+    </div>
+    <div class="reading-leaderboard-actions">
+      <a class="btn reading-btn-primary" href="{% url 'reading_feed' %}">Перейти к ленте чтения</a>
+    </div>
+  </section>
+
+  <div class="reading-leaderboard-grid">
+    {% for board in leaderboards %}
+      <section class="leaderboard-card" aria-labelledby="leaderboard-{{ board.key }}-title">
+        <header class="leaderboard-card__header">
+          <h2 id="leaderboard-{{ board.key }}-title">{{ board.label }}</h2>
+          {% if board.start == board.end %}
+            <span>{{ board.start|date:"d E Y" }}</span>
+          {% else %}
+            <span>Период: {{ board.start|date:"d E" }} — {{ board.end|date:"d E Y" }}</span>
+          {% endif %}
+        </header>
+
+        {% if board.entries %}
+          <ol class="leaderboard-list">
+            {% for item in board.entries %}
+              {% with display_name=item.user.get_full_name|default:item.user.username %}
+                <li class="leaderboard-entry {% if item.position == 1 %}leaderboard-entry--first{% elif item.position == 2 %}leaderboard-entry--second{% elif item.position == 3 %}leaderboard-entry--third{% endif %}">
+                  <span class="leaderboard-entry__position">{{ item.position }}</span>
+                  <div class="leaderboard-entry__avatar{% if not item.user.profile.avatar %} leaderboard-entry__avatar--placeholder{% endif %}">
+                    {% if item.user.profile.avatar %}
+                      <img src="{{ item.user.profile.avatar.url }}" alt="Аватар {{ display_name }}">
+                    {% else %}
+                      <span>{{ display_name|slice:":1" }}</span>
+                    {% endif %}
+                  </div>
+                  <div class="leaderboard-entry__details">
+                    <span class="leaderboard-entry__name">{{ display_name }}</span>
+                    <span class="leaderboard-entry__pages">{{ item.total_pages|floatformat:-2 }} {{ item.total_pages|ru_pluralize:"страница,страницы,страниц" }}</span>
+                  </div>
+                </li>
+              {% endwith %}
+            {% endfor %}
+          </ol>
+        {% else %}
+          <p class="leaderboard-empty">Пока нет данных за этот период — отметьте прочитанные страницы, чтобы открыть рейтинг.</p>
+        {% endif %}
+      </section>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

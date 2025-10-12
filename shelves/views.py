@@ -4,14 +4,16 @@ from collections import OrderedDict
 from datetime import date, timedelta
 from typing import Optional
 
-from django.db.models import Count
-from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.http import require_POST
+from django.db.models import Count, Sum
+from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib import messages
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 from books.models import Book, Genre, Rating
 from books.forms import RatingCommentForm
 from .models import (
@@ -23,6 +25,7 @@ from .models import (
     EventParticipant,
     HomeLibraryEntry,
     ReadingFeedEntry,
+    ReadingLog,
     ProgressAnnotation,
 )
 
@@ -1326,6 +1329,84 @@ def reading_feed(request):
             "reviews": reviews,
             "has_reactions": reactions.exists(),
             "has_reviews": reviews.exists(),
+        },
+    )
+
+
+def reading_leaderboard(request):
+    today = timezone.localdate()
+    timeframes = [
+        (
+            "day",
+            "Сегодня",
+            today,
+        ),
+        (
+            "week",
+            "Текущая неделя",
+            today - timedelta(days=today.weekday()),
+        ),
+        (
+            "month",
+            "Этот месяц",
+            today.replace(day=1),
+        ),
+        (
+            "year",
+            "Этот год",
+            date(today.year, 1, 1),
+        ),
+    ]
+
+    user_model = get_user_model()
+    leaderboards = []
+
+    for key, label, start_date in timeframes:
+        if start_date > today:
+            leaderboard_rows = []
+        else:
+            aggregates = (
+                ReadingLog.objects.filter(
+                    log_date__gte=start_date,
+                    log_date__lte=today,
+                    pages_equivalent__gt=0,
+                )
+                .values("progress__user")
+                .annotate(total_pages=Sum("pages_equivalent"))
+                .order_by("-total_pages", "progress__user")
+            )
+            top_rows = list(aggregates[:10])
+            user_ids = [row["progress__user"] for row in top_rows]
+            users = (
+                user_model.objects.filter(id__in=user_ids)
+                .select_related("profile")
+            )
+            user_map = {user.id: user for user in users}
+            leaderboard_rows = [
+                {
+                    "position": index,
+                    "user": user_map.get(row["progress__user"]),
+                    "total_pages": row["total_pages"],
+                }
+                for index, row in enumerate(top_rows, start=1)
+                if user_map.get(row["progress__user"])
+            ]
+
+        leaderboards.append(
+            {
+                "key": key,
+                "label": label,
+                "start": start_date,
+                "end": today,
+                "entries": leaderboard_rows,
+            }
+        )
+
+    return render(
+        request,
+        "reading/leaderboard.html",
+        {
+            "leaderboards": leaderboards,
         },
     )
 

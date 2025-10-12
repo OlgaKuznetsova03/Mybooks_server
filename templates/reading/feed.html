@@ -45,6 +45,22 @@
     max-width: 620px;
   }
 
+  .reading-feed-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+
+  .reading-feed-hero__actions .reading-btn-primary {
+    background-color: #46707e;
+    border-color: #46707e;
+    border-radius: 999px;
+    padding-inline: 1.5rem;
+    font-weight: 600;
+    color: #ffffff;
+  }
+
   .reading-feed-entry {
     background: #ffffff;
     border-radius: 22px;
@@ -336,6 +352,9 @@
     <div class="reading-feed-hero__content">
       <h1>Общая лента чтения</h1>
       <p>Делитесь своими впечатлениями прямо в момент чтения: друзья увидят, на какой странице вы остановились, и смогут поддержать вас комментариями.</p>
+      <div class="reading-feed-hero__actions">
+        <a class="btn reading-btn-primary" href="{% url 'reading_leaderboard' %}">Рейтинг читателей</a>
+      </div>
     </div>
     <div class="reading-feed-hero__image">
       <img src="{{ MEDIA_URL }}config/img/readgirl.png" alt="Иллюстрация чтения">
