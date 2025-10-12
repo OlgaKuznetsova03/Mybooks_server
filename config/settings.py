@@ -186,3 +186,8 @@ STATICFILES_DIRS = [BASE_DIR / "books/static"]
 LOGIN_REDIRECT_URL = 'book_list'
 LOGOUT_REDIRECT_URL = 'home'
 LOGIN_URL = 'login'
+
+AUTHENTICATION_BACKENDS = [
+    "accounts.backends.EmailBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]

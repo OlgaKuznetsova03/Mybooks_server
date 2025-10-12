@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import Group, User
 
 from .models import Profile
@@ -13,7 +13,8 @@ ROLE_CHOICES = [
 
 
 class SignUpForm(UserCreationForm):
-    email = forms.EmailField(required=False)
+    username = forms.CharField(label="Ник/имя", max_length=150)
+    email = forms.EmailField(required=True, label="Email (логин)")
     roles = forms.MultipleChoiceField(
         choices=ROLE_CHOICES,
         required=False,
@@ -25,8 +26,20 @@ class SignUpForm(UserCreationForm):
         model = User
         fields = ("username", "email", "password1", "password2")
 
+    def clean_email(self):
+        email = self.cleaned_data["email"].lower()
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError(
+                "Пользователь с таким email уже зарегистрирован."
+            )
+        return email
+
     def save(self, commit=True):
-        user = super().save(commit)
+        user = super().save(commit=False)
+        user.username = self.cleaned_data["username"]
+        user.email = self.cleaned_data["email"]
+        if commit:
+            user.save()
         selected = set(self.cleaned_data.get("roles", []))
         for name, _ in ROLE_CHOICES:
             Group.objects.get_or_create(name=name)
@@ -35,6 +48,10 @@ class SignUpForm(UserCreationForm):
         return user
     
 
+class EmailAuthenticationForm(AuthenticationForm):
+    username = forms.EmailField(label="Email", widget=forms.EmailInput(attrs={"autofocus": True}))
+
+    
 class ProfileForm(forms.ModelForm):
     class Meta:
         model = Profile
