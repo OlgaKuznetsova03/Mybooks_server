@@ -39,6 +39,23 @@
     font-weight: 600;
   }
 
+  .shelf-card__title-link {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .shelf-card__title-link:hover,
+  .shelf-card__title-link:focus-visible {
+    color: var(--profile-accent-color-dark, #8b5a2b);
+    text-decoration: none;
+  }
+
+  .shelf-card__title-link:focus-visible {
+    outline: 3px solid rgba(139, 90, 43, 0.35);
+    outline-offset: 3px;
+  }
+
   .shelf-card__badges {
     display: inline-flex;
     gap: 0.5rem;
@@ -294,10 +311,25 @@
 
 {% for shelf in shelves %}
   {% with shelf.items.all as shelf_books %}
+  {% with normalized_name=shelf.name|lower normalized_default=default_reading_shelf_name|default:'Читаю'|lower normalized_progress=reading_progress_label|default:'Читаю сейчас'|lower normalized_home=default_home_library_shelf_name|default:'Моя домашняя библиотека'|lower %}
+  {% with shelf_link="" %}
   <section class="shelf-card">
+    {% if request.user.is_authenticated and shelf.user_id == request.user.id %}
+      {% if normalized_name == normalized_home %}
+        {% url 'home_library' as shelf_link %}
+      {% elif normalized_name == normalized_default or normalized_name == normalized_progress %}
+        {% url 'reading_now' as shelf_link %}
+      {% endif %}
+    {% endif %}
     <div class="shelf-card__header">
       <div>
-        <h2 class="h6 shelf-card__title mb-0">{{ shelf.name }}</h2>
+        <h2 class="h6 shelf-card__title mb-0">
+          {% if shelf_link %}
+            <a class="shelf-card__title-link" href="{{ shelf_link }}">{{ shelf.name }}</a>
+          {% else %}
+            {{ shelf.name }}
+          {% endif %}
+        </h2>
         {% with shelf_books|length as shelf_count %}
           <div class="small text-muted">{{ shelf_count }} {{ shelf_count|ru_pluralize:"книга,книги,книг" }}</div>
         {% endwith %}
@@ -322,37 +354,35 @@
               <span class="visually-hidden">Прокрутить полку назад</span>
               <i class="bi bi-chevron-left" aria-hidden="true"></i>
             </button>
-            {% with normalized_name=shelf.name|lower normalized_default=default_reading_shelf_name|default:'Читаю'|lower normalized_progress=reading_progress_label|default:'Читаю сейчас'|lower %}
-              <div class="book-shelf">
-                {% for it in shelf_books %}
-                  <div class="book-item">
-                    <a class="book-cover"
-                       href="{% if normalized_name == normalized_default or normalized_name == normalized_progress %}{% url 'reading_track' it.book.pk %}{% else %}{% url 'book_detail' it.book.pk %}{% endif %}"
-                       title="{% if normalized_name == normalized_default or normalized_name == normalized_progress %}Открыть прогресс чтения{% else %}Открыть книгу{% endif %}">
-                      {% with cover_url=it.book.get_cover_url %}
-                        {% if cover_url %}
-                          <img src="{{ cover_url }}" alt="Обложка {{ it.book.title }}">
-                        {% else %}
-                          <div class="book-cover__placeholder">{{ it.book.title|default_if_none:"?"|slice:":1"|upper }}</div>
-                        {% endif %}
-                      {% endwith %}
-                    </a>
-                    {% if allow_manage %}
-                      <div class="book-remove">
-                        <a class="btn btn-sm btn-danger"
-                           href="{% url 'remove_book_from_shelf' shelf.id it.book.id %}{% if return_path %}?next={{ return_path|urlencode }}{% endif %}"
-                           aria-label="Удалить {{ it.book.title }} с полки {{ shelf.name }}"
-                           title="Удалить с полки">
-                          <i class="bi bi-trash"></i>
-                        </a>
-                      </div>
-                    {% endif %}
-                    <div class="book-title">{{ it.book.title }}</div>
-                    <div class="book-author">{{ it.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
-                  </div>
-                {% endfor %}
-              </div>
-            {% endwith %}
+            <div class="book-shelf">
+              {% for it in shelf_books %}
+                <div class="book-item">
+                  <a class="book-cover"
+                     href="{% if normalized_name == normalized_default or normalized_name == normalized_progress %}{% url 'reading_track' it.book.pk %}{% else %}{% url 'book_detail' it.book.pk %}{% endif %}"
+                     title="{% if normalized_name == normalized_default or normalized_name == normalized_progress %}Открыть прогресс чтения{% else %}Открыть книгу{% endif %}">
+                    {% with cover_url=it.book.get_cover_url %}
+                      {% if cover_url %}
+                        <img src="{{ cover_url }}" alt="Обложка {{ it.book.title }}">
+                      {% else %}
+                        <div class="book-cover__placeholder">{{ it.book.title|default_if_none:"?"|slice:":1"|upper }}</div>
+                      {% endif %}
+                    {% endwith %}
+                  </a>
+                  {% if allow_manage %}
+                    <div class="book-remove">
+                      <a class="btn btn-sm btn-danger"
+                         href="{% url 'remove_book_from_shelf' shelf.id it.book.id %}{% if return_path %}?next={{ return_path|urlencode }}{% endif %}"
+                         aria-label="Удалить {{ it.book.title }} с полки {{ shelf.name }}"
+                         title="Удалить с полки">
+                        <i class="bi bi-trash"></i>
+                      </a>
+                    </div>
+                  {% endif %}
+                  <div class="book-title">{{ it.book.title }}</div>
+                  <div class="book-author">{{ it.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
+                </div>
+              {% endfor %}
+            </div>
             <button class="book-shelf__nav book-shelf__nav--next" type="button" aria-label="Прокрутить полку вперёд">
               <span class="visually-hidden">Прокрутить полку вперёд</span>
               <i class="bi bi-chevron-right" aria-hidden="true"></i>
@@ -364,6 +394,8 @@
       {% endif %}
     {% endwith %}
   </section>
+  {% endwith %}
+  {% endwith %}
   {% endwith %}
 {% empty %}
   <div class="alert alert-light border">{{ empty_message|default:"Пока нет полок." }}</div>

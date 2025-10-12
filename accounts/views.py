@@ -592,6 +592,7 @@ def profile(request, username=None):
         "user_shelves": user_shelves,
         "allow_shelf_management": request.user == user_obj,
         "default_reading_shelf_name": DEFAULT_READING_SHELF,
+        "default_home_library_shelf_name": DEFAULT_HOME_LIBRARY_SHELF,
         "reading_progress_label": READING_PROGRESS_LABEL,
         "user_reviews": user_reviews,
         "rating_points_total": UserPointEvent.objects.filter(user=user_obj).aggregate(
