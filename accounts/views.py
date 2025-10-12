@@ -22,6 +22,7 @@ from shelves.services import (
     READING_PROGRESS_LABEL,
 )
 from books.models import Rating, Book
+from user_ratings.models import UserPointEvent
 
 MONTH_NAMES = [
     "",
@@ -593,6 +594,10 @@ def profile(request, username=None):
         "default_reading_shelf_name": DEFAULT_READING_SHELF,
         "reading_progress_label": READING_PROGRESS_LABEL,
         "user_reviews": user_reviews,
+        "rating_points_total": UserPointEvent.objects.filter(user=user_obj).aggregate(
+            total=Sum("points")
+        )["total"]
+        or 0,
     }
     return render(request, "accounts/profile.html", context)
 

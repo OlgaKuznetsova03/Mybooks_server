@@ -6,685 +6,702 @@
 {% block extra_css %}
   {{ block.super }}
   <style>
-    .reading-calendar-wrapper {
-      border-radius: var(--bs-border-radius-lg);
-      border: 1px solid var(--bs-border-color);
-      overflow: hidden;
+    /* Базовая стилистика профиля (как у тебя была) */
+    :root {
+      --profile-accent-color: #9e8185;
+      --profile-accent-color-dark: #b07c63;
+      --profile-accent-color-text: #011627;
     }
 
-    .reading-calendar {
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
+    .profile-header {
+      background: linear-gradient(135deg, rgba(194, 150, 129, 0.18), rgba(194, 150, 129, 0.05));
+      border: 1px solid rgba(194, 150, 129, 0.3);
+      border-radius: 1.25rem;
+      padding: 1.75rem;
     }
 
+    .profile-username {
+      color: var(--profile-accent-color-text);
+      font-weight: 700;
+    }
+
+    .profile-avatar {
+      border: 4px solid rgba(194, 150, 129, 0.35);
+      padding: 0.25rem;
+      background: #fff;
+    }
+
+    .profile-avatar-placeholder {
+      border: 4px solid rgba(194, 150, 129, 0.15);
+    }
+
+    .profile-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+    .profile-action-button {
+      border-color: rgba(194, 150, 129, 0.6);
+      color: var(--profile-accent-color-text);
+      font-weight: 600;
+    }
+    .profile-action-button:hover,
+    .profile-action-button:focus {
+      background-color: rgba(194, 150, 129, 0.12);
+      border-color: var(--profile-accent-color);
+      color: var(--profile-accent-color-text);
+    }
+
+    .profile-rating-link { display:flex; flex-direction:column; align-items:flex-start; gap:.5rem; margin-top:1.5rem; }
+    @media (min-width:576px){ .profile-rating-link{ flex-direction:row; align-items:center; } }
+
+    .profile-rating-pill{
+      display:inline-flex; align-items:center; gap:.4rem; padding:.35rem .85rem; border-radius:999px;
+      background:rgba(194,150,129,.15); color:var(--profile-accent-color-text); font-size:.875rem; font-weight:600;
+    }
+    .profile-rating-pill i{ color:var(--profile-accent-color); }
+
+    .profile-rating-button{
+      background-color:var(--profile-accent-color); border-color:var(--profile-accent-color); color:#fff; font-weight:600; padding-inline:1.25rem;
+    }
+    .profile-rating-button:hover,.profile-rating-button:focus{
+      background-color:var(--profile-accent-color-dark); border-color:var(--profile-accent-color-dark); color:#fff;
+    }
+
+    .reading-calendar-wrapper { border-radius: var(--bs-border-radius-lg); border:1px solid var(--bs-border-color); overflow:hidden; }
+    .reading-calendar { width:100%; border-collapse:collapse; table-layout:fixed; }
     .reading-calendar thead th,
-    .reading-calendar tbody td {
-      border: 1px solid var(--bs-border-color);
-      background-color: var(--bs-body-bg);
-      padding: 0.75rem;
-      vertical-align: top;
-      width: 14.2857142857%;
+    .reading-calendar tbody td { border:1px solid var(--bs-border-color); background-color:var(--bs-body-bg); padding:.75rem; vertical-align:top; width:14.2857142857%; }
+    .reading-calendar thead th { text-align:center; font-weight:600; font-size:.75rem; letter-spacing:.04em; }
+    .reading-calendar__cell{ display:flex; flex-direction:column; gap:.5rem; min-height:140px; }
+    .reading-calendar__header{ display:flex; align-items:flex-start; justify-content:space-between; font-size:.875rem; font-weight:600; }
+    .reading-calendar__header .text-muted{ color:var(--bs-secondary-color)!important; }
+    .reading-calendar__books{ display:flex; flex-wrap:wrap; gap:.35rem; }
+    .reading-calendar__book-cover,.reading-calendar__book-placeholder{ width:40px; height:60px; border-radius:var(--bs-border-radius-sm); box-shadow:0 .125rem .25rem rgba(15,23,42,.12); flex:0 0 auto; }
+    .reading-calendar__book-cover{ object-fit:cover; }
+    .reading-calendar__book-placeholder{ background:var(--bs-tertiary-bg); border:1px dashed var(--bs-border-color); color:var(--bs-secondary-color); display:flex; align-items:center; justify-content:center; font-size:.75rem; }
+    @media (max-width:991.98px){ .reading-calendar__cell{ min-height:120px; } }
+    @media (max-width:575.98px){
+      .reading-calendar thead th{ font-size:.65rem; }
+      .reading-calendar__cell{ min-height:110px; gap:.35rem; }
+      .reading-calendar__header{ font-size:.75rem; }
+      .reading-calendar__books{ gap:.25rem; }
+      .reading-calendar__book-cover,.reading-calendar__book-placeholder{ width:32px; height:48px; }
     }
 
-    .reading-calendar thead th {
-      text-align: center;
-      font-weight: 600;
-      font-size: 0.75rem;
-      letter-spacing: 0.04em;
+    /* === ЖЁСТКОЕ ПЕРЕОПРЕДЕЛЕНИЕ Bootstrap — только внутри .profile-theme === */
+    .profile-theme{ --profile-accent-color:#c29681; --profile-accent-color-dark:#b07c63; }
+
+    /* ссылки */
+    .profile-theme a{ color:var(--profile-accent-color) !important; }
+    .profile-theme a:hover, .profile-theme a:focus{ color:var(--profile-accent-color-dark) !important; }
+
+    /* кнопки */
+    .profile-theme .btn-primary{
+      background-color:var(--profile-accent-color) !important;
+      border-color:var(--profile-accent-color) !important;
+      color: #011627 !important;
+    }
+    .profile-theme .btn-primary:hover,
+    .profile-theme .btn-primary:focus{
+      background-color:var(--profile-accent-color-dark) !important;
+      border-color:var(--profile-accent-color-dark) !important;
+    }
+    .profile-theme .btn-outline-primary{
+      color: #011627 !important;
+      border-color:var(--profile-accent-color) !important;
+    }
+    .profile-theme .btn-outline-primary:hover,
+    .profile-theme .btn-outline-primary:focus{
+      background-color:var(--profile-accent-color) !important;
+      border-color:var(--profile-accent-color) !important;
+      color:#011627 !important;
     }
 
-    .reading-calendar__cell {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      min-height: 140px;
+    /* вкладки */
+    .profile-theme #profileTabs .nav-link{ color: #011627 !important; }
+    .profile-theme #profileTabs .nav-link:hover{ color:var(--profile-accent-color-dark) !important; }
+    .profile-theme #profileTabs .nav-link.active{
+      color:#011627 !important;
+      border-color:var(--profile-accent-color) var(--profile-accent-color) #011627 !important;
     }
 
-    .reading-calendar__header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      font-size: 0.875rem;
-      font-weight: 600;
+    /* чекбоксы/радио и пагинация, если появятся */
+    .profile-theme .form-check-input:checked{
+      background-color:var(--profile-accent-color) !important;
+      border-color:var(--profile-accent-color) !important;
+    }
+    .profile-theme .page-item.active .page-link{
+      background-color:var(--profile-accent-color) !important;
+      border-color:var(--profile-accent-color) !important;
+      color: #011627 !important;
     }
 
-    .reading-calendar__header .text-muted {
-      color: var(--bs-secondary-color) !important;
+      /* Белый текст в плашке баллов и на кнопке рейтинга */
+    .profile-theme .profile-rating-pill{
+      background-color: var(--profile-accent-color);
+      color: #011627 !important;
+    }
+    .profile-theme .profile-rating-pill i{
+      color: #011627 !important;
     }
 
-    .reading-calendar__books {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.35rem;
+    .profile-theme .profile-rating-button{
+      color: #011627 !important;
+    }
+    .profile-theme .profile-rating-button:hover,
+    .profile-theme .profile-rating-button:focus{
+      color: #011627 !important;
     }
 
-    .reading-calendar__book-cover,
-    .reading-calendar__book-placeholder {
-      width: 40px;
-      height: 60px;
-      border-radius: var(--bs-border-radius-sm);
-      box-shadow: 0 0.125rem 0.25rem rgba(15, 23, 42, 0.12);
-      flex: 0 0 auto;
-    }
 
-    .reading-calendar__book-cover {
-      object-fit: cover;
-    }
-
-    .reading-calendar__book-placeholder {
-      background: var(--bs-tertiary-bg);
-      border: 1px dashed var(--bs-border-color);
-      color: var(--bs-secondary-color);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.75rem;
-    }
-
-    @media (max-width: 991.98px) {
-      .reading-calendar__cell {
-        min-height: 120px;
-      }
-    }
-
-    @media (max-width: 575.98px) {
-      .reading-calendar thead th {
-        font-size: 0.65rem;
-      }
-
-      .reading-calendar__cell {
-        min-height: 110px;
-        gap: 0.35rem;
-      }
-
-      .reading-calendar__header {
-        font-size: 0.75rem;
-      }
-
-      .reading-calendar__books {
-        gap: 0.25rem;
-      }
-
-      .reading-calendar__book-cover,
-      .reading-calendar__book-placeholder {
-        width: 32px;
-        height: 48px;
-      }
-    }
+    /* тёмная тема */
+    [data-bs-theme="dark"] .profile-theme #profileTabs .nav-link,
+    [data-bs-theme="dark"] .profile-theme a{ color:var(--profile-accent-color) !important; }
+    [data-bs-theme="dark"] .profile-theme .btn-outline-primary:hover{ color:#fff !important; }
+    .profile-theme a.btn.profile-action-button { color:#011627 !important; }
   </style>
 {% endblock %}
 
 {% block content %}
+<div class="profile-theme"><!-- ВАЖНО: всё содержимое страницы внутри этой обёртки -->
 
-<div class="d-flex flex-column flex-md-row gap-4 align-items-start">
-  <!-- Аватар -->
-  <div>
-    {% if u.profile.avatar %}
-      <img src="{{ u.profile.avatar.url }}"
-           class="rounded-circle shadow-sm"
-           style="width:140px;height:140px;object-fit:cover"
-           alt="Аватар {{ u.username }}">
-    {% else %}
-      <div class="rounded-circle bg-secondary-subtle d-flex align-items-center justify-content-center shadow-sm"
-           style="width:140px;height:140px">
-        <span class="text-muted small">Нет аватара</span>
-      </div>
-    {% endif %}
-  </div>
-
-  <!-- Основная информация -->
-  <div class="flex-grow-1">
-    <h1 class="h4 mb-1">@{{ u.username }}</h1>
-    {% if u.get_full_name %}
-      <div class="text-muted mb-2">{{ u.get_full_name }}</div>
-    {% endif %}
-
-    <!-- Роли -->
-    <div class="mt-2 mb-3">
-      {% for g in u.groups.all %}
-        <span class="badge text-bg-light me-1">{{ g.name|role_display }}</span>
-      {% empty %}
-        <span class="badge text-bg-light">Без роли</span>
-      {% endfor %}
-    </div>
-
-    <!-- Био и сайт -->
-    <div class="mb-3">
-      <p class="mb-1">{{ u.profile.bio|default:"Пока без описания." }}</p>
-      {% if u.profile.website %}
-        <p class="mb-0">
-          <i class="bi bi-link-45deg"></i>
-          <a href="{{ u.profile.website }}" target="_blank" rel="noopener">{{ u.profile.website }}</a>
-        </p>
+  <div class="profile-header d-flex flex-column flex-md-row gap-4 align-items-start">
+    <!-- Аватар -->
+    <div>
+      {% if u.profile.avatar %}
+        <img src="{{ u.profile.avatar.url }}"
+             class="rounded-circle shadow-sm profile-avatar"
+             style="width:140px;height:140px;object-fit:cover"
+             alt="Аватар {{ u.username }}">
+      {% else %}
+        <div class="rounded-circle bg-secondary-subtle d-flex align-items-center justify-content-center shadow-sm profile-avatar-placeholder"
+             style="width:140px;height:140px">
+          <span class="text-muted small">Нет аватара</span>
+        </div>
       {% endif %}
     </div>
 
-    <!-- Кнопки действий -->
-    <div class="d-flex gap-2">
-      {% if request.user == u %}
-        <a class="btn btn-outline-primary btn-sm" href="{% url 'profile_edit' %}">
-          <i class="bi bi-pencil me-1"></i>Редактировать
+    <!-- Основная информация -->
+    <div class="flex-grow-1">
+      <h1 class="h4 mb-1 profile-username">@{{ u.username }}</h1>
+      {% if u.get_full_name %}
+        <div class="text-muted mb-2">{{ u.get_full_name }}</div>
+      {% endif %}
+
+      <!-- Роли -->
+      <div class="mt-2 mb-3">
+        {% for g in u.groups.all %}
+          <span class="badge text-bg-light me-1">{{ g.name|role_display }}</span>
+        {% empty %}
+          <span class="badge text-bg-light">Без роли</span>
+        {% endfor %}
+      </div>
+
+      <!-- Био и сайт -->
+      <div class="mb-3">
+        <p class="mb-1">{{ u.profile.bio|default:"Пока без описания." }}</p>
+        {% if u.profile.website %}
+          <p class="mb-0">
+            <i class="bi bi-link-45deg"></i>
+            <a href="{{ u.profile.website }}" target="_blank" rel="noopener">{{ u.profile.website }}</a>
+          </p>
+        {% endif %}
+      </div>
+
+      <!-- Кнопки действий -->
+      <div class="profile-actions">
+        {% if request.user == u %}
+          <a class="btn btn-sm profile-action-button" href="{% url 'profile_edit' %}">
+            <i class="bi bi-pencil me-1"></i>Редактировать
+          </a>
+        {% endif %}
+        <a class="btn btn-sm profile-action-button" href="{% url 'book_list' %}">
+          К книгам
         </a>
-      {% endif %}
-      <a class="btn btn-outline-secondary btn-sm" href="{% url 'book_list' %}">
-        К книгам
-      </a>
-    </div>
-  </div>
-</div>
+      </div>
 
-<!-- Вкладки -->
- {% with current_tab=active_tab|default:"overview" %}
-<ul class="nav nav-tabs mt-4" id="profileTabs" role="tablist">
-  <li class="nav-item" role="presentation">
-    <button class="nav-link{% if current_tab == 'overview' %} active{% endif %}" id="overview-tab" data-bs-toggle="tab"
-            data-bs-target="#overview" type="button" role="tab" aria-selected="{% if current_tab == 'overview' %}true{% else %}false{% endif %}">
-      Обзор
-    </button>
-  </li>
-  <li class="nav-item" role="presentation">
-    <button class="nav-link{% if current_tab == 'stats' %} active{% endif %}" id="stats-tab" data-bs-toggle="tab"
-            data-bs-target="#stats" type="button" role="tab" aria-selected="{% if current_tab == 'stats' %}true{% else %}false{% endif %}">
-      Статистика
-    </button>
-  </li>
-  <li class="nav-item" role="presentation">
-    <button class="nav-link{% if current_tab == 'books' %} active{% endif %}" id="books-tab" data-bs-toggle="tab"
-            data-bs-target="#books" type="button" role="tab" aria-selected="{% if current_tab == 'books' %}true{% else %}false{% endif %}">
-      Мои книги
-    </button>
-  </li>
-  <li class="nav-item" role="presentation">
-    <button class="nav-link{% if current_tab == 'reviews' %} active{% endif %}" id="reviews-tab" data-bs-toggle="tab"
-            data-bs-target="#reviews" type="button" role="tab" aria-selected="{% if current_tab == 'reviews' %}true{% else %}false{% endif %}">
-      Обзоры
-    </button>
-  </li>
-</ul>
-
-<div class="tab-content mt-3" id="profileTabsContent">
-  <!-- Обзор -->
-  <div class="tab-pane fade{% if current_tab == 'overview' %} show active{% endif %}" id="overview" role="tabpanel">
-    <p class="text-muted">Здесь отображается основная информация пользователя.</p>
-
-    <!-- Соцсети блогера -->
-    {% if is_blogger %}
-      <hr>
-      <h5>Мои соцсети</h5>
-      <ul class="list-unstyled">
-        {% if u.profile.link1 %}<li><a href="{{ u.profile.link1 }}" target="_blank" rel="noopener">{{ u.profile.link1 }}</a></li>{% endif %}
-        {% if u.profile.link2 %}<li><a href="{{ u.profile.link2 }}" target="_blank" rel="noopener">{{ u.profile.link2 }}</a></li>{% endif %}
-        {% if u.profile.link3 %}<li><a href="{{ u.profile.link3 }}" target="_blank" rel="noopener">{{ u.profile.link3 }}</a></li>{% endif %}
-        {% if u.profile.link4 %}<li><a href="{{ u.profile.link4 }}" target="_blank" rel="noopener">{{ u.profile.link4 }}</a></li>{% endif %}
-      </ul>
-    {% endif %}
-
-    <div class="shelf-page__header mt-4">
-      <h2 class="h5 shelf-page__title mb-0">Книжные полки</h2>
-      {% if request.user == u %}
-        <a class="btn btn-outline-primary btn-sm" href="{% url 'shelf_create' %}">
-          <i class="bi bi-plus-lg me-1"></i>Добавить полку
+      <div class="profile-rating-link">
+        <span class="profile-rating-pill">
+          <i class="bi bi-stars"></i>
+          {{ rating_points_total }} {{ rating_points_total|ru_pluralize:"балл,балла,баллов" }}
+        </span>
+        <a class="btn btn-sm profile-rating-button" href="{% url 'reading_leaderboard' %}">
+          Рейтинг читателей
         </a>
-      {% endif %}
+      </div>
     </div>
-    {% include "shelves/_shelf_cards.html" with shelves=user_shelves allow_manage=allow_shelf_management empty_message=allow_shelf_management|yesno:"У вас пока нет полок.,Пока нет полок.,Пока нет полок." next_url=request.get_full_path default_reading_shelf_name=default_reading_shelf_name reading_progress_label=reading_progress_label %}
   </div>
 
-  <!-- Статистика -->
-  <div class="tab-pane fade{% if current_tab == 'stats' %} show active{% endif %}" id="stats" role="tabpanel">
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-body">
-        <form method="get" class="row g-3 align-items-end">
-          <input type="hidden" name="tab" value="stats">
-          <div class="col-12 col-md-4">
-            <label class="form-label" for="id_period">Период</label>
-            <select class="form-select" id="id_period" name="period">
-              <option value="week"{% if stats_period.period == 'week' %} selected{% endif %}>Последние 7 дней</option>
-              <option value="month"{% if stats_period.period == 'month' %} selected{% endif %}>Месяц</option>
-              <option value="year"{% if stats_period.period == 'year' %} selected{% endif %}>Год</option>
-            </select>
-          </div>
-          {% if stats_period.available_years %}
-            <div class="col-6 col-md-4">
-              <label class="form-label" for="id_year">Год</label>
-              <select class="form-select" id="id_year" name="year">
-                {% for year in stats_period.available_years %}
-                  <option value="{{ year }}"{% if year == stats_period.selected_year %} selected{% endif %}>{{ year }}</option>
-                {% endfor %}
-              </select>
-            </div>
-          {% endif %}
-          {% if stats_period.period == 'month' and stats_period.available_months %}
-            <div class="col-6 col-md-4">
-              <label class="form-label" for="id_month">Месяц</label>
-              <select class="form-select" id="id_month" name="month">
-                {% for month_value, month_name in stats_period.available_months %}
-                  <option value="{{ month_value }}"{% if month_value == stats_period.selected_month %} selected{% endif %}>{{ month_name }}</option>
-                {% endfor %}
-              </select>
-            </div>
-          {% endif %}
-          <div class="col-12 col-md-auto">
-            <button type="submit" class="btn btn-primary">Показать</button>
-          </div>
-        </form>
-      </div>
-    </div>
+  <!-- Вкладки -->
+  {% with current_tab=active_tab|default:"overview" %}
+  <ul class="nav nav-tabs mt-4" id="profileTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link{% if current_tab == 'overview' %} active{% endif %}" id="overview-tab" data-bs-toggle="tab"
+              data-bs-target="#overview" type="button" role="tab" aria-selected="{% if current_tab == 'overview' %}true{% else %}false{% endif %}">
+        Обзор
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link{% if current_tab == 'stats' %} active{% endif %}" id="stats-tab" data-bs-toggle="tab"
+              data-bs-target="#stats" type="button" role="tab" aria-selected="{% if current_tab == 'stats' %}true{% else %}false{% endif %}">
+        Статистика
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link{% if current_tab == 'books' %} active{% endif %}" id="books-tab" data-bs-toggle="tab"
+              data-bs-target="#books" type="button" role="tab" aria-selected="{% if current_tab == 'books' %}true{% else %}false{% endif %}">
+        Мои книги
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link{% if current_tab == 'reviews' %} active{% endif %}" id="reviews-tab" data-bs-toggle="tab"
+              data-bs-target="#reviews" type="button" role="tab" aria-selected="{% if current_tab == 'reviews' %}true{% else %}false{% endif %}">
+        Обзоры
+      </button>
+    </li>
+  </ul>
 
-    <p class="text-muted">Период: {{ stats_period.label }} ({{ stats_period.start|date:"d.m.Y" }} — {{ stats_period.end|date:"d.m.Y" }})</p>
+  <div class="tab-content mt-3" id="profileTabsContent">
+    <!-- Обзор -->
+    <div class="tab-pane fade{% if current_tab == 'overview' %} show active{% endif %}" id="overview" role="tabpanel">
+      <p class="text-muted">Здесь отображается основная информация пользователя.</p>
 
-    {% with calendar=stats.reading_calendar %}
-      {% if calendar %}
-        <div class="card border-0 shadow-sm mb-4">
-          <div class="card-body">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
-              <div>
-                <h3 class="h6 mb-1">Календарь чтения</h3>
-                <p class="text-muted small mb-0">Сколько вы прочитали в этом месяце?</p>
-              </div>
-              <div class="btn-group btn-group-sm" role="group" aria-label="Навигация по месяцам">
-                <a class="btn btn-outline-secondary" href="{{ calendar.prev_url }}" aria-label="Предыдущий месяц">
-                  <i class="bi bi-chevron-left"></i>
-                </a>
-                <span class="btn btn-light disabled text-nowrap">
-                  {{ calendar.month_name }} {{ calendar.year }}
-                </span>
-                <a class="btn btn-outline-secondary" href="{{ calendar.next_url }}" aria-label="Следующий месяц">
-                  <i class="bi bi-chevron-right"></i>
-                </a>
-              </div>
-            </div>
-            <div class="table-responsive reading-calendar-wrapper">
-              <table class="reading-calendar align-middle mb-0">
-                <thead class="text-muted text-uppercase small">
-                  <tr>
-                    {% for weekday in calendar.weekday_labels %}
-                      <th scope="col">{{ weekday }}</th>
-                    {% endfor %}
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for week in calendar.weeks %}
-                    <tr>
-                      {% for day in week %}
-                        <td class="{% if not day.in_month %}opacity-75{% endif %}">
-                          <div class="reading-calendar__cell">
-                            <div class="reading-calendar__header">
-                              <span class="{% if not day.in_month %}text-muted{% endif %}">{{ day.date.day }}</span>
-                              {% if day.is_completion_day and day.in_month %}
-                                <i class="bi bi-star-fill text-warning" title="Есть завершённые книги"></i>
-                              {% endif %}
-                            </div>
-                            {% if day.in_month and day.books %}
-                              <div class="reading-calendar__books">
-                                {% for book in day.books %}
-                                  {% if book.cover_url %}
-                                    <img src="{{ book.cover_url }}" alt="Обложка {{ book.title }}" class="reading-calendar__book-cover">
-                                  {% else %}
-                                    <div class="reading-calendar__book-placeholder">
-                                      <span class="visually-hidden">{{ book.title }}</span>
-                                      Нет
-                                    </div>
-                                  {% endif %}
-                                {% endfor %}
-                              </div>
-                            {% endif %}
-                          </div>
-                        </td>
-                      {% endfor %}
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-            {% if not calendar.has_activity %}
-              <p class="text-muted small mb-0 mt-3">В этом месяце пока нет активностей чтения.</p>
-            {% endif %}
-          </div>
-        </div>
+      <!-- Соцсети блогера -->
+      {% if is_blogger %}
+        <hr>
+        <h5>Мои соцсети</h5>
+        <ul class="list-unstyled">
+          {% if u.profile.link1 %}<li><a href="{{ u.profile.link1 }}" target="_blank" rel="noopener">{{ u.profile.link1 }}</a></li>{% endif %}
+          {% if u.profile.link2 %}<li><a href="{{ u.profile.link2 }}" target="_blank" rel="noopener">{{ u.profile.link2 }}</a></li>{% endif %}
+          {% if u.profile.link3 %}<li><a href="{{ u.profile.link3 }}" target="_blank" rel="noopener">{{ u.profile.link3 }}</a></li>{% endif %}
+          {% if u.profile.link4 %}<li><a href="{{ u.profile.link4 }}" target="_blank" rel="noopener">{{ u.profile.link4 }}</a></li>{% endif %}
+        </ul>
       {% endif %}
-    {% endwith %}
 
-    <div class="row g-3 mb-4">
-      <div class="col-12 col-lg-6 col-xl-3">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <h3 class="h6 mb-2">Прочитано страниц</h3>
-            <p class="display-6 mb-0">{{ stats.pages_total }}</p>
-            {% if stats.pages_average %}
-              <p class="text-muted mb-0">В среднем {{ stats.pages_average }} стр./день</p>
-            {% else %}
-              <p class="text-muted mb-0">Нет данных о страницах в выбранный период.</p>
-            {% endif %}
-          </div>
-        </div>
+      <div class="shelf-page__header mt-4">
+        <h2 class="h5 shelf-page__title mb-0">Книжные полки</h2>
+        {% if request.user == u %}
+          <a class="btn btn-outline-primary btn-sm" href="{% url 'shelf_create' %}">
+            <i class="bi bi-plus-lg me-1"></i>Добавить полку
+          </a>
+        {% endif %}
       </div>
-      <div class="col-12 col-lg-6 col-xl-3">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <h3 class="h6 mb-2">Аудиокниги</h3>
-            {% if stats.audio_tracked_display %}
-              <p class="mb-1">Учтено прослушивания: <strong>{{ stats.audio_tracked_display }}</strong></p>
-            {% endif %}
-            {% if stats.audio_total_display or stats.audio_adjusted_display %}
-              <p class="text-muted mb-0">
-                {% if stats.audio_total_display %}
-                  Длительность книг: {{ stats.audio_total_display }}
-                {% endif %}
-                {% if stats.audio_adjusted_display %}
-                  <br>С учётом скорости: {{ stats.audio_adjusted_display }}
-                {% endif %}
-              </p>
-            {% elif not stats.audio_tracked_display %}
-              <p class="text-muted mb-0">Аудиокниги в этот период не учитывались.</p>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-      <div class="col-12 col-lg-6 col-xl-3">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <h3 class="h6 mb-2">Форматы чтения</h3>
-            {% if stats.format_labels %}
-              <div class="ratio ratio-1x1">
-                <canvas id="readingFormatChart"></canvas>
-              </div>
-            {% else %}
-              <p class="text-muted mb-0">Нет данных о форматах в выбранный период.</p>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-      <div class="col-12 col-lg-6 col-xl-3">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <h3 class="h6 mb-2">Жанры</h3>
-            {% if stats.genre_labels %}
-              <div class="ratio ratio-1x1">
-                <canvas id="genreChart"></canvas>
-              </div>
-            {% else %}
-              <p class="text-muted mb-0">Пока нет данных для диаграммы.</p>
-            {% endif %}
-          </div>
-        </div>
-      </div>
+      {% include "shelves/_shelf_cards.html" with shelves=user_shelves allow_manage=allow_shelf_management empty_message=allow_shelf_management|yesno:"У вас пока нет полок.,Пока нет полок.,Пока нет полок." next_url=request.get_full_path default_reading_shelf_name=default_reading_shelf_name reading_progress_label=reading_progress_label %}
     </div>
 
-    {% with home=stats.home_library %}
+    <!-- Статистика -->
+    <div class="tab-pane fade{% if current_tab == 'stats' %} show active{% endif %}" id="stats" role="tabpanel">
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
-          <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-3">
-            <div>
-              <h3 class="h6 mb-1">Домашняя библиотека</h3>
-              <p class="text-muted mb-0">Отражает книги на полке «Моя домашняя библиотека».</p>
+          <form method="get" class="row g-3 align-items-end">
+            <input type="hidden" name="tab" value="stats">
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="id_period">Период</label>
+              <select class="form-select" id="id_period" name="period">
+                <option value="week"{% if stats_period.period == 'week' %} selected{% endif %}>Последние 7 дней</option>
+                <option value="month"{% if stats_period.period == 'month' %} selected{% endif %}>Месяц</option>
+                <option value="year"{% if stats_period.period == 'year' %} selected{% endif %}>Год</option>
+              </select>
             </div>
-            <a class="btn btn-outline-primary btn-sm" href="{% url 'home_library' %}">
-              <i class="bi bi-box-seam me-1"></i>Открыть полку
-            </a>
-          </div>
-          {% if home.total %}
-            <div class="row g-3">
-              <div class="col-12 col-md-3">
-                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
-                  <p class="text-muted text-uppercase small mb-1">Всего активных книг</p>
-                  <p class="fs-3 fw-semibold mb-1">{{ home.total }}</p>
-                  <p class="small text-muted mb-0">Передано: {{ home.disposed_total }} {{ home.disposed_total|ru_pluralize:"книга,книги,книг" }}</p>
-                </div>
-              </div>
-              <div class="col-12 col-md-3">
-                <div class="border rounded-3 p-3 h-100 bg-body-terтиary">
-                  <p class="text-muted text-uppercase small mb-1">Классика</p>
-                  <p class="fs-3 fw-semibold mb-1">{{ home.classic_count }}</p>
-                  <p class="small text-muted mb-0">Современных книг: {{ home.modern_count }}</p>
-                </div>
-              </div>
-              <div class="col-12 col-md-3">
-                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
-                  <p class="text-muted text-uppercase small mb-2">Популярные серии</p>
-                  {% if home.series_counts %}
-                    <ul class="list-unstyled mb-0 small">
-                      {% for series in home.series_counts %}
-                        <li class="d-flex justify-content-between">
-                          <span>{{ series.series_name }}</span>
-                          <span class="fw-semibold">{{ series.total }}</span>
-                        </li>
-                      {% endfor %}
-                    </ul>
-                  {% else %}
-                    <p class="text-muted mb-0 small">Добавьте серию для экземпляров.</p>
-                  {% endif %}
-                </div>
-              </div>
-              <div class="col-12 col-md-3">
-                <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
-                  <p class="text-muted text-uppercase small mb-2">Популярные жанры</p>
-                  {% if home.genre_counts %}
-                    <ul class="list-unstyled mb-0 small">
-                      {% for genre in home.genre_counts %}
-                        <li class="d-flex justify-content-between">
-                          <span>{{ genre.name }}</span>
-                          <span class="fw-semibold">{{ genre.total }}</span>
-                        </li>
-                      {% endfor %}
-                    </ul>
-                  {% else %}
-                    <p class="text-muted mb-0 small">Заполните жанры у книг.</p>
-                  {% endif %}
-                </div>
-              </div>
-            </div>
-            {% if home.top_statuses %}
-              <div class="mt-4">
-                <h4 class="h6 mb-2">Статусы экземпляров</h4>
-                <div class="d-flex flex-wrap gap-2">
-                  {% for status in home.top_statuses %}
-                    <span class="badge text-bg-light">{{ status.status }} — {{ status.total }}</span>
+            {% if stats_period.available_years %}
+              <div class="col-6 col-md-4">
+                <label class="form-label" for="id_year">Год</label>
+                <select class="form-select" id="id_year" name="year">
+                  {% for year in stats_period.available_years %}
+                    <option value="{{ year }}"{% if year == stats_period.selected_year %} selected{% endif %}>{{ year }}</option>
                   {% endfor %}
-                </div>
+                </select>
               </div>
             {% endif %}
-            <div class="mt-4">
-              <h4 class="h6 mb-2">Где хранятся</h4>
-              {% if home.top_locations %}
-                <ul class="list-unstyled mb-0 small">
-                  {% for loc in home.top_locations %}
-                    <li class="d-flex justify-content-between">
-                      <span>{{ loc.location }}</span>
-                      <span class="fw-semibold">{{ loc.total }}</span>
-                    </li>
+            {% if stats_period.period == 'month' and stats_period.available_months %}
+              <div class="col-6 col-md-4">
+                <label class="form-label" for="id_month">Месяц</label>
+                <select class="form-select" id="id_month" name="month">
+                  {% for month_value, month_name in stats_period.available_months %}
+                    <option value="{{ month_value }}"{% if month_value == stats_period.selected_month %} selected{% endif %}>{{ month_name }}</option>
                   {% endfor %}
-                </ul>
-              {% else %}
-                <p class="text-muted mb-0 small">Заполните поле «Где хранится».</p>
-              {% endif %}
+                </select>
+              </div>
+            {% endif %}
+            <div class="col-12 col-md-auto">
+              <button type="submit" class="btn btn-primary">Показать</button>
             </div>
-          {% else %}
-            <p class="text-muted mb-0">Добавьте книги в полку «Моя домашняя библиотека», чтобы отслеживать их состояние.</p>
-          {% endif %}
+          </form>
         </div>
       </div>
-    {% endwith %}
 
+      <p class="text-muted">Период: {{ stats_period.label }} ({{ stats_period.start|date:"d.m.Y" }} — {{ stats_period.end|date:"d.m.Y" }})</p>
 
-    <div class="mb-4">
-      <h3 class="h6 mb-3">Прочитанные книги</h3>
-      {% if stats.books %}
-        <div class="row g-3">
-          {% for entry in stats.books %}
-            <div class="col-6 col-md-4 col-lg-3">
-              <div class="card h-100 border-0 shadow-sm">
-                {% if entry.cover_url %}
-                  <img src="{{ entry.cover_url }}" class="card-img-top" style="height:180px;object-fit:cover" alt="Обложка книги {{ entry.book.title }}">
-                {% else %}
-                  <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height:180px;">
-                    <span class="text-muted small">Нет обложки</span>
+      {% with calendar=stats.reading_calendar %}
+        {% if calendar %}
+          <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+              <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+                <div>
+                  <h3 class="h6 mb-1">Календарь чтения</h3>
+                  <p class="text-muted small mb-0">Сколько вы прочитали в этом месяце?</p>
+                </div>
+                <div class="btn-group btn-group-sm" role="group" aria-label="Навигация по месяцам">
+                  <a class="btn btn-outline-secondary" href="{{ calendar.prev_url }}" aria-label="Предыдущий месяц">
+                    <i class="bi bi-chevron-left"></i>
+                  </a>
+                  <span class="btn btn-light disabled text-nowrap">
+                    {{ calendar.month_name }} {{ calendar.year }}
+                  </span>
+                  <a class="btn btn-outline-secondary" href="{{ calendar.next_url }}" aria-label="Следующий месяц">
+                    <i class="bi bi-chevron-right"></i>
+                  </a>
+                </div>
+              </div>
+              <div class="table-responsive reading-calendar-wrapper">
+                <table class="reading-calendar align-middle mb-0">
+                  <thead class="text-muted text-uppercase small">
+                    <tr>
+                      {% for weekday in calendar.weekday_labels %}
+                        <th scope="col">{{ weekday }}</th>
+                      {% endfor %}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for week in calendar.weeks %}
+                      <tr>
+                        {% for day in week %}
+                          <td class="{% if not day.in_month %}opacity-75{% endif %}">
+                            <div class="reading-calendar__cell">
+                              <div class="reading-calendar__header">
+                                <span class="{% if not day.in_month %}text-muted{% endif %}">{{ day.date.day }}</span>
+                                {% if day.is_completion_day and day.in_month %}
+                                  <i class="bi bi-star-fill text-warning" title="Есть завершённые книги"></i>
+                                {% endif %}
+                              </div>
+                              {% if day.in_month and day.books %}
+                                <div class="reading-calendar__books">
+                                  {% for book in day.books %}
+                                    {% if book.cover_url %}
+                                      <img src="{{ book.cover_url }}" alt="Обложка {{ book.title }}" class="reading-calendar__book-cover">
+                                    {% else %}
+                                      <div class="reading-calendar__book-placeholder">
+                                        <span class="visually-hidden">{{ book.title }}</span>
+                                        Нет
+                                      </div>
+                                    {% endif %}
+                                  {% endfor %}
+                                </div>
+                              {% endif %}
+                            </div>
+                          </td>
+                        {% endfor %}
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              {% if not calendar.has_activity %}
+                <p class="text-muted small mb-0 mt-3">В этом месяце пока нет активностей чтения.</p>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <div class="row g-3 mb-4">
+        <div class="col-12 col-lg-6 col-xl-3">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <h3 class="h6 mb-2">Прочитано страниц</h3>
+              <p class="display-6 mb-0">{{ stats.pages_total }}</p>
+              {% if stats.pages_average %}
+                <p class="text-muted mb-0">В среднем {{ stats.pages_average }} стр./день</p>
+              {% else %}
+                <p class="text-muted mb-0">Нет данных о страницах в выбранный период.</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-lg-6 col-xl-3">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <h3 class="h6 mb-2">Аудиокниги</h3>
+              {% if stats.audio_tracked_display %}
+                <p class="mb-1">Учтено прослушивания: <strong>{{ stats.audio_tracked_display }}</strong></p>
+              {% endif %}
+              {% if stats.audio_total_display or stats.audio_adjusted_display %}
+                <p class="text-muted mb-0">
+                  {% if stats.audio_total_display %}Длительность книг: {{ stats.audio_total_display }}{% endif %}
+                  {% if stats.audio_adjusted_display %}<br>С учётом скорости: {{ stats.audio_adjusted_display }}{% endif %}
+                </p>
+              {% elif not stats.audio_tracked_display %}
+                <p class="text-muted mb-0">Аудиокниги в этот период не учитывались.</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-lg-6 col-xl-3">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <h3 class="h6 mb-2">Форматы чтения</h3>
+              {% if stats.format_labels %}
+                <div class="ratio ratio-1x1">
+                  <canvas id="readingFormatChart"></canvas>
+                </div>
+              {% else %}
+                <p class="text-muted mb-0">Нет данных о форматах в выбранный период.</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-lg-6 col-xl-3">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <h3 class="h6 mb-2">Жанры</h3>
+              {% if stats.genre_labels %}
+                <div class="ratio ratio-1x1">
+                  <canvas id="genreChart"></canvas>
+                </div>
+              {% else %}
+                <p class="text-muted mb-0">Пока нет данных для диаграммы.</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% with home=stats.home_library %}
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-body">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-3">
+              <div>
+                <h3 class="h6 mb-1">Домашняя библиотека</h3>
+                <p class="text-muted mb-0">Отражает книги на полке «Моя домашняя библиотека».</p>
+              </div>
+              <a class="btn btn-outline-primary btn-sm" href="{% url 'home_library' %}">
+                <i class="bi bi-box-seam me-1"></i>Открыть полку
+              </a>
+            </div>
+            {% if home.total %}
+              <div class="row g-3">
+                <div class="col-12 col-md-3">
+                  <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <p class="text-muted text-uppercase small mb-1">Всего активных книг</p>
+                    <p class="fs-3 fw-semibold mb-1">{{ home.total }}</p>
+                    <p class="small text-muted mb-0">Передано: {{ home.disposed_total }} {{ home.disposed_total|ru_pluralize:"книга,книги,книг" }}</p>
                   </div>
+                </div>
+                <div class="col-12 col-md-3">
+                  <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <p class="text-muted text-uppercase small mb-1">Классика</p>
+                    <p class="fs-3 fw-semibold mb-1">{{ home.classic_count }}</p>
+                    <p class="small text-muted mb-0">Современных книг: {{ home.modern_count }}</p>
+                  </div>
+                </div>
+                <div class="col-12 col-md-3">
+                  <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <p class="text-muted text-uppercase small mb-2">Популярные серии</p>
+                    {% if home.series_counts %}
+                      <ul class="list-unstyled mb-0 small">
+                        {% for series in home.series_counts %}
+                          <li class="d-flex justify-content-between">
+                            <span>{{ series.series_name }}</span>
+                            <span class="fw-semibold">{{ series.total }}</span>
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    {% else %}
+                      <p class="text-muted mb-0 small">Добавьте серию для экземпляров.</p>
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="col-12 col-md-3">
+                  <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
+                    <p class="text-muted text-uppercase small mb-2">Популярные жанры</p>
+                    {% if home.genre_counts %}
+                      <ul class="list-unstyled mb-0 small">
+                        {% for genre in home.genre_counts %}
+                          <li class="d-flex justify-content-between">
+                            <span>{{ genre.name }}</span>
+                            <span class="fw-semibold">{{ genre.total }}</span>
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    {% else %}
+                      <p class="text-muted mb-0 small">Заполните жанры у книг.</p>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              {% if home.top_statuses %}
+                <div class="mt-4">
+                  <h4 class="h6 mb-2">Статусы экземпляров</h4>
+                  <div class="d-flex flex-wrap gap-2">
+                    {% for status in home.top_statuses %}
+                      <span class="badge text-bg-light">{{ status.status }} — {{ status.total }}</span>
+                    {% endfor %}
+                  </div>
+                </div>
+              {% endif %}
+              <div class="mt-4">
+                <h4 class="h6 mb-2">Где хранятся</h4>
+                {% if home.top_locations %}
+                  <ul class="list-unstyled mb-0 small">
+                    {% for loc in home.top_locations %}
+                      <li class="d-flex justify-content-between">
+                        <span>{{ loc.location }}</span>
+                        <span class="fw-semibold">{{ loc.total }}</span>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                {% else %}
+                  <p class="text-muted mb-0 small">Заполните поле «Где хранится».</p>
                 {% endif %}
-                <div class="card-body d-flex flex-column">
-                  <h6 class="card-title mb-1">
-                    <a class="text-decoration-none" href="{% url 'book_detail' entry.book.pk %}">{{ entry.book.title }}</a>
-                  </h6>
-                  <p class="small text-muted flex-grow-1 mb-2">{{ entry.format|default:"Формат не выбран" }}</p>
-                  {% if entry.has_review %}
-                    <a class="btn btn-outline-primary btn-sm mt-auto" href="{{ entry.review_url }}">Читать отзыв</a>
-                  {% elif request.user == u %}
-                    <a class="btn btn-primary btn-sm mt-auto" href="{{ entry.review_url }}">Написать отзыв</a>
+              </div>
+            {% else %}
+              <p class="text-muted mb-0">Добавьте книги в полку «Моя домашняя библиотека», чтобы отслеживать их состояние.</p>
+            {% endif %}
+          </div>
+        </div>
+      {% endwith %}
+
+      <div class="mb-4">
+        <h3 class="h6 mb-3">Прочитанные книги</h3>
+        {% if stats.books %}
+          <div class="row g-3">
+            {% for entry in stats.books %}
+              <div class="col-6 col-md-4 col-lg-3">
+                <div class="card h-100 border-0 shadow-sm">
+                  {% if entry.cover_url %}
+                    <img src="{{ entry.cover_url }}" class="card-img-top" style="height:180px;object-fit:cover" alt="Обложка книги {{ entry.book.title }}">
                   {% else %}
-                    <span class="badge text-bg-light mt-auto align-self-start">Отзыв ещё не написан</span>
+                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height:180px;">
+                      <span class="text-muted small">Нет обложки</span>
+                    </div>
                   {% endif %}
+                  <div class="card-body d-flex flex-column">
+                    <h6 class="card-title mb-1">
+                      <a class="text-decoration-none" href="{% url 'book_detail' entry.book.pk %}">{{ entry.book.title }}</a>
+                    </h6>
+                    <p class="small text-muted flex-grow-1 mb-2">{{ entry.format|default:"Формат не выбран" }}</p>
+                    {% if entry.has_review %}
+                      <a class="btn btn-outline-primary btn-sm mt-auto" href="{{ entry.review_url }}">Читать отзыв</a>
+                    {% elif request.user == u %}
+                      <a class="btn btn-primary btn-sm mt-auto" href="{{ entry.review_url }}">Написать отзыв</a>
+                    {% else %}
+                      <span class="badge text-bg-light mt-auto align-self-start">Отзыв ещё не написан</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted mb-0">За выбранный период прочитанных книг нет.</p>
+        {% endif %}
+      </div>
+
+      {% if stats.genre_labels or stats.format_labels %}
+        {% if stats.genre_labels %}
+          {{ stats.genre_labels|json_script:"genre-chart-labels" }}
+          {{ stats.genre_values|json_script:"genre-chart-values" }}
+        {% endif %}
+        {% if stats.format_labels %}
+          {{ stats.format_labels|json_script:"reading-format-chart-labels" }}
+          {{ stats.format_values|json_script:"reading-format-chart-values" }}
+          {{ stats.format_palette|json_script:"reading-format-chart-colors" }}
+        {% endif %}
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+        <script>
+          (function(){
+            if(typeof Chart==='undefined'){return;}
+
+            const gl=document.getElementById('genre-chart-labels');
+            const gv=document.getElementById('genre-chart-values');
+            const gc=document.getElementById('genreChart');
+            if(gl&&gv&&gc){
+              const labels=JSON.parse(gl.textContent);
+              const values=JSON.parse(gv.textContent);
+              const palette=labels.map((_,i)=>`hsl(${(i*57)%360},70%,55%)`);
+              new Chart(gc.getContext('2d'),{
+                type:'doughnut',
+                data:{labels,datasets:[{data:values,backgroundColor:palette,borderColor:'#fff',borderWidth:2}]},
+                options:{responsive:true,plugins:{legend:{position:'bottom'}}}
+              });
+            }
+
+            const fl=document.getElementById('reading-format-chart-labels');
+            const fv=document.getElementById('reading-format-chart-values');
+            const fc=document.getElementById('reading-format-chart-colors');
+            const fcv=document.getElementById('readingFormatChart');
+            if(fl&&fv&&fc&&fcv){
+              const labels=JSON.parse(fl.textContent);
+              const values=JSON.parse(fv.textContent);
+              const colors=JSON.parse(fc.textContent);
+              new Chart(fcv.getContext('2d'),{
+                type:'doughnut',
+                data:{labels,datasets:[{data:values,backgroundColor:colors,borderColor:'#fff',borderWidth:2}]},
+                options:{responsive:true,plugins:{legend:{position:'bottom'}}}
+              });
+            }
+          })();
+        </script>
+      {% endif %}
+    </div>
+
+    <!-- Мои книги -->
+    <div class="tab-pane fade{% if current_tab == 'books' %} show active{% endif %}" id="books" role="tabpanel">
+      <p>Если пользователь автор — здесь появится список его книг.</p>
+    </div>
+
+    <!-- Обзоры -->
+    <div class="tab-pane fade{% if current_tab == 'reviews' %} show active{% endif %}" id="reviews" role="tabpanel">
+      {% if user_reviews %}
+        <div class="d-flex flex-column gap-3">
+          {% for review in user_reviews %}
+            <div class="card border-0 shadow-sm">
+              <div class="card-body">
+                <div class="d-flex flex-column flex-md-row gap-3 align-items-start">
+                  <div id="review-print-{{ review.id }}" class="flex-grow-1">
+                    <div class="d-flex flex-wrap align-items-baseline gap-2 mb-1">
+                      <h3 class="h6 mb-0">
+                        <a class="text-decoration-none" href="{% url 'book_detail' review.book.pk %}">{{ review.book.title }}</a>
+                      </h3>
+                      {% with authors=review.book.authors.all %}
+                        {% if authors %}
+                          <span class="text-muted small">{{ authors|join:", " }}</span>
+                        {% endif %}
+                      {% endwith %}
+                      {% if review.score %}
+                        <span class="badge text-bg-warning ms-md-auto">{{ review.score }} / 10</span>
+                      {% endif %}
+                    </div>
+                    <div class="small text-muted mb-2">Опубликован {{ review.created_at|date:"d.m.Y H:i" }}</div>
+                    {% with category_scores=review.get_category_scores %}
+                      {% if category_scores %}
+                        <ul class="list-inline small text-muted mb-2">
+                          {% for label, value in category_scores %}
+                            <li class="list-inline-item me-3">{{ label }}: <strong>{{ value }}</strong></li>
+                          {% endfor %}
+                        </ul>
+                      {% endif %}
+                    {% endwith %}
+                    {% if review.review %}
+                      <div class="mt-2">{{ review.review|linebreaksbr }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="ms-md-auto">
+                    <a class="btn btn-outline-secondary btn-sm" href="{% url 'book_review_print' review.book.pk %}" target="_blank" rel="noopener">
+                      <i class="bi bi-printer me-1"></i>Распечатать
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
           {% endfor %}
         </div>
       {% else %}
-        <p class="text-muted mb-0">За выбранный период прочитанных книг нет.</p>
+        <div class="alert alert-light border mb-0">Пока нет написанных отзывов.</div>
       {% endif %}
     </div>
-
-    {% if stats.genre_labels or stats.format_labels %}
-      {% if stats.genre_labels %}
-        {{ stats.genre_labels|json_script:"genre-chart-labels" }}
-        {{ stats.genre_values|json_script:"genre-chart-values" }}
-      {% endif %}
-      {% if stats.format_labels %}
-        {{ stats.format_labels|json_script:"reading-format-chart-labels" }}
-        {{ stats.format_values|json_script:"reading-format-chart-values" }}
-        {{ stats.format_palette|json_script:"reading-format-chart-colors" }}
-      {% endif %}
-      <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" crossorigin="anonymous"></script>
-      <script>
-        (function () {
-          if (typeof Chart === 'undefined') {
-            return;
-          }
-          
-          const genreLabelsEl = document.getElementById('genre-chart-labels');
-          const genreValuesEl = document.getElementById('genre-chart-values');
-          const genreCanvas = document.getElementById('genreChart');
-          if (genreLabelsEl && genreValuesEl && genreCanvas) {
-            const labels = JSON.parse(genreLabelsEl.textContent);
-            const values = JSON.parse(genreValuesEl.textContent);
-            const palette = labels.map((_, index) => {
-              const hue = (index * 57) % 360;
-              return `hsl(${hue}, 70%, 55%)`;
-            });
-            new Chart(genreCanvas.getContext('2d'), {
-              type: 'doughnut',
-              data: {
-                labels,
-                datasets: [{
-                  data: values,
-                  backgroundColor: palette,
-                  borderColor: '#ffffff',
-                  borderWidth: 2,
-                }],
-              },
-              options: {
-                responsive: true,
-                plugins: {
-                  legend: {
-                    position: 'bottom',
-                  },
-                },
-              },
-              });
-          }
-
-          const formatLabelsEl = document.getElementById('reading-format-chart-labels');
-          const formatValuesEl = document.getElementById('reading-format-chart-values');
-          const formatColorsEl = document.getElementById('reading-format-chart-colors');
-          const formatCanvas = document.getElementById('readingFormatChart');
-          if (formatLabelsEl && formatValuesEl && formatColorsEl && formatCanvas) {
-            const labels = JSON.parse(formatLabelsEl.textContent);
-            const values = JSON.parse(formatValuesEl.textContent);
-            const colors = JSON.parse(formatColorsEl.textContent);
-            new Chart(formatCanvas.getContext('2d'), {
-              type: 'doughnut',
-              data: {
-                labels,
-                datasets: [{
-                  data: values,
-                  backgroundColor: colors,
-                  borderColor: '#ffffff',
-                  borderWidth: 2,
-                }],
-              },
-              options: {
-                responsive: true,
-                plugins: {
-                  legend: {
-                    position: 'bottom',
-                  },
-                },
-              },
-            });
-          }
-        })();
-      </script>
-    {% endif %}
   </div>
+  {% endwith %}
 
-  <!-- Мои книги -->
-  <div class="tab-pane fade{% if current_tab == 'books' %} show active{% endif %}" id="books" role="tabpanel">
-    <p>Если пользователь автор — здесь появится список его книг.</p>
-  </div>
-
-  <!-- Обзоры -->
-  <div class="tab-pane fade{% if current_tab == 'reviews' %} show active{% endif %}" id="reviews" role="tabpanel">
-    {% if user_reviews %}
-      <div class="d-flex flex-column gap-3">
-        {% for review in user_reviews %}
-          <div class="card border-0 shadow-sm">
-            <div class="card-body">
-              <div class="d-flex flex-column flex-md-row gap-3 align-items-start">
-                <div id="review-print-{{ review.id }}" class="flex-grow-1">
-                  <div class="d-flex flex-wrap align-items-baseline gap-2 mb-1">
-                    <h3 class="h6 mb-0">
-                      <a class="text-decoration-none" href="{% url 'book_detail' review.book.pk %}">{{ review.book.title }}</a>
-                    </h3>
-                    {% with authors=review.book.authors.all %}
-                      {% if authors %}
-                        <span class="text-muted small">{{ authors|join:", " }}</span>
-                      {% endif %}
-                    {% endwith %}
-                    {% if review.score %}
-                      <span class="badge text-bg-warning ms-md-auto">{{ review.score }} / 10</span>
-                    {% endif %}
-                  </div>
-                  <div class="small text-muted mb-2">Опубликован {{ review.created_at|date:"d.m.Y H:i" }}</div>
-                  {% with category_scores=review.get_category_scores %}
-                    {% if category_scores %}
-                      <ul class="list-inline small text-muted mb-2">
-                        {% for label, value in category_scores %}
-                          <li class="list-inline-item me-3">{{ label }}: <strong>{{ value }}</strong></li>
-                        {% endfor %}
-                      </ul>
-                    {% endif %}
-                  {% endwith %}
-                  {% if review.review %}
-                    <div class="mt-2">{{ review.review|linebreaksbr }}</div>
-                  {% endif %}
-                </div>
-                <div class="ms-md-auto">
-                  <a class="btn btn-outline-secondary btn-sm" href="{% url 'book_review_print' review.book.pk %}" target="_blank" rel="noopener">
-                    <i class="bi bi-printer me-1"></i>Распечатать
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <div class="alert alert-light border mb-0">Пока нет написанных отзывов.</div>
-    {% endif %}
-  </div>
-</div>
-{% endwith %}
-
+</div><!-- /.profile-theme -->
 {% endblock %}
 
 {% block extra_js %}
