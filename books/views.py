@@ -64,7 +64,7 @@ SHELF_BOOKS_LIMIT = 12
 
 def _serialize_book_for_shelf(
     book: Book, *, extra: dict[str, object] | None = None
-) -> dict[str, object]
+) -> dict[str, object]:
     if (
         hasattr(book, "_prefetched_objects_cache")
         and "authors" in book._prefetched_objects_cache
