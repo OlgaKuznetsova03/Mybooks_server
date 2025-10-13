@@ -30,7 +30,7 @@
 
   <div class="genre-shelf-collection">
     {% for shelf in shelves %}
-      {% include "books/includes/genre_shelf.html" with shelf=shelf %}
+      {% include "books/includes/genre_shelf.html" with shelf=shelf variant=shelf.variant %}
     {% empty %}
       <div class="alert alert-info mb-0">В этом жанре пока нет книг. Добавьте первую!</div>
     {% endfor %}

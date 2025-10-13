@@ -307,7 +307,7 @@
         </div>
         <div class="genre-shelf-collection">
           {% for shelf in genre_shelves %}
-            {% include "books/includes/genre_shelf.html" with shelf=shelf %}
+            {% include "books/includes/genre_shelf.html" with shelf=shelf variant=shelf.variant %}
           {% endfor %}
         </div>
       </section>
