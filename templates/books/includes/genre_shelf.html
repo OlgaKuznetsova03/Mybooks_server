@@ -1,5 +1,6 @@
 {% load shelf_extras %}
-<section class="genre-shelf-card card border-0 shadow-sm">
+{% with variant=variant|default:shelf.variant texture=texture_url|default:shelf.texture_url %}
+<section class="genre-shelf-card card border-0 shadow-sm{% if variant %} genre-shelf-card--{{ variant }}{% endif %}"{% if texture %} style="--bookshelf-texture: url('{{ texture }}');"{% endif %}>
   <div class="genre-shelf-card__body">
     <header class="genre-shelf-card__header">
       <div>
@@ -11,6 +12,8 @@
       {% with cta=shelf.cta %}
         {% if cta and cta.url %}
           <a class="btn btn-outline-primary btn-sm" href="{{ cta.url }}">{{ cta.label }}</a>
+          {% elif cta and cta.href %}
+          <a class="btn btn-outline-primary btn-sm" href="{{ cta.href }}">{{ cta.label }}</a>
         {% endif %}
       {% endwith %}
     </header>
@@ -47,6 +50,16 @@
                   {% endif %}
                 </span>
               </div>
+              {% if entry.reader_count %}
+                <div class="genre-shelf-card__book-meta genre-shelf-card__book-meta--accent">
+                  {{ entry.reader_count }} {{ entry.reader_count|pluralize:"читатель,читателя,читателей" }} за 30 дней
+                </div>
+              {% endif %}
+              {% if entry.added_at %}
+                <div class="genre-shelf-card__book-meta">
+                  Добавлена {{ entry.added_at|timesince }} назад
+                </div>
+              {% endif %}
             </div>
           </article>
         {% endfor %}
@@ -56,3 +69,4 @@
     {% endif %}
   </div>
 </section>
+{% endwith %}

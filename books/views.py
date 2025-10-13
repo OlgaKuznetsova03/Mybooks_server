@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import timedelta
 
 from django.db.models import (
     Q,
@@ -22,6 +23,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.html import mark_safe
 from django.utils.text import slugify
 from django.views.decorators.http import require_GET, require_POST
@@ -60,7 +62,9 @@ def _book_cover_url(book: Book) -> str:
 SHELF_BOOKS_LIMIT = 12
 
 
-def _serialize_book_for_shelf(book: Book) -> dict[str, object]:
+def _serialize_book_for_shelf(
+    book: Book, *, extra: dict[str, object] | None = None
+) -> dict[str, object]
     if (
         hasattr(book, "_prefetched_objects_cache")
         and "authors" in book._prefetched_objects_cache
@@ -74,7 +78,7 @@ def _serialize_book_for_shelf(book: Book) -> dict[str, object]:
 
     title = (book.title or "").strip()
 
-    return {
+    data: dict[str, object] = {
         "id": book.pk,
         "title": title,
         "detail_url": reverse("book_detail", args=[book.pk]),
@@ -84,6 +88,22 @@ def _serialize_book_for_shelf(book: Book) -> dict[str, object]:
         "rating_count": int(getattr(book, "rating_count", 0) or 0),
         "initial": (title[:1] or "?").upper(),
     }
+
+    if extra:
+        data.update(extra)
+
+    return data
+
+
+def _russian_plural(value: int, forms: tuple[str, str, str]) -> str:
+    """Return the correct Russian plural form for ``value``."""
+
+    number = abs(int(value))
+    if number % 10 == 1 and number % 100 != 11:
+        return forms[0]
+    if 2 <= number % 10 <= 4 and not (12 <= number % 100 <= 14):
+        return forms[1]
+    return forms[2]
 
 
 def _matching_books_for_isbns(isbn_values: list[str]) -> list[dict[str, object]]:
@@ -280,19 +300,19 @@ def _notify_about_registration(request, result: EditionRegistrationResult) -> No
 
 def book_list(request):
     q = (request.GET.get("q") or "").strip()
+    view_mode = (request.GET.get("view") or "discover").lower()
+    if q:
+        view_mode = "grid"
+    if view_mode not in {"grid", "discover"}:
+        view_mode = "discover"
+
     active_sort = (request.GET.get("sort") or "popular").lower()
 
-    qs = (
+    base_qs = (
         Book.objects.all()
         .select_related("audio")
         .prefetch_related("authors", "genres", "publisher", "isbn")
     )
-    if q:
-        qs = qs.filter(
-            Q(title__icontains=q)
-            | Q(authors__name__icontains=q)
-            | Q(genres__name__icontains=q)
-        ).distinct()
 
     group_leader_subquery = (
         Book.objects.filter(edition_group_key=OuterRef("edition_group_key"))
@@ -300,7 +320,7 @@ def book_list(request):
         .values("pk")[:1]
     )
 
-    qs = qs.annotate(
+    annotated_books = base_qs.annotate(
         edition_leader=Case(
             When(edition_group_key="", then=F("pk")),
             default=Subquery(group_leader_subquery),
@@ -308,6 +328,8 @@ def book_list(request):
         average_rating=Avg("ratings__score"),
         rating_count=Count("ratings__score"),
     ).filter(pk=F("edition_leader"))
+
+    total_books = annotated_books.count()
 
     sort_definitions = {
         "popular": {
@@ -323,7 +345,7 @@ def book_list(request):
         "recent": {
             "label": "Недавно добавлены",
             "icon": "bi-clock-history",
-            "order": ("-pk",),
+            "order": ("-created_at", "-pk"),
         },
         "title": {
             "label": "По алфавиту",
@@ -335,55 +357,209 @@ def book_list(request):
     if active_sort not in sort_definitions:
         active_sort = "popular"
 
-    qs = qs.order_by(*sort_definitions[active_sort]["order"])
-
-    paginator = Paginator(qs, 12)
-    page = request.GET.get("page")
-    page_obj = paginator.get_page(page)
+    page_obj = None
+    sort_options: list[dict[str, object]] = []
     external_suggestions: list[dict[str, object]] = []
     external_error = None
+    discovery_shelves: list[dict[str, object]] = []
 
-    preserved_query = request.GET.copy()
-    preserved_query._mutable = True
-    preserved_query.pop("page", None)
+    if view_mode == "grid":
+        qs = annotated_books
+        if q:
+            qs = qs.filter(
+                Q(title__icontains=q)
+                | Q(authors__name__icontains=q)
+                | Q(genres__name__icontains=q)
+            ).distinct()
 
-    sort_options = []
-    for key, definition in sort_definitions.items():
-        params = preserved_query.copy()
-        params["sort"] = key
-        sort_options.append(
-            {
-                "key": key,
-                "label": definition["label"],
-                "icon": definition["icon"],
-                "url": f"?{params.urlencode()}",
-            }
+        qs = qs.order_by(*sort_definitions[active_sort]["order"])
+
+        paginator = Paginator(qs, 12)
+        page = request.GET.get("page")
+        page_obj = paginator.get_page(page)
+
+        preserved_query = request.GET.copy()
+        preserved_query._mutable = True
+        preserved_query.pop("page", None)
+        preserved_query["view"] = "grid"
+
+        for key, definition in sort_definitions.items():
+            params = preserved_query.copy()
+            params["sort"] = key
+            sort_options.append(
+                {
+                    "key": key,
+                    "label": definition["label"],
+                    "icon": definition["icon"],
+                    "url": f"?{params.urlencode()}",
+                }
+            )
+
+        if q and page_obj.paginator.count == 0:
+            isbn_candidate = normalize_isbn(q)
+            title_query = q if len(isbn_candidate) not in (10, 13) else ""
+            try:
+                results = google_books_client.search(
+                    title=title_query or None,
+                    isbn=isbn_candidate or None,
+                    limit=6,
+                )
+            except Exception as exc:  # pragma: no cover - defensive logging
+                logger.exception("Google Books search for list failed: %s", exc)
+                results = []
+                external_error = "Не удалось получить данные из Google Books. Попробуйте позже."
+
+            for item in results:
+                serialized = _serialize_external_item(item)
+                payload = {
+                    "query": {"title": q, "author": "", "isbn": isbn_candidate},
+                    "external_result": serialized,
+                }
+                external_suggestions.append(
+                    {
+                        "data": serialized,
+                        "payload": json.dumps(payload, ensure_ascii=False),
+                    }
+                )
+    else:
+        now = timezone.now()
+        recent_cutoff = now - timedelta(days=10)
+        recent_books = list(
+            annotated_books.filter(created_at__gte=recent_cutoff)
+            .order_by("-created_at", "-pk")[:SHELF_BOOKS_LIMIT]
+        )
+        if not recent_books and total_books:
+            recent_books = list(
+                annotated_books.order_by("-created_at", "-pk")[:SHELF_BOOKS_LIMIT]
+            )
+        if recent_books:
+            discovery_shelves.append(
+                {
+                    "title": "Недавно добавленные",
+                    "subtitle": "Свежие книги за последние 10 дней.",
+                    "cta": {
+                        "url": "?view=grid&sort=recent",
+                        "label": "Все новинки",
+                    },
+                    "books": [
+                        _serialize_book_for_shelf(
+                            book,
+                            extra={
+                                "added_at": getattr(book, "created_at", None),
+                            },
+                        )
+                        for book in recent_books
+                    ],
+                }
+            )
+
+        popular_window = now - timedelta(days=30)
+        popular_stats = list(
+            BookProgress.objects.filter(updated_at__gte=popular_window)
+            .values("book")
+            .annotate(reader_count=Count("user", distinct=True))
+            .order_by("-reader_count", "book")[: SHELF_BOOKS_LIMIT * 3]
         )
 
-    if q and page_obj.paginator.count == 0:
-        isbn_candidate = normalize_isbn(q)
-        title_query = q if len(isbn_candidate) not in (10, 13) else ""
-        try:
-            results = google_books_client.search(
-                title=title_query or None,
-                isbn=isbn_candidate or None,
-                limit=6,
+        popular_ids = [entry["book"] for entry in popular_stats if entry["book"]]
+        if popular_ids:
+            popular_books_qs = (
+                annotated_books.filter(pk__in=popular_ids)
+                .annotate(
+                    recent_reader_count=Count(
+                        "bookprogress__user",
+                        filter=Q(bookprogress__updated_at__gte=popular_window),
+                        distinct=True,
+                    )
+                )
             )
-        except Exception as exc:  # pragma: no cover - defensive logging
-            logger.exception("Google Books search for list failed: %s", exc)
-            results = []
-            external_error = "Не удалось получить данные из Google Books. Попробуйте позже."
+            popular_book_map = {book.pk: book for book in popular_books_qs}
+            ordered_popular_books = [
+                popular_book_map[pk]
+                for pk in popular_ids
+                if pk in popular_book_map
+            ][:SHELF_BOOKS_LIMIT]
+            if ordered_popular_books:
+                discovery_shelves.append(
+                    {
+                        "title": "Популярные сейчас",
+                        "subtitle": "Больше всего читателей за последние 30 дней.",
+                        "cta": {
+                            "url": "?view=grid&sort=popular",
+                            "label": "Открыть каталог",
+                        },
+                        "books": [
+                            _serialize_book_for_shelf(
+                                book,
+                                extra={
+                                    "reader_count": int(
+                                        getattr(book, "recent_reader_count", 0) or 0
+                                    ),
+                                },
+                            )
+                            for book in ordered_popular_books
+                        ],
+                    }
+                )
 
-        for item in results:
-            serialized = _serialize_external_item(item)
-            payload = {
-                "query": {"title": q, "author": "", "isbn": isbn_candidate},
-                "external_result": serialized,
-            }
-            external_suggestions.append(
+        popular_genres = list(
+            Genre.objects.annotate(
+                recent_reader_count=Count(
+                    "books__bookprogress__user",
+                    filter=Q(books__bookprogress__updated_at__gte=popular_window),
+                    distinct=True,
+                )
+            )
+            .filter(recent_reader_count__gt=0)
+            .order_by("-recent_reader_count", "name")[:4]
+        )
+
+        for genre in popular_genres:
+            top_books = list(
+                annotated_books.filter(genres=genre)
+                .annotate(
+                    recent_reader_count=Count(
+                        "bookprogress__user",
+                        filter=Q(bookprogress__updated_at__gte=popular_window),
+                        distinct=True,
+                    )
+                )
+                .order_by("-recent_reader_count", "-rating_count", "title")
+                .distinct()[:SHELF_BOOKS_LIMIT]
+            )
+            if not top_books:
+                continue
+
+            genre_reader_count = int(
+                getattr(genre, "recent_reader_count", 0) or 0
+            )
+            if genre_reader_count:
+                subtitle = (
+                    f"{genre_reader_count} "
+                    f"{_russian_plural(genre_reader_count, ('читатель', 'читателя', 'читателей'))} за 30 дней"
+                )
+            else:
+                subtitle = "Популярный жанр сообщества."
+
+            discovery_shelves.append(
                 {
-                    "data": serialized,
-                    "payload": json.dumps(payload, ensure_ascii=False),
+                     "title": genre.name,
+                    "subtitle": subtitle,
+                    "cta": {
+                        "url": genre.get_absolute_url(),
+                        "label": "Все книги жанра",
+                    },
+                    "books": [
+                        _serialize_book_for_shelf(
+                            book,
+                            extra={
+                                "reader_count": int(
+                                    getattr(book, "recent_reader_count", 0) or 0
+                                ),
+                            },
+                        )
+                        for book in top_books
+                    ],
                 }
             )
 
@@ -397,7 +573,9 @@ def book_list(request):
             "sort_options": sort_options,
             "external_suggestions": external_suggestions,
             "external_error": external_error,
-            "total_books": paginator.count,
+            "total_books": total_books,
+            "view_mode": view_mode,
+            "discovery_shelves": discovery_shelves,
         },
     )
 

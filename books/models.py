@@ -210,6 +210,7 @@ class Book(models.Model):
 
     # новое поле для обложки
     cover = models.ImageField(upload_to="book_covers/", blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def get_cover_url(self) -> str:
         """Вернуть подходящий URL обложки книги с учётом источника."""
