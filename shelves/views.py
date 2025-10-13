@@ -53,6 +53,7 @@ from .forms import (
     HomeLibraryFilterForm,
 )
 from games.services.read_before_buy import ReadBeforeBuyGame
+from user_ratings.models import LeaderboardPeriod, UserPointEvent
 from user_ratings.services import award_for_book_completion
 
 
@@ -1370,8 +1371,8 @@ def reading_leaderboard(request):
     ]
 
     user_model = get_user_model()
-    leaderboards = []
 
+    page_leaderboards = []
     for key, label, start_date in timeframes:
         if start_date > today:
             leaderboard_rows = []
@@ -1403,9 +1404,9 @@ def reading_leaderboard(request):
                 if user_map.get(row["progress__user"])
             ]
 
-        leaderboards.append(
+        page_leaderboards.append(
             {
-                "key": key,
+                "key": f"pages-{key}",
                 "label": label,
                 "start": start_date,
                 "end": today,
@@ -1413,11 +1414,58 @@ def reading_leaderboard(request):
             }
         )
 
+    period_map = {
+        "day": LeaderboardPeriod.DAY,
+        "week": LeaderboardPeriod.WEEK,
+        "month": LeaderboardPeriod.MONTH,
+        "year": LeaderboardPeriod.YEAR,
+    }
+    points_leaderboards = []
+    for key, label, _ in timeframes:
+        period = period_map.get(key)
+        if not period:
+            continue
+        rows = UserPointEvent.get_leaderboard(period, limit=10)
+        entries = [
+            {
+                "position": index,
+                "user": row.get("user"),
+                "total_points": row.get("points", 0),
+            }
+            for index, row in enumerate(rows, start=1)
+            if row.get("user")
+        ]
+        period_start = timezone.localdate(period.period_start())
+        points_leaderboards.append(
+            {
+                "key": f"points-{key}",
+                "label": label,
+                "start": period_start,
+                "end": today,
+                "entries": entries,
+            }
+        )
+
+    leaderboard_groups = [
+        {
+            "metric": "pages",
+            "title": "Рейтинг по страницам",
+            "description": "Суммируем страницы, записанные в дневник чтения, и показываем лидеров за выбранный период.",
+            "boards": page_leaderboards,
+        },
+        {
+            "metric": "points",
+            "title": "Рейтинг по баллам",
+            "description": "Считаем игровые баллы, которые читатели заработали за активность на платформе за тот же период.",
+            "boards": points_leaderboards,
+        },
+    ]
+
     return render(
         request,
         "reading/leaderboard.html",
         {
-            "leaderboards": leaderboards,
+            "leaderboard_groups": leaderboard_groups,
         },
     )
 

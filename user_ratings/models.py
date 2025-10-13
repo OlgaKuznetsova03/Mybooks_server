@@ -170,7 +170,7 @@ class UserPointEvent(models.Model):
         rows = list(aggregated)
         user_map = {
             user.id: user
-            for user in User.objects.filter(id__in=[row["user"] for row in rows])
+            for user in User.objects.filter(id__in=[row["user"] for row in rows]).select_related("profile")
         }
         results = []
         for row in rows:

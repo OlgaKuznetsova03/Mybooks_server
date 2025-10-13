@@ -50,7 +50,29 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 1.75rem;
+    }
+
+  .leaderboard-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
     margin-top: 2.5rem;
+  }
+
+  .leaderboard-section:first-of-type {
+    margin-top: 0;
+  }
+
+  .leaderboard-section__header h2 {
+    margin: 0;
+    font-weight: 700;
+    color: #1e3b45;
+  }
+
+  .leaderboard-section__header p {
+    margin: 0.5rem 0 0;
+    color: rgba(30, 59, 69, 0.7);
+    max-width: 640px;
   }
 
   .leaderboard-card {
@@ -64,7 +86,7 @@
     gap: 1.25rem;
   }
 
-  .leaderboard-card__header h2 {
+  .leaderboard-card__header h3 {
     margin: 0;
     font-weight: 700;
     color: #1e3b45;
@@ -158,7 +180,7 @@
     color: #1e3b45;
   }
 
-  .leaderboard-entry__pages {
+  .leaderboard-entry__value {
     font-size: 0.95rem;
     color: #2d4b55;
   }
@@ -189,51 +211,67 @@
   <section class="reading-leaderboard-hero mb-4">
     <div>
       <h1>Рейтинг читателей</h1>
-      <p>Суммируем страницы, записанные в дневник чтения, и показываем, кто сейчас лидирует среди читателей за выбранный период.</p>
+      <p>Следите за лидерами сообщества: мы показываем и тех, кто прочитал больше всего страниц, и тех, кто заработал наибольшее количество баллов за активность за выбранный период.</p>
     </div>
     <div class="reading-leaderboard-actions">
       <a class="btn reading-btn-primary" href="{% url 'reading_feed' %}">Перейти к ленте чтения</a>
     </div>
   </section>
 
-  <div class="reading-leaderboard-grid">
-    {% for board in leaderboards %}
-      <section class="leaderboard-card" aria-labelledby="leaderboard-{{ board.key }}-title">
-        <header class="leaderboard-card__header">
-          <h2 id="leaderboard-{{ board.key }}-title">{{ board.label }}</h2>
-          {% if board.start == board.end %}
-            <span>{{ board.start|date:"d E Y" }}</span>
-          {% else %}
-            <span>Период: {{ board.start|date:"d E" }} — {{ board.end|date:"d E Y" }}</span>
-          {% endif %}
-        </header>
+  {% for group in leaderboard_groups %}
+    <section class="leaderboard-section">
+      <div class="leaderboard-section__header">
+        <h2>{{ group.title }}</h2>
+        <p>{{ group.description }}</p>
+      </div>
+      <div class="reading-leaderboard-grid">
+        {% for board in group.boards %}
+          <section class="leaderboard-card" aria-labelledby="leaderboard-{{ board.key }}-title">
+            <header class="leaderboard-card__header">
+              <h3 id="leaderboard-{{ board.key }}-title">{{ board.label }}</h3>
+              {% if board.start == board.end %}
+                <span>{{ board.start|date:"d E Y" }}</span>
+              {% else %}
+                <span>Период: {{ board.start|date:"d E" }} — {{ board.end|date:"d E Y" }}</span>
+              {% endif %}
+            </header>
 
-        {% if board.entries %}
-          <ol class="leaderboard-list">
-            {% for item in board.entries %}
-              {% with display_name=item.user.get_full_name|default:item.user.username %}
-                <li class="leaderboard-entry {% if item.position == 1 %}leaderboard-entry--first{% elif item.position == 2 %}leaderboard-entry--second{% elif item.position == 3 %}leaderboard-entry--third{% endif %}">
-                  <span class="leaderboard-entry__position">{{ item.position }}</span>
-                  <div class="leaderboard-entry__avatar{% if not item.user.profile.avatar %} leaderboard-entry__avatar--placeholder{% endif %}">
-                    {% if item.user.profile.avatar %}
-                      <img src="{{ item.user.profile.avatar.url }}" alt="Аватар {{ display_name }}">
-                    {% else %}
-                      <span>{{ display_name|slice:":1" }}</span>
-                    {% endif %}
-                  </div>
-                  <div class="leaderboard-entry__details">
-                    <span class="leaderboard-entry__name">{{ display_name }}</span>
-                    <span class="leaderboard-entry__pages">{{ item.total_pages|floatformat:-2 }} {{ item.total_pages|ru_pluralize:"страница,страницы,страниц" }}</span>
-                  </div>
-                </li>
-              {% endwith %}
-            {% endfor %}
-          </ol>
-        {% else %}
-          <p class="leaderboard-empty">Пока нет данных за этот период — отметьте прочитанные страницы, чтобы открыть рейтинг.</p>
-        {% endif %}
-      </section>
-    {% endfor %}
-  </div>
+            {% if board.entries %}
+              <ol class="leaderboard-list">
+                {% for item in board.entries %}
+                  {% with display_name=item.user.get_full_name|default:item.user.username %}
+                    <li class="leaderboard-entry {% if item.position == 1 %}leaderboard-entry--first{% elif item.position == 2 %}leaderboard-entry--second{% elif item.position == 3 %}leaderboard-entry--third{% endif %}">
+                      <span class="leaderboard-entry__position">{{ item.position }}</span>
+                      <div class="leaderboard-entry__avatar{% if not item.user.profile.avatar %} leaderboard-entry__avatar--placeholder{% endif %}">
+                        {% if item.user.profile.avatar %}
+                          <img src="{{ item.user.profile.avatar.url }}" alt="Аватар {{ display_name }}">
+                        {% else %}
+                          <span>{{ display_name|slice:":1" }}</span>
+                        {% endif %}
+                      </div>
+                      <div class="leaderboard-entry__details">
+                        <span class="leaderboard-entry__name">{{ display_name }}</span>
+                        {% if group.metric == 'pages' %}
+                          <span class="leaderboard-entry__value">{{ item.total_pages|floatformat:-2 }} {{ item.total_pages|ru_pluralize:"страница,страницы,страниц" }}</span>
+                        {% else %}
+                          <span class="leaderboard-entry__value">{{ item.total_points }} {{ item.total_points|ru_pluralize:"балл,балла,баллов" }}</span>
+                        {% endif %}
+                      </div>
+                    </li>
+                  {% endwith %}
+                {% endfor %}
+              </ol>
+            {% else %}
+              {% if group.metric == 'pages' %}
+                <p class="leaderboard-empty">Пока нет данных за этот период — отметьте прочитанные страницы, чтобы открыть рейтинг.</p>
+              {% else %}
+                <p class="leaderboard-empty">Пока нет данных за этот период — участвуйте в активности, чтобы заработать первые баллы.</p>
+              {% endif %}
+            {% endif %}
+          </section>
+        {% endfor %}
+      </div>
+    </section>
+  {% endfor %}
 </div>
 {% endblock %}

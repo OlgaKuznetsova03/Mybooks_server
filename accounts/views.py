@@ -581,6 +581,13 @@ def profile(request, username=None):
         .order_by("-created_at")
     )
 
+    total_pages_read = (
+        ReadingLog.objects.filter(progress__user=user_obj)
+        .aggregate(total=Sum("pages_equivalent"))
+        .get("total")
+        or Decimal("0")
+    )
+
     context = {
         "u": user_obj,
         "is_blogger": user_obj.groups.filter(name="blogger").exists(),
@@ -595,6 +602,7 @@ def profile(request, username=None):
         "default_home_library_shelf_name": DEFAULT_HOME_LIBRARY_SHELF,
         "reading_progress_label": READING_PROGRESS_LABEL,
         "user_reviews": user_reviews,
+        "reading_pages_total": total_pages_read,
         "rating_points_total": UserPointEvent.objects.filter(user=user_obj).aggregate(
             total=Sum("points")
         )["total"]

@@ -223,6 +223,10 @@
           <i class="bi bi-stars"></i>
           {{ rating_points_total }} {{ rating_points_total|ru_pluralize:"балл,балла,баллов" }}
         </span>
+        <span class="profile-rating-pill">
+          <i class="bi bi-book"></i>
+          {{ reading_pages_total|floatformat:-2 }} {{ reading_pages_total|ru_pluralize:"страница,страницы,страниц" }}
+        </span>
         <a class="btn btn-sm profile-rating-button" href="{% url 'reading_leaderboard' %}">
           Рейтинг читателей
         </a>
