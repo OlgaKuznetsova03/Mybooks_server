@@ -439,6 +439,8 @@ def book_list(request):
                 {
                     "title": "Недавно добавленные",
                     "subtitle": "Свежие книги за последние 10 дней.",
+                    "variant": "profile",
+                    "texture_url": None,
                     "cta": {
                         "url": "?view=grid&sort=recent",
                         "label": "Все новинки",
@@ -486,6 +488,8 @@ def book_list(request):
                     {
                         "title": "Популярные сейчас",
                         "subtitle": "Больше всего читателей за последние 30 дней.",
+                        "variant": "profile",
+                        "texture_url": None,
                         "cta": {
                             "url": "?view=grid&sort=popular",
                             "label": "Открыть каталог",
@@ -545,8 +549,10 @@ def book_list(request):
 
             discovery_shelves.append(
                 {
-                     "title": genre.name,
+                    "title": genre.name,
                     "subtitle": subtitle,
+                    "variant": "profile",
+                    "texture_url": None,
                     "cta": {
                         "url": genre.get_absolute_url(),
                         "label": "Все книги жанра",
@@ -609,6 +615,8 @@ def genre_detail(request, slug):
             {
                 "title": "Популярное",
                 "subtitle": "Читатели выбирают чаще всего.",
+                "variant": None,
+                "texture_url": None,
                 "cta": None,
                 "books": [
                     _serialize_book_for_shelf(book)
@@ -626,6 +634,8 @@ def genre_detail(request, slug):
             {
                 "title": "С высоким рейтингом",
                 "subtitle": "Лучшие оценки сообщества ReadTogether.",
+                "variant": None,
+                "texture_url": None,
                 "cta": None,
                 "books": [
                     _serialize_book_for_shelf(book)
@@ -640,6 +650,8 @@ def genre_detail(request, slug):
             {
                 "title": "Недавно добавлены",
                 "subtitle": "Свежие истории в этом жанре.",
+                "variant": None,
+                "texture_url": None,
                 "cta": None,
                 "books": [
                     _serialize_book_for_shelf(book)
@@ -1144,6 +1156,8 @@ def book_detail(request, pk):
                 {
                     "title": f"Ещё в жанре «{genre.name}»",
                     "subtitle": "Популярные книги, которые выбирают читатели.",
+                    "variant": "profile",
+                    "texture_url": None,
                     "cta": {
                         "url": genre.get_absolute_url(),
                         "label": "Все книги жанра",
