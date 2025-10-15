@@ -12,10 +12,35 @@
 
   {% block theme_colors %}
   <style>
-    /* Default theme color (override via the ``theme_colors`` block in child templates) */
-    :root {
-      --rt-primary: #40535c;
-      --rt-primary-rgb: 64, 83, 92;
+    /* Светлая тема */
+    :root,
+    [data-bs-theme="light"] {
+      --bs-primary: #40535c;
+      --bs-primary-rgb: 64,83,92;
+
+      /* Дополнительно, если нужно: */
+      --bs-body-bg: #d7c;
+      --bs-body-color: #25323a;
+      --bs-link-color: #40535c;
+      --bs-link-hover-color: #2c3b42;
+
+      /* Для кнопок (чтобы сразу было видно): */
+      --bs-btn-bg: var(--bs-primary);
+      --bs-btn-border-color: var(--bs-primary);
+      --bs-btn-hover-bg: #314148;
+      --bs-btn-hover-border-color: #314148;
+      --bs-btn-active-bg: #28353b;
+      --bs-btn-active-border-color: #28353b;
+    }
+
+    /* Тёмная тема (если вдруг переключаешь data-bs-theme="dark") */
+    [data-bs-theme="dark"] {
+      --bs-primary: #9cc4d4;
+      --bs-primary-rgb: 156,196,212;
+      --bs-body-bg: #151a1e;
+      --bs-body-color: #e6eaed;
+      --bs-link-color: #9cc4d4;
+      --bs-link-hover-color: #c0dbe6;
     }
   </style>
   {% endblock %}
