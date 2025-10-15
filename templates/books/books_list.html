@@ -19,12 +19,13 @@
       --book-card-width: 210px;
       --book-card-gap: 1rem;
       --book-cover-height: calc(var(--book-card-width, 210px) * 1.5);
-      --book-gallery-card-bg: #d7cbb2;
-      --book-gallery-card-border: #c5b79d;
+      --book-gallery-card-bg: #fdf8f1;
+      --book-gallery-card-border: #ecdfc8;
       --book-gallery-card-badge-bg: rgba(var(--bs-primary-rgb), 0.08);
       --book-gallery-card-badge-border: rgba(var(--bs-primary-rgb), 0.15);
       --book-gallery-card-status-bg: rgba(255, 255, 255, 0.65);
       --book-gallery-card-badge-color: var(--journey-olive);
+      --book-gallery-card-rating-bg: rgba(36, 33, 28, 0.75);
     }
 
     [data-bs-theme="dark"] body.books-page {
@@ -42,6 +43,7 @@
       --book-gallery-card-badge-border: rgba(214, 202, 167, 0.25);
       --book-gallery-card-status-bg: rgba(0, 0, 0, 0.35);
       --book-gallery-card-badge-color: #f0e7d0;
+      --book-gallery-card-rating-bg: rgba(0, 0, 0, 0.55);
     }
 
     .card {
@@ -120,12 +122,21 @@
       position: relative;
     }
 
+    .book-gallery-card__meta {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin: 0.75rem 0 0.5rem;
+    }
+
     .book-gallery-card__rating {
-      position: absolute;
-      top: 0.75rem;
-      left: 0.75rem;
+      display: inline-flex;
       pointer-events: none;
-      z-index: 1;
+      }
+
+    .book-gallery-card__reviews {
+      margin-left: auto;
     }
 
     .book-gallery-card .card-body {
@@ -157,7 +168,7 @@
       font-size: 0.75rem;
       padding: 0.35rem 0.6rem;
       border-radius: 999px;
-      background: rgba(29, 31, 34, 0.75);
+      background: var(--book-gallery-card-rating-bg);
       color: #fff;
       box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
     }
@@ -394,12 +405,6 @@
                     </div>
                   </a>
                 {% endif %}
-                <div class="book-gallery-card__rating" aria-hidden="true">
-                  <span class="rating-badge">
-                    <i class="bi bi-star-fill me-1"></i>
-                    {% if b.average_rating %}{{ b.average_rating|floatformat:1 }}{% else %}—{% endif %}
-                  </span>
-                </div>
               </div>
             {% endwith %}
             <div class="card-body d-flex flex-column">
@@ -407,6 +412,13 @@
                 <a class="stretched-link text-decoration-none" href="{% url 'book_detail' b.pk %}">{{ b.title }}</a>
               </h2>
               <div class="text-muted small line-clamp-2">{{ b.authors.all|join:', ' }}</div>
+              <div class="book-gallery-card__meta">
+                <span class="rating-badge book-gallery-card__rating">
+                  <i class="bi bi-star-fill me-1"></i>
+                  {% if b.average_rating %}{{ b.average_rating|floatformat:1 }}{% else %}—{% endif %}
+                </span>
+                <span class="book-gallery-card__reviews text-muted small text-opacity-75">{{ b.rating_count|default:0 }} оценок</span>
+              </div>
               {% with genres=b.genres.all genre_count=b.genres.count %}
                 {% if genre_count %}
                   <div class="mt-2 d-flex flex-wrap gap-1">
@@ -420,7 +432,6 @@
                 {% endif %}
               {% endwith %}
               <div class="mt-auto pt-2">
-                <div class="text-muted small mb-3 text-opacity-75">{{ b.rating_count|default:0 }} оценок</div>
                 <div class="book-gallery-card__actions">
                   {% if request.user.is_authenticated %}
                     {% with status=b.default_shelf_status %}
