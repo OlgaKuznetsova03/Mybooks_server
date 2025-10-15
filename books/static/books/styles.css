@@ -1,4 +1,6 @@
-:root{
+:root,
+[data-bs-theme="light"],
+[data-bs-theme="dark"]{
   --bs-primary:var(--rt-primary,#40535c);
   --bs-primary-rgb:var(--rt-primary-rgb,64,83,92);
   --rt-card-shadow:0 10px 24px rgba(0,0,0,.06);
