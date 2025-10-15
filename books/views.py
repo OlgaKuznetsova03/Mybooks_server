@@ -380,6 +380,54 @@ def book_list(request):
         page = request.GET.get("page")
         page_obj = paginator.get_page(page)
 
+        if page_obj:
+            # Ensure the template can safely access the status attribute even for
+            # anonymous users.
+            for book in page_obj.object_list:
+                setattr(book, "default_shelf_status", None)
+
+        if request.user.is_authenticated and page_obj:
+            book_ids = [book.pk for book in page_obj.object_list]
+            if book_ids:
+                shelf_items = (
+                    ShelfItem.objects
+                    .filter(
+                        shelf__user=request.user,
+                        shelf__name__in=[
+                            DEFAULT_WANT_SHELF,
+                            DEFAULT_READING_SHELF,
+                            DEFAULT_READ_SHELF,
+                        ],
+                        book_id__in=book_ids,
+                    )
+                    .select_related("shelf")
+                )
+
+                priority_map = {"want": 1, "reading": 2, "read": 3}
+                status_map: dict[int, dict[str, object]] = {}
+
+                for item in shelf_items:
+                    shelf_name = item.shelf.name
+                    if shelf_name == DEFAULT_READ_SHELF:
+                        code = "read"
+                    elif shelf_name == DEFAULT_READING_SHELF:
+                        code = "reading"
+                    else:
+                        code = "want"
+
+                    current = status_map.get(item.book_id)
+                    if not current or priority_map[code] > priority_map[current["code"]]:
+                        status_map[item.book_id] = {
+                            "code": code,
+                            "label": shelf_name,
+                            "added_at": item.added_at,
+                        }
+
+                for book in page_obj.object_list:
+                    status = status_map.get(book.pk)
+                    if status:
+                        setattr(book, "default_shelf_status", status)
+                        
         preserved_query = request.GET.copy()
         preserved_query._mutable = True
         preserved_query.pop("page", None)

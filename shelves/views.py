@@ -390,6 +390,7 @@ DEFAULT_SHELF_MAP = {
 def quick_add_default_shelf(request, book_id, code):
     """Быстрое добавление в одну из трёх стандартных полок."""
     book = get_object_or_404(Book, pk=book_id)
+    next_url = request.POST.get("next")
     if code not in DEFAULT_SHELF_MAP:
         messages.error(request, "Неизвестная полка.")
         return redirect("book_detail", pk=book.pk)
@@ -399,10 +400,20 @@ def quick_add_default_shelf(request, book_id, code):
         name=shelf_name,
         defaults={"is_default": True, "is_public": True},
     )
+
+    def _redirect_default():
+        if next_url and url_has_allowed_host_and_scheme(
+            next_url,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+        ):
+            return redirect(next_url)
+        return redirect("book_detail", pk=book.pk)
+    
     if code == "read":
         move_book_to_read_shelf(request.user, book)
         messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")
-        return redirect("book_detail", pk=book.pk)
+        return _redirect_default()
 
     if ReadBeforeBuyGame.is_game_shelf(shelf):
         success, message_text, level = ReadBeforeBuyGame.add_book_to_shelf(
@@ -417,16 +428,19 @@ def quick_add_default_shelf(request, book_id, code):
                 "Уточните формат чтения и данные книги на странице прогресса.",
             )
             return redirect("reading_track", book_id=book.pk)
-        return redirect("book_detail", pk=book.pk)
+        return _redirect_default()
 
     ShelfItem.objects.get_or_create(shelf=shelf, book=book)
     if code == "reading":
         remove_book_from_want_shelf(request.user, book)
         messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")
-        messages.info(request, "Уточните формат чтения и данные книги на странице прогресса.")
+        messages.info(
+            request,
+            "Уточните формат чтения и данные книги на странице прогресса.",
+        )
         return redirect("reading_track", book_id=book.pk)
     messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")
-    return redirect("book_detail", pk=book.pk)
+    return _redirect_default()
 
 
 @login_required
