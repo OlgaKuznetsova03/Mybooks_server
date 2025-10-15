@@ -1,17 +1,13 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}Книги · ReadTogether{% endblock %}
+{% block body_class %} books-page{% endblock %}
 {% block extra_css %}
   {{ block.super }}
   <link rel="stylesheet" href="{% static 'books/genre-shelf.css' %}">
   <link rel="stylesheet" href="{% static 'books/styles.css' %}">
   <style>
-    :root,
-    [data-bs-theme="light"],
-    [data-bs-theme="dark"] {
-      --bs-primary: var(--rt-primary, #40535c);
-      --bs-primary-rgb: var(--rt-primary-rgb, 64, 83, 92);
-      --rt-card-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+    body.books-page {
       --journey-ink: #332c0f;
       --journey-olive: #5f5c3b;
       --journey-fern: #7b7752;
@@ -20,6 +16,32 @@
       --journey-cream: #fffdf6;
       --journey-mist: rgba(188, 184, 147, 0.25);
       --journey-haze: rgba(95, 92, 59, 0.12);
+      --book-card-width: 210px;
+      --book-card-gap: 1rem;
+      --book-cover-height: calc(var(--book-card-width, 210px) * 1.5);
+      --book-gallery-card-bg: #d7cbb2;
+      --book-gallery-card-border: #c5b79d;
+      --book-gallery-card-badge-bg: rgba(var(--bs-primary-rgb), 0.08);
+      --book-gallery-card-badge-border: rgba(var(--bs-primary-rgb), 0.15);
+      --book-gallery-card-status-bg: rgba(255, 255, 255, 0.65);
+      --book-gallery-card-badge-color: var(--journey-olive);
+    }
+
+    [data-bs-theme="dark"] body.books-page {
+      --journey-ink: #f4eddd;
+      --journey-olive: #d6caa8;
+      --journey-fern: #b1a779;
+      --journey-gold: #d8ca92;
+      --journey-sand: #4b4635;
+      --journey-cream: #3a3426;
+      --journey-mist: rgba(181, 166, 120, 0.25);
+      --journey-haze: rgba(214, 202, 167, 0.18);
+      --book-gallery-card-bg: #2f2b23;
+      --book-gallery-card-border: rgba(255, 255, 255, 0.08);
+      --book-gallery-card-badge-bg: rgba(214, 202, 167, 0.15);
+      --book-gallery-card-badge-border: rgba(214, 202, 167, 0.25);
+      --book-gallery-card-status-bg: rgba(0, 0, 0, 0.35);
+      --book-gallery-card-badge-color: #f0e7d0;
     }
 
     .card {
@@ -41,10 +63,7 @@
     }
 
     .book-gallery {
-      --book-card-width: 210px;
-      --book-card-gap: 1rem;
       display: grid;
-      --book-cover-height: calc(var(--book-card-width, 210px) * 1.5);
       grid-template-columns: repeat(1, minmax(0, var(--book-card-width, 210px)));
       justify-content: center;
       gap: var(--book-card-gap);
@@ -63,8 +82,8 @@
       border-radius: 1rem;
       border: 1px solid var(--bs-border-color, #dee2e6);
       overflow: hidden;
-      background-color: #d7cbb2;
-      border-color: #c5b79d;
+      background-color: var(--book-gallery-card-bg);
+      border-color: var(--book-gallery-card-border);
     }
 
     .book-gallery-card__cover {
@@ -122,12 +141,12 @@
     .book-gallery-card .badge {
       font-size: 0.7rem;
       font-weight: 600;
-      background-color: rgba(var(--bs-primary-rgb), 0.08) !important;
-      color: var(--journey-olive);
+      background-color: var(--book-gallery-card-badge-bg) !important;
+      color: var(--book-gallery-card-badge-color);
     }
 
     .book-gallery-card .badge:not(:first-child) {
-      border: 1px solid rgba(var(--bs-primary-rgb), 0.15);
+      border: 1px solid var(--book-gallery-card-badge-border);
     }
 
     .rating-badge {
@@ -166,6 +185,7 @@
       gap: 0.35rem;
       font-weight: 600;
       padding: 0.5rem 0.75rem;
+      background: var(--book-gallery-card-status-bg);
     }
 
     @media (min-width: 576px) {

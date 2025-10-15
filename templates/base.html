@@ -12,19 +12,27 @@
 
   {% block theme_colors %}
   <style>
-    /* Светлая тема */
     :root,
     [data-bs-theme="light"] {
-      --bs-primary: #40535c;
-      --bs-primary-rgb: 64,83,92;
+      --rt-primary: #40535c;
+      --rt-primary-rgb: 64, 83, 92;
+      --rt-body-bg: #f7f3ee;
+      --rt-body-color: #25323a;
+      --rt-link-color: #40535c;
+      --rt-link-hover: #2c3b42;
+      --rt-card-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+      --rt-shelf-card-surface: #f3ebe1;
+      --rt-shelf-card-shadow: 0 0.75rem 1.5rem rgba(33, 37, 41, 0.08);
+      --rt-shelf-card-sheen: linear-gradient(160deg, rgba(255, 255, 255, 0.6), rgba(214, 197, 178, 0.25));
+      --rt-shelf-card-highlight: linear-gradient(90deg, #9c6b3f, #c58d54, #9c6b3f);
+      --rt-shelf-card-highlight-shadow: rgba(108, 63, 28, 0.4);
 
-      /* Дополнительно, если нужно: */
-      --bs-body-bg: #d7c;
-      --bs-body-color: #25323a;
-      --bs-link-color: #40535c;
-      --bs-link-hover-color: #2c3b42;
-
-      /* Для кнопок (чтобы сразу было видно): */
+      --bs-primary: var(--rt-primary);
+      --bs-primary-rgb: var(--rt-primary-rgb);
+      --bs-body-bg: var(--rt-body-bg);
+      --bs-body-color: var(--rt-body-color);
+      --bs-link-color: var(--rt-link-color);
+      --bs-link-hover-color: var(--rt-link-hover);
       --bs-btn-bg: var(--bs-primary);
       --bs-btn-border-color: var(--bs-primary);
       --bs-btn-hover-bg: #314148;
@@ -33,14 +41,26 @@
       --bs-btn-active-border-color: #28353b;
     }
 
-    /* Тёмная тема (если вдруг переключаешь data-bs-theme="dark") */
     [data-bs-theme="dark"] {
-      --bs-primary: #9cc4d4;
-      --bs-primary-rgb: 156,196,212;
-      --bs-body-bg: #151a1e;
-      --bs-body-color: #e6eaed;
-      --bs-link-color: #9cc4d4;
-      --bs-link-hover-color: #c0dbe6;
+      --rt-primary: #9cc4d4;
+      --rt-primary-rgb: 156, 196, 212;
+      --rt-body-bg: #151a1e;
+      --rt-body-color: #e6eaed;
+      --rt-link-color: #9cc4d4;
+      --rt-link-hover: #c0dbe6;
+      --rt-card-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+      --rt-shelf-card-surface: #2a2a2a;
+      --rt-shelf-card-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.45);
+      --rt-shelf-card-sheen: linear-gradient(160deg, rgba(58, 58, 58, 0.65), rgba(18, 18, 18, 0.45));
+      --rt-shelf-card-highlight: linear-gradient(90deg, #6f451b, #8c5d29, #6f451b);
+      --rt-shelf-card-highlight-shadow: rgba(0, 0, 0, 0.55);
+
+      --bs-primary: var(--rt-primary);
+      --bs-primary-rgb: var(--rt-primary-rgb);
+      --bs-body-bg: var(--rt-body-bg);
+      --bs-body-color: var(--rt-body-color);
+      --bs-link-color: var(--rt-link-color);
+      --bs-link-hover-color: var(--rt-link-hover);
     }
   </style>
   {% endblock %}
@@ -49,7 +69,7 @@
   <link href="{% static 'books/styles.css' %}" rel="stylesheet">
   {% block extra_css %}{% endblock %}
 </head>
-<body class="bg-light">
+<body class="bg-light{% block body_class %}{% endblock %}">
 
 <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top">
   <div class="container">
@@ -125,7 +145,7 @@
 
 <footer class="border-top py-3 small text-muted bg-white">
   <div class="container d-flex justify-content-between">
-    <div>© {{ now|date:"Y" }} ReadTogether</div>
+    <div>© {% now "Y" %} ReadTogether</div>
     <div><a class="text-muted" href="mailto:hello@example.com">Связаться</a></div>
   </div>
 </footer>

@@ -14,10 +14,21 @@
   }
 
   .shelf-card {
+    --shelf-card-surface: var(--rt-shelf-card-surface, #f3ebe1);
+    --shelf-card-shadow: var(--rt-shelf-card-shadow, 0 0.75rem 1.5rem rgba(33, 37, 41, 0.08));
+    --shelf-card-sheen: var(
+      --rt-shelf-card-sheen,
+      linear-gradient(160deg, rgba(255, 255, 255, 0.6), rgba(214, 197, 178, 0.25))
+    );
+    --shelf-card-base-highlight: var(
+      --rt-shelf-card-highlight,
+      linear-gradient(90deg, #9c6b3f, #c58d54, #9c6b3f)
+    );
+    --shelf-card-base-shadow: var(--rt-shelf-card-highlight-shadow, rgba(108, 63, 28, 0.4));
     background: var(--bs-body-bg);
     border-radius: 1rem;
     border: 1px solid rgba(0, 0, 0, 0.05);
-    box-shadow: 0 0.75rem 1.5rem rgba(33, 37, 41, 0.08);
+    box-shadow: var(--shelf-card-shadow);
     overflow: hidden;
   }
 
@@ -65,7 +76,7 @@
   .shelf-card__body {
     position: relative;
     padding: 2.5rem 1.75rem 2rem;
-    background-color: #f3ebe1;
+    background-color: var(--shelf-card-surface);
     background-image: url("{{ MEDIA_URL }}accounts/img/shelvesbild.PNG");
     background-repeat: repeat-x;
     background-size: cover;
@@ -77,7 +88,7 @@
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(160deg, rgba(255, 255, 255, 0.6), rgba(214, 197, 178, 0.25));
+    background: var(--shelf-card-sheen);
     z-index: 0;
   }
 
@@ -89,8 +100,8 @@
     bottom: 1.25rem;
     height: 0.85rem;
     border-radius: 999px;
-    background: linear-gradient(90deg, #9c6b3f, #c58d54, #9c6b3f);
-    box-shadow: 0 0.45rem 1.2rem rgba(108, 63, 28, 0.4);
+    background: var(--shelf-card-base-highlight);
+    box-shadow: 0 0.45rem 1.2rem var(--shelf-card-base-shadow);
     z-index: 0;
   }
 
