@@ -78,23 +78,30 @@
       {% for b in page_obj.object_list %}
         <div class="book-gallery__item">
           <article class="card book-gallery-card hover-raise h-100">
-            {% with cover_url=b.get_cover_url %}
-              {% if cover_url %}
-                <a class="book-gallery-card__cover-link" href="{% url 'book_detail' b.pk %}">
-                  <img
-                    src="{{ cover_url }}"
-                    class="book-gallery-card__cover rounded-top"
-                    alt="Обложка {{ b.title }}"
-                    loading="lazy"
-                  >
-                </a>
-              {% else %}
-                <a class="book-gallery-card__cover-link" href="{% url 'book_detail' b.pk %}">
-                  <div class="book-gallery-card__cover book-gallery-card__cover--placeholder rounded-top">
-                    <span class="book-gallery-card__cover-placeholder-text">Нет обложки</span>
-                  </div>
-                </a>
-              {% endif %}
+            <div class="book-gallery-card__media">
+                {% if cover_url %}
+                  <a class="book-gallery-card__cover-link" href="{% url 'book_detail' b.pk %}">
+                    <img
+                      src="{{ cover_url }}"
+                      class="book-gallery-card__cover rounded-top"
+                      alt="Обложка {{ b.title }}"
+                      loading="lazy"
+                    >
+                  </a>
+                {% else %}
+                  <a class="book-gallery-card__cover-link" href="{% url 'book_detail' b.pk %}">
+                    <div class="book-gallery-card__cover book-gallery-card__cover--placeholder rounded-top">
+                      <span class="book-gallery-card__cover-placeholder-text">Нет обложки</span>
+                    </div>
+                  </a>
+                {% endif %}
+                <div class="book-gallery-card__rating" aria-hidden="true">
+                  <span class="rating-badge">
+                    <i class="bi bi-star-fill me-1"></i>
+                    {% if b.average_rating %}{{ b.average_rating|floatformat:1 }}{% else %}—{% endif %}
+                  </span>
+                </div>
+              </div>
             {% endwith %}
             <div class="card-body d-flex flex-column">
               <h2 class="card-title h6 mb-1 line-clamp-2">
@@ -113,14 +120,8 @@
                   </div>
                 {% endif %}
               {% endwith %}
-              <div class="mt-auto pt-3 d-flex flex-column gap-3">
-                <div class="d-flex justify-content-between align-items-center">
-                  <span class="rating-badge">
-                    <i class="bi bi-star-fill me-1"></i>
-                    {% if b.average_rating %}{{ b.average_rating|floatformat:1 }}{% else %}—{% endif %}
-                  </span>
-                  <span class="text-muted small">{{ b.rating_count|default:0 }} оценок</span>
-                </div>
+              <div class="mt-auto pt-2">
+                <div class="text-muted small mb-3 text-opacity-75">{{ b.rating_count|default:0 }} оценок</div>
                 <div class="book-gallery-card__actions">
                   {% if request.user.is_authenticated %}
                     {% with status=b.default_shelf_status %}
