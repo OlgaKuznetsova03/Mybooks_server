@@ -5,17 +5,25 @@
 }
 
 .genre-shelf-card {
-  border-radius: 1.5rem;
-  background: linear-gradient(160deg, rgba(107, 78, 255, 0.08), rgba(248, 101, 148, 0.08));
-  border: 1px solid rgba(107, 78, 255, 0.12);
-  box-shadow: 0 18px 32px rgba(44, 31, 74, 0.08);
+  border-radius: 1.75rem;
+  background: var(
+      --rt-shelf-card-sheen,
+      linear-gradient(160deg, rgba(107, 78, 255, 0.08), rgba(248, 101, 148, 0.08))
+    );
+  border: 1px solid rgba(var(--bs-primary-rgb, 64, 83, 92), 0.12);
+  box-shadow: var(--rt-shelf-card-shadow, 0 18px 32px rgba(44, 31, 74, 0.08));
   overflow: hidden;
 }
 
 .genre-shelf-card__body {
   position: relative;
   padding: 1.75rem 1.5rem 2.25rem;
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--rt-shelf-card-surface, rgba(255, 255, 255, 0.92));
+  background: color-mix(
+    in srgb,
+    var(--rt-shelf-card-surface, rgba(255, 255, 255, 0.92)) 92%,
+    #ffffff 8%
+  );
 }
 
 .genre-shelf-card__body::after {
@@ -26,8 +34,12 @@
   bottom: 1.25rem;
   height: 0.9rem;
   border-radius: 999px;
-  background: linear-gradient(90deg, #9c6b3f, #c58d54, #9c6b3f);
-  box-shadow: 0 0.45rem 1.4rem rgba(108, 63, 28, 0.35);
+  background: var(
+      --rt-shelf-card-highlight,
+      linear-gradient(90deg, #9c6b3f, #c58d54, #9c6b3f)
+    );
+  box-shadow: 0 0.45rem 1.4rem
+      var(--rt-shelf-card-highlight-shadow, rgba(108, 63, 28, 0.35));
   pointer-events: none;
 }
 
@@ -44,13 +56,15 @@
   margin: 0;
   font-size: 1.2rem;
   font-weight: 600;
-  color: #2c1f4a;
+  color: var(--rt-primary, #2c1f4a);
 }
 
 .genre-shelf-card__subtitle {
   margin: 0.25rem 0 0;
   color: rgba(44, 31, 74, 0.65);
+  color: color-mix(in srgb, var(--rt-primary, #2c1f4a) 55%, #ffffff 45%);
   font-size: 0.95rem;
+  opacity: 0.75;
 }
 
 .genre-shelf-card__list {
@@ -68,16 +82,21 @@
 }
 
 .genre-shelf-card__list::-webkit-scrollbar-thumb {
-  background-color: rgba(107, 78, 255, 0.35);
+  background-color: rgba(var(--bs-primary-rgb, 64, 83, 92), 0.35);
   border-radius: 999px;
 }
 
 .genre-shelf-card__book {
   position: relative;
   background: #ffffff;
+  background: color-mix(
+    in srgb,
+    var(--rt-shelf-card-surface, #ffffff) 65%,
+    #ffffff 35%
+  );
   border-radius: 1.25rem;
   padding: 1rem;
-  box-shadow: 0 12px 24px rgba(44, 31, 74, 0.08);
+  box-shadow: 0 12px 24px rgba(33, 37, 41, 0.08);
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -92,8 +111,13 @@
   padding-top: 150%;
   border-radius: 1rem;
   overflow: hidden;
-  background: linear-gradient(135deg, rgba(255, 233, 199, 0.6), rgba(107, 78, 255, 0.18));
-  box-shadow: inset 0 0 0 1px rgba(107, 78, 255, 0.12);
+  background: rgba(255, 233, 199, 0.45);
+  background: color-mix(
+    in srgb,
+    var(--rt-shelf-card-surface, #f3ebe1) 40%,
+    #ffffff 60%
+  );
+  box-shadow: inset 0 0 0 1px rgba(var(--bs-primary-rgb, 64, 83, 92), 0.12);
 }
 
 .genre-shelf-card__cover img {
@@ -103,6 +127,11 @@
   height: 100%;
   object-fit: contain;
   background-color: rgba(255, 255, 255, 0.85);
+  background-color: color-mix(
+    in srgb,
+    #ffffff 85%,
+    var(--rt-shelf-card-surface, #f3ebe1) 15%
+  );
 }
 
 .genre-shelf-card__cover-placeholder {
@@ -113,6 +142,7 @@
   font-size: 2.25rem;
   font-weight: 700;
   color: rgba(107, 78, 255, 0.55);
+  color: color-mix(in srgb, var(--rt-primary, #2c1f4a) 60%, #ffffff 40%);
 }
 
 .genre-shelf-card__meta {
@@ -138,10 +168,14 @@
   text-decoration: underline;
 }
 
+
 .genre-shelf-card__book-authors {
   font-size: 0.85rem;
   color: rgba(44, 31, 74, 0.6);
+  color: color-mix(in srgb, var(--rt-primary, #2c1f4a) 50%, #ffffff 50%);
+  opacity: 0.7;
 }
+
 
 .genre-shelf-card__book-rating {
   display: flex;
@@ -149,13 +183,18 @@
   gap: 0.5rem;
   font-size: 0.85rem;
   color: rgba(44, 31, 74, 0.65);
+  color: color-mix(in srgb, var(--rt-primary, #2c1f4a) 55%, #ffffff 45%);
+  opacity: 0.85;
 }
+
 
 .genre-shelf-card__rating-value {
   font-size: 1.1rem;
   font-weight: 700;
   color: #f08a24;
+  color: color-mix(in srgb, #f08a24 85%, var(--rt-primary, #2c1f4a) 15%);
 }
+
 
 .genre-shelf-card__rating-meta {
   white-space: nowrap;
@@ -165,10 +204,13 @@
   margin-top: 0.25rem;
   font-size: 0.85rem;
   color: rgba(44, 31, 74, 0.65);
+  color: color-mix(in srgb, var(--rt-primary, #2c1f4a) 55%, #ffffff 45%);
+  opacity: 0.85;
 }
 
 .genre-shelf-card__book-meta--accent {
   color: #8b5a2b;
+  color: color-mix(in srgb, #8b5a2b 70%, var(--rt-primary, #2c1f4a) 30%);
   font-weight: 600;
 }
 
@@ -176,11 +218,17 @@
   margin: 0;
   font-style: italic;
   color: rgba(44, 31, 74, 0.6);
+  color: color-mix(in srgb, var(--rt-primary, #2c1f4a) 45%, #ffffff 55%);
+  opacity: 0.7;
 }
 
 .genre-hero {
   border-radius: 1.75rem;
-  background: linear-gradient(135deg, rgba(107, 78, 255, 0.85), rgba(248, 101, 148, 0.75));
+  background: linear-gradient(
+    135deg,
+    rgba(var(--bs-primary-rgb, 64, 83, 92), 0.85),
+    rgba(var(--bs-primary-rgb, 64, 83, 92), 0.45)
+  );
   color: #fff;
 }
 
@@ -217,20 +265,28 @@
 .genre-shelf-card--profile .genre-shelf-card__body {
   padding: 2.25rem 2rem 2.75rem;
   border-radius: 1.75rem;
-  background-color: #f3ebe1;
-  background-image: var(--bookshelf-texture, none);
-  background-size: cover;
-  background-repeat: repeat-x;
-  background-position: center bottom;
+  background-color: var(--rt-shelf-card-surface, #f3ebe1);
+  background-image: var(--bookshelf-texture, none),
+    var(
+      --rt-shelf-card-sheen,
+      linear-gradient(160deg, rgba(255, 255, 255, 0.7), rgba(214, 197, 178, 0.35))
+    );
+  background-size: cover, cover;
+  background-repeat: repeat-x, no-repeat;
+  background-position: center bottom, center;
   position: relative;
-  box-shadow: inset 0 0 0 1px rgba(139, 90, 43, 0.1), 0 18px 32px rgba(44, 31, 74, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(139, 90, 43, 0.1),
+    var(--rt-shelf-card-shadow, 0 18px 32px rgba(44, 31, 74, 0.08));
 }
 
 .genre-shelf-card--profile .genre-shelf-card__body::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.7), rgba(214, 197, 178, 0.35));
+  background: var(
+      --rt-shelf-card-sheen,
+      linear-gradient(160deg, rgba(255, 255, 255, 0.7), rgba(214, 197, 178, 0.35))
+    );
   pointer-events: none;
 }
 
@@ -241,6 +297,11 @@
 
 .genre-shelf-card--profile .genre-shelf-card__book {
   background: rgba(255, 255, 255, 0.95);
+  background: color-mix(
+      in srgb,
+      #ffffff 85%,
+      var(--rt-shelf-card-surface, #f3ebe1) 15%
+    );
   backdrop-filter: blur(2px);
   border: 1px solid rgba(139, 90, 43, 0.08);
 }
