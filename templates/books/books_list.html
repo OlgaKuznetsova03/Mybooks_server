@@ -78,6 +78,7 @@
       {% for b in page_obj.object_list %}
         <div class="book-gallery__item">
           <article class="card book-gallery-card hover-raise h-100">
+            {% with cover_url=b.get_cover_url %}
             <div class="book-gallery-card__media">
                 {% if cover_url %}
                   <a class="book-gallery-card__cover-link" href="{% url 'book_detail' b.pk %}">
