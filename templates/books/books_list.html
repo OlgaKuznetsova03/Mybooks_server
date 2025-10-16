@@ -13,6 +13,92 @@
       border: 0 !important;
       box-shadow: none !important;
     }
+
+    .books-page .books-hero{
+      background: #e3c9a4 !important;          /* новый фон */
+      border-color: #e3c9a4;                   /* мягкая рамка */
+      box-shadow: 0 12px 28px rgba(154,104,82,.18);
+      color: #2b1a0f;                          /* контрастный текст */
+    }
+    .books-page .books-hero__title{ color:#2b1a0f; }
+    .books-page .books-hero__subtitle{ color: rgba(43,26,15,.85); }
+
+    /* Кнопка "Найти" (btn-primary в инпут-группе) */
+    .books-page .books-hero .btn-primary{
+      background:#9b7d61 !important;
+      border-color:#9b7d61 !important;
+    }
+    .books-page .books-hero .btn-primary:hover,
+    .books-page .books-hero .btn-primary:focus{
+      background:#85694f !important;           /* на тон темнее */
+      border-color:#85694f !important;
+    }
+
+    /* Левая кнопка(и) «Добавить книгу»/«Смотреть все книги» */
+    .books-page .books-hero .btn-light,
+    .books-page .books-hero .btn-outline-light{
+      background:#9b7d61 !important;
+      border-color:#9b7d61 !important;
+      color:#fff !important;
+    }
+    .books-page .books-hero .btn-light:hover,
+    .books-page .books-hero .btn-outline-light:hover{
+      background:#85694f !important;
+      border-color:#85694f !important;
+      color:#fff !important;
+    }
+
+    /* Небольшой твик поля поиска, чтобы вписалось в фон */
+    .books-page .books-hero__search .input-group-text{
+      background:#f2e9e5;                      /* иконка лупы */
+      border:0;
+    }
+    .books-page .books-hero__search .form-control{
+      background:#f7f1ee;
+      border:0;
+      color:#2b1a0f;
+    }
+
+    /* Темная тема: чуть затемним фон, кнопки остаются теми же */
+    [data-bs-theme="dark"] .books-page .books-hero{
+      background: color-mix(in srgb, #daa38f 55%, #000 45%) !important;
+      border-color: rgba(218,163,143,.35);
+      color:#fffdf6;
+    }
+    .books-page .genre-shelf-card__header .btn-outline-primary,
+    .books-page .genre-shelf-card__header .btn-primary{
+      background: #9b7d61 !important;
+      border-color: #9b7d61 !important;
+      color: #fff !important;
+    }
+
+    /* Hover/Focus/Active — на тон темнее */
+    .books-page .genre-shelf-card__header .btn-outline-primary:hover,
+    .books-page .genre-shelf-card__header .btn-outline-primary:focus,
+    .books-page .genre-shelf-card__header .btn-outline-primary:active,
+    .books-page .genre-shelf-card__header .btn-primary:hover,
+    .books-page .genre-shelf-card__header .btn-primary:focus,
+    .books-page .genre-shelf-card__header .btn-primary:active{
+      background: #85694f !important;
+      border-color: #85694f !important;
+      color: #fff !important;
+    }
+
+    /* Фокус-ринги, чтобы не было синего свечения Bootstrap */
+    .books-page .genre-shelf-card__header .btn:focus{
+      box-shadow: 0 0 0 .2rem rgba(155,125,97,.35) !important;
+    }
+    .line-clamp-1, .line-clamp-2, .line-clamp-3{
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      word-break: break-word;
+    }
+    .line-clamp-1{ -webkit-line-clamp: 1; }
+    .line-clamp-2{ -webkit-line-clamp: 2; }
+    .line-clamp-3{ -webkit-line-clamp: 3; }
+
   </style>
 {% endblock %}
 

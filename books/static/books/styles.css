@@ -190,7 +190,7 @@ body.books-page{
   --genre-shelf-rating-emphasis:#d7a958;
   --genre-shelf-rating-text-shadow:0 1px 0 rgba(0,0,0,.25);
   --genre-shelf-rating-meta-display:none;
-  --genre-shelf-meta-bg:#e8c4a9;
+  --genre-shelf-meta-bg:#e3c9a4;
   --genre-shelf-meta-color:#2b1a0f;
   --genre-shelf-meta-padding-block:.6rem;
   --genre-shelf-meta-padding-inline:1.25rem;
@@ -404,7 +404,7 @@ body.books-page{
   z-index:1;
   padding:1.05rem 1rem 1.15rem;
   border-radius:1rem;
-  background:#e8c4a9;
+  background:#e3c9a4;
   border:1px solid rgba(0,0,0,.04);
   box-shadow:0 10px 28px rgba(33,37,41,.12);
   display:flex;
@@ -426,7 +426,7 @@ body.books-page{
 }
 
 [data-bs-theme="dark"] .book-item__content{
-  background:color-mix(in srgb,#e8c4a9 68%,#1d140d 32%);
+  background:color-mix(in srgb,#e3c9a4 68%,#1d140d 32%);
   border-color:rgba(0,0,0,.35);
   box-shadow:0 10px 28px rgba(0,0,0,.35);
   color:#f8ecde;
@@ -537,7 +537,7 @@ body.books-page{
 }
 
 .marathon-hero a.btn-outline-light{
-  border-color:rgba(255,255,255,.7);
+  border-color:#000000
   color:#fff;
 }
 
@@ -979,7 +979,7 @@ body.books-page{
 }
 
 .genre-shelf-card__meta{
-  background: #e8c4a9;
+  background: #e3c9a4;
   padding: .6rem .8rem;
   border-radius: .75rem;
 }
