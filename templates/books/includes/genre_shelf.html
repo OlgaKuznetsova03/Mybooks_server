@@ -2,6 +2,7 @@
 {% with variant=variant|default:shelf.variant texture=texture_url|default:shelf.texture_url %}
 <section class="genre-shelf-card card border-0 shadow-sm{% if variant %} genre-shelf-card--{{ variant }}{% endif %}">
   <div class="genre-shelf-card__body"{% if texture %} style="--bookshelf-texture: url('{{ texture }}');"{% endif %}>
+
     <header class="genre-shelf-card__header">
       <div>
         <h3 class="genre-shelf-card__title">{{ shelf.title }}</h3>
@@ -9,6 +10,7 @@
           <p class="genre-shelf-card__subtitle">{{ shelf.subtitle }}</p>
         {% endif %}
       </div>
+
       {% with cta=shelf.cta %}
         {% if cta and cta.url %}
           <a class="btn btn-outline-primary btn-sm" href="{{ cta.url }}">{{ cta.label }}</a>
@@ -17,9 +19,15 @@
         {% endif %}
       {% endwith %}
     </header>
+
     {% if shelf.books %}
       <div class="genre-shelf-card__list" role="list">
         {% for entry in shelf.books %}
+
+          {# Нормализуем id и статус под разные структуры данных #}
+          {% firstof entry.pk entry.id as book_id %}
+          {% firstof entry.default_shelf_status entry.shelf_status entry.status as shelf_status %}
+
           <article class="genre-shelf-card__book" role="listitem">
             <a class="genre-shelf-card__cover" href="{{ entry.detail_url }}" aria-label="{{ entry.title }}">
               {% if entry.cover_url %}
@@ -28,38 +36,82 @@
                 <span class="genre-shelf-card__cover-placeholder">{{ entry.initial }}</span>
               {% endif %}
             </a>
+
             <div class="genre-shelf-card__meta">
-              <h4 class="genre-shelf-card__book-title">
+              <h4 class="genre-shelf-card__book-title line-clamp-2">
                 <a href="{{ entry.detail_url }}">{{ entry.title }}</a>
               </h4>
+
               {% if entry.authors %}
-                <div class="genre-shelf-card__book-authors">{{ entry.authors|join:", " }}</div>
+                <div class="genre-shelf-card__book-authors line-clamp-2">{{ entry.authors|join:", " }}</div>
               {% endif %}
+
               <div class="genre-shelf-card__book-rating">
                 <span class="genre-shelf-card__rating-value">
                   {% if entry.average_rating is not None %}
                     {{ entry.average_rating|floatformat:1 }}
-                  {% else %}
-                    —
-                  {% endif %}
+                  {% else %}—{% endif %}
                 </span>
                 <span class="genre-shelf-card__rating-meta">
-                  оценка
-                  {% if entry.rating_count %}
-                    · {{ entry.rating_count }} {{ entry.rating_count|ru_pluralize:"оценка,оценки,оценок" }}
-                  {% endif %}
+                  оценка{% if entry.rating_count %} · {{ entry.rating_count }} {{ entry.rating_count|ru_pluralize:"оценка,оценки,оценок" }}{% endif %}
                 </span>
               </div>
+
               {% if entry.reader_count %}
                 <div class="genre-shelf-card__book-meta genre-shelf-card__book-meta--accent">
-                  {{ entry.reader_count }} {{ entry.reader_count|pluralize:"читатель,читателя,читателей" }} за 30 дней
+                  {{ entry.reader_count }} {{ entry.reader_count|ru_pluralize:"читатель,читателя,читателей" }} за 30 дней
                 </div>
               {% endif %}
+
               {% if entry.added_at %}
                 <div class="genre-shelf-card__book-meta">
                   Добавлена {{ entry.added_at|timesince }} назад
                 </div>
               {% endif %}
+              {# ==== Кнопка/бейджи статуса ==== #}
+              {% if book_id %}
+                <div class="mt-2">
+                  {% if request.user.is_authenticated %}
+
+                    {# Нормализуем код статуса: либо shelf_status.code, либо сам shelf_status если это строка #}
+                    {% firstof shelf_status.code shelf_status as status_code %}
+
+                    {% if status_code == 'read' %}
+                      <span class="badge rounded-pill text-bg-success-subtle text-success-emphasis book-gallery-card__status w-100 d-inline-flex justify-content-center">
+                        <i class="bi bi-check-circle-fill me-1"></i>
+                        Прочитано{% if shelf_status.added_at %} {{ shelf_status.added_at|date:"d.m.Y" }}{% endif %}
+                      </span>
+
+                    {% elif status_code == 'want' %}
+                      <span class="badge rounded-pill text-bg-light text-secondary book-gallery-card__status w-100 d-inline-flex justify-content-center">
+                        <i class="bi bi-bookmark-check-fill me-1"></i>
+                        На полке Хочу прочитать
+                      </span>
+
+                    {% elif status_code %}
+                      <span class="badge rounded-pill text-bg-light text-secondary book-gallery-card__status w-100 d-inline-flex justify-content-center">
+                        <i class="bi bi-bookmark-check-fill me-1"></i>
+                        На полке «{% firstof shelf_status.label status_code %}»
+                      </span>
+
+                    {% else %}
+                      <form method="post" action="{% url 'quick_add_shelf' book_id 'want' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button class="btn btn-outline-primary btn-sm w-100" type="submit">
+                          «Хочу прочитать»
+                        </button>
+                      </form>
+                    {% endif %}
+
+                  {% else %}
+                    <a class="btn btn-outline-primary btn-sm w-100" href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">
+                      Войти, чтобы добавить
+                    </a>
+                  {% endif %}
+                </div>
+              {% endif %}
+              {# ==== /Кнопка/бейджи статуса ==== #}
             </div>
           </article>
         {% endfor %}

@@ -274,6 +274,35 @@
   font-weight: 600;
 }
 
+.genre-shelf-card__book-actions {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.genre-shelf-card__book-actions form {
+  margin: 0;
+}
+
+.genre-shelf-card__book-actions .btn {
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.4rem 0.75rem;
+}
+
+.genre-shelf-card__book-actions .badge,
+.genre-shelf-card__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  font-weight: 600;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.8rem;
+}
+
 .genre-shelf-card__empty {
   margin: 0;
   font-style: italic;
