@@ -2,6 +2,8 @@ from __future__ import annotations
 
 """Utility helpers for manipulating user shelves."""
 
+from collections.abc import Iterable
+
 from django.contrib.auth.models import User
 from django.db import transaction
 from django.utils import timezone
@@ -84,3 +86,69 @@ def move_book_to_reading_shelf(user: User, book: Book) -> None:
 
         reading_shelf = _get_default_shelf(user, DEFAULT_READING_SHELF)
         ShelfItem.objects.get_or_create(shelf=reading_shelf, book=book)
+
+
+def get_default_shelf_status_map(
+    user: User,
+    book_ids: Iterable[int | str | None],
+) -> dict[int, dict[str, object]]:
+    """Return mapping of book ids to default shelf status for ``user``.
+
+    The status respects the priority order of the default shelves: "Хочу прочитать"
+    < "Читаю" < "Прочитал". Unknown or malformed book identifiers are ignored.
+    """
+
+    if not getattr(user, "is_authenticated", False):
+        return {}
+
+    normalized_ids: list[int] = []
+    seen: set[int] = set()
+
+    for raw_id in book_ids:
+        try:
+            value = int(raw_id) if raw_id is not None else None
+        except (TypeError, ValueError):
+            continue
+        if value is None or value <= 0 or value in seen:
+            continue
+        seen.add(value)
+        normalized_ids.append(value)
+
+    if not normalized_ids:
+        return {}
+
+    shelf_items = (
+        ShelfItem.objects
+        .filter(
+            shelf__user=user,
+            shelf__name__in=[
+                DEFAULT_WANT_SHELF,
+                DEFAULT_READING_SHELF,
+                DEFAULT_READ_SHELF,
+            ],
+            book_id__in=normalized_ids,
+        )
+        .select_related("shelf")
+    )
+
+    priority_map = {"want": 1, "reading": 2, "read": 3}
+    status_map: dict[int, dict[str, object]] = {}
+
+    for item in shelf_items:
+        shelf_name = item.shelf.name
+        if shelf_name == DEFAULT_READ_SHELF:
+            code = "read"
+        elif shelf_name == DEFAULT_READING_SHELF:
+            code = "reading"
+        else:
+            code = "want"
+
+        existing = status_map.get(item.book_id)
+        if not existing or priority_map[code] > priority_map[existing["code"]]:
+            status_map[item.book_id] = {
+                "code": code,
+                "label": shelf_name,
+                "added_at": item.added_at,
+            }
+
+    return status_map

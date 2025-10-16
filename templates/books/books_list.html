@@ -99,6 +99,52 @@
     .line-clamp-2{ -webkit-line-clamp: 2; }
     .line-clamp-3{ -webkit-line-clamp: 3; }
 
+    :root{
+      --rt-btn-bg: #9b7d61;
+      --rt-btn-bg-hover: #85694f;
+    }
+
+    /* Кнопка «Хочу прочитать» внутри карточек-полок */
+    .books-page .genre-shelf-card__book .btn-outline-primary,
+    .books-page .book-item__actions .btn-outline-primary {
+      background: var(--rt-btn-bg) !important;
+      border-color: var(--rt-btn-bg) !important;
+      color: #fff !important;
+    }
+
+    /* Ховеры/фокусы/активные */
+    .books-page .genre-shelf-card__book .btn-outline-primary:hover,
+    .books-page .genre-shelf-card__book .btn-outline-primary:focus,
+    .books-page .genre-shelf-card__book .btn-outline-primary:active,
+    .books-page .book-item__actions .btn-outline-primary:hover,
+    .books-page .book-item__actions .btn-outline-primary:focus,
+    .books-page .book-item__actions .btn-outline-primary:active {
+      background: var(--rt-btn-bg-hover) !important;
+      border-color: var(--rt-btn-bg-hover) !important;
+      color: #fff !important;
+    }
+
+    /* Убрать синий фокус Bootstrap, дать мягкий коричневый */
+    .books-page .genre-shelf-card__book .btn-outline-primary:focus,
+    .books-page .book-item__actions .btn-outline-primary:focus {
+      box-shadow: 0 0 0 .2rem rgba(155,125,97,.35) !important;
+    }
+
+    /* На всякий случай для .btn-primary в этих же местах */
+    .books-page .genre-shelf-card__book .btn-primary,
+    .books-page .book-item__actions .btn-primary {
+      background: var(--rt-btn-bg) !important;
+      border-color: var(--rt-btn-bg) !important;
+      color: #fff !important;
+    }
+    .books-page .genre-shelf-card__book .btn-primary:hover,
+    .books-page .genre-shelf-card__book .btn-primary:focus,
+    .books-page .book-item__actions .btn-primary:hover,
+    .books-page .book-item__actions .btn-primary:focus {
+      background: var(--rt-btn-bg-hover) !important;
+      border-color: var(--rt-btn-bg-hover) !important;
+}
+
   </style>
 {% endblock %}
 

@@ -1,9 +1,113 @@
 """Custom template tags and filters for shelf templates."""
 from __future__ import annotations
 
+from collections.abc import Iterable
+from typing import Any
+
 from django import template
 
+from ..services import get_default_shelf_status_map
+
 register = template.Library()
+
+
+def _normalize_book_id(value: Any) -> int | None:
+    """Convert ``value`` to a positive integer book identifier."""
+
+    if isinstance(value, bool) or value is None:
+        return None
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        return None
+    if number <= 0:
+        return None
+    return number
+
+
+def _extract_book_id(entry: Any) -> int | None:
+    """Best-effort extraction of a book identifier from ``entry``."""
+
+    candidates: list[Any] = []
+    if isinstance(entry, dict):
+        candidates.extend([entry.get("pk"), entry.get("id"), entry.get("book_id")])
+        book = entry.get("book")
+    else:
+        candidates.extend([
+            getattr(entry, "pk", None),
+            getattr(entry, "id", None),
+            getattr(entry, "book_id", None),
+        ])
+        book = getattr(entry, "book", None)
+
+    if book is not None:
+        if isinstance(book, dict):
+            candidates.extend([book.get("pk"), book.get("id")])
+        else:
+            candidates.extend([getattr(book, "pk", None), getattr(book, "id", None)])
+
+    for candidate in candidates:
+        book_id = _normalize_book_id(candidate)
+        if book_id is not None:
+            return book_id
+    return None
+
+
+@register.simple_tag(takes_context=True)
+def default_shelf_status_map(context, entries: Iterable[Any] | None) -> dict[int, dict[str, object]]:
+    """Return mapping of book ids in ``entries`` to the user's default shelf status."""
+
+    if not entries:
+        return {}
+
+    request = context.get("request")
+    user = getattr(request, "user", None) if request else None
+    if not getattr(user, "is_authenticated", False):
+        return {}
+
+    book_ids: list[int] = []
+    seen: set[int] = set()
+    for entry in entries:
+        book_id = _extract_book_id(entry)
+        if book_id is None or book_id in seen:
+            continue
+        seen.add(book_id)
+        book_ids.append(book_id)
+
+    if not book_ids:
+        return {}
+
+    return get_default_shelf_status_map(user, book_ids)
+
+
+@register.filter
+def dict_get(mapping: Any, key: Any):
+    """Return ``mapping[key]`` with graceful fallbacks for templates."""
+
+    if mapping is None:
+        return None
+    if hasattr(mapping, "get"):
+        result = mapping.get(key)
+        if result is not None:
+            return result
+        normalized = _normalize_book_id(key)
+        if normalized is None or normalized == key:
+            return result
+        return mapping.get(normalized)
+    try:
+        normalized = _normalize_book_id(key)
+        if normalized is None:
+            return None
+        return mapping[normalized]
+    except Exception:  # pragma: no cover - template safety
+        return None
+
+
+@register.filter
+def coalesce(value: Any, fallback: Any):
+    """Return ``value`` if it is truthy, otherwise ``fallback``."""
+
+    return value or fallback
 
 
 @register.filter

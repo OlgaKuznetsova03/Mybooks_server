@@ -36,6 +36,7 @@ from shelves.services import (
     DEFAULT_READING_SHELF,
     DEFAULT_WANT_SHELF,
     get_home_library_shelf,
+    get_default_shelf_status_map,
     move_book_to_read_shelf,
 )
 from games.services.read_before_buy import ReadBeforeBuyGame
@@ -116,46 +117,14 @@ def _attach_default_shelf_status(
     for book in book_list:
         setattr(book, "default_shelf_status", None)
 
-    if not getattr(user, "is_authenticated", False) or not book_list:
+    if not book_list:
         return book_list
 
     book_ids = [book.pk for book in book_list if getattr(book, "pk", None)]
     if not book_ids:
         return book_list
 
-    shelf_items = (
-        ShelfItem.objects
-        .filter(
-            shelf__user=user,
-            shelf__name__in=[
-                DEFAULT_WANT_SHELF,
-                DEFAULT_READING_SHELF,
-                DEFAULT_READ_SHELF,
-            ],
-            book_id__in=book_ids,
-        )
-        .select_related("shelf")
-    )
-
-    priority_map = {"want": 1, "reading": 2, "read": 3}
-    status_map: dict[int, dict[str, object]] = {}
-
-    for item in shelf_items:
-        shelf_name = item.shelf.name
-        if shelf_name == DEFAULT_READ_SHELF:
-            code = "read"
-        elif shelf_name == DEFAULT_READING_SHELF:
-            code = "reading"
-        else:
-            code = "want"
-
-        current = status_map.get(item.book_id)
-        if not current or priority_map[code] > priority_map[current["code"]]:
-            status_map[item.book_id] = {
-                "code": code,
-                "label": shelf_name,
-                "added_at": item.added_at,
-            }
+    status_map = get_default_shelf_status_map(user, book_ids)
 
     for book in book_list:
         status = status_map.get(book.pk)
@@ -1272,7 +1241,7 @@ def book_detail(request, pk):
                 related_selection,
                 request.user,
             )
-            
+
         related_books = [
             _serialize_book_for_shelf(related)
             for related in related_selection

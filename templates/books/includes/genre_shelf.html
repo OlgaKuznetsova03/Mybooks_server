@@ -25,8 +25,9 @@
         {% for entry in shelf.books %}
 
           {# Нормализуем id и статус под разные структуры данных #}
-          {% firstof entry.pk entry.id as book_id %}
-          {% firstof entry.default_shelf_status entry.shelf_status entry.status as shelf_status %}
+          {% firstof entry.pk entry.id entry.book_id entry.book.pk entry.book.id as book_id %}
+          {% firstof entry.default_shelf_status entry.shelf_status as entry_status %}
+          {% with shelf_status=entry_status|coalesce:(shelf_status_map|dict_get:book_id) %}
 
           <article class="genre-shelf-card__book" role="listitem">
             <a class="genre-shelf-card__cover" href="{{ entry.detail_url }}" aria-label="{{ entry.title }}">
