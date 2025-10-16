@@ -31,6 +31,7 @@ from .models import (
 
 from .services import (
     move_book_to_read_shelf,
+    move_book_to_reading_shelf,
     remove_book_from_want_shelf,
     DEFAULT_WANT_SHELF,
     DEFAULT_READING_SHELF,
@@ -441,6 +442,34 @@ def quick_add_default_shelf(request, book_id, code):
         return redirect("reading_track", book_id=book.pk)
     messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")
     return _redirect_default()
+
+
+@login_required
+@require_POST
+def move_book_to_reading(request, book_id):
+    """Переместить книгу в стандартную полку «Читаю» текущего пользователя."""
+
+    book = get_object_or_404(Book, pk=book_id)
+    next_url = request.POST.get("next")
+
+    move_book_to_reading_shelf(request.user, book)
+    messages.success(
+        request,
+        f"«{book.title}» теперь на полке «{DEFAULT_READING_SHELF}».",
+    )
+
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+
+    messages.info(
+        request,
+        "Уточните формат чтения и данные книги на странице прогресса.",
+    )
+    return redirect("reading_track", book_id=book.pk)
 
 
 @login_required

@@ -602,4 +602,41 @@ class ShelfDefaultActionsTests(TestCase):
         )
         self.assertFalse(
             ShelfItem.objects.filter(shelf=want_shelf, book=self.book).exists()
+               )
+
+    def test_move_book_to_reading_redirects_back_when_next_provided(self):
+        want_shelf = Shelf.objects.get(user=self.user, name="Хочу прочитать")
+        reading_shelf = Shelf.objects.get(user=self.user, name="Читаю")
+        ShelfItem.objects.create(shelf=want_shelf, book=self.book)
+
+        response = self.client.post(
+            reverse("move_book_to_reading", args=[self.book.pk]),
+            {"next": "/profile/owner/"},
+        )
+
+        self.assertRedirects(
+            response,
+            "/profile/owner/",
+            fetch_redirect_response=False,
+        )
+        self.assertTrue(
+            ShelfItem.objects.filter(shelf=reading_shelf, book=self.book).exists()
+        )
+        self.assertFalse(
+            ShelfItem.objects.filter(shelf=want_shelf, book=self.book).exists()
+        )
+
+    def test_move_book_to_reading_without_next_redirects_to_track(self):
+        reading_shelf = Shelf.objects.get(user=self.user, name="Читаю")
+
+        response = self.client.post(
+            reverse("move_book_to_reading", args=[self.book.pk])
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("reading_track", args=[self.book.pk]),
+        )
+        self.assertTrue(
+            ShelfItem.objects.filter(shelf=reading_shelf, book=self.book).exists()
         )

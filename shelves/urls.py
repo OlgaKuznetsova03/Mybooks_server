@@ -14,6 +14,11 @@ urlpatterns = [
     path("add-to-shelf/<int:book_id>/", views.add_book_to_shelf, name="add_book_to_shelf"),
     path("remove-from-shelf/<int:shelf_id>/<int:book_id>/", views.remove_book_from_shelf, name="remove_book_from_shelf"),
     path("quick-add/<int:book_id>/<str:code>/", views.quick_add_default_shelf, name="quick_add_shelf"),
+    path(
+        "move-to-reading/<int:book_id>/",
+        views.move_book_to_reading,
+        name="move_book_to_reading",
+    ),
     path("add-to-event/<int:book_id>/", views.add_book_to_event, name="add_book_to_event"),
 
     # чтение
