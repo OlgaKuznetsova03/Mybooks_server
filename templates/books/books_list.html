@@ -6,6 +6,14 @@
 {% block extra_css %}
   {{ block.super }}
   <link rel="stylesheet" href="{% static 'books/genre-shelf.css' %}">
+  <style>
+    .books-page .genre-shelf-card__book,
+    .books-page .genre-shelf-card--profile .genre-shelf-card__book{
+      background: transparent !important;
+      border: 0 !important;
+      box-shadow: none !important;
+    }
+  </style>
 {% endblock %}
 
 {% block content %}

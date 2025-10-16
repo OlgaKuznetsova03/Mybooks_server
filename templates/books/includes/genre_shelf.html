@@ -1,8 +1,8 @@
 {% load shelf_extras %}
 {% with variant=variant|default:shelf.variant texture=texture_url|default:shelf.texture_url %}
 <section class="genre-shelf-card card border-0 shadow-sm{% if variant %} genre-shelf-card--{{ variant }}{% endif %}">
-  <section class="genre-shelf-card card border-0 shadow-sm{% if variant %} genre-shelf-card--{{ variant }}{% endif %}">
-    <div class="genre-shelf-card__body"{% if texture %} style="--bookshelf-texture: url('{{ texture }}');"{% endif %}>
+  <div class="genre-shelf-card__body"{% if texture %} style="--bookshelf-texture: url('{{ texture }}');"{% endif %}>
+    <header class="genre-shelf-card__header">
       <div>
         <h3 class="genre-shelf-card__title">{{ shelf.title }}</h3>
         {% if shelf.subtitle %}
@@ -12,7 +12,7 @@
       {% with cta=shelf.cta %}
         {% if cta and cta.url %}
           <a class="btn btn-outline-primary btn-sm" href="{{ cta.url }}">{{ cta.label }}</a>
-          {% elif cta and cta.href %}
+        {% elif cta and cta.href %}
           <a class="btn btn-outline-primary btn-sm" href="{{ cta.href }}">{{ cta.label }}</a>
         {% endif %}
       {% endwith %}

@@ -65,7 +65,10 @@ SHELF_BOOKS_LIMIT = 12
 
 
 def _serialize_book_for_shelf(
-    book: Book, *, extra: dict[str, object] | None = None
+    book: Book,
+    *,
+    extra: dict[str, object] | None = None,
+    cover_url: str | None = None,
 ) -> dict[str, object]:
     if (
         hasattr(book, "_prefetched_objects_cache")
@@ -80,11 +83,13 @@ def _serialize_book_for_shelf(
 
     title = (book.title or "").strip()
 
+    cover = _book_cover_url(book) if cover_url is None else cover_url
+
     data: dict[str, object] = {
         "id": book.pk,
         "title": title,
         "detail_url": reverse("book_detail", args=[book.pk]),
-        "cover_url": _book_cover_url(book),
+        "cover_url": cover,
         "authors": authors,
         "average_rating": getattr(book, "average_rating", None),
         "rating_count": int(getattr(book, "rating_count", 0) or 0),
@@ -483,27 +488,35 @@ def book_list(request):
                 annotated_books.order_by("-created_at", "-pk")[:SHELF_BOOKS_LIMIT]
             )
         if recent_books:
-            discovery_shelves.append(
-                {
-                    "title": "Недавно добавленные",
-                    "subtitle": "Свежие книги за последние 10 дней.",
-                    "variant": "profile",
-                    "texture_url": None,
-                    "cta": {
-                        "url": "?view=grid&sort=recent",
-                        "label": "Все новинки",
-                    },
-                    "books": [
-                        _serialize_book_for_shelf(
-                            book,
-                            extra={
-                                "added_at": getattr(book, "created_at", None),
-                            },
-                        )
-                        for book in recent_books
-                    ],
-                }
-            )
+            recent_serialized_books = []
+            for book in recent_books:
+                cover_url = _book_cover_url(book)
+                if not cover_url:
+                    continue
+                recent_serialized_books.append(
+                    _serialize_book_for_shelf(
+                        book,
+                        extra={
+                            "added_at": getattr(book, "created_at", None),
+                        },
+                        cover_url=cover_url,
+                    )
+                )
+
+            if recent_serialized_books:
+                discovery_shelves.append(
+                    {
+                        "title": "Недавно добавленные",
+                        "subtitle": "Свежие книги за последние 10 дней.",
+                        "variant": "profile",
+                        "texture_url": None,
+                        "cta": {
+                            "url": "?view=grid&sort=recent",
+                            "label": "Все новинки",
+                        },
+                        "books": recent_serialized_books,
+                    }
+                )
 
         popular_window = now - timedelta(days=30)
         popular_stats = list(
@@ -532,29 +545,37 @@ def book_list(request):
                 if pk in popular_book_map
             ][:SHELF_BOOKS_LIMIT]
             if ordered_popular_books:
-                discovery_shelves.append(
-                    {
-                        "title": "Популярные сейчас",
-                        "subtitle": "Больше всего читателей за последние 30 дней.",
-                        "variant": "profile",
-                        "texture_url": None,
-                        "cta": {
-                            "url": "?view=grid&sort=popular",
-                            "label": "Открыть каталог",
-                        },
-                        "books": [
-                            _serialize_book_for_shelf(
-                                book,
-                                extra={
-                                    "reader_count": int(
-                                        getattr(book, "recent_reader_count", 0) or 0
-                                    ),
-                                },
-                            )
-                            for book in ordered_popular_books
-                        ],
-                    }
-                )
+                popular_serialized_books: list[dict[str, object]] = []
+                for book in ordered_popular_books:
+                    cover_url = _book_cover_url(book)
+                    if not cover_url:
+                        continue
+                    popular_serialized_books.append(
+                        _serialize_book_for_shelf(
+                            book,
+                            extra={
+                                "reader_count": int(
+                                    getattr(book, "recent_reader_count", 0) or 0
+                                ),
+                            },
+                            cover_url=cover_url,
+                        )
+                    )
+
+                if popular_serialized_books:
+                    discovery_shelves.append(
+                        {
+                            "title": "Популярные сейчас",
+                            "subtitle": "Больше всего читателей за последние 30 дней.",
+                            "variant": "profile",
+                            "texture_url": None,
+                            "cta": {
+                                "url": "?view=grid&sort=popular",
+                                "label": "Открыть каталог",
+                            },
+                            "books": popular_serialized_books,
+                        }
+                    )
 
         popular_genres = list(
             Genre.objects.annotate(
@@ -595,6 +616,26 @@ def book_list(request):
             else:
                 subtitle = "Популярный жанр сообщества."
 
+            serialized_genre_books: list[dict[str, object]] = []
+            for book in top_books:
+                cover_url = _book_cover_url(book)
+                if not cover_url:
+                    continue
+                serialized_genre_books.append(
+                    _serialize_book_for_shelf(
+                        book,
+                        extra={
+                            "reader_count": int(
+                                getattr(book, "recent_reader_count", 0) or 0
+                            ),
+                        },
+                        cover_url=cover_url,
+                    )
+                )
+
+            if not serialized_genre_books:
+                continue
+
             discovery_shelves.append(
                 {
                     "title": genre.name,
@@ -605,17 +646,7 @@ def book_list(request):
                         "url": genre.get_absolute_url(),
                         "label": "Все книги жанра",
                     },
-                    "books": [
-                        _serialize_book_for_shelf(
-                            book,
-                            extra={
-                                "reader_count": int(
-                                    getattr(book, "recent_reader_count", 0) or 0
-                                ),
-                            },
-                        )
-                        for book in top_books
-                    ],
+                    "books": serialized_genre_books,
                 }
             )
 
