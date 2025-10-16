@@ -57,21 +57,24 @@
     /* ===== Полка ===== */
     .books-shelf-card{border:none;border-radius:1.5rem;background:transparent;box-shadow:none;}
     .books-shelf-card__body{
-      position:relative;border-radius:1.5rem;padding:2.5rem 1.75rem 2.1rem;
+      position:relative;border-radius:1.5rem;padding: 2.25rem 1rem 1.1rem;
       background:var(--book-gallery-card-bg);border:1px solid var(--book-gallery-card-border);
-      background-image:url("{{ MEDIA_URL }}accounts/img/shelvesbild.PNG");
+      background-image:url("{{ MEDIA_URL }}book_list/bookshelfhell.PNG");
       background-repeat:repeat-x;background-size:cover;background-position:center bottom;overflow:hidden;
     }
     .books-shelf-card__body::before{
       content:"";position:absolute;inset:0;
       background:linear-gradient(160deg,rgba(255,255,255,.65),rgba(255,255,255,0));mix-blend-mode:screen;pointer-events:none;
     }
+    .books-shelf-card__body{
+      padding: 1.25rem 1rem 1.1rem;
+    }
     [data-bs-theme="dark"] .books-shelf-card__body::before{
       background:linear-gradient(160deg,rgba(0,0,0,.45),rgba(0,0,0,.1));mix-blend-mode:normal;
     }
 
     .book-shelf-wrapper{position:relative;}
-    .book-shelf{display:flex;gap:1.5rem;overflow-x:auto;padding:0 0 2.75rem;scroll-snap-type:x mandatory;scroll-behavior:smooth;scroll-padding:0 3rem;-webkit-overflow-scrolling:touch;touch-action:pan-x;}
+    .book-shelf{display:flex;gap:1.5rem;overflow-x:auto;padding:0 0 2.0rem;scroll-snap-type:x mandatory;scroll-behavior:smooth;scroll-padding:0 3rem;-webkit-overflow-scrolling:touch;touch-action:pan-x;}
     .book-shelf::before,.book-shelf::after{content:"";flex:0 0 3rem;pointer-events:none;}
     .book-shelf::-webkit-scrollbar{height:8px;}
     .book-shelf::-webkit-scrollbar-thumb{background-color:rgba(0,0,0,.18);border-radius:999px;}
@@ -194,11 +197,9 @@
     .books-page .genre-shelf-card__book {
       position: relative; /* опорный контейнер для абсолютного позиционирования */
     }
-
-    /* сам бейдж рейтинга – в левом верхнем углу */
-    .books-page .genre-shelf-card__book-rating {
+    .books-page .genre-shelf-card__book-rating{
       position: absolute;
-      top: 1rem;            /* внутри внутреннего отступа карточки */
+      top: 1rem;
       left: 1rem;
       z-index: 5;
       display: inline-flex;
@@ -210,9 +211,9 @@
       font-size: .8rem;
       line-height: 1;
       color: #fff !important;
-      background: rgba(36,33,28,.82);
+      background: rgba(36,33,28,.82); /* почти чёрный */
       box-shadow: 0 6px 18px rgba(0,0,0,.25);
-      pointer-events: none; /* чтобы клик проходил на обложку */
+      pointer-events: none; /* чтобы клик попадал на обложку */
     }
 
     /* тёмная тема — чуть прозрачнее */
@@ -262,6 +263,52 @@
       background: color-mix(in srgb, #e8c4a9 70%, #000 30%);
       color: #1a0f08;
     }
+    .books-page .genre-shelf-card--profile .genre-shelf-card__body{
+  padding: 1rem 1rem 1.1rem !important; /* было ~2.25rem/2.75rem */
+}
+
+/* уменьшаем “бликующую” плашку-основание снизу */
+.books-page .genre-shelf-card--profile .genre-shelf-card__body::after{
+  bottom: .35rem !important;
+  height: .5rem !important;          /* было 0.9rem */
+}
+
+/* меньше “воздуха” под горизонтальным скроллом и между карточками */
+.books-page .genre-shelf-card__list{
+  padding-bottom: .6rem !important;  /* было 1.25rem */
+  gap: .9rem !important;             /* было 1.25rem */
+}
+
+/* компактнее внутренняя карточка книги */
+.books-page .genre-shelf-card__book{
+  padding: .75rem !important;        /* было 1rem */
+}
+
+/* компактнее заголовки/мета, чтобы карточка стала ниже */
+.books-page .genre-shelf-card__book-title{
+  font-size: .95rem !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+}
+.books-page .genre-shelf-card__book-authors{
+  font-size: .8rem !important;
+}
+
+/* если нужно ещё ниже — можно скрыть/ужать мета-строку под авторами */
+.books-page .genre-shelf-card__book-meta{
+  margin-top: .15rem !important;
+  font-size: .8rem !important;
+  /* или вообще спрятать:
+  display: none !important;
+  */
+}
+
+/* при желании — чутка уже сами карточки по ширине (ещё понизит визуально полку) */
+@media (min-width: 0){
+  .books-page .genre-shelf-card__list{
+    grid-auto-columns: minmax(170px, 1fr) !important; /* было minmax(190px, 1fr) */
+  }
+}
   </style>
 {% endblock %}
 
@@ -312,7 +359,7 @@
     {% if discovery_shelves %}
       <div class="genre-shelf-collection">
         {% for shelf in discovery_shelves %}
-          {% include "books/includes/genre_shelf.html" with shelf=shelf variant='profile' texture_url=MEDIA_URL|add:'accounts/img/shelvesbild.PNG' %}
+          {% include "books/includes/genre_shelf.html" with shelf=shelf variant='profile' texture_url=MEDIA_URL|add:'book_list/booksshelfhell.PNG' %}
         {% endfor %}
       </div>
     {% else %}

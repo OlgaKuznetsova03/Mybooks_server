@@ -18,12 +18,20 @@
 .genre-shelf-card__body {
   position: relative;
   padding: 1.75rem 1.5rem 2.25rem;
-  background: var(--rt-shelf-card-surface, rgba(255, 255, 255, 0.92));
-  background: color-mix(
+  background-color: var(--rt-shelf-card-surface, rgba(255, 255, 255, 0.92));
+  background-color: color-mix(
     in srgb,
     var(--rt-shelf-card-surface, rgba(255, 255, 255, 0.92)) 92%,
     #ffffff 8%
   );
+  background-image: var(--bookshelf-texture, none),
+    var(
+      --rt-shelf-card-sheen,
+      linear-gradient(160deg, rgba(255, 255, 255, 0.7), rgba(214, 197, 178, 0.35))
+    );
+  background-repeat: repeat-x, no-repeat;
+  background-size: cover, cover;
+  background-position: center bottom, center;
 }
 
 .genre-shelf-card__body::after {
@@ -173,31 +181,40 @@
   font-size: 0.85rem;
   color: rgba(44, 31, 74, 0.6);
   color: color-mix(in srgb, var(--rt-primary, #2c1f4a) 5%, #000000 95%);
+}
+
+.genre-shelf-card__book-authors-meta {
+  background: #e8c4a9;          /* нужный цвет */
+  color: #2b1a0f;               /* более контрастный текст */
+  padding: .6rem .8rem;         /* внутренние отступы */
+  border-radius: .75rem;        /* скругление */
+  box-shadow: 0 6px 14px rgba(0,0,0,.12);
   opacity: 0.7;
 }
 
 
-.genre-shelf-card__book-rating {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-  color: rgba(44, 31, 74, 0.65);
-  color: color-mix(in srgb, var(--rt-primary, #000000) 95%, #ffffff 5%);
-  opacity: 0.85;
+.genre-shelf-card__book-rating{
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .35rem .6rem;
+  border-radius: .6rem;
+  background: #000 !important;   /* чёрный фон */
+  color: #fff !important;         /* базовый цвет текста */
+  box-shadow: 0 6px 14px rgba(0,0,0,.15);
 }
 
 
-.genre-shelf-card__rating-value {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #d7a958;
-  color: color-mix(in srgb, #d7a958 95%, var(--rt-primary, #2c1f4a) 5%);
-  -webkit-text-stroke: 1px #000;
+.genre-shelf-card__rating-value{
+  color: #d7a958 !important;
+  -webkit-text-stroke: 0;         /* обводку можно убрать на чёрном */
+  text-shadow: 0 1px 0 rgba(0,0,0,.25);
 }
 
 
-.genre-shelf-card__rating-meta {
+.genre-shelf-card__rating-meta{
+  color: rgba(255,255,255,.85) !important;
+  background: transparent !important; /* чтобы не красилась в #e8c4a9 */
   white-space: nowrap;
 }
 
@@ -264,17 +281,10 @@
 }
 
 .genre-shelf-card--profile .genre-shelf-card__body {
-  padding: 2.25rem 2rem 2.75rem;
+  padding: 2.25rem 1rem 1.1rem;
   border-radius: 1.75rem;
   background-color: var(--rt-shelf-card-surface, #f3ebe1);
-  background-image: var(--bookshelf-texture, none),
-    var(
-      --rt-shelf-card-sheen,
-      linear-gradient(160deg, rgba(255, 255, 255, 0.7), rgba(214, 197, 178, 0.35))
-    );
-  background-size: cover, cover;
   background-repeat: repeat-x, no-repeat;
-  background-position: center bottom, center;
   position: relative;
   box-shadow: inset 0 0 0 1px rgba(139, 90, 43, 0.1),
     var(--rt-shelf-card-shadow, 0 18px 32px rgba(44, 31, 74, 0.08));
@@ -293,6 +303,7 @@
 
 .genre-shelf-card--profile .genre-shelf-card__body > * {
   position: relative;
+  padding: 1.25rem 1rem 1.1rem;
   z-index: 1;
 }
 
