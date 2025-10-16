@@ -28,7 +28,8 @@
           {# Нормализуем id и статус под разные структуры данных #}
           {% firstof entry.pk entry.id entry.book_id entry.book.pk entry.book.id as book_id %}
           {% firstof entry.default_shelf_status entry.shelf_status as entry_status %}
-          {% with fallback_status=shelf_status_map|dict_get:book_id shelf_status=entry_status|coalesce:fallback_status %}
+          {% with fallback_status=shelf_status_map|dict_get:book_id %}
+          {% with shelf_status=entry_status|coalesce:fallback_status %}
 
           <article class="genre-shelf-card__book" role="listitem">
             <a class="genre-shelf-card__cover" href="{{ entry.detail_url }}" aria-label="{{ entry.title }}">
@@ -116,6 +117,7 @@
               {# ==== /Кнопка/бейджи статуса ==== #}
             </div>
           </article>
+          {% endwith %}
           {% endwith %}
         {% endfor %}
       </div>
