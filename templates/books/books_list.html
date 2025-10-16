@@ -236,6 +236,10 @@
                           <span class="badge rounded-pill text-bg-success-subtle text-success-emphasis book-gallery-card__status">
                             <i class="bi bi-check-circle-fill me-1"></i>Прочитано{% if status.added_at %} {{ status.added_at|date:"d.m.Y" }}{% endif %}
                           </span>
+                          % elif status and status.code == 'want' %}
+                          <span class="badge rounded-pill text-bg-light text-secondary book-gallery-card__status">
+                            <i class="bi bi-bookmark-check-fill me-1"></i>На полке Хочу прочитать
+                          </span>
                         {% elif status %}
                           <span class="badge rounded-pill text-bg-light text-secondary book-gallery-card__status">
                             <i class="bi bi-bookmark-check-fill me-1"></i>На полке «{{ status.label }}»
