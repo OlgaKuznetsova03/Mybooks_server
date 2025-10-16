@@ -13,9 +13,9 @@
 
       {% with cta=shelf.cta %}
         {% if cta and cta.url %}
-          <a class="btn btn-outline-primary btn-sm" href="{{ cta.url }}">{{ cta.label }}</a>
+          <a class="btn btn-outline-primary btn-sm" href="{{ cta.url }}">{{ cta.label|safe }}</a>
         {% elif cta and cta.href %}
-          <a class="btn btn-outline-primary btn-sm" href="{{ cta.href }}">{{ cta.label }}</a>
+          <a class="btn btn-outline-primary btn-sm" href="{{ cta.href }}">{{ cta.label|safe }}</a>
         {% endif %}
       {% endwith %}
     </header>
