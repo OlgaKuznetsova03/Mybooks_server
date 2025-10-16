@@ -107,12 +107,7 @@ def _serialize_book_for_shelf(
     return data
 
 
-def _attach_default_shelf_status(
-    books: Iterable[Book],
-    user,
-) -> list[Book]:
-    """Annotate books with the status on default shelves for ``user``."""
-
+def _attach_default_shelf_status(books: Iterable[Book], user) -> list[Book]:
     book_list = list(books)
     for book in book_list:
         setattr(book, "default_shelf_status", None)
@@ -120,17 +115,19 @@ def _attach_default_shelf_status(
     if not book_list:
         return book_list
 
+    # NEW: при анониме просто выходим
+    if not getattr(user, "is_authenticated", False):
+        return book_list
+
     book_ids = [book.pk for book in book_list if getattr(book, "pk", None)]
     if not book_ids:
         return book_list
 
     status_map = get_default_shelf_status_map(user, book_ids)
-
     for book in book_list:
         status = status_map.get(book.pk)
         if status:
             setattr(book, "default_shelf_status", status)
-
     return book_list
 
 

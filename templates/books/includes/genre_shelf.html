@@ -3,6 +3,7 @@
 <section class="genre-shelf-card card border-0 shadow-sm{% if variant %} genre-shelf-card--{{ variant }}{% endif %}">
   <div class="genre-shelf-card__body"{% if texture %} style="--bookshelf-texture: url('{{ texture }}');"{% endif %}>
 
+    {# ---------- Заголовок полки ---------- #}
     <header class="genre-shelf-card__header">
       <div>
         <h3 class="genre-shelf-card__title">{{ shelf.title }}</h3>
@@ -13,30 +14,29 @@
 
       {% with cta=shelf.cta %}
         {% if cta and cta.url %}
-          <a class="btn btn-outline-primary btn-sm" href="{{ cta.url }}">{{ cta.label|safe }}</a>
+          <a class="btn btn-outline-primary btn-sm" href="{{ cta.url }}">{{ cta.label }}</a>
         {% elif cta and cta.href %}
-          <a class="btn btn-outline-primary btn-sm" href="{{ cta.href }}">{{ cta.label|safe }}</a>
+          <a class="btn btn-outline-primary btn-sm" href="{{ cta.href }}">{{ cta.label }}</a>
         {% endif %}
       {% endwith %}
     </header>
 
+    {# ---------- Список карточек книг ---------- #}
     {% if shelf.books %}
       <div class="genre-shelf-card__list" role="list">
-        {% default_shelf_status_map shelf.books as shelf_status_map %}
         {% for entry in shelf.books %}
 
-          {# Нормализуем id и статус под разные структуры данных #}
+          {# Нормализуем id из разных возможных структур #}
           {% firstof entry.pk entry.id entry.book_id entry.book.pk entry.book.id as book_id %}
-          {% firstof entry.default_shelf_status entry.shelf_status as entry_status %}
-          {% with fallback_status=shelf_status_map|dict_get:book_id %}
-          {% with shelf_status=entry_status|coalesce:fallback_status %}
 
           <article class="genre-shelf-card__book" role="listitem">
             <a class="genre-shelf-card__cover" href="{{ entry.detail_url }}" aria-label="{{ entry.title }}">
               {% if entry.cover_url %}
                 <img src="{{ entry.cover_url }}" alt="Обложка «{{ entry.title }}»" loading="lazy">
               {% else %}
-                <span class="genre-shelf-card__cover-placeholder">{{ entry.initial }}</span>
+                <span class="genre-shelf-card__cover-placeholder">
+                  {{ entry.initial|default:"?" }}
+                </span>
               {% endif %}
             </a>
 
@@ -46,9 +46,12 @@
               </h4>
 
               {% if entry.authors %}
-                <div class="genre-shelf-card__book-authors line-clamp-2">{{ entry.authors|join:", " }}</div>
+                <div class="genre-shelf-card__book-authors line-clamp-2">
+                  {{ entry.authors|join:", " }}
+                </div>
               {% endif %}
 
+              {# Рейтинг и счётчик оценок (если есть) #}
               <div class="genre-shelf-card__book-rating">
                 <span class="genre-shelf-card__rating-value">
                   {% if entry.average_rating is not None %}
@@ -60,69 +63,67 @@
                 </span>
               </div>
 
+              {# Доп. мета: читатели за 30 дней или когда добавлено #}
               {% if entry.reader_count %}
                 <div class="genre-shelf-card__book-meta genre-shelf-card__book-meta--accent">
                   {{ entry.reader_count }} {{ entry.reader_count|ru_pluralize:"читатель,читателя,читателей" }} за 30 дней
                 </div>
-              {% endif %}
-
-              {% if entry.added_at %}
+              {% elif entry.added_at %}
                 <div class="genre-shelf-card__book-meta">
                   Добавлена {{ entry.added_at|timesince }} назад
                 </div>
               {% endif %}
-              {# ==== Кнопка/бейджи статуса ==== #}
-              {% if book_id %}
-                <div class="mt-2">
-                  {% if request.user.is_authenticated %}
 
-                    {# Нормализуем код статуса: либо shelf_status.code, либо сам shelf_status если это строка #}
-                    {% firstof shelf_status.code shelf_status as status_code %}
-
-                    {% if status_code == 'read' %}
+              {# ---------- Кнопка/бейдж статуса, как в каталоге ---------- #}
+              <div class="mt-2 genre-shelf-card__actions">
+                {% if request.user.is_authenticated %}
+                  {% with status=entry.default_shelf_status %}
+                    {% if status and status.code == 'read' %}
                       <span class="badge rounded-pill text-bg-success-subtle text-success-emphasis book-gallery-card__status w-100 d-inline-flex justify-content-center">
                         <i class="bi bi-check-circle-fill me-1"></i>
-                        Прочитано{% if shelf_status.added_at %} {{ shelf_status.added_at|date:"d.m.Y" }}{% endif %}
+                        Прочитано{% if status.added_at %} {{ status.added_at|date:"d.m.Y" }}{% endif %}
                       </span>
 
-                    {% elif status_code == 'want' %}
+                    {% elif status and status.code == 'want' %}
                       <span class="badge rounded-pill text-bg-light text-secondary book-gallery-card__status w-100 d-inline-flex justify-content-center">
                         <i class="bi bi-bookmark-check-fill me-1"></i>
                         На полке Хочу прочитать
                       </span>
 
-                    {% elif status_code %}
+                    {% elif status %}
                       <span class="badge rounded-pill text-bg-light text-secondary book-gallery-card__status w-100 d-inline-flex justify-content-center">
                         <i class="bi bi-bookmark-check-fill me-1"></i>
-                        На полке «{% firstof shelf_status.label status_code %}»
+                        На полке «{{ status.label }}»
                       </span>
 
                     {% else %}
-                      <form method="post" action="{% url 'quick_add_shelf' book_id 'want' %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                        <button class="btn btn-outline-primary btn-sm w-100" type="submit">
-                          «Хочу прочитать»
-                        </button>
-                      </form>
+                      {% if book_id %}
+                        <form method="post" action="{% url 'quick_add_shelf' book_id 'want' %}">
+                          {% csrf_token %}
+                          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                          <button class="btn btn-outline-primary btn-sm w-100" type="submit">
+                            «Хочу прочитать»
+                          </button>
+                        </form>
+                      {% endif %}
                     {% endif %}
+                  {% endwith %}
+                {% else %}
+                  <a class="btn btn-outline-primary btn-sm w-100" href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">
+                    Войти, чтобы добавить
+                  </a>
+                {% endif %}
+              </div>
+              {# ---------- /Кнопка/бейдж статуса ---------- #}
 
-                  {% else %}
-                    <a class="btn btn-outline-primary btn-sm w-100" href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">
-                      Войти, чтобы добавить
-                    </a>
-                  {% endif %}
-                </div>
-              {% endif %}
-              {# ==== /Кнопка/бейджи статуса ==== #}
             </div>
           </article>
-          {% endwith %}
-          {% endwith %}
         {% endfor %}
       </div>
     {% else %}
-      <p class="genre-shelf-card__empty">{{ shelf.empty_message|default:"Скоро здесь появятся новые книги." }}</p>
+      <p class="genre-shelf-card__empty">
+        {{ shelf.empty_message|default:"Скоро здесь появятся новые книги." }}
+      </p>
     {% endif %}
   </div>
 </section>
