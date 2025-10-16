@@ -172,7 +172,7 @@
 .genre-shelf-card__book-authors {
   font-size: 0.85rem;
   color: rgba(44, 31, 74, 0.6);
-  color: color-mix(in srgb, var(--rt-primary, #2c1f4a) 50%, #ffffff 50%);
+  color: color-mix(in srgb, var(--rt-primary, #2c1f4a) 5%, #000000 95%);
   opacity: 0.7;
 }
 
@@ -183,7 +183,7 @@
   gap: 0.5rem;
   font-size: 0.85rem;
   color: rgba(44, 31, 74, 0.65);
-  color: color-mix(in srgb, var(--rt-primary, #2c1f4a) 55%, #ffffff 45%);
+  color: color-mix(in srgb, var(--rt-primary, #000000) 95%, #ffffff 5%);
   opacity: 0.85;
 }
 
@@ -191,8 +191,9 @@
 .genre-shelf-card__rating-value {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #f08a24;
-  color: color-mix(in srgb, #f08a24 85%, var(--rt-primary, #2c1f4a) 15%);
+  color: #d7a958;
+  color: color-mix(in srgb, #d7a958 95%, var(--rt-primary, #2c1f4a) 5%);
+  -webkit-text-stroke: 1px #000;
 }
 
 
@@ -204,13 +205,13 @@
   margin-top: 0.25rem;
   font-size: 0.85rem;
   color: rgba(44, 31, 74, 0.65);
-  color: color-mix(in srgb, var(--rt-primary, #2c1f4a) 55%, #ffffff 45%);
+  color: color-mix(in srgb, var(--rt-primary, #2c1f4a) 10%, #000000 90%);
   opacity: 0.85;
 }
 
 .genre-shelf-card__book-meta--accent {
   color: #8b5a2b;
-  color: color-mix(in srgb, #8b5a2b 70%, var(--rt-primary, #2c1f4a) 30%);
+  color: color-mix(in srgb, #8b5a2b 30, var(--rt-primary, #2c1f4a) 70%);
   font-weight: 600;
 }
 

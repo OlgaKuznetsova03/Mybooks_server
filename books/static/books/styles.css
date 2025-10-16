@@ -696,3 +696,9 @@
 @media (prefers-reduced-motion: reduce){
   *{ transition:none !important; animation:none !important; }
 }
+
+.genre-shelf-card__meta{
+  background: #e8c4a9;
+  padding: .6rem .8rem;
+  border-radius: .75rem;
+}
