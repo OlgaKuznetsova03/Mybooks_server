@@ -22,6 +22,7 @@
 
     {% if shelf.books %}
       <div class="genre-shelf-card__list" role="list">
+        {% default_shelf_status_map shelf.books as shelf_status_map %}
         {% for entry in shelf.books %}
 
           {# Нормализуем id и статус под разные структуры данных #}
@@ -115,6 +116,7 @@
               {# ==== /Кнопка/бейджи статуса ==== #}
             </div>
           </article>
+          {% endwith %}
         {% endfor %}
       </div>
     {% else %}
