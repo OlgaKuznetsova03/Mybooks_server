@@ -17,7 +17,7 @@
 
 .genre-shelf-card__body {
   position: relative;
-  padding: 1.75rem 1.5rem 2.25rem;
+  padding: var(--genre-shelf-body-padding, 1.75rem 1.5rem 2.25rem);
   background-color: var(--rt-shelf-card-surface, rgba(255, 255, 255, 0.92));
   background-color: color-mix(
     in srgb,
@@ -39,8 +39,8 @@
   position: absolute;
   left: 1.5rem;
   right: 1.5rem;
-  bottom: 1.25rem;
-  height: 0.9rem;
+  bottom: var(--genre-shelf-body-highlight-offset, 1.25rem);
+  height: var(--genre-shelf-body-highlight-height, 0.9rem);
   border-radius: 999px;
   background: var(
       --rt-shelf-card-highlight,
@@ -78,10 +78,10 @@
 .genre-shelf-card__list {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(190px, 1fr);
-  gap: 1.25rem;
+  grid-auto-columns: var(--genre-shelf-list-column-size, minmax(190px, 1fr));
+  gap: var(--genre-shelf-list-gap, 1.25rem);
   overflow-x: auto;
-  padding-bottom: 1.25rem;
+  padding-bottom: var(--genre-shelf-list-padding-bottom, 1.25rem);
   scroll-snap-type: x mandatory;
 }
 
@@ -96,15 +96,17 @@
 
 .genre-shelf-card__book {
   position: relative;
-  background: #ffffff;
-  background: color-mix(
-    in srgb,
-    var(--rt-shelf-card-surface, #ffffff) 65%,
-    #ffffff 35%
+  background: var(
+    --genre-shelf-book-bg,
+    color-mix(
+      in srgb,
+      var(--rt-shelf-card-surface, #ffffff) 65%,
+      #ffffff 35%
+    )
   );
   border-radius: 1.25rem;
-  padding: 1rem;
-  box-shadow: 0 12px 24px rgba(33, 37, 41, 0.08);
+  padding: var(--genre-shelf-book-padding, 1rem);
+  box-shadow: var(--genre-shelf-book-shadow, 0 12px 24px rgba(33, 37, 41, 0.08));
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -157,13 +159,20 @@
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  background: var(--genre-shelf-meta-bg, transparent);
+  color: var(--genre-shelf-meta-color, inherit);
+  padding-block: var(--genre-shelf-meta-padding-block, 0);
+  padding-inline: var(--genre-shelf-meta-padding-inline, 0);
+  margin-inline: var(--genre-shelf-meta-margin-inline, 0);
+  border-radius: var(--genre-shelf-meta-radius, 0);
+  box-shadow: var(--genre-shelf-meta-shadow, none);
 }
 
 .genre-shelf-card__book-title {
-  margin: 0;
-  font-size: 1rem;
+  margin: var(--genre-shelf-book-title-margin, 0);
+  font-size: var(--genre-shelf-book-title-size, 1rem);
   font-weight: 600;
-  line-height: 1.3;
+  line-height: var(--genre-shelf-book-title-line-height, 1.3);
 }
 
 .genre-shelf-card__book-title a {
@@ -178,7 +187,7 @@
 
 
 .genre-shelf-card__book-authors {
-  font-size: 0.85rem;
+  font-size: var(--genre-shelf-book-authors-size, 0.85rem);
   color: rgba(44, 31, 74, 0.6);
   color: color-mix(in srgb, var(--rt-primary, #2c1f4a) 5%, #000000 95%);
 }
@@ -194,34 +203,50 @@
 
 
 .genre-shelf-card__book-rating{
+  position: var(--genre-shelf-rating-position, static);
+  top: var(--genre-shelf-rating-top, auto);
+  left: var(--genre-shelf-rating-left, auto);
+  z-index: var(--genre-shelf-rating-z-index, auto);
   display: inline-flex;
   align-items: center;
-  gap: .4rem;
-  padding: .35rem .6rem;
-  border-radius: .6rem;
-  background: #000 !important;   /* чёрный фон */
-  color: #fff !important;         /* базовый цвет текста */
-  box-shadow: 0 6px 14px rgba(0,0,0,.15);
+  gap: 0.4rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.6rem;
+  font-weight: var(--genre-shelf-rating-font-weight, 600);
+  font-size: var(--genre-shelf-rating-font-size, 0.8rem);
+  line-height: var(--genre-shelf-rating-line-height, 1.2);
+  background: var(--genre-shelf-rating-bg, rgba(44, 31, 74, 0.78));
+  color: var(--genre-shelf-rating-color, #fff);
+  box-shadow: var(--genre-shelf-rating-shadow, 0 6px 14px rgba(0, 0, 0, 0.15));
+  pointer-events: var(--genre-shelf-rating-pointer-events, auto);
 }
 
+.genre-shelf-card__book-rating::before {
+  content: var(--genre-shelf-rating-icon, "");
+  font-family: var(--genre-shelf-rating-icon-font, inherit);
+  margin-right: var(--genre-shelf-rating-icon-gap, 0);
+  color: var(--genre-shelf-rating-icon-color, currentColor);
+  font-size: var(--genre-shelf-rating-icon-size, 1em);
+  line-height: 1;
+}
 
 .genre-shelf-card__rating-value{
-  color: #d7a958 !important;
-  -webkit-text-stroke: 0;         /* обводку можно убрать на чёрном */
-  text-shadow: 0 1px 0 rgba(0,0,0,.25);
+  color: var(--genre-shelf-rating-emphasis, inherit);
+  -webkit-text-stroke: var(--genre-shelf-rating-text-stroke, 0);
+  text-shadow: var(--genre-shelf-rating-text-shadow, none);
 }
 
 
 .genre-shelf-card__rating-meta{
-  color: rgba(255,255,255,.85) !important;
-  background: transparent !important; /* чтобы не красилась в #e8c4a9 */
-  white-space: nowrap;
+  display: var(--genre-shelf-rating-meta-display, inline);
+  color: var(--genre-shelf-rating-meta-color, inherit);
+  background: var(--genre-shelf-rating-meta-bg, transparent);
 }
 
 .genre-shelf-card__book-meta {
   margin-top: 0.25rem;
-  font-size: 0.85rem;
-  color: rgba(44, 31, 74, 0.65);
+  margin-top: var(--genre-shelf-book-meta-margin-top, 0.25rem);
+  font-size: var(--genre-shelf-book-meta-font-size, 0.85rem);
   color: color-mix(in srgb, var(--rt-primary, #2c1f4a) 10%, #000000 90%);
   opacity: 0.85;
 }
@@ -274,14 +299,15 @@
   color: rgba(255, 255, 255, 0.85);
 }
 
+
 .genre-shelf-card--profile {
   background: none;
   border: none;
   box-shadow: none;
+  --genre-shelf-body-padding: 2.25rem 1rem 1.1rem;
 }
 
 .genre-shelf-card--profile .genre-shelf-card__body {
-  padding: 2.25rem 1rem 1.1rem;
   border-radius: 1.75rem;
   background-color: var(--rt-shelf-card-surface, #f3ebe1);
   background-repeat: repeat-x, no-repeat;
@@ -337,7 +363,7 @@
   }
 
   .genre-shelf-card__list {
-    grid-auto-columns: minmax(160px, 70%);
+    grid-auto-columns: var(--genre-shelf-list-column-size-sm, minmax(160px, 70%));
   }
 
   .genre-hero__header {
@@ -351,7 +377,7 @@
   }
 
   .genre-shelf-card__list {
-    grid-auto-columns: minmax(150px, 80%);
+    grid-auto-columns: var(--genre-shelf-list-column-size-xs, minmax(150px, 80%));
   }
 
   .genre-shelf-card__title {
