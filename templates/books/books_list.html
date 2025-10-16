@@ -95,17 +95,32 @@
     /* ===== Текстовая часть карточки (без подложки) ===== */
     .book-item__content{
       position:relative;z-index:1;padding:1.05rem 1rem 1.15rem;border-radius:1rem;
-      background:transparent;border:0;box-shadow:none;backdrop-filter:none;
-      display:flex;flex-direction:column;gap:.65rem;min-height:180px;
+      background:#e8c4a9;border:1px solid rgba(0,0,0,.04);box-shadow:0 10px 28px rgba(33,37,41,.12);
+      display:flex;flex-direction:column;gap:.65rem;min-height:180px;color:#2b1a0f;
     }
-    [data-bs-theme="dark"] .book-item__content{background:transparent;border-color:transparent;box-shadow:none;}
+    .book-item__content::before{
+      content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+      background:linear-gradient(140deg,rgba(255,255,255,.45),rgba(255,255,255,0));mix-blend-mode:screen;opacity:.55;
+    }
+    [data-bs-theme="dark"] .book-item__content{
+      background:color-mix(in srgb,#e8c4a9 68%,#1d140d 32%);
+      border-color:rgba(0,0,0,.35);
+      box-shadow:0 10px 28px rgba(0,0,0,.35);
+      color:#f8ecde;
+    }
+    [data-bs-theme="dark"] .book-item__content::before{
+      background:linear-gradient(140deg,rgba(0,0,0,.35),rgba(0,0,0,.05));mix-blend-mode:normal;opacity:.6;
+    }
 
     .book-item__title{font-size:1rem;font-weight:600;margin-bottom:0;}
     .book-item__title a{color:inherit;text-decoration:none;}
     .book-item__title a:hover,.book-item__title a:focus-visible{color:var(--journey-olive);text-decoration:none;}
 
-    .book-item__authors{font-size:.85rem;color:var(--bs-secondary-color);}
-    .book-item__meta{display:flex;align-items:center;flex-wrap:wrap;gap:.5rem;}
+    .book-item__authors{font-size:.85rem;color:rgba(43,26,15,.75);}    
+    .book-item__meta{display:flex;align-items:center;flex-wrap:wrap;gap:.5rem;color:rgba(43,26,15,.65);}
+    .book-item__meta .text-muted{color:inherit!important;}
+    [data-bs-theme="dark"] .book-item__authors{color:rgba(255,241,228,.78);}
+    [data-bs-theme="dark"] .book-item__meta{color:rgba(255,241,228,.65);}
     .book-item__genres{display:flex;flex-wrap:wrap;gap:.35rem;}
     .book-item__genres .badge{
       font-size:.7rem;font-weight:600;background-color:var(--book-gallery-card-badge-bg)!important;color:var(--book-gallery-card-badge-color);border:1px solid var(--book-gallery-card-badge-border);
