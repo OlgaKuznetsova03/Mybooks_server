@@ -17,7 +17,7 @@ from django.db.models import (
     Avg,
     Count,
 )
-from typing import Optional
+from typing import Iterable, Optional
 from django.core.paginator import Paginator
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
@@ -96,10 +96,73 @@ def _serialize_book_for_shelf(
         "initial": (title[:1] or "?").upper(),
     }
 
+    default_status = getattr(book, "default_shelf_status", None)
+    if default_status is not None:
+        data["default_shelf_status"] = default_status
+
     if extra:
         data.update(extra)
 
     return data
+
+
+def _attach_default_shelf_status(
+    books: Iterable[Book],
+    user,
+) -> list[Book]:
+    """Annotate books with the status on default shelves for ``user``."""
+
+    book_list = list(books)
+    for book in book_list:
+        setattr(book, "default_shelf_status", None)
+
+    if not getattr(user, "is_authenticated", False) or not book_list:
+        return book_list
+
+    book_ids = [book.pk for book in book_list if getattr(book, "pk", None)]
+    if not book_ids:
+        return book_list
+
+    shelf_items = (
+        ShelfItem.objects
+        .filter(
+            shelf__user=user,
+            shelf__name__in=[
+                DEFAULT_WANT_SHELF,
+                DEFAULT_READING_SHELF,
+                DEFAULT_READ_SHELF,
+            ],
+            book_id__in=book_ids,
+        )
+        .select_related("shelf")
+    )
+
+    priority_map = {"want": 1, "reading": 2, "read": 3}
+    status_map: dict[int, dict[str, object]] = {}
+
+    for item in shelf_items:
+        shelf_name = item.shelf.name
+        if shelf_name == DEFAULT_READ_SHELF:
+            code = "read"
+        elif shelf_name == DEFAULT_READING_SHELF:
+            code = "reading"
+        else:
+            code = "want"
+
+        current = status_map.get(item.book_id)
+        if not current or priority_map[code] > priority_map[current["code"]]:
+            status_map[item.book_id] = {
+                "code": code,
+                "label": shelf_name,
+                "added_at": item.added_at,
+            }
+
+    for book in book_list:
+        status = status_map.get(book.pk)
+        if status:
+            setattr(book, "default_shelf_status", status)
+
+    return book_list
 
 
 def _russian_plural(value: int, forms: tuple[str, str, str]) -> str:
@@ -386,52 +449,10 @@ def book_list(request):
         page_obj = paginator.get_page(page)
 
         if page_obj:
-            # Ensure the template can safely access the status attribute even for
-            # anonymous users.
-            for book in page_obj.object_list:
-                setattr(book, "default_shelf_status", None)
-
-        if request.user.is_authenticated and page_obj:
-            book_ids = [book.pk for book in page_obj.object_list]
-            if book_ids:
-                shelf_items = (
-                    ShelfItem.objects
-                    .filter(
-                        shelf__user=request.user,
-                        shelf__name__in=[
-                            DEFAULT_WANT_SHELF,
-                            DEFAULT_READING_SHELF,
-                            DEFAULT_READ_SHELF,
-                        ],
-                        book_id__in=book_ids,
-                    )
-                    .select_related("shelf")
-                )
-
-                priority_map = {"want": 1, "reading": 2, "read": 3}
-                status_map: dict[int, dict[str, object]] = {}
-
-                for item in shelf_items:
-                    shelf_name = item.shelf.name
-                    if shelf_name == DEFAULT_READ_SHELF:
-                        code = "read"
-                    elif shelf_name == DEFAULT_READING_SHELF:
-                        code = "reading"
-                    else:
-                        code = "want"
-
-                    current = status_map.get(item.book_id)
-                    if not current or priority_map[code] > priority_map[current["code"]]:
-                        status_map[item.book_id] = {
-                            "code": code,
-                            "label": shelf_name,
-                            "added_at": item.added_at,
-                        }
-
-                for book in page_obj.object_list:
-                    status = status_map.get(book.pk)
-                    if status:
-                        setattr(book, "default_shelf_status", status)
+            page_obj.object_list = _attach_default_shelf_status(
+                page_obj.object_list,
+                request.user,
+            )
                         
         preserved_query = request.GET.copy()
         preserved_query._mutable = True
@@ -488,6 +509,7 @@ def book_list(request):
                 annotated_books.order_by("-created_at", "-pk")[:SHELF_BOOKS_LIMIT]
             )
         if recent_books:
+            recent_books = _attach_default_shelf_status(recent_books, request.user)
             recent_serialized_books = []
             for book in recent_books:
                 cover_url = _book_cover_url(book)
@@ -545,6 +567,10 @@ def book_list(request):
                 if pk in popular_book_map
             ][:SHELF_BOOKS_LIMIT]
             if ordered_popular_books:
+                ordered_popular_books = _attach_default_shelf_status(
+                    ordered_popular_books,
+                    request.user,
+                )
                 popular_serialized_books: list[dict[str, object]] = []
                 for book in ordered_popular_books:
                     cover_url = _book_cover_url(book)
@@ -604,6 +630,8 @@ def book_list(request):
             )
             if not top_books:
                 continue
+
+            top_books = _attach_default_shelf_status(top_books, request.user)
 
             genre_reader_count = int(
                 getattr(genre, "recent_reader_count", 0) or 0
@@ -690,6 +718,10 @@ def genre_detail(request, slug):
         ]
     )
     if popular_selection:
+        popular_selection = _attach_default_shelf_status(
+            popular_selection,
+            request.user,
+        )
         shelves.append(
             {
                 "title": "Популярное",
@@ -709,6 +741,10 @@ def genre_detail(request, slug):
         .order_by("-average_rating", "-rating_count", "title")[:SHELF_BOOKS_LIMIT]
     )
     if top_rated_selection:
+        top_rated_selection = _attach_default_shelf_status(
+            top_rated_selection,
+            request.user,
+        )
         shelves.append(
             {
                 "title": "С высоким рейтингом",
@@ -725,6 +761,10 @@ def genre_detail(request, slug):
 
     newest_selection = list(base_qs.order_by("-pk")[:SHELF_BOOKS_LIMIT])
     if newest_selection:
+        newest_selection = _attach_default_shelf_status(
+            newest_selection,
+            request.user,
+        )
         shelves.append(
             {
                 "title": "Недавно добавлены",
@@ -1221,10 +1261,18 @@ def book_detail(request, pk):
             )
         )
 
-        related_selection = related_qs.order_by(
-            "-rating_count", "-average_rating", "title"
-        )[:SHELF_BOOKS_LIMIT]
+        related_selection = list(
+            related_qs.order_by(
+                "-rating_count", "-average_rating", "title"
+            )[:SHELF_BOOKS_LIMIT]
+        )
 
+        if related_selection:
+            related_selection = _attach_default_shelf_status(
+                related_selection,
+                request.user,
+            )
+            
         related_books = [
             _serialize_book_for_shelf(related)
             for related in related_selection
