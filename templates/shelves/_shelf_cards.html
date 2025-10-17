@@ -408,23 +408,25 @@
                   <div class="book-title">{{ it.book.title }}</div>
                   <div class="book-author">{{ it.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
                   {% with status=default_status_map|dict_get:it.book.pk %}
-                    {% if allow_manage and normalized_name != normalized_default and normalized_name != normalized_progress and (not status or status.code != 'reading') %}
-                      <form class="book-actions" method="post" action="{% url 'move_book_to_reading' it.book.pk %}">
-                        {% csrf_token %}
-                        {% if return_path %}
-                          <input type="hidden" name="next" value="{{ return_path }}">
+                      {% if allow_manage and normalized_name != normalized_default and normalized_name != normalized_progress %}
+                        {% if not status or status.code != 'reading' %}
+                          <form class="book-actions" method="post" action="{% url 'move_book_to_reading' it.book.pk %}">
+                            {% csrf_token %}
+                            {% if return_path %}
+                              <input type="hidden" name="next" value="{{ return_path }}">
+                            {% endif %}
+                            <button
+                              type="submit"
+                              class="btn btn-sm btn-outline-primary book-actions__button"
+                              aria-label="Переместить «{{ it.book.title }}» на полку «{{ default_reading_shelf_name|default:'Читаю' }}»"
+                            >
+                              <i class="bi bi-book-half" aria-hidden="true"></i>
+                              <span>Начать читать</span>
+                            </button>
+                          </form>
                         {% endif %}
-                        <button
-                          type="submit"
-                          class="btn btn-sm btn-outline-primary book-actions__button"
-                          aria-label="Переместить «{{ it.book.title }}» на полку «{{ default_reading_shelf_name|default:'Читаю' }}»"
-                        >
-                          <i class="bi bi-book-half" aria-hidden="true"></i>
-                          <span>Читаю</span>
-                        </button>
-                      </form>
-                    {% endif %}
-                  {% endwith %}
+                        {% endif %}
+                    {% endwith %}
                 </div>
               {% endfor %}
             </div>
