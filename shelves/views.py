@@ -507,8 +507,52 @@ def add_book_to_event(request, book_id):
 def reading_now(request):
     """Страница «Читаю сейчас»: берём книги из полки 'Читаю'."""
     shelf = Shelf.objects.filter(user=request.user, name="Читаю").first()
-    items = ShelfItem.objects.filter(shelf=shelf).select_related("book") if shelf else []
-    return render(request, "reading/reading_now.html", {"shelf": shelf, "items": items})
+    if not shelf:
+        items = []
+    else:
+        items = list(
+            ShelfItem.objects.filter(shelf=shelf)
+            .select_related("book")
+            .prefetch_related("book__authors")
+        )
+
+        book_ids = [item.book_id for item in items]
+        if book_ids:
+            progress_map = {
+                progress.book_id: progress
+                for progress in BookProgress.objects.filter(
+                    user=request.user,
+                    event__isnull=True,
+                    book_id__in=book_ids,
+                )
+            }
+        else:
+            progress_map = {}
+
+        for item in items:
+            progress = progress_map.get(item.book_id)
+            item.progress = None
+            item.progress_percent = None
+            item.progress_label = None
+            item.progress_total_pages = None
+            item.progress_current_page = None
+            item.progress_updated_at = None
+
+            if not progress:
+                continue
+
+            item.progress = progress
+            item.progress_percent = float(progress.percent or Decimal("0"))
+            item.progress_label = progress.get_format_display()
+            item.progress_total_pages = progress.get_effective_total_pages()
+            item.progress_current_page = progress.current_page
+            item.progress_updated_at = progress.updated_at
+
+    return render(
+        request,
+        "reading/reading_now.html",
+        {"shelf": shelf, "items": items},
+    )
 
 
 def _format_duration(duration):
