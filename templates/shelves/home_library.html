@@ -622,12 +622,33 @@
           </tr>
         </thead>
         <tbody>
+          {% default_shelf_status_map entries request.user as default_status_map %}
           {% if entries %}
             {% for entry in entries %}
               <tr>
                 <td data-label="Книга" style="min-width: 200px;">
                   <div class="fw-semibold"><a class="text-decoration-none text-reset" href="{% url 'book_detail' entry.book.pk %}">{{ entry.book.title }}</a></div>
                   <div class="small text-muted">{{ entry.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
+                  {% with status=default_status_map|dict_get:entry.book.pk %}
+                    <div class="mt-2">
+                      {% if status and status.code == 'read' %}
+                        {% with read_date=status.added_at|default:entry.date_read %}
+                          <div class="small text-muted fw-semibold">Прочитано{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}</div>
+                        {% endwith %}
+                      {% elif status and status.code == 'reading' %}
+                        <div class="small text-muted fw-semibold">На полке «{{ status.label|default:default_reading_shelf_name|default:'Читаю' }}»</div>
+                      {% else %}
+                        <form method="post" action="{% url 'move_book_to_reading' entry.book.pk %}">
+                          {% csrf_token %}
+                          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                          <button type="submit" class="btn btn-sm btn-outline-primary mt-1">
+                            <i class="bi bi-book-half" aria-hidden="true"></i>
+                            <span>Начать читать</span>
+                          </button>
+                        </form>
+                      {% endif %}
+                    </div>
+                  {% endwith %}
                 </td>
                 <td data-label="Формат">{{ entry.get_format_display }}</td>
                 <td data-label="Статус">{{ entry.status|default:"—" }}</td>
@@ -706,11 +727,21 @@
             </tr>
           </thead>
           <tbody>
+            {% default_shelf_status_map disposed_entries request.user as disposed_status_map %}
             {% for entry in disposed_entries %}
             <tr>
               <td data-label="Книга" style="min-width: 200px;">
                   <div class="fw-semibold"><a class="text-decoration-none text-reset" href="{% url 'book_detail' entry.book.pk %}">{{ entry.book.title }}</a></div>
                   <div class="small text-muted">{{ entry.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
+                  {% with status=disposed_status_map|dict_get:entry.book.pk %}
+                    {% if status and status.code == 'read' %}
+                      {% with read_date=status.added_at|default:entry.date_read %}
+                        <div class="small text-muted fw-semibold mt-2">Прочитано{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}</div>
+                      {% endwith %}
+                    {% elif status and status.code == 'reading' %}
+                      <div class="small text-muted fw-semibold mt-2">На полке «{{ status.label|default:default_reading_shelf_name|default:'Читаю' }}»</div>
+                    {% endif %}
+                  {% endwith %}
                 </td>
                 <td data-label="Статус">{{ entry.status|default:"—" }}</td>
                 <td data-label="Комментарий" style="max-width: 280px; white-space: pre-wrap;">{{ entry.disposition_note|default:"—" }}</td>

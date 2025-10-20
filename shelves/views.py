@@ -310,6 +310,8 @@ def home_library(request):
         "summary": summary,
         "filter_form": filter_form,
         "filters_applied": filters_applied,
+        "default_reading_shelf_name": DEFAULT_READING_SHELF,
+        "default_read_shelf_name": DEFAULT_READ_SHELF,
     }
     return render(request, "shelves/home_library.html", context)
 
