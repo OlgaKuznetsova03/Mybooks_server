@@ -15,6 +15,7 @@ from .models import (
     ShelfItem,
     ReadingFeedEntry,
 )
+from .services import DEFAULT_READ_SHELF, get_default_shelf_status_map
 
 
 class ReadingTrackViewTests(TestCase):
@@ -640,3 +641,25 @@ class ShelfDefaultActionsTests(TestCase):
         self.assertTrue(
             ShelfItem.objects.filter(shelf=reading_shelf, book=self.book).exists()
         )
+
+
+class DefaultShelfStatusMapTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="map-user", password="pass")
+        self.book = Book.objects.create(title="Status Book")
+
+    def test_completed_progress_marks_book_as_read(self):
+        progress = BookProgress.objects.create(
+            user=self.user,
+            book=self.book,
+            percent=Decimal("100"),
+        )
+
+        status_map = get_default_shelf_status_map(self.user, [self.book.pk])
+
+        self.assertIn(self.book.pk, status_map)
+        status = status_map[self.book.pk]
+        self.assertEqual(status["code"], "read")
+        self.assertEqual(status["label"], DEFAULT_READ_SHELF)
+        self.assertEqual(status["added_at"], progress.updated_at)
+        

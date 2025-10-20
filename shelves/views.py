@@ -103,6 +103,7 @@ def my_shelves(request):
 
 
 @login_required
+@login_required
 def home_library(request):
     """Подробный учёт книг из полки «Моя домашняя библиотека» пользователя."""
 
@@ -240,6 +241,35 @@ def home_library(request):
             filtered_entries_qs = filtered_entries_qs.filter(custom_genres__in=genres).distinct()
             filters_applied = True
 
+    # === ДОБАВЛЕНО: карта дат прочтения из полки «Прочитано» ===
+    read_dates_map = {}
+    try:
+        read_shelf = Shelf.objects.filter(user=request.user, name=DEFAULT_READ_SHELF).only("id").first()
+        if read_shelf:
+            filtered_book_ids = list(
+                filtered_entries_qs.values_list("shelf_item__book_id", flat=True)
+            )
+            if filtered_book_ids:
+                read_items = (
+                    ShelfItem.objects
+                    .filter(shelf=read_shelf, book_id__in=filtered_book_ids)
+                    .values("book_id", "added_at")
+                )
+                for ri in read_items:
+                    added_at = ri["added_at"]
+                    if added_at is None:
+                        continue
+                    # приводим к локальной дате при необходимости
+                    added_date = timezone.localtime(added_at).date() if timezone.is_aware(added_at) else added_at.date()
+                    book_id = ri["book_id"]
+                    prev = read_dates_map.get(book_id)
+                    # если книга добавлялась несколько раз в «Прочитано», берём самую раннюю дату завершения
+                    read_dates_map[book_id] = min(prev, added_date) if prev else added_date
+    except Exception:
+        # на случай редких ошибок — просто не показываем дату
+        read_dates_map = {}
+
+    # Итоговые списки
     entries = list(
         filtered_entries_qs
         .order_by("shelf_item__book__title", "shelf_item__id")
@@ -248,6 +278,15 @@ def home_library(request):
         disposed_entries_qs
         .order_by("shelf_item__book__title", "shelf_item__id")
     )
+
+    # === ДОБАВЛЕНО: прокидываем виртуальное поле date_read в объекты для шаблона ===
+    for entry in entries:
+        bid = entry.shelf_item.book_id if entry.shelf_item and entry.shelf_item.book_id else None
+        entry.date_read = read_dates_map.get(bid)
+
+    for entry in disposed_entries:
+        bid = entry.shelf_item.book_id if entry.shelf_item and entry.shelf_item.book_id else None
+        entry.date_read = read_dates_map.get(bid)
 
     summary = {
         "total": total_active,
@@ -270,6 +309,7 @@ def home_library(request):
         "filters_applied": filters_applied,
     }
     return render(request, "shelves/home_library.html", context)
+
 
 
 @login_required

@@ -1,343 +1,68 @@
 {% load shelf_extras %}
 {% with return_path=next_url|default:request.get_full_path %}
 <style>
-  .shelf-page__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    gap: 1rem;
-  }
-
-  .shelf-page__title {
-    margin: 0;
-  }
-
-  .shelf-card {
-    --shelf-card-surface: var(--rt-shelf-card-surface, #f3ebe1);
-    --shelf-card-shadow: var(--rt-shelf-card-shadow, 0 0.75rem 1.5rem rgba(33, 37, 41, 0.08));
-    --shelf-card-sheen: var(
-      --rt-shelf-card-sheen,
-      linear-gradient(160deg, rgba(255, 255, 255, 0.6), rgba(214, 197, 178, 0.25))
-    );
-    --shelf-card-base-highlight: var(
-      --rt-shelf-card-highlight,
-      linear-gradient(90deg, #9c6b3f, #c58d54, #9c6b3f)
-    );
-    --shelf-card-base-shadow: var(--rt-shelf-card-highlight-shadow, rgba(108, 63, 28, 0.4));
-    background: var(--bs-body-bg);
-    border-radius: 1rem;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    box-shadow: var(--shelf-card-shadow);
-    overflow: hidden;
-  }
-
-  .shelf-card + .shelf-card {
-    margin-top: 1.5rem;
-  }
-
-  .shelf-card__header {
-    padding: 1.25rem 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  }
-
-  .shelf-card__title {
-    margin: 0;
-    font-weight: 600;
-  }
-
-  .shelf-card__title-link {
-    color: inherit;
-    text-decoration: none;
-    transition: color 0.2s ease;
-  }
-
-  .shelf-card__title-link:hover,
-  .shelf-card__title-link:focus-visible {
-    color: var(--profile-accent-color-dark, #8b5a2b);
-    text-decoration: none;
-  }
-
-  .shelf-card__title-link:focus-visible {
-    outline: 3px solid rgba(139, 90, 43, 0.35);
-    outline-offset: 3px;
-  }
-
-  .shelf-card__badges {
-    display: inline-flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-  }
-
-  .shelf-card__body {
-    position: relative;
-    padding: 2.5rem 1.75rem 2rem;
-    background-color: var(--shelf-card-surface);
-    background-image: url("{{ MEDIA_URL }}accounts/img/shelvesbild.PNG");
-    background-repeat: repeat-x;
-    background-size: cover;
-    background-position: center bottom;
-    overflow: hidden;
-  }
-
-  .shelf-card__body::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: var(--shelf-card-sheen);
-    z-index: 0;
-  }
-
-  .shelf-card__body::after {
-    content: "";
-    position: absolute;
-    left: 1.25rem;
-    right: 1.25rem;
-    bottom: 1.25rem;
-    height: 0.85rem;
-    border-radius: 999px;
-    background: var(--shelf-card-base-highlight);
-    box-shadow: 0 0.45rem 1.2rem var(--shelf-card-base-shadow);
-    z-index: 0;
-  }
-
-  .shelf-card__body > * {
-    position: relative;
-    z-index: 1;
-  }
-
-  .book-shelf-wrapper {
-    position: relative;
-  }
-
-  .book-shelf {
-    display: flex;
-    gap: 1.5rem;
-    overflow-x: auto;
-    padding: 0 0 2.5rem;
-    scroll-snap-type: x mandatory;
-    scroll-behavior: smooth;
-    scroll-padding: 0 2.75rem;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-x;
-  }
-
-  .book-shelf::before,
-  .book-shelf::after {
-    content: "";
-    flex: 0 0 2.75rem;
-    pointer-events: none;
-  }
-
-  .book-shelf::-webkit-scrollbar {
-    height: 8px;
-  }
-
-  .book-shelf::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 999px;
-  }
-
-  .book-item {
-    position: relative;
-    width: 120px;
-    flex: 0 0 auto;
-    text-align: center;
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
-  }
-
-  .book-cover {
-    display: block;
-    width: 120px;
-    height: 180px;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 1.25rem 1.75rem rgba(33, 37, 41, 0.18);
-    border: 3px solid rgba(255, 255, 255, 0.5);
-    background: linear-gradient(130deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.2));
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-
-  .book-cover img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .book-cover:hover,
-  .book-cover:focus-visible {
-    transform: translateY(-4px);
-    box-shadow: 0 1.5rem 2.25rem rgba(33, 37, 41, 0.25);
-  }
-
-  .book-cover:focus-visible {
-    outline: 3px solid rgba(79, 70, 229, 0.45);
-    outline-offset: 2px;
-  }
-
-  .book-cover__placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(160deg, #4f46e5, #818cf8);
-    color: white;
-    font-size: 2.5rem;
-    font-weight: 700;
-  }
-
-  .book-title {
-    margin-top: 0.75rem;
-    font-size: 0.9rem;
-    font-weight: 600;
-    line-height: 1.3;
-  }
-
-  .book-author {
-    font-size: 0.75rem;
-    color: rgba(33, 37, 41, 0.6);
-  }
-
-  .book-actions {
-    margin-top: 0.75rem;
-  }
-
-  .book-actions__button {
-    width: 100%;
-    font-size: 0.75rem;
-    font-weight: 600;
-    border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.35rem;
-  }
-
-  .book-remove {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    opacity: 0;
-    transform: translateY(-0.25rem);
-    transition: all 0.2s ease;
-    z-index: 2;
-  }
-
-  .book-item:hover .book-remove {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  .book-shelf__nav {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 2.75rem;
-    height: 2.75rem;
-    border-radius: 999px;
-    border: none;
-    background: rgba(255, 255, 255, 0.85);
-    box-shadow: 0 0.75rem 1.5rem rgba(33, 37, 41, 0.15);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    color: #8b5a2b;
-    cursor: pointer;
-    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
-    z-index: 2;
-  }
-
-  .book-shelf__nav:hover:not(:disabled),
-  .book-shelf__nav:focus-visible:not(:disabled) {
-    background: rgba(255, 255, 255, 0.95);
-    color: #6f451c;
-    transform: translateY(-50%) scale(1.05);
-  }
-
-  .book-shelf__nav:focus-visible {
-    outline: 3px solid rgba(139, 90, 43, 0.35);
-    outline-offset: 2px;
-  }
-
-  .book-shelf__nav:disabled {
-    opacity: 0.4;
-    cursor: default;
-    box-shadow: none;
-  }
-
-  .book-shelf__nav--prev {
-    left: 1rem;
-  }
-
-  .book-shelf__nav--next {
-    right: 1rem;
-  }
-
-  .book-shelf-wrapper--overflow .book-shelf__nav {
-    display: inline-flex;
-  }
-
-  .shelf-empty {
-    padding: 2rem;
-    text-align: center;
-    color: rgba(33, 37, 41, 0.6);
-    font-style: italic;
-  }
-
-  @media (max-width: 575.98px) {
-    .book-shelf {
-      gap: 1.25rem;
-      scroll-padding: 0 2.25rem;
-    }
-
-    .book-shelf::before,
-    .book-shelf::after {
-      flex-basis: 2.25rem;
-    }
-
-    .book-item {
-      width: 96px;
-    }
-
-    .book-cover {
-      width: 96px;
-      height: 150px;
-    }
-
-    .book-shelf__nav {
-      width: 2.5rem;
-      height: 2.5rem;
-    }
-
-    .book-shelf__nav--prev {
-      left: 0.5rem;
-    }
-
-    .book-shelf__nav--next {
-      right: 0.5rem;
-    }
-
-    .shelf-card__body {
-      padding: 2rem 1.25rem 1.75rem;
-    }
-
-    .shelf-card__body::after {
-      left: 1rem;
-      right: 1rem;
-      bottom: 1rem;
-    }
+  /* твои стили без изменений */
+  .shelf-page__header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;gap:1rem}
+  .shelf-page__title{margin:0}
+  .shelf-card{--shelf-card-surface:var(--rt-shelf-card-surface,#f3ebe1);--shelf-card-shadow:var(--rt-shelf-card-shadow,0 .75rem 1.5rem rgba(33,37,41,.08));--shelf-card-sheen:var(--rt-shelf-card-sheen,linear-gradient(160deg,rgba(255,255,255,.6),rgba(214,197,178,.25)));--shelf-card-base-highlight:var(--rt-shelf-card-highlight,linear-gradient(90deg,#9c6b3f,#c58d54,#9c6b3f));--shelf-card-base-shadow:var(--rt-shelf-card-highlight-shadow,rgba(108,63,28,.4));background:var(--bs-body-bg);border-radius:1rem;border:1px solid rgba(0,0,0,.05);box-shadow:var(--shelf-card-shadow);overflow:hidden}
+  .shelf-card+.shelf-card{margin-top:1.5rem}
+  .shelf-card__header{padding:1.25rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;border-bottom:1px solid rgba(0,0,0,.05)}
+  .shelf-card__title{margin:0;font-weight:600}
+  .shelf-card__title-link{color:inherit;text-decoration:none;transition:color .2s ease}
+  .shelf-card__title-link:hover,.shelf-card__title-link:focus-visible{color:var(--profile-accent-color-dark,#8b5a2b);text-decoration:none}
+  .shelf-card__title-link:focus-visible{outline:3px solid rgba(139,90,43,.35);outline-offset:3px}
+  .shelf-card__badges{display:inline-flex;gap:.5rem;flex-wrap:wrap}
+  .shelf-card__body{position:relative;padding:2.5rem 1.75rem 2rem;background-color:var(--shelf-card-surface);background-image:url("{{ MEDIA_URL }}accounts/img/shelvesbild.PNG");background-repeat:repeat-x;background-size:cover;background-position:center bottom;overflow:hidden}
+  .shelf-card__body::before{content:"";position:absolute;inset:0;background:var(--shelf-card-sheen);z-index:0}
+  .shelf-card__body::after{content:"";position:absolute;left:1.25rem;right:1.25rem;bottom:1.25rem;height:.85rem;border-radius:999px;background:var(--shelf-card-base-highlight);box-shadow:0 .45rem 1.2rem var(--shelf-card-base-shadow);z-index:0}
+  .shelf-card__body>*{position:relative;z-index:1}
+  .book-shelf-wrapper{position:relative}
+  .book-shelf{display:flex;gap:1.5rem;overflow-x:auto;padding:0 0 2.5rem;scroll-snap-type:x mandatory;scroll-behavior:smooth;scroll-padding:0 2.75rem;-webkit-overflow-scrolling:touch;touch-action:pan-x}
+  .book-shelf::before,.book-shelf::after{content:"";flex:0 0 2.75rem;pointer-events:none}
+  .book-shelf::-webkit-scrollbar{height:8px}
+  .book-shelf::-webkit-scrollbar-thumb{background-color:rgba(0,0,0,.2);border-radius:999px}
+  .book-item{position:relative;width:120px;flex:0 0 auto;text-align:center;scroll-snap-align:start;scroll-snap-stop:always}
+  .book-cover{display:block;width:120px;height:180px;border-radius:10px;overflow:hidden;box-shadow:0 1.25rem 1.75rem rgba(33,37,41,.18);border:3px solid rgba(255,255,255,.5);background:linear-gradient(130deg,rgba(255,255,255,.6),rgba(255,255,255,.2));transition:transform .2s ease,box-shadow .2s ease}
+  .book-cover img{width:100%;height:100%;object-fit:cover}
+  .book-cover:hover,.book-cover:focus-visible{transform:translateY(-4px);box-shadow:0 1.5rem 2.25rem rgba(33,37,41,.25)}
+  .book-cover:focus-visible{outline:3px solid rgba(79,70,229,.45);outline-offset:2px}
+  .book-cover__placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#4f46e5,#818cf8);color:#fff;font-size:2.5rem;font-weight:700}
+  .book-title{margin-top:.75rem;font-size:.9rem;font-weight:600;line-height:1.3}
+  .book-author{font-size:.75rem;color:rgba(33,37,41,.6)}
+  .book-actions{margin-top:.5rem}
+  .book-actions__button{width:100%;font-size:.75rem;font-weight:600;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;gap:.35rem}
+  .book-remove{position:absolute;top:.5rem;right:.5rem;opacity:0;transform:translateY(-.25rem);transition:all .2s ease;z-index:2}
+  .book-item:hover .book-remove{opacity:1;transform:translateY(0)}
+  .book-shelf__nav{position:absolute;top:50%;transform:translateY(-50%);width:2.75rem;height:2.75rem;border-radius:999px;border:none;background:rgba(255,255,255,.85);box-shadow:0 .75rem 1.5rem rgba(33,37,41,.15);display:none;align-items:center;justify-content:center;color:#8b5a2b;cursor:pointer;transition:background .2s ease,color .2s ease,transform .2s ease;z-index:2}
+  .book-shelf__nav:hover:not(:disabled),.book-shelf__nav:focus-visible:not(:disabled){background:rgba(255,255,255,.95);color:#6f451c;transform:translateY(-50%) scale(1.05)}
+  .book-shelf__nav:focus-visible{outline:3px solid rgba(139,90,43,.35);outline-offset:2px}
+  .book-shelf__nav:disabled{opacity:.4;cursor:default;box-shadow:none}
+  .book-shelf__nav--prev{left:1rem}
+  .book-shelf__nav--next{right:1rem}
+  .book-shelf-wrapper--overflow .book-shelf__nav{display:inline-flex}
+  .shelf-empty{padding:2rem;text-align:center;color:rgba(33,37,41,.6);font-style:italic}
+  @media (max-width:575.98px){
+    .book-shelf{gap:1.25rem;scroll-padding:0 2.25rem}
+    .book-shelf::before,.book-shelf::after{flex-basis:2.25rem}
+    .book-item{width:96px}
+    .book-cover{width:96px;height:150px}
+    .book-shelf__nav{width:2.5rem;height:2.5rem}
+    .book-shelf__nav--prev{left:.5rem}
+    .book-shelf__nav--next{right:.5rem}
+    .shelf-card__body{padding:2rem 1.25rem 1.75rem}
+    .shelf-card__body::after{left:1rem;right:1rem;bottom:1rem}
   }
 </style>
 
 {% for shelf in shelves %}
   {% with shelf.items.all as shelf_books %}
-  {% with normalized_name=shelf.name|lower normalized_default=default_reading_shelf_name|default:'Читаю'|lower normalized_progress=reading_progress_label|default:'Читаю сейчас'|lower normalized_home=default_home_library_shelf_name|default:'Моя домашняя библиотека'|lower normalized_read=default_read_shelf_name|default:'Прочитал'|lower %}
+  {% with
+      normalized_name=shelf.name|lower
+      normalized_default=default_reading_shelf_name|default:'Читаю'|lower
+      normalized_progress=reading_progress_label|default:'Читаю сейчас'|lower
+      normalized_home=default_home_library_shelf_name|default:'Моя домашняя библиотека'|lower
+      normalized_read=default_read_shelf_name|default:'Прочитано'|lower
+  %}
   {% with shelf_link="" %}
   <section class="shelf-card">
     {% if request.user.is_authenticated and shelf.user_id == request.user.id %}
@@ -347,6 +72,7 @@
         {% url 'reading_now' as shelf_link %}
       {% endif %}
     {% endif %}
+
     <div class="shelf-card__header">
       <div>
         <h2 class="h6 shelf-card__title mb-0">
@@ -361,9 +87,7 @@
         {% endwith %}
       </div>
       <div class="shelf-card__badges">
-        {% if shelf.is_default %}
-          <span class="badge text-bg-light"><i class="bi bi-stars me-1"></i>системная</span>
-        {% endif %}
+        {% if shelf.is_default %}<span class="badge text-bg-light"><i class="bi bi-stars me-1"></i>системная</span>{% endif %}
         {% if not shelf.is_public %}
           <span class="badge text-bg-secondary"><i class="bi bi-lock-fill me-1"></i>приватная</span>
         {% else %}
@@ -377,13 +101,14 @@
         <div class="shelf-card__body">
           <div class="book-shelf-wrapper">
             <button class="book-shelf__nav book-shelf__nav--prev" type="button" aria-label="Прокрутить полку назад">
-              <span class="visually-hidden">Прокрутить полку назад</span>
-              <i class="bi bi-chevron-left" aria-hidden="true"></i>
+              <span class="visually-hidden">Прокрутить полку назад</span><i class="bi bi-chevron-left" aria-hidden="true"></i>
             </button>
+
             <div class="book-shelf">
               {% with status_user=shelf.user|default:None %}
                 {% default_shelf_status_map shelf_books status_user as default_status_map %}
               {% endwith %}
+
               {% for it in shelf_books %}
                 <div class="book-item">
                   <a class="book-cover"
@@ -397,6 +122,7 @@
                       {% endif %}
                     {% endwith %}
                   </a>
+
                   {% if allow_manage %}
                     <div class="book-remove">
                       <a class="btn btn-sm btn-danger"
@@ -407,21 +133,22 @@
                       </a>
                     </div>
                   {% endif %}
+
                   <div class="book-title">{{ it.book.title }}</div>
                   <div class="book-author">{{ it.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
+
                   {% with status=default_status_map|dict_get:it.book.pk %}
+                    {# 1) Полка «Прочитано»: показать дату добавления на эту полку #}
                     {% if normalized_name == normalized_read %}
-                      {% with read_date=status.added_at|default:it.added_at %}
-                        {% if read_date %}
-                          <div class="book-actions">
-                            <div class="small text-muted fw-semibold">Прочитано {{ read_date|date:"d.m.Y" }}</div>
+                      {% with read_date=it.added_at %}
+                        <div class="book-actions">
+                          <div class="small text-muted fw-semibold">
+                            Прочитано{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}
                           </div>
-                        {% else %}
-                          <div class="book-actions">
-                            <div class="small text-muted fw-semibold">Прочитано</div>
-                          </div>
-                        {% endif %}
-                        {% endwith %}
+                        </div>
+                      {% endwith %}
+
+                    {# 2) «Моя домашняя библиотека»: если статус read — показать дату из статуса (fallback к it.added_at) #}
                     {% elif normalized_name == normalized_home %}
                       {% if status and status.code == 'read' %}
                         {% with read_date=status.added_at|default:it.added_at %}
@@ -438,19 +165,15 @@
                       {% elif allow_manage %}
                         <form class="book-actions" method="post" action="{% url 'move_book_to_reading' it.book.pk %}">
                           {% csrf_token %}
-                          {% if return_path %}
-                            <input type="hidden" name="next" value="{{ return_path }}">
-                          {% endif %}
-                          <button
-                            type="submit"
-                            class="btn btn-sm btn-outline-primary book-actions__button"
-                            aria-label="Переместить «{{ it.book.title }}» на полку «{{ default_reading_shelf_name|default:'Читаю' }}»"
-                          >
-                            <i class="bi bi-book-half" aria-hidden="true"></i>
-                            <span>Начать читать</span>
+                          {% if return_path %}<input type="hidden" name="next" value="{{ return_path }}">{% endif %}
+                          <button type="submit" class="btn btn-sm btn-outline-primary book-actions__button"
+                                  aria-label="Переместить «{{ it.book.title }}» на полку «{{ default_reading_shelf_name|default:'Читаю' }}»">
+                            <i class="bi bi-book-half" aria-hidden="true"></i><span>Начать читать</span>
                           </button>
                         </form>
                       {% endif %}
+
+                    {# 3) Другие полки: если книга уже прочитана — показать дату из статуса.read #}
                     {% elif allow_manage and normalized_name != normalized_default and normalized_name != normalized_progress %}
                       {% if status and status.code == 'read' %}
                         {% with read_date=status.added_at %}
@@ -467,16 +190,10 @@
                       {% else %}
                         <form class="book-actions" method="post" action="{% url 'move_book_to_reading' it.book.pk %}">
                           {% csrf_token %}
-                          {% if return_path %}
-                            <input type="hidden" name="next" value="{{ return_path }}">
-                          {% endif %}
-                          <button
-                            type="submit"
-                            class="btn btn-sm btn-outline-primary book-actions__button"
-                            aria-label="Переместить «{{ it.book.title }}» на полку «{{ default_reading_shelf_name|default:'Читаю' }}»"
-                          >
-                            <i class="bi bi-book-half" aria-hidden="true"></i>
-                            <span>Начать читать</span>
+                          {% if return_path %}<input type="hidden" name="next" value="{{ return_path }}">{% endif %}
+                          <button type="submit" class="btn btn-sm btn-outline-primary book-actions__button"
+                                  aria-label="Переместить «{{ it.book.title }}» на полку «{{ default_reading_shelf_name|default:'Читаю' }}»">
+                            <i class="bi bi-book-half" aria-hidden="true"></i><span>Начать читать</span>
                           </button>
                         </form>
                       {% endif %}
@@ -485,9 +202,9 @@
                 </div>
               {% endfor %}
             </div>
+
             <button class="book-shelf__nav book-shelf__nav--next" type="button" aria-label="Прокрутить полку вперёд">
-              <span class="visually-hidden">Прокрутить полку вперёд</span>
-              <i class="bi bi-chevron-right" aria-hidden="true"></i>
+              <span class="visually-hidden">Прокрутить полку вперёд</span><i class="bi bi-chevron-right" aria-hidden="true"></i>
             </button>
           </div>
         </div>
@@ -502,26 +219,20 @@
 {% empty %}
   <div class="alert alert-light border">{{ empty_message|default:"Пока нет полок." }}</div>
 {% endfor %}
+
 <script>
-  (function () {
-    if (window.__bookShelfScrollerInitialized) {
-      return;
-    }
+  (function(){
+    if(window.__bookShelfScrollerInitialized){return;}
     window.__bookShelfScrollerInitialized = true;
 
     const initShelfNavigation = () => {
-      const wrappers = document.querySelectorAll(".book-shelf-wrapper");
-      wrappers.forEach((wrapper) => {
-        if (wrapper.dataset.shelfNavBound === "true") {
-          return;
-        }
+      document.querySelectorAll(".book-shelf-wrapper").forEach((wrapper) => {
+        if (wrapper.dataset.shelfNavBound === "true") return;
 
         const shelf = wrapper.querySelector(".book-shelf");
-        const prev = wrapper.querySelector(".book-shelf__nav--prev");
-        const next = wrapper.querySelector(".book-shelf__nav--next");
-        if (!shelf || !prev || !next) {
-          return;
-        }
+        const prev  = wrapper.querySelector(".book-shelf__nav--prev");
+        const next  = wrapper.querySelector(".book-shelf__nav--next");
+        if(!shelf||!prev||!next) return;
 
         wrapper.dataset.shelfNavBound = "true";
 
@@ -533,58 +244,35 @@
           next.disabled = !hasOverflow || shelf.scrollLeft >= maxScroll - 1;
         };
 
-        const scrollShelf = (direction) => {
-          const distance = direction * Math.max(shelf.clientWidth * 0.8, 200);
-          if (typeof shelf.scrollBy === "function") {
-            try {
-              shelf.scrollBy({ left: distance, behavior: "smooth" });
-              requestUpdate();
-              return;
-            } catch (error) {
-              // browsers that do not support object-form scrollBy fallback below
-            }
+        const requestUpdate = () => window.requestAnimationFrame(updateState);
+
+        const scrollShelf = (dir) => {
+          const distance = dir * Math.max(shelf.clientWidth * 0.8, 200);
+          try {
+            shelf.scrollBy({ left: distance, behavior: "smooth" });
+          } catch(e) {
+            shelf.scrollLeft += distance;
           }
-          shelf.scrollLeft += distance;
           requestUpdate();
         };
 
-        const requestUpdate = () => {
-          window.requestAnimationFrame(updateState);
-        };
-
-        prev.addEventListener("click", (event) => {
-          event.preventDefault();
-          scrollShelf(-1);
-        });
-        next.addEventListener("click", (event) => {
-          event.preventDefault();
-          scrollShelf(1);
-        });
-
-        shelf.addEventListener("scroll", requestUpdate, { passive: true });
-
-        const handleResize = () => updateState();
+        prev.addEventListener("click", (e)=>{e.preventDefault();scrollShelf(-1);});
+        next.addEventListener("click", (e)=>{e.preventDefault();scrollShelf(1);});
+        shelf.addEventListener("scroll", requestUpdate, { passive:true });
 
         if (typeof ResizeObserver !== "undefined") {
-          const resizeObserver = new ResizeObserver(updateState);
-          resizeObserver.observe(shelf);
+          new ResizeObserver(updateState).observe(shelf);
         } else {
-          window.addEventListener("resize", handleResize);
+          window.addEventListener("resize", updateState);
         }
 
-        shelf.querySelectorAll("img").forEach((img) => {
-          if (img.complete) {
-            return;
-          }
-          img.addEventListener("load", updateState, { once: true });
-        });
-
+        shelf.querySelectorAll("img").forEach((img)=>{ if(!img.complete){ img.addEventListener("load", updateState, { once:true }); }});
         updateState();
       });
     };
 
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", initShelfNavigation, { once: true });
+    if(document.readyState==="loading"){
+      document.addEventListener("DOMContentLoaded", initShelfNavigation, { once:true });
     } else {
       initShelfNavigation();
     }

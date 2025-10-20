@@ -3,6 +3,7 @@ from __future__ import annotations
 """Utility helpers for manipulating user shelves."""
 
 from collections.abc import Iterable
+from decimal import Decimal
 
 from django.contrib.auth.models import User
 from django.db import transaction
@@ -10,7 +11,7 @@ from django.utils import timezone
 
 
 from books.models import Book
-from .models import Shelf, ShelfItem
+from .models import BookProgress, Shelf, ShelfItem
 
 
 DEFAULT_WANT_SHELF = "Хочу прочитать"
@@ -149,6 +150,34 @@ def get_default_shelf_status_map(
                 "code": code,
                 "label": shelf_name,
                 "added_at": item.added_at,
+            }
+
+    pending_completion_ids = [
+        book_id
+        for book_id in normalized_ids
+        if status_map.get(book_id, {}).get("code") != "read"
+    ]
+
+    if pending_completion_ids:
+        completed_progresses = (
+            BookProgress.objects
+            .filter(
+                user=user,
+                event__isnull=True,
+                book_id__in=pending_completion_ids,
+                percent__gte=Decimal("100"),
+            )
+            .only("book_id", "updated_at")
+        )
+
+        for progress in completed_progresses:
+            existing = status_map.get(progress.book_id)
+            if existing and priority_map[existing["code"]] >= priority_map["read"]:
+                continue
+            status_map[progress.book_id] = {
+                "code": "read",
+                "label": DEFAULT_READ_SHELF,
+                "added_at": progress.updated_at,
             }
 
     return status_map
