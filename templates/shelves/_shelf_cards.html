@@ -55,15 +55,15 @@
 </style>
 
 {% for shelf in shelves %}
-  {% with shelf.items.all as shelf_books %}
   {% with
+      shelf_books=shelf.items.all
       normalized_name=shelf.name|lower
       normalized_default=default_reading_shelf_name|default:'Читаю'|lower
       normalized_progress=reading_progress_label|default:'Читаю сейчас'|lower
       normalized_home=default_home_library_shelf_name|default:'Моя домашняя библиотека'|lower
       normalized_read=default_read_shelf_name|default:'Прочитано'|lower
+      shelf_link=""
   %}
-  {% with shelf_link="" %}
   <section class="shelf-card">
     {% if request.user.is_authenticated and shelf.user_id == request.user.id %}
       {% if normalized_name == normalized_home %}
@@ -212,9 +212,7 @@
         <div class="shelf-empty">Пока нет книг. Добавьте первую книгу на эту полку!</div>
       {% endif %}
     {% endwith %}
-  </section>
-  {% endwith %}
-  {% endwith %}
+    </section>
   {% endwith %}
 {% empty %}
   <div class="alert alert-light border">{{ empty_message|default:"Пока нет полок." }}</div>
