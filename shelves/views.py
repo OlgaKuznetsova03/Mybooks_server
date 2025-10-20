@@ -285,11 +285,11 @@ def home_library(request):
     # === ДОБАВЛЕНО: прокидываем виртуальное поле date_read в объекты для шаблона ===
     for entry in entries:
         bid = entry.shelf_item.book_id if entry.shelf_item and entry.shelf_item.book_id else None
-        entry.date_read = read_dates_map.get(bid)
+        entry.date_read = entry.read_at or read_dates_map.get(bid)
 
     for entry in disposed_entries:
         bid = entry.shelf_item.book_id if entry.shelf_item and entry.shelf_item.book_id else None
-        entry.date_read = read_dates_map.get(bid)
+        entry.date_read = entry.read_at or read_dates_map.get(bid)
 
     summary = {
         "total": total_active,

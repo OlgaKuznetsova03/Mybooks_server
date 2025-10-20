@@ -750,6 +750,11 @@ class HomeLibraryEntry(models.Model):
         blank=True,
         help_text="Дата покупки или получения",
     )
+    read_at = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Дата завершения чтения",
+    )
     condition = models.CharField(
         max_length=100,
         blank=True,

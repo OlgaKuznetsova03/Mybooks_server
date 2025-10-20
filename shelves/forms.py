@@ -519,6 +519,7 @@ class HomeLibraryEntryForm(forms.ModelForm):
             "shelf_section",
             "acquired_at",
             "is_classic",
+            "read_at",
             "series_name",
             "custom_genres",
             "is_disposed",
@@ -533,6 +534,7 @@ class HomeLibraryEntryForm(forms.ModelForm):
             "location": "Где хранится",
             "shelf_section": "Секция/полка",
             "acquired_at": "Дата приобретения",
+            "read_at": "Дата прочтения",
             "is_classic": "Классика",
             "series_name": "Серия книг",
             "custom_genres": "Жанры",
@@ -551,6 +553,10 @@ class HomeLibraryEntryForm(forms.ModelForm):
                 attrs={"type": "date", "class": "form-control"},
                 format="%Y-%m-%d",
             ),
+            "read_at": forms.DateInput(
+                attrs={"type": "date", "class": "form-control"},
+                format="%Y-%m-%d",
+            ),
             "is_classic": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "series_name": forms.TextInput(attrs={"class": "form-control"}),
             "custom_genres": forms.SelectMultiple(
@@ -565,14 +571,21 @@ class HomeLibraryEntryForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        acquired_field = self.fields["acquired_at"]
-        existing_formats = list(acquired_field.input_formats or [])
-        if "%Y-%m-%d" not in existing_formats:
-            existing_formats.insert(0, "%Y-%m-%d")
-        acquired_field.input_formats = existing_formats
-        acquired_field.widget.format = "%Y-%m-%d"
-        if self.instance and self.instance.pk and self.instance.acquired_at:
-            self.initial.setdefault("acquired_at", self.instance.acquired_at)
+        for field_name in ("acquired_at", "read_at"):
+            field = self.fields.get(field_name)
+            if not field:
+                continue
+            existing_formats = list(field.input_formats or [])
+            if "%Y-%m-%d" not in existing_formats:
+                existing_formats.insert(0, "%Y-%m-%d")
+            field.input_formats = existing_formats
+            if hasattr(field.widget, "format"):
+                field.widget.format = "%Y-%m-%d"
+            instance_value = None
+            if self.instance and getattr(self.instance, "pk", None):
+                instance_value = getattr(self.instance, field_name)
+            if instance_value:
+                self.initial.setdefault(field_name, instance_value)
 
     def clean(self):
         cleaned_data = super().clean()

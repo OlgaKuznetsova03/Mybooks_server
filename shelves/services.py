@@ -11,7 +11,7 @@ from django.utils import timezone
 
 
 from books.models import Book
-from .models import BookProgress, Shelf, ShelfItem
+from .models import BookProgress, Shelf, ShelfItem, HomeLibraryEntry
 
 
 DEFAULT_WANT_SHELF = "Хочу прочитать"
@@ -105,12 +105,19 @@ def move_book_to_read_shelf(user: User, book: Book) -> None:
         )
         ShelfItem.objects.get_or_create(shelf=read_shelf, book=book)
 
+    home_shelf = get_home_library_shelf(user)
+    home_item, _ = ShelfItem.objects.get_or_create(shelf=home_shelf, book=book)
+    entry, _ = HomeLibraryEntry.objects.get_or_create(shelf_item=home_item)
+    today = timezone.localdate()
+    if entry.read_at != today:
+        entry.read_at = today
+        entry.save(update_fields=["read_at"])
+
     try:
         from games.services.read_before_buy import ReadBeforeBuyGame
     except ImportError:
         return
 
-    home_shelf = get_home_library_shelf(user)
     ReadBeforeBuyGame.ensure_completion_awarded(
         user,
         home_shelf,

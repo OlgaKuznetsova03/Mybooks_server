@@ -15,8 +15,15 @@ from .models import (
     Shelf,
     ShelfItem,
     ReadingFeedEntry,
+    HomeLibraryEntry,
 )
-from .services import DEFAULT_READ_SHELF, ALL_DEFAULT_READ_SHELF_NAMES, get_default_shelf_status_map
+from .services import (
+    DEFAULT_HOME_LIBRARY_SHELF,
+    DEFAULT_READ_SHELF,
+    ALL_DEFAULT_READ_SHELF_NAMES,
+    get_default_shelf_status_map,
+    move_book_to_read_shelf,
+)
 
 
 class ReadingTrackViewTests(TestCase):
@@ -688,6 +695,29 @@ class DefaultShelfStatusMapTests(TestCase):
         self.assertEqual(status["label"], read_shelf.name)
         self.assertEqual(status["added_at"], shelf_item.added_at)
 
+class HomeLibraryEntryReadDateTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="home-user", password="pass")
+        self.book = Book.objects.create(title="Home Book")
+
+    def test_move_to_read_sets_read_date(self):
+        home_shelf = Shelf.objects.get(user=self.user, name=DEFAULT_HOME_LIBRARY_SHELF)
+        shelf_item = ShelfItem.objects.create(shelf=home_shelf, book=self.book)
+        entry = HomeLibraryEntry.objects.create(shelf_item=shelf_item)
+
+        move_book_to_read_shelf(self.user, self.book)
+
+        entry.refresh_from_db()
+        self.assertEqual(entry.read_at, localdate())
+
+    def test_entry_created_with_read_date_if_missing(self):
+        home_shelf = Shelf.objects.get(user=self.user, name=DEFAULT_HOME_LIBRARY_SHELF)
+
+        move_book_to_read_shelf(self.user, self.book)
+
+        entry = HomeLibraryEntry.objects.get(shelf_item__shelf=home_shelf, shelf_item__book=self.book)
+        self.assertEqual(entry.read_at, localdate())
+        
     def test_template_tag_handles_shelf_items(self):
         read_shelf = Shelf.objects.filter(
             user=self.user,
