@@ -695,6 +695,40 @@ class DefaultShelfStatusMapTests(TestCase):
         self.assertEqual(status["label"], read_shelf.name)
         self.assertEqual(status["added_at"], shelf_item.added_at)
 
+    def test_home_library_read_date_marks_book_as_read(self):
+        home_shelf = Shelf.objects.get(user=self.user, name=DEFAULT_HOME_LIBRARY_SHELF)
+        home_item = ShelfItem.objects.create(shelf=home_shelf, book=self.book)
+        read_date = localdate() - timedelta(days=5)
+        HomeLibraryEntry.objects.create(shelf_item=home_item, read_at=read_date)
+
+        status_map = get_default_shelf_status_map(self.user, [self.book.pk])
+
+        status = status_map[self.book.pk]
+        self.assertEqual(status["code"], "read")
+        self.assertEqual(status["label"], DEFAULT_READ_SHELF)
+        self.assertEqual(status["added_at"], read_date)
+
+    def test_home_library_read_date_prefers_earliest_completion(self):
+        read_shelf = Shelf.objects.filter(
+            user=self.user,
+            name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+        ).first()
+        self.assertIsNotNone(read_shelf)
+        read_item = ShelfItem.objects.create(shelf=read_shelf, book=self.book)
+
+        home_shelf = Shelf.objects.get(user=self.user, name=DEFAULT_HOME_LIBRARY_SHELF)
+        home_item = ShelfItem.objects.create(shelf=home_shelf, book=self.book)
+        earlier_date = localdate() - timedelta(days=10)
+        HomeLibraryEntry.objects.create(shelf_item=home_item, read_at=earlier_date)
+
+        status_map = get_default_shelf_status_map(self.user, [self.book.pk])
+
+        status = status_map[self.book.pk]
+        self.assertEqual(status["code"], "read")
+        self.assertEqual(status["label"], read_shelf.name)
+        self.assertEqual(status["added_at"], earlier_date)
+
+
 class HomeLibraryEntryReadDateTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="home-user", password="pass")
@@ -717,7 +751,7 @@ class HomeLibraryEntryReadDateTests(TestCase):
 
         entry = HomeLibraryEntry.objects.get(shelf_item__shelf=home_shelf, shelf_item__book=self.book)
         self.assertEqual(entry.read_at, localdate())
-        
+
     def test_template_tag_handles_shelf_items(self):
         read_shelf = Shelf.objects.filter(
             user=self.user,
@@ -750,4 +784,21 @@ class HomeLibraryEntryReadDateTests(TestCase):
         self.assertEqual(status["code"], "read")
         self.assertEqual(status["label"], read_shelf.name)
         self.assertEqual(status["added_at"], shelf_item.added_at)
+
+        def test_home_library_view_marks_entry_as_read_via_read_at(self):
+        home_shelf = Shelf.objects.get(user=self.user, name=DEFAULT_HOME_LIBRARY_SHELF)
+        shelf_item = ShelfItem.objects.create(shelf=home_shelf, book=self.book)
+        read_date = localdate() - timedelta(days=3)
+        entry = HomeLibraryEntry.objects.create(shelf_item=shelf_item, read_at=read_date)
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("home_library"))
+
+        self.assertEqual(response.status_code, 200)
+        entries = response.context["entries"]
+        self.assertTrue(entries)
+        context_entry = next((e for e in entries if e.shelf_item_id == entry.shelf_item_id), None)
+        self.assertIsNotNone(context_entry)
+        self.assertTrue(getattr(context_entry, "is_read", False))
+        self.assertEqual(context_entry.date_read, read_date)
         

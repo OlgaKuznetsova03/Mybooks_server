@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Iterable
 from decimal import Decimal
 
+from datetime import date, datetime
+
 from django.contrib.auth.models import User
 from django.db import transaction
 from django.utils import timezone
@@ -231,6 +233,48 @@ def get_default_shelf_status_map(
                 "code": "read",
                 "label": DEFAULT_READ_SHELF,
                 "added_at": progress.updated_at,
+            }
+
+    if normalized_ids:
+        home_entries = (
+            HomeLibraryEntry.objects
+            .filter(
+                shelf_item__shelf__user=user,
+                shelf_item__book_id__in=normalized_ids,
+                read_at__isnull=False,
+            )
+            .select_related("shelf_item")
+        )
+
+        def _to_date(value: object) -> date | None:
+            if value is None:
+                return None
+            if isinstance(value, date) and not isinstance(value, datetime):
+                return value
+            if isinstance(value, datetime):
+                localized = timezone.localtime(value) if timezone.is_aware(value) else value
+                return localized.date()
+            return None
+
+        for entry in home_entries:
+            book_id = entry.shelf_item.book_id
+            if book_id is None:
+                continue
+            read_date = entry.read_at
+            if not read_date:
+                continue
+
+            existing = status_map.get(book_id)
+            if existing and existing.get("code") == "read":
+                existing_date = _to_date(existing.get("added_at"))
+                if existing_date is None or read_date < existing_date:
+                    existing["added_at"] = read_date
+                continue
+
+            status_map[book_id] = {
+                "code": "read",
+                "label": DEFAULT_READ_SHELF,
+                "added_at": read_date,
             }
 
     return status_map

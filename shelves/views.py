@@ -286,10 +286,12 @@ def home_library(request):
     for entry in entries:
         bid = entry.shelf_item.book_id if entry.shelf_item and entry.shelf_item.book_id else None
         entry.date_read = entry.read_at or read_dates_map.get(bid)
+        entry.is_read = bool(entry.date_read)
 
     for entry in disposed_entries:
         bid = entry.shelf_item.book_id if entry.shelf_item and entry.shelf_item.book_id else None
         entry.date_read = entry.read_at or read_dates_map.get(bid)
+        entry.is_read = bool(entry.date_read)
 
     summary = {
         "total": total_active,
