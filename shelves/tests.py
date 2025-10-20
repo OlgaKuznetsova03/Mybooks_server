@@ -1,7 +1,8 @@
 from datetime import timedelta
 from decimal import Decimal
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.template import Context
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
 from django.utils.timezone import localdate
 
@@ -647,6 +648,7 @@ class DefaultShelfStatusMapTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="map-user", password="pass")
         self.book = Book.objects.create(title="Status Book")
+        self.factory = RequestFactory()
 
     def test_completed_progress_marks_book_as_read(self):
         progress = BookProgress.objects.create(
@@ -662,4 +664,44 @@ class DefaultShelfStatusMapTests(TestCase):
         self.assertEqual(status["code"], "read")
         self.assertEqual(status["label"], DEFAULT_READ_SHELF)
         self.assertEqual(status["added_at"], progress.updated_at)
+        
+        def test_book_on_read_shelf_is_detected(self):
+        read_shelf = Shelf.objects.get(user=self.user, name=DEFAULT_READ_SHELF)
+        shelf_item = ShelfItem.objects.create(shelf=read_shelf, book=self.book)
+
+        status_map = get_default_shelf_status_map(self.user, [self.book.pk])
+
+        status = status_map[self.book.pk]
+        self.assertEqual(status["code"], "read")
+        self.assertEqual(status["label"], read_shelf.name)
+        self.assertEqual(status["added_at"], shelf_item.added_at)
+
+    def test_template_tag_handles_shelf_items(self):
+        read_shelf = Shelf.objects.get(user=self.user, name=DEFAULT_READ_SHELF)
+        shelf_item = ShelfItem.objects.create(shelf=read_shelf, book=self.book)
+
+        request = self.factory.get("/")
+        request.user = self.user
+        context = Context({"request": request})
+
+        from shelves.templatetags.shelf_extras import default_shelf_status_map
+
+        status_map = default_shelf_status_map(context, [shelf_item])
+
+        status = status_map[self.book.pk]
+        self.assertEqual(status["code"], "read")
+        self.assertEqual(status["label"], read_shelf.name)
+        self.assertEqual(status["added_at"], shelf_item.added_at)
+
+    def test_read_shelf_alias_supported(self):
+        Shelf.objects.filter(user=self.user, name=DEFAULT_READ_SHELF).update(name="Прочитано")
+        read_shelf = Shelf.objects.get(user=self.user, name="Прочитано")
+        shelf_item = ShelfItem.objects.create(shelf=read_shelf, book=self.book)
+
+        status_map = get_default_shelf_status_map(self.user, [self.book.pk])
+
+        status = status_map[self.book.pk]
+        self.assertEqual(status["code"], "read")
+        self.assertEqual(status["label"], read_shelf.name)
+        self.assertEqual(status["added_at"], shelf_item.added_at)
         

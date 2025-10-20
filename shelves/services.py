@@ -17,15 +17,47 @@ from .models import BookProgress, Shelf, ShelfItem
 DEFAULT_WANT_SHELF = "Хочу прочитать"
 DEFAULT_READING_SHELF = "Читаю"
 DEFAULT_READ_SHELF = "Прочитал"
+DEFAULT_READ_SHELF_ALIASES: tuple[str, ...] = ("Прочитано",)
+ALL_DEFAULT_READ_SHELF_NAMES: tuple[str, ...] = (
+    DEFAULT_READ_SHELF,
+    *DEFAULT_READ_SHELF_ALIASES,
+)
 DEFAULT_HOME_LIBRARY_SHELF = "Моя домашняя библиотека"
 READING_PROGRESS_LABEL = "Читаю сейчас"
 
 
-def _get_default_shelf(user: User, name: str, *, is_public: bool = True) -> Shelf:
-    shelf, _ = Shelf.objects.get_or_create(
+def _get_default_shelf(
+    user: User,
+    name: str,
+    *,
+    is_public: bool = True,
+    aliases: tuple[str, ...] | None = None,
+) -> Shelf:
+    """Получить (или создать) стандартную полку ``name`` для пользователя."""
+
+    lookup_names = [name]
+    if aliases:
+        lookup_names.extend(alias for alias in aliases if alias)
+
+    shelf = (
+        Shelf.objects
+        .filter(user=user, name__in=lookup_names)
+        .order_by("-is_default")
+        .first()
+    )
+
+    if shelf:
+        if not shelf.is_default:
+            shelf.is_default = True
+            shelf.is_public = is_public
+            shelf.save(update_fields=["is_default", "is_public"])
+        return shelf
+
+    shelf = Shelf.objects.create(
         user=user,
         name=name,
-        defaults={"is_default": True, "is_public": is_public},
+        is_default=True,
+        is_public=is_public,
     )
     return shelf
 
@@ -36,8 +68,15 @@ def get_home_library_shelf(user: User) -> Shelf:
     return _get_default_shelf(user, DEFAULT_HOME_LIBRARY_SHELF, is_public=False)
 
 
-def _remove_book_from_named_shelf(user: User, book: Book, shelf_name: str) -> None:
-    shelf = Shelf.objects.filter(user=user, name=shelf_name).first()
+def _remove_book_from_named_shelf(
+    user: User,
+    book: Book,
+    shelf_name: str | Iterable[str],
+) -> None:
+    if isinstance(shelf_name, (list, tuple, set, frozenset)):
+        shelf = Shelf.objects.filter(user=user, name__in=shelf_name).first()
+    else:
+        shelf = Shelf.objects.filter(user=user, name=shelf_name).first()
     if shelf:
         ShelfItem.objects.filter(shelf=shelf, book=book).delete()
 
@@ -56,9 +95,14 @@ def move_book_to_read_shelf(user: User, book: Book) -> None:
 
     with transaction.atomic():
         _remove_book_from_named_shelf(user, book, DEFAULT_READING_SHELF)
+        _remove_book_from_named_shelf(user, book, ALL_DEFAULT_READ_SHELF_NAMES)
         _remove_book_from_named_shelf(user, book, DEFAULT_WANT_SHELF)
 
-        read_shelf = _get_default_shelf(user, DEFAULT_READ_SHELF)
+        read_shelf = _get_default_shelf(
+            user,
+            DEFAULT_READ_SHELF,
+            aliases=DEFAULT_READ_SHELF_ALIASES,
+        )
         ShelfItem.objects.get_or_create(shelf=read_shelf, book=book)
 
     try:
@@ -82,7 +126,7 @@ def move_book_to_reading_shelf(user: User, book: Book) -> None:
         return
 
     with transaction.atomic():
-        _remove_book_from_named_shelf(user, book, DEFAULT_READ_SHELF)
+        _remove_book_from_named_shelf(user, book, ALL_DEFAULT_READ_SHELF_NAMES)
         _remove_book_from_named_shelf(user, book, DEFAULT_WANT_SHELF)
 
         reading_shelf = _get_default_shelf(user, DEFAULT_READING_SHELF)
@@ -118,6 +162,8 @@ def get_default_shelf_status_map(
     if not normalized_ids:
         return {}
 
+    read_shelf_names = tuple({name for name in ALL_DEFAULT_READ_SHELF_NAMES if name})
+
     shelf_items = (
         ShelfItem.objects
         .filter(
@@ -125,7 +171,7 @@ def get_default_shelf_status_map(
             shelf__name__in=[
                 DEFAULT_WANT_SHELF,
                 DEFAULT_READING_SHELF,
-                DEFAULT_READ_SHELF,
+                *read_shelf_names,
             ],
             book_id__in=normalized_ids,
         )
@@ -137,7 +183,7 @@ def get_default_shelf_status_map(
 
     for item in shelf_items:
         shelf_name = item.shelf.name
-        if shelf_name == DEFAULT_READ_SHELF:
+        if shelf_name in read_shelf_names:
             code = "read"
         elif shelf_name == DEFAULT_READING_SHELF:
             code = "reading"

@@ -30,15 +30,11 @@ def _extract_book_id(entry: Any) -> int | None:
 
     candidates: list[Any] = []
     if isinstance(entry, dict):
-        candidates.extend([entry.get("pk"), entry.get("id"), entry.get("book_id")])
         book = entry.get("book")
+        candidates.append(entry.get("book_id"))
     else:
-        candidates.extend([
-            getattr(entry, "pk", None),
-            getattr(entry, "id", None),
-            getattr(entry, "book_id", None),
-        ])
         book = getattr(entry, "book", None)
+        candidates.append(getattr(entry, "book_id", None))
 
     if book is not None:
         if isinstance(book, dict):
@@ -46,6 +42,11 @@ def _extract_book_id(entry: Any) -> int | None:
         else:
             candidates.extend([getattr(book, "pk", None), getattr(book, "id", None)])
 
+    if isinstance(entry, dict):
+        candidates.extend([entry.get("pk"), entry.get("id")])
+    else:
+        candidates.extend([getattr(entry, "pk", None), getattr(entry, "id", None)])
+        
     for candidate in candidates:
         book_id = _normalize_book_id(candidate)
         if book_id is not None:
