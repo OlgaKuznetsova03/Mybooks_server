@@ -1,7 +1,6 @@
 from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 import calendar
-from typing import Optional
 
 from django.shortcuts import render, redirect, get_object_or_404
 
@@ -15,11 +14,12 @@ from django.urls import reverse
 from django.utils import timezone
 
 
-from shelves.models import Shelf, BookProgress, HomeLibraryEntry, ReadingLog
+from shelves.models import Shelf, ShelfItem, BookProgress, HomeLibraryEntry, ReadingLog
 from shelves.services import (
     DEFAULT_HOME_LIBRARY_SHELF,
     DEFAULT_READ_SHELF,
     DEFAULT_READING_SHELF,
+    ALL_DEFAULT_READ_SHELF_NAMES,
     READING_PROGRESS_LABEL,
 )
 from books.models import Rating, Book
@@ -70,7 +70,7 @@ def _build_calendar_url(params, year, month):
     return f"?{query.urlencode()}"
 
 
-def _build_reading_calendar(user: User, params, read_shelf: Optional[Shelf], period_meta):
+def _build_reading_calendar(user: User, params, read_items_qs, period_meta):
     today = timezone.localdate()
     selected_year = period_meta.get("selected_year") or today.year
     selected_month = period_meta.get("selected_month") or today.month
@@ -115,9 +115,9 @@ def _build_reading_calendar(user: User, params, read_shelf: Optional[Shelf], per
                 "cover_url": _resolve_cover(book),
             }
 
-    if read_shelf:
+    if read_items_qs is not None:
         completed_items = (
-            read_shelf.items.filter(
+            read_items_qs.filter(
                 added_at__date__gte=first_day,
                 added_at__date__lte=last_day,
             )
@@ -335,9 +335,12 @@ def _collect_home_library_summary(user: User):
 
 def _collect_profile_stats(user: User, params):
     home_summary = _collect_home_library_summary(user)
-    read_shelf = Shelf.objects.filter(user=user, name="Прочитал").first()
+    read_items = ShelfItem.objects.filter(
+        shelf__user=user,
+        shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+    )
     today = timezone.localdate()
-    if not read_shelf:
+    if not read_items.exists():
         period_meta = {
             "period": "week",
             "label": "Последние 7 дней",
@@ -368,7 +371,6 @@ def _collect_profile_stats(user: User, params):
             "stats_period": period_meta,
         }
 
-    read_items = read_shelf.items.all()
     period_meta = _resolve_stats_period(params, read_items)
     start = period_meta["start"]
     end = period_meta["end"]
@@ -529,7 +531,7 @@ def _collect_profile_stats(user: User, params):
         "home_library": home_summary,
     }
 
-    stats["reading_calendar"] = _build_reading_calendar(user, params, read_shelf, period_meta)
+    stats["reading_calendar"] = _build_reading_calendar(user, params, read_items, period_meta)
 
     return {
         "stats": stats,

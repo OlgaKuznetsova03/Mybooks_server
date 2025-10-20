@@ -6,9 +6,9 @@ from books.models import Book
 from shelves.models import Shelf, ShelfItem
 from shelves.services import (
     DEFAULT_HOME_LIBRARY_SHELF,
-    DEFAULT_READ_SHELF,
     DEFAULT_READING_SHELF,
     DEFAULT_WANT_SHELF,
+    ALL_DEFAULT_READ_SHELF_NAMES,
     get_home_library_shelf,
 )
 
@@ -73,7 +73,7 @@ class BookJourneyAssignForm(forms.Form):
             shelf__user=user, shelf__name__in=ALLOWED_SHELF_NAMES
         )
         read_book_ids = ShelfItem.objects.filter(
-            shelf__user=user, shelf__name=DEFAULT_READ_SHELF
+            shelf__user=user, shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES
         ).values_list("book_id", flat=True)
         book_ids = (
             allowed_items.exclude(book_id__in=read_book_ids)
@@ -102,7 +102,9 @@ class BookJourneyAssignForm(forms.Form):
         if not book:
             return cleaned_data
         if ShelfItem.objects.filter(
-            shelf__user=user, shelf__name=DEFAULT_READ_SHELF, book=book
+            shelf__user=user,
+            shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+            book=book,
         ).exists():
             raise ValidationError("Прочитанные книги нельзя прикреплять к заданию.")
         if not ShelfItem.objects.filter(
@@ -150,7 +152,7 @@ class ForgottenBooksAddForm(forms.Form):
         queryset = Book.objects.filter(
             shelf_items__shelf=home_shelf,
         ).exclude(
-            shelf_items__shelf__name=DEFAULT_READ_SHELF,
+            shelf_items__shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES,
             shelf_items__shelf__user=user,
         )
         queryset = queryset.exclude(

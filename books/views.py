@@ -35,6 +35,7 @@ from shelves.services import (
     DEFAULT_READ_SHELF,
     DEFAULT_READING_SHELF,
     DEFAULT_WANT_SHELF,
+    ALL_DEFAULT_READ_SHELF_NAMES,
     get_home_library_shelf,
     get_default_shelf_status_map,
     move_book_to_read_shelf,
@@ -840,7 +841,7 @@ def book_detail(request, pk):
                 shelf__name__in=[
                     DEFAULT_WANT_SHELF,
                     DEFAULT_READING_SHELF,
-                    DEFAULT_READ_SHELF,
+                    *ALL_DEFAULT_READ_SHELF_NAMES,
                 ],
                 book=book,
             )
@@ -849,12 +850,20 @@ def book_detail(request, pk):
 
         items_by_name = {item.shelf.name: item for item in default_shelf_items}
 
-        if DEFAULT_READ_SHELF in items_by_name:
-            item = items_by_name[DEFAULT_READ_SHELF]
+        read_item = next(
+            (
+                items_by_name[name]
+                for name in ALL_DEFAULT_READ_SHELF_NAMES
+                if name in items_by_name
+            ),
+            None,
+        )
+
+        if read_item:
             default_shelf_status = {
                 "code": "read",
-                "label": DEFAULT_READ_SHELF,
-                "added_at": item.added_at,
+                "label": read_item.shelf.name,
+                "added_at": read_item.added_at,
             }
         elif DEFAULT_READING_SHELF in items_by_name:
             item = items_by_name[DEFAULT_READING_SHELF]

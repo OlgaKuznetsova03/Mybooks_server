@@ -36,6 +36,7 @@ from .services import (
     DEFAULT_WANT_SHELF,
     DEFAULT_READING_SHELF,
     DEFAULT_READ_SHELF,
+    ALL_DEFAULT_READ_SHELF_NAMES,
     READING_PROGRESS_LABEL,
     DEFAULT_HOME_LIBRARY_SHELF,
     get_home_library_shelf,
@@ -244,27 +245,29 @@ def home_library(request):
     # === ДОБАВЛЕНО: карта дат прочтения из полки «Прочитано» ===
     read_dates_map = {}
     try:
-        read_shelf = Shelf.objects.filter(user=request.user, name=DEFAULT_READ_SHELF).only("id").first()
-        if read_shelf:
-            filtered_book_ids = list(
-                filtered_entries_qs.values_list("shelf_item__book_id", flat=True)
-            )
-            if filtered_book_ids:
-                read_items = (
-                    ShelfItem.objects
-                    .filter(shelf=read_shelf, book_id__in=filtered_book_ids)
-                    .values("book_id", "added_at")
+        filtered_book_ids = list(
+            filtered_entries_qs.values_list("shelf_item__book_id", flat=True)
+        )
+        if filtered_book_ids:
+            read_items = (
+                ShelfItem.objects
+                .filter(
+                    shelf__user=request.user,
+                    shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+                    book_id__in=filtered_book_ids,
                 )
-                for ri in read_items:
-                    added_at = ri["added_at"]
-                    if added_at is None:
-                        continue
-                    # приводим к локальной дате при необходимости
-                    added_date = timezone.localtime(added_at).date() if timezone.is_aware(added_at) else added_at.date()
-                    book_id = ri["book_id"]
-                    prev = read_dates_map.get(book_id)
-                    # если книга добавлялась несколько раз в «Прочитано», берём самую раннюю дату завершения
-                    read_dates_map[book_id] = min(prev, added_date) if prev else added_date
+                .values("book_id", "added_at")
+            )
+            for ri in read_items:
+                added_at = ri["added_at"]
+                if added_at is None:
+                    continue
+                # приводим к локальной дате при необходимости
+                added_date = timezone.localtime(added_at).date() if timezone.is_aware(added_at) else added_at.date()
+                book_id = ri["book_id"]
+                prev = read_dates_map.get(book_id)
+                # если книга добавлялась несколько раз в «Прочитано», берём самую раннюю дату завершения
+                read_dates_map[book_id] = min(prev, added_date) if prev else added_date
     except Exception:
         # на случай редких ошибок — просто не показываем дату
         read_dates_map = {}

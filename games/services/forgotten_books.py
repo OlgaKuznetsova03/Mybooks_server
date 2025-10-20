@@ -19,7 +19,7 @@ from books.models import Book
 from shelves.models import ShelfItem
 from shelves.services import (
     DEFAULT_HOME_LIBRARY_SHELF,
-    DEFAULT_READ_SHELF,
+    ALL_DEFAULT_READ_SHELF_NAMES,
     get_home_library_shelf,
 )
 
@@ -78,7 +78,9 @@ class ForgottenBooksGame:
                 "Добавьте книгу в полку «{name}», чтобы участвовать в челлендже."
             ).format(name=DEFAULT_HOME_LIBRARY_SHELF), "danger"
         if ShelfItem.objects.filter(
-            shelf__user=user, shelf__name=DEFAULT_READ_SHELF, book=book
+            shelf__user=user,
+            shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+            book=book,
         ).exists():
             return False, "Эта книга уже отмечена как прочитанная.", "danger"
         entry = ForgottenBookEntry.objects.create(user=user, book=book)

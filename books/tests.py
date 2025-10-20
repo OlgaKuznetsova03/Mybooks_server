@@ -10,6 +10,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 
 from shelves.models import Shelf, ShelfItem
+from shelves.services import ALL_DEFAULT_READ_SHELF_NAMES
 
 from .models import Author, Genre, Publisher, Book, ISBNModel
 from .services import register_book_edition
@@ -413,7 +414,11 @@ class RateBookMovesShelfTests(TestCase):
 
     def test_rating_moves_book_from_reading_to_read_shelf(self):
         reading_shelf = Shelf.objects.get(user=self.user, name="Читаю")
-        read_shelf = Shelf.objects.get(user=self.user, name="Прочитал")
+        read_shelf = Shelf.objects.filter(
+            user=self.user,
+            name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+        ).first()
+        self.assertIsNotNone(read_shelf)
         ShelfItem.objects.get_or_create(shelf=reading_shelf, book=self.book)
 
         response = self.client.post(

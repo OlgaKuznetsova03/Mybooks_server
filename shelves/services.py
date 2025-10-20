@@ -17,7 +17,7 @@ from .models import BookProgress, Shelf, ShelfItem
 DEFAULT_WANT_SHELF = "Хочу прочитать"
 DEFAULT_READING_SHELF = "Читаю"
 DEFAULT_READ_SHELF = "Прочитал"
-DEFAULT_READ_SHELF_ALIASES: tuple[str, ...] = ("Прочитано",)
+DEFAULT_READ_SHELF_ALIASES: tuple[str, ...] = ("Прочитал",)
 ALL_DEFAULT_READ_SHELF_NAMES: tuple[str, ...] = (
     DEFAULT_READ_SHELF,
     *DEFAULT_READ_SHELF_ALIASES,

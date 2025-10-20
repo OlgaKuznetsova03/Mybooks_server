@@ -55,7 +55,7 @@
 </style>
 
 {% for shelf in shelves %}
-  {% with shelf_books=shelf.items.all normalized_name=shelf.name|lower normalized_default=default_reading_shelf_name|default:'Читаю'|lower normalized_progress=reading_progress_label|default:'Читаю сейчас'|lower normalized_home=default_home_library_shelf_name|default:'Моя домашняя библиотека'|lower normalized_read=default_read_shelf_name|default:'Прочитано'|lower shelf_link="" %}
+  {% with shelf_books=shelf.items.all normalized_name=shelf.name|lower normalized_default=default_reading_shelf_name|default:'Читаю'|lower normalized_progress=reading_progress_label|default:'Читаю сейчас'|lower normalized_home=default_home_library_shelf_name|default:'Моя домашняя библиотека'|lower normalized_read=default_read_shelf_name|default:'Прочитал'|lower shelf_link="" %}
   <section class="shelf-card">
     {% if request.user.is_authenticated and shelf.user_id == request.user.id %}
       {% if normalized_name == normalized_home %}
@@ -135,7 +135,7 @@
                       {% with read_date=it.added_at %}
                         <div class="book-actions">
                           <div class="small text-muted fw-semibold">
-                            Прочитано{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}
+                            Прочитал{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}
                           </div>
                         </div>
                       {% endwith %}
@@ -146,7 +146,7 @@
                         {% with read_date=status.added_at|default:it.added_at %}
                           <div class="book-actions">
                             <div class="small text-muted fw-semibold">
-                              Прочитано{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}
+                              Прочитал{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}
                             </div>
                           </div>
                         {% endwith %}
@@ -171,7 +171,7 @@
                         {% with read_date=status.added_at %}
                           <div class="book-actions">
                             <div class="small text-muted fw-semibold">
-                              Прочитано{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}
+                              Прочитал{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}
                             </div>
                           </div>
                         {% endwith %}

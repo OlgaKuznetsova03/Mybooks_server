@@ -16,7 +16,7 @@ from .models import (
     ShelfItem,
     ReadingFeedEntry,
 )
-from .services import DEFAULT_READ_SHELF, get_default_shelf_status_map
+from .services import DEFAULT_READ_SHELF, ALL_DEFAULT_READ_SHELF_NAMES, get_default_shelf_status_map
 
 
 class ReadingTrackViewTests(TestCase):
@@ -89,7 +89,11 @@ class ReadingTrackViewTests(TestCase):
     def test_mark_finished_moves_book_between_default_shelves(self):
         progress = self._create_progress()
         reading_shelf = Shelf.objects.get(user=self.user, name="Читаю")
-        read_shelf = Shelf.objects.get(user=self.user, name="Прочитал")
+        read_shelf = Shelf.objects.filter(
+            user=self.user,
+            name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+        ).first()
+        self.assertIsNotNone(read_shelf)
         want_shelf = Shelf.objects.get(user=self.user, name="Хочу прочитать")
         ShelfItem.objects.get_or_create(shelf=reading_shelf, book=self.book)
         ShelfItem.objects.get_or_create(shelf=want_shelf, book=self.book)
@@ -571,7 +575,11 @@ class ShelfDefaultActionsTests(TestCase):
     def test_quick_add_read_removes_from_other_defaults(self):
         want_shelf = Shelf.objects.get(user=self.user, name="Хочу прочитать")
         reading_shelf = Shelf.objects.get(user=self.user, name="Читаю")
-        read_shelf = Shelf.objects.get(user=self.user, name="Прочитал")
+        read_shelf = Shelf.objects.filter(
+            user=self.user,
+            name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+        ).first()
+        self.assertIsNotNone(read_shelf)
         ShelfItem.objects.create(shelf=want_shelf, book=self.book)
         ShelfItem.objects.create(shelf=reading_shelf, book=self.book)
 
@@ -665,8 +673,12 @@ class DefaultShelfStatusMapTests(TestCase):
         self.assertEqual(status["label"], DEFAULT_READ_SHELF)
         self.assertEqual(status["added_at"], progress.updated_at)
         
-        def test_book_on_read_shelf_is_detected(self):
-        read_shelf = Shelf.objects.get(user=self.user, name=DEFAULT_READ_SHELF)
+    def test_book_on_read_shelf_is_detected(self):
+        read_shelf = Shelf.objects.filter(
+            user=self.user,
+            name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+        ).first()
+        self.assertIsNotNone(read_shelf)
         shelf_item = ShelfItem.objects.create(shelf=read_shelf, book=self.book)
 
         status_map = get_default_shelf_status_map(self.user, [self.book.pk])
@@ -677,7 +689,11 @@ class DefaultShelfStatusMapTests(TestCase):
         self.assertEqual(status["added_at"], shelf_item.added_at)
 
     def test_template_tag_handles_shelf_items(self):
-        read_shelf = Shelf.objects.get(user=self.user, name=DEFAULT_READ_SHELF)
+        read_shelf = Shelf.objects.filter(
+            user=self.user,
+            name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+        ).first()
+        self.assertIsNotNone(read_shelf)
         shelf_item = ShelfItem.objects.create(shelf=read_shelf, book=self.book)
 
         request = self.factory.get("/")
