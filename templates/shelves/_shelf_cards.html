@@ -337,7 +337,7 @@
 
 {% for shelf in shelves %}
   {% with shelf.items.all as shelf_books %}
-  {% with normalized_name=shelf.name|lower normalized_default=default_reading_shelf_name|default:'Читаю'|lower normalized_progress=reading_progress_label|default:'Читаю сейчас'|lower normalized_home=default_home_library_shelf_name|default:'Моя домашняя библиотека'|lower %}
+  {% with normalized_name=shelf.name|lower normalized_default=default_reading_shelf_name|default:'Читаю'|lower normalized_progress=reading_progress_label|default:'Читаю сейчас'|lower normalized_home=default_home_library_shelf_name|default:'Моя домашняя библиотека'|lower normalized_read=default_read_shelf_name|default:'Прочитал'|lower %}
   {% with shelf_link="" %}
   <section class="shelf-card">
     {% if request.user.is_authenticated and shelf.user_id == request.user.id %}
@@ -408,25 +408,49 @@
                   <div class="book-title">{{ it.book.title }}</div>
                   <div class="book-author">{{ it.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
                   {% with status=default_status_map|dict_get:it.book.pk %}
-                      {% if allow_manage and normalized_name != normalized_default and normalized_name != normalized_progress %}
-                        {% if not status or status.code != 'reading' %}
-                          <form class="book-actions" method="post" action="{% url 'move_book_to_reading' it.book.pk %}">
-                            {% csrf_token %}
-                            {% if return_path %}
-                              <input type="hidden" name="next" value="{{ return_path }}">
-                            {% endif %}
-                            <button
-                              type="submit"
-                              class="btn btn-sm btn-outline-primary book-actions__button"
-                              aria-label="Переместить «{{ it.book.title }}» на полку «{{ default_reading_shelf_name|default:'Читаю' }}»"
-                            >
-                              <i class="bi bi-book-half" aria-hidden="true"></i>
-                              <span>Начать читать</span>
-                            </button>
-                          </form>
+                      {% if normalized_name == normalized_read %}
+                      {% with read_date=status.added_at|default:it.added_at %}
+                        {% if read_date %}
+                          <div class="book-actions">
+                            <div class="small text-muted fw-semibold">Прочитано {{ read_date|date:"d.m.Y" }}</div>
+                          </div>
+                        {% else %}
+                          <div class="book-actions">
+                            <div class="small text-muted fw-semibold">Прочитано</div>
+                          </div>
                         {% endif %}
-                        {% endif %}
-                    {% endwith %}
+                        {% endwith %}
+                    {% elif allow_manage and normalized_name != normalized_default and normalized_name != normalized_progress %}
+                      {% if status and status.code == 'read' %}
+                        {% with read_date=status.added_at %}
+                          <div class="book-actions">
+                            <div class="small text-muted fw-semibold">
+                              Прочитано{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}
+                            </div>
+                          </div>
+                        {% endwith %}
+                      {% elif status and status.code == 'reading' %}
+                        <div class="book-actions">
+                          <div class="small text-muted fw-semibold">На полке «{{ status.label|default:default_reading_shelf_name|default:'Читаю' }}»</div>
+                        </div>
+                      {% else %}
+                        <form class="book-actions" method="post" action="{% url 'move_book_to_reading' it.book.pk %}">
+                          {% csrf_token %}
+                          {% if return_path %}
+                            <input type="hidden" name="next" value="{{ return_path }}">
+                          {% endif %}
+                          <button
+                            type="submit"
+                            class="btn btn-sm btn-outline-primary book-actions__button"
+                            aria-label="Переместить «{{ it.book.title }}» на полку «{{ default_reading_shelf_name|default:'Читаю' }}»"
+                          >
+                            <i class="bi bi-book-half" aria-hidden="true"></i>
+                            <span>Начать читать</span>
+                          </button>
+                        </form>
+                      {% endif %}
+                    {% endif %}
+                  {% endwith %}
                 </div>
               {% endfor %}
             </div>

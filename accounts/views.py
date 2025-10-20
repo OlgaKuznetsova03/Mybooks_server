@@ -18,6 +18,7 @@ from django.utils import timezone
 from shelves.models import Shelf, BookProgress, HomeLibraryEntry, ReadingLog
 from shelves.services import (
     DEFAULT_HOME_LIBRARY_SHELF,
+    DEFAULT_READ_SHELF,
     DEFAULT_READING_SHELF,
     READING_PROGRESS_LABEL,
 )
@@ -600,6 +601,7 @@ def profile(request, username=None):
         "allow_shelf_management": request.user == user_obj,
         "default_reading_shelf_name": DEFAULT_READING_SHELF,
         "default_home_library_shelf_name": DEFAULT_HOME_LIBRARY_SHELF,
+        "default_read_shelf_name": DEFAULT_READ_SHELF,
         "reading_progress_label": READING_PROGRESS_LABEL,
         "user_reviews": user_reviews,
         "reading_pages_total": total_pages_read,

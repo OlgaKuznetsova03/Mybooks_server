@@ -95,6 +95,7 @@ def my_shelves(request):
             "shelves": shelves,
             "default_reading_shelf_name": DEFAULT_READING_SHELF,
             "default_home_library_shelf_name": DEFAULT_HOME_LIBRARY_SHELF,
+            "default_read_shelf_name": DEFAULT_READ_SHELF,
             "reading_progress_label": READING_PROGRESS_LABEL,
         },
     )
