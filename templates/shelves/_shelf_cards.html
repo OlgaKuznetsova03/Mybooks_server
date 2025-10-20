@@ -381,7 +381,9 @@
               <i class="bi bi-chevron-left" aria-hidden="true"></i>
             </button>
             <div class="book-shelf">
-              {% default_shelf_status_map shelf_books as default_status_map %}
+              {% with status_user=shelf.user|default:None %}
+                {% default_shelf_status_map shelf_books status_user as default_status_map %}
+              {% endwith %}
               {% for it in shelf_books %}
                 <div class="book-item">
                   <a class="book-cover"

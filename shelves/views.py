@@ -85,6 +85,7 @@ def my_shelves(request):
     shelves = (
         Shelf.objects
         .filter(user=request.user)
+        .select_related("user")
         .prefetch_related("items__book")
         .order_by("-is_default", "name")
     )

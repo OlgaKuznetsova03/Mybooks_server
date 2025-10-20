@@ -54,15 +54,26 @@ def _extract_book_id(entry: Any) -> int | None:
 
 
 @register.simple_tag(takes_context=True)
-def default_shelf_status_map(context, entries: Iterable[Any] | None) -> dict[int, dict[str, object]]:
-    """Return mapping of book ids in ``entries`` to the user's default shelf status."""
+def default_shelf_status_map(
+    context,
+    entries: Iterable[Any] | None,
+    user: Any | None = None,
+) -> dict[int, dict[str, object]]:
+    """Return mapping of book ids in ``entries`` to the default shelf status for ``user``.
+
+    ``user`` can be provided explicitly (for example, when rendering shelves that belong
+    to another account). When omitted, the current request user is used.
+    """
 
     if not entries:
         return {}
 
-    request = context.get("request")
-    user = getattr(request, "user", None) if request else None
-    if not getattr(user, "is_authenticated", False):
+    target_user = user
+    if target_user is None:
+        request = context.get("request")
+        target_user = getattr(request, "user", None) if request else None
+
+    if not getattr(target_user, "is_authenticated", False):
         return {}
 
     book_ids: list[int] = []
@@ -77,7 +88,7 @@ def default_shelf_status_map(context, entries: Iterable[Any] | None) -> dict[int
     if not book_ids:
         return {}
 
-    return get_default_shelf_status_map(user, book_ids)
+    return get_default_shelf_status_map(target_user, book_ids)
 
 
 @register.filter
