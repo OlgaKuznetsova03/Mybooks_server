@@ -367,6 +367,27 @@
   box-shadow: 0 10px 22px rgba(76, 87, 96, 0.1);
 }
 
+.discussion-post__reply-reference {
+  border-left: 3px solid rgba(76, 87, 96, 0.25);
+  padding-left: 1rem;
+}
+
+.discussion-post__quoted {
+  font-size: 0.95rem;
+  color: rgba(33, 37, 41, 0.75);
+}
+
+.discussion-post__reply-link {
+  font-size: 0.9rem;
+  color: var(--reading-primary);
+}
+
+.discussion-post__reply-link:hover,
+.discussion-post__reply-link:focus {
+  color: var(--reading-primary-light);
+  text-decoration: none;
+}
+
 .discussion-post + .discussion-post {
   margin-top: 1rem;
 }
@@ -383,6 +404,19 @@
 
 .discussion-form textarea {
   border-color: rgba(76, 87, 96, 0.4);
+}
+
+.discussion-form__reply-preview {
+  background-color: rgba(76, 87, 96, 0.08);
+  border: 1px solid rgba(76, 87, 96, 0.15);
+  border-radius: 0.75rem;
+}
+
+.discussion-form__quoted {
+  max-height: 180px;
+  overflow-y: auto;
+  font-size: 0.9rem;
+  color: rgba(33, 37, 41, 0.75);
 }
 
 .btn-reading {

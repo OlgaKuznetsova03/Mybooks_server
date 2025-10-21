@@ -19,6 +19,27 @@ from .forms import DiscussionPostForm, ReadingClubForm, ReadingNormForm
 from .models import DiscussionPost, ReadingClub, ReadingNorm, ReadingParticipant
 
 
+def _format_reply_prefill(post: DiscussionPost) -> str:
+    author_name = post.author.get_full_name() or post.author.username
+    quoted_lines = "\n".join(f"> {line}" for line in post.content.splitlines())
+    if not quoted_lines:
+        quoted_lines = ">"
+    return f"Ответ на {author_name}:\n{quoted_lines}\n\n"
+
+
+def _resolve_parent_post(topic: ReadingNorm, parent_value: str | None) -> DiscussionPost | None:
+    if not parent_value:
+        return None
+    try:
+        parent_id = int(parent_value)
+    except (TypeError, ValueError):
+        return None
+    try:
+        return topic.posts.select_related("author").get(pk=parent_id)
+    except DiscussionPost.DoesNotExist:
+        return None
+
+
 @dataclass
 class ReadingClubGrouping:
     title: str
@@ -220,7 +241,11 @@ class ReadingTopicDetailView(DetailView):
             .prefetch_related(
                 Prefetch(
                     "posts",
-                    queryset=DiscussionPost.objects.select_related("author").order_by("created_at"),
+                    queryset=DiscussionPost.objects.select_related(
+                        "author",
+                        "parent",
+                        "parent__author",
+                    ).order_by("created_at"),
                 ),
             )
         )
@@ -238,16 +263,28 @@ class ReadingTopicDetailView(DetailView):
                 status=ReadingParticipant.Status.APPROVED,
             ).exists()
             can_post = is_participant and topic.is_open()
+            form = None
+        reply_to_post = None
+        if can_post:
+            reply_to_post = self._get_reply_post(topic)
+            initial = {}
+            if reply_to_post:
+                initial["content"] = _format_reply_prefill(reply_to_post)
+            form = DiscussionPostForm(initial=initial)
         context.update(
             {
                 "reading": reading,
                 "is_participant": is_participant,
                 "can_post": can_post,
-                "form": DiscussionPostForm() if can_post else None,
+                "form": form,
+                "reply_to_post": reply_to_post,
             }
         )
         return context
 
+    def _get_reply_post(self, topic: ReadingNorm) -> DiscussionPost | None:
+        return _resolve_parent_post(topic, self.request.GET.get("reply_to"))
+    
 
 @method_decorator(login_required, name="dispatch")
 class DiscussionPostCreateView(View):
@@ -267,11 +304,14 @@ class DiscussionPostCreateView(View):
         ).exists():
             messages.error(request, "Только участники могут оставлять сообщения.")
             return redirect(topic.get_absolute_url())
+        parent_post = _resolve_parent_post(topic, request.POST.get("parent"))
         form = DiscussionPostForm(request.POST)
         if form.is_valid():
             post: DiscussionPost = form.save(commit=False)
             post.topic = topic
             post.author = request.user
+            if parent_post:
+                post.parent = parent_post
             post.save()
             award_for_discussion_post(post)
             messages.success(request, "Сообщение добавлено.")
@@ -282,5 +322,6 @@ class DiscussionPostCreateView(View):
             "form": form,
             "is_participant": True,
             "can_post": True,
+            "reply_to_post": parent_post,
         }
         return render(request, "reading_clubs/topic_detail.html", context)

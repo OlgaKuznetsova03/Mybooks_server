@@ -36,12 +36,25 @@
       {% if topic.posts.all %}
         <div class="vstack gap-3">
           {% for post in topic.posts.all %}
-            <article class="discussion-post">
+            <article class="discussion-post" id="post-{{ post.pk }}">
               <div class="d-flex justify-content-between mb-1">
                 <div class="discussion-post__author">{{ post.author.get_full_name|default:post.author.username }}</div>
                 <div class="discussion-post__timestamp">{{ post.created_at|date:"d E Y H:i" }}</div>
               </div>
+              {% if post.parent %}
+                <div class="discussion-post__reply-reference mb-3">
+                  <div class="small text-muted mb-1">Ответ на {{ post.parent.author.get_full_name|default:post.parent.author.username }}:</div>
+                  <div class="discussion-post__quoted">{{ post.parent.content|linebreaksbr }}</div>
+                </div>
+              {% endif %}
               <p class="mb-0">{{ post.content|linebreaksbr }}</p>
+              {% if can_post %}
+                <div class="mt-2">
+                  <a class="discussion-post__reply-link" href="{% url 'reading_clubs:topic_detail' reading.slug topic.pk %}?reply_to={{ post.pk }}#reply-form">
+                    <i class="bi bi-reply me-1"></i> Ответить
+                  </a>
+                </div>
+              {% endif %}
             </article>
           {% endfor %}
         </div>
@@ -54,8 +67,21 @@
         <div class="card-body">
           <h2 class="h5 reading-section-title">Новое сообщение</h2>
           {% if can_post %}
-            <form class="discussion-form" action="{% url 'reading_clubs:post_add' reading.slug topic.pk %}" method="post">
+            <form class="discussion-form" action="{% url 'reading_clubs:post_add' reading.slug topic.pk %}" method="post" id="reply-form">
               {% csrf_token %}
+              <input type="hidden" name="parent" value="{% if reply_to_post %}{{ reply_to_post.pk }}{% endif %}">
+              {% if reply_to_post %}
+                <div class="alert alert-info discussion-form__reply-preview" role="status">
+                  <div class="d-flex justify-content-between align-items-start gap-3">
+                    <div>
+                      <div class="fw-semibold">Ответ на {{ reply_to_post.author.get_full_name|default:reply_to_post.author.username }}</div>
+                      <div class="small text-muted mb-1">{{ reply_to_post.created_at|date:"d E Y H:i" }}</div>
+                      <div class="discussion-form__quoted">{{ reply_to_post.content|linebreaksbr }}</div>
+                    </div>
+                    <a class="text-decoration-none" href="{% url 'reading_clubs:topic_detail' reading.slug topic.pk %}#reply-form">Отменить</a>
+                  </div>
+                </div>
+              {% endif %}
               {{ form.content }}
               {% if form.errors %}
                 {% for field, errors in form.errors.items %}

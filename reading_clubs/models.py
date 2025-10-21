@@ -216,6 +216,14 @@ class DiscussionPost(models.Model):
         related_name="posts",
         verbose_name=_("Тема"),
     )
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.CASCADE,
+        related_name="replies",
+        null=True,
+        blank=True,
+        verbose_name=_("Ответ на"),
+    )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
