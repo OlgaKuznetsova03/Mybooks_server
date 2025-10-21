@@ -3,127 +3,232 @@
 
 {% block title %}{% trans "Заявки блогеров" %} · {{ block.super }}{% endblock %}
 
+{% block extra_css %}
+<style>
+/* ===== Общая тема для блока сотрудничеств ===== */
+.collab-theme{
+  --collab-hero-bg:#fbe7b5;         /* фон шапки/выделенных блоков */
+  --collab-accent:#d9a365;          /* основные кнопки */
+  --collab-accent-dark:#c68845;     /* hover/active */
+  --collab-accent-25: rgba(217,163,101,.25);
+  --collab-accent-12: rgba(217,163,101,.12);
+}
+
+/* HERO */
+.collab-hero{
+  background:var(--collab-hero-bg);
+  border:1px solid rgba(0,0,0,.05);
+  border-radius:18px;
+  padding:1.25rem 1.25rem 1rem;
+  box-shadow:0 12px 28px rgba(0,0,0,.06);
+}
+.collab-hero h1{ margin-bottom:.25rem }
+.collab-hero__actions{ gap:.5rem }
+
+/* Кнопки под акцент */
+.collab-theme .btn-primary{
+  background-color:var(--collab-accent) !important;
+  border-color:var(--collab-accent) !important;
+  color:#2b1906 !important;
+  font-weight:600;
+}
+.collab-theme .btn-primary:hover,
+.collab-theme .btn-primary:focus{
+  background-color:var(--collab-accent-dark) !important;
+  border-color:var(--collab-accent-dark) !important;
+}
+
+.collab-theme .btn-outline-primary{
+  color:var(--collab-accent) !important;
+  border-color:var(--collab-accent) !important;
+  font-weight:600;
+}
+.collab-theme .btn-outline-primary:hover,
+.collab-theme .btn-outline-primary:focus{
+  background-color:var(--collab-accent) !important;
+  border-color:var(--collab-accent) !important;
+  color:#2b1906 !important;
+}
+
+/* Вторичные outline-кнопки мягче */
+.collab-theme .btn-outline-secondary{
+  border-color:var(--collab-accent-25);
+}
+.collab-theme .btn-outline-secondary:hover{
+  background:var(--collab-accent-12);
+  border-color:var(--collab-accent);
+}
+
+/* Форма — фокус в акцент */
+.collab-theme .form-control:focus,
+.collab-theme .form-select:focus{
+  border-color:var(--collab-accent);
+  box-shadow:0 0 0 .25rem rgba(217,163,101,.25);
+}
+
+/* Карточки */
+.collab-card.card{
+  border:1px solid var(--collab-accent-12);
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.collab-card.card:hover{
+  transform:translateY(-1px);
+  box-shadow:0 16px 32px rgba(0,0,0,.10);
+}
+.collab-card .card-footer{
+  background:#fff7ea;
+  border-top:1px solid var(--collab-accent-12);
+}
+
+/* Мобильные правки */
+@media (max-width: 575.98px){
+  .collab-hero{ padding:1rem; }
+  .collab-hero__actions .btn{ width:100%; }
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-  <div>
-    <h1 class="h3 mb-1">{% trans "Заявки блогеров" %}</h1>
-    <p class="text-muted mb-0">{% trans "Найдите блогера, готового рассказать о вашей книге." %}</p>
-  </div>
-  <div class="d-flex flex-column align-items-end gap-2">
-    <div class="btn-group" role="group" aria-label="{% trans 'Варианты предложений' %}">
-      <a href="{{ offer_list_url }}" class="btn btn-outline-secondary">
-        <i class="bi bi-journal-bookmark me-1"></i>{% trans "Предложения авторов" %}
-      </a>
-      <span class="btn btn-primary active disabled">
-        <i class="bi bi-megaphone me-1"></i>{% trans "Заявки блогеров" %}
-      </span>
-    </div>
-    {% if request.user.is_authenticated %}
-      <div class="btn-group">
-        <a href="{% url 'collaborations:blogger_request_create' %}" class="btn btn-primary">
-          <i class="bi bi-plus-lg me-1"></i>{% trans "Создать заявку" %}
-        </a>
-        {% if user_is_author and offer_create_url %}
-          <a href="{{ offer_create_url }}" class="btn btn-outline-primary">
-            <i class="bi bi-journal-plus me-1"></i>{% trans "Добавить предложение автора" %}
-          </a>
-        {% endif %}
-        {% if show_response_inbox %}
-          <a href="{% url 'collaborations:blogger_request_responses' %}" class="btn btn-outline-secondary position-relative">
-            <i class="bi bi-inbox me-1"></i>{% trans "Отклики" %}
-            {% if pending_request_responses_count %}
-              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill text-bg-danger">
-                {{ pending_request_responses_count }}
-                <span class="visually-hidden">{% trans "Новые отклики" %}</span>
-              </span>
-            {% endif %}
-          </a>
-        {% endif %}
-        <a href="{% url 'collaborations:collaboration_list' %}" class="btn btn-outline-secondary">
-          <i class="bi bi-people-fill me-1"></i>{% trans "Мои сотрудничества" %}
-        </a>
+<div class="collab-theme">
+
+  <!-- HERO -->
+  <div class="collab-hero mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+      <div>
+        <h1 class="h4 mb-1">{% trans "Заявки блогеров" %}</h1>
+        <p class="text-muted mb-0">{% trans "Найдите блогера, готового рассказать о вашей книге." %}</p>
       </div>
-    {% endif %}
-  </div>
-</div>
 
-<form method="get" class="row g-3 align-items-end mb-4">
-  <div class="col-md-6 col-lg-4">
-    <label for="search" class="form-label">{% trans "Поиск" %}</label>
-    <input id="search" type="search" name="q" value="{{ request.GET.q }}" class="form-control" placeholder="{% trans 'Жанр или описание' %}">
-  </div>
-  <div class="col-md-3 col-lg-2">
-    <button type="submit" class="btn btn-outline-secondary w-100">
-      <i class="bi bi-search me-1"></i>{% trans "Найти" %}
-    </button>
-  </div>
-</form>
-
-{% if requests %}
-  <div class="row g-4">
-    {% for request_obj in requests %}
-      <div class="col-12 col-lg-6">
-        <div class="card h-100 shadow-sm">
-          <div class="card-body d-flex flex-column">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <h2 class="h5 mb-0"><a href="{% url 'collaborations:blogger_request_detail' request_obj.pk %}" class="text-decoration-none">{{ request_obj.title }}</a></h2>
-              <span class="badge text-bg-info">{{ request_obj.blogger.get_full_name|default:request_obj.blogger.username }}</span>
-            </div>
-            {% if request_obj.additional_info %}
-              <p class="text-muted small mb-3">{{ request_obj.additional_info|truncatechars:160 }}</p>
+      <div class="collab-hero__actions d-flex flex-column align-items-end">
+        <div class="btn-group" role="group" aria-label="{% trans 'Варианты предложений' %}">
+          <a href="{{ offer_list_url }}" class="btn btn-outline-primary">
+            <i class="bi bi-journal-bookmark me-1"></i>{% trans "Предложения авторов" %}
+          </a>
+          <span class="btn btn-primary active disabled">
+            <i class="bi bi-megaphone me-1"></i>{% trans "Заявки блогеров" %}
+          </span>
+        </div>
+        {% if request.user.is_authenticated %}
+          <div class="btn-group mt-2">
+            <a href="{% url 'collaborations:blogger_request_create' %}" class="btn btn-primary">
+              <i class="bi bi-plus-lg me-1"></i>{% trans "Создать заявку" %}
+            </a>
+            {% if user_is_author and offer_create_url %}
+              <a href="{{ offer_create_url }}" class="btn btn-outline-primary">
+                <i class="bi bi-journal-plus me-1"></i>{% trans "Добавить предложение автора" %}
+              </a>
             {% endif %}
-            {% if request_obj.collaboration_terms %}
-              <div class="mb-3">
-                <strong class="small d-block mb-1 text-uppercase text-muted">{% trans "Условия" %}</strong>
-                <p class="text-muted small mb-0">{{ request_obj.collaboration_terms|truncatechars:160 }}</p>
-              </div>
+            {% if show_response_inbox %}
+              <a href="{% url 'collaborations:blogger_request_responses' %}" class="btn btn-outline-secondary position-relative">
+                <i class="bi bi-inbox me-1"></i>{% trans "Отклики" %}
+                {% if pending_request_responses_count %}
+                  <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill text-bg-danger">
+                    {{ pending_request_responses_count }}
+                    <span class="visually-hidden">{% trans "Новые отклики" %}</span>
+                  </span>
+                {% endif %}
+              </a>
             {% endif %}
-            <div class="mb-3">
-              <strong class="small d-block mb-1 text-uppercase text-muted">{% trans "Форматы" %}</strong>
-              <div class="d-flex flex-wrap gap-2">
-                {% for format in request_obj.get_format_display_list %}
-                  <span class="badge text-bg-light border">{{ format }}</span>
-                {% empty %}
-                  <span class="text-muted small">{% trans "Не указано" %}</span>
-                {% endfor %}
-              </div>
-            </div>
-            <div class="mb-3">
-              <strong class="small d-block mb-1 text-uppercase text-muted">{% trans "Площадки" %}</strong>
-              <div class="d-flex flex-wrap gap-2">
-                {% for platform in request_obj.review_formats.all %}
-                  <span class="badge text-bg-light border">{{ platform.name }}</span>
-                {% empty %}
-                  <span class="text-muted small">{% trans "Уточняются" %}</span>
-                {% endfor %}
-              </div>
-            </div>
-            <ul class="list-unstyled small text-muted mt-auto mb-0">
-              <li class="mb-1"><i class="bi bi-calendar-event me-1"></i>{% trans "Создано" %}: {{ request_obj.created_at|date:"j E Y" }}</li>
-              <li class="mb-1">
-                <i class="bi bi-megaphone me-1"></i>
-                {{ request_obj.get_collaboration_type_display }}
-              </li>
-            </ul>
+            <a href="{% url 'collaborations:collaboration_list' %}" class="btn btn-outline-secondary">
+              <i class="bi bi-people-fill me-1"></i>{% trans "Мои сотрудничества" %}
+            </a>
           </div>
-          <div class="card-footer bg-body-secondary d-flex justify-content-between align-items-center">
-            <a href="{% url 'collaborations:blogger_request_detail' request_obj.pk %}" class="btn btn-sm btn-outline-primary">{% trans "Подробнее" %}</a>
-            {% with platform_count=request_obj.platforms.all|length %}
-              <span class="text-muted small"><i class="bi bi-people me-1"></i>{{ platform_count }} {% trans "площадк." %}</span>
-            {% endwith %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ФИЛЬТР -->
+  <form method="get" class="row g-3 align-items-end mb-4">
+    <div class="col-md-6 col-lg-4">
+      <label for="search" class="form-label">{% trans "Поиск" %}</label>
+      <input id="search" type="search" name="q" value="{{ request.GET.q }}" class="form-control" placeholder="{% trans 'Жанр или описание' %}">
+    </div>
+    <div class="col-md-3 col-lg-2">
+      <button type="submit" class="btn btn-outline-primary w-100">
+        <i class="bi bi-search me-1"></i>{% trans "Найти" %}
+      </button>
+    </div>
+  </form>
+
+  {% if requests %}
+    <div class="row g-4">
+      {% for request_obj in requests %}
+        <div class="col-12 col-lg-6">
+          <div class="card collab-card h-100 shadow-sm">
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h2 class="h5 mb-0">
+                  <a href="{% url 'collaborations:blogger_request_detail' request_obj.pk %}" class="text-decoration-none">
+                    {{ request_obj.title }}
+                  </a>
+                </h2>
+                <span class="badge text-bg-info">
+                  {{ request_obj.blogger.get_full_name|default:request_obj.blogger.username }}
+                </span>
+              </div>
+
+              {% if request_obj.additional_info %}
+                <p class="text-muted small mb-3">{{ request_obj.additional_info|truncatechars:160 }}</p>
+              {% endif %}
+
+              {% if request_obj.collaboration_terms %}
+                <div class="mb-3">
+                  <strong class="small d-block mb-1 text-uppercase text-muted">{% trans "Условия" %}</strong>
+                  <p class="text-muted small mb-0">{{ request_obj.collaboration_terms|truncatechars:160 }}</p>
+                </div>
+              {% endif %}
+
+              <div class="mb-3">
+                <strong class="small d-block mb-1 text-uppercase text-muted">{% trans "Форматы" %}</strong>
+                <div class="d-flex flex-wrap gap-2">
+                  {% for format in request_obj.get_format_display_list %}
+                    <span class="badge text-bg-light border">{{ format }}</span>
+                  {% empty %}
+                    <span class="text-muted small">{% trans "Не указано" %}</span>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <strong class="small d-block mb-1 text-uppercase text-muted">{% trans "Площадки" %}</strong>
+                <div class="d-flex flex-wrap gap-2">
+                  {% for platform in request_obj.review_formats.all %}
+                    <span class="badge text-bg-light border">{{ platform.name }}</span>
+                  {% empty %}
+                    <span class="text-muted small">{% trans "Уточняются" %}</span>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <ul class="list-unstyled small text-muted mt-auto mb-0">
+                <li class="mb-1"><i class="bi bi-calendar-event me-1"></i>{% trans "Создано" %}: {{ request_obj.created_at|date:"j E Y" }}</li>
+                <li class="mb-1"><i class="bi bi-megaphone me-1"></i>{{ request_obj.get_collaboration_type_display }}</li>
+              </ul>
+            </div>
+
+            <div class="card-footer d-flex justify-content-between align-items-center">
+              <a href="{% url 'collaborations:blogger_request_detail' request_obj.pk %}" class="btn btn-sm btn-outline-primary">
+                {% trans "Подробнее" %}
+              </a>
+              {% with platform_count=request_obj.platforms.all|length %}
+                <span class="text-muted small"><i class="bi bi-people me-1"></i>{{ platform_count }} {% trans "площадк." %}</span>
+              {% endwith %}
+            </div>
           </div>
         </div>
-      </div>
-    {% endfor %}
-  </div>
+      {% endfor %}
+    </div>
 
-  {% include "config/pagination.html" with page_obj=page_obj %}
-{% else %}
-  <div class="text-center py-5">
-    <p class="lead mb-2">{% trans "Активных заявок нет." %}</p>
-    {% if request.user.is_authenticated %}
-      <p class="text-muted">{% trans "Создайте свою и найдите автора!" %}</p>
-    {% endif %}
-  </div>
-{% endif %}
+    {% include "config/pagination.html" with page_obj=page_obj %}
+  {% else %}
+    <div class="text-center py-5">
+      <p class="lead mb-2">{% trans "Активных заявок нет." %}</p>
+      {% if request.user.is_authenticated %}
+        <p class="text-muted">{% trans "Создайте свою и найдите автора!" %}</p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+</div>
 {% endblock %}

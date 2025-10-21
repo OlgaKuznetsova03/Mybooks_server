@@ -3,85 +3,178 @@
 
 {% block title %}{% trans "Сотрудничества" %} · {{ block.super }}{% endblock %}
 
-{% block content %}
-<h1 class="h3 mb-4">{% trans "Мои сотрудничества" %}</h1>
+{% block extra_css %}
+<style>
+/* ===== Тёплая палитра для сотрудничеств ===== */
+.coop-theme{
+  --coop-accent:#d9a365;        /* кнопки, активы */
+  --coop-accent-dark:#c68845;   /* hover/active */
+  --coop-soft:#fbe7b5;          /* мягкий фон/выделения */
+  --coop-soft-16:rgba(251,231,181,.16);
+  --coop-soft-28:rgba(251,231,181,.28);
+  --coop-ink:#2a1a09;           /* тёмный текст на тёплом */
+}
 
-{% if collaborations %}
-  <div class="table-responsive">
-    <table class="table align-middle">
-      <thead class="table-light">
-        <tr>
-          <th>{% trans "Партнёр" %}</th>
-          <th>{% trans "Книга/заявка" %}</th>
-          <th>{% trans "Статус" %}</th>
-          <th>{% trans "Дедлайн" %}</th>
-          <th class="text-end">{% trans "Действия" %}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for collaboration in collaborations %}
-          <tr class="{% if collaboration.needs_attention %}table-warning{% endif %}">
-            <td>
-              {% if user == collaboration.author %}
-                {{ collaboration.partner.get_full_name|default:collaboration.partner.username }}
-              {% else %}
-                {{ collaboration.author.get_full_name|default:collaboration.author.username }}
-              {% endif %}
-              {% with rating=collaboration.partner_rating %}
-                {% if rating is not None %}
-                  <div class="text-muted small">{% trans "Рейтинг" %}: {{ rating }}</div>
-                {% endif %}
-              {% endwith %}
-            </td>
-            <td>
-              {% if collaboration.offer %}
-                <a href="{% url 'collaborations:offer_detail' collaboration.offer.pk %}">{{ collaboration.offer.title }}</a>
-              {% elif collaboration.request %}
-                <a href="{% url 'collaborations:blogger_request_detail' collaboration.request.pk %}">{{ collaboration.request.title }}</a>
-              {% else %}
-                —
-              {% endif %}
-              <div class="text-muted small">{% trans "Создано" %}: {{ collaboration.created_at|date:"j E Y" }}</div>
-            </td>
-            <td>
-              <span class="badge text-bg-secondary">{{ collaboration.get_status_display }}</span>
-            </td>
-            <td>
-              {{ collaboration.deadline|date:"j E Y" }}
-              {% if collaboration.status == collaboration.Status.FAILED %}
-                <div class="text-danger small">{% trans "Просрочено" %}</div>
-              {% endif %}
-            </td>
-            <td class="text-end">
-              {% if user == collaboration.partner %}
-                {% if collaboration.status == collaboration.Status.NEGOTIATION or collaboration.status == collaboration.Status.ACTIVE %}
-                  <a href="{% url 'collaborations:collaboration_review' collaboration.pk %}" class="btn btn-sm btn-outline-primary me-2">
-                    <i class="bi bi-upload me-1"></i>{% trans "Отправить ссылки" %}
-                  </a>
-                  {% endif %}
-              {% endif %}
-              {% if user == collaboration.author %}
-                {% if collaboration.status == collaboration.Status.NEGOTIATION or collaboration.status == collaboration.Status.ACTIVE %}
-                  <div class="btn-group">
-                    <a href="{% url 'collaborations:collaboration_confirm' collaboration.pk %}" class="btn btn-sm btn-success">
-                      <i class="bi bi-check-circle me-1"></i>{% trans "Подтвердить" %}
-                    </a>
-                    <a href="{% url 'collaborations:collaboration_fail' collaboration.pk %}" class="btn btn-sm btn-outline-danger">
-                      <i class="bi bi-exclamation-octagon me-1"></i>{% trans "Просрочено" %}
-                    </a>
-                  </div>
-                {% endif %}
-                </div>
-              {% endif %}
-            </td>
+/* Кнопки */
+.coop-theme .btn-primary{
+  background-color:var(--coop-accent)!important;
+  border-color:var(--coop-accent)!important;
+  color:var(--coop-ink)!important;
+  font-weight:600;
+}
+.coop-theme .btn-primary:hover,
+.coop-theme .btn-primary:focus{
+  background-color:var(--coop-accent-dark)!important;
+  border-color:var(--coop-accent-dark)!important;
+  color:var(--coop-ink)!important;
+}
+.coop-theme .btn-outline-primary{
+  color:var(--coop-accent)!important;
+  border-color:var(--coop-accent)!important;
+  font-weight:600;
+}
+.coop-theme .btn-outline-primary:hover,
+.coop-theme .btn-outline-primary:focus{
+  background-color:var(--coop-accent)!important;
+  border-color:var(--coop-accent)!important;
+  color:var(--coop-ink)!important;
+}
+.coop-theme .btn-outline-secondary{
+  border-color:var(--coop-soft-28)!important;
+}
+.coop-theme .btn-outline-secondary:hover,
+.coop-theme .btn-outline-secondary:focus{
+  background-color:var(--coop-soft)!important;
+  border-color:var(--coop-soft-28)!important;
+}
+
+/* Таблица */
+.coop-theme .table thead.table-light{
+  background:var(--coop-soft)!important;
+  border-color:var(--coop-soft-28)!important;
+}
+.coop-theme .table thead.table-light th{
+  border-color:var(--coop-soft-28)!important;
+}
+.coop-theme .table tbody td{
+  vertical-align:middle;
+}
+.coop-theme .table-warning{
+  --bs-table-bg: var(--coop-soft) !important;     /* мягкая подсветка строки */
+  --bs-table-border-color: var(--coop-soft-28) !important;
+}
+
+/* Бейджи */
+.coop-theme .badge.text-bg-secondary{
+  background:var(--coop-soft)!important;
+  color:var(--coop-ink)!important;
+  border:1px solid var(--coop-soft-28);
+  border-radius:999px;
+  padding:.35rem .6rem;
+}
+
+/* Фокус форм/кнопок-иконок */
+.coop-theme .form-control:focus,
+.coop-theme .form-select:focus{
+  border-color:var(--coop-accent)!important;
+  box-shadow:0 0 0 .25rem rgba(217,163,101,.25);
+}
+
+/* Мобайл: не даём кнопкам «липнуть» */
+@media (max-width: 575.98px){
+  .coop-theme .btn-group { width:100%; }
+  .coop-theme .btn-group .btn { flex:1 1 auto; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="coop-theme">
+
+  <h1 class="h3 mb-4">{% trans "Мои сотрудничества" %}</h1>
+
+  {% if collaborations %}
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>{% trans "Партнёр" %}</th>
+            <th>{% trans "Книга/заявка" %}</th>
+            <th>{% trans "Статус" %}</th>
+            <th>{% trans "Дедлайн" %}</th>
+            <th class="text-end">{% trans "Действия" %}</th>
           </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-{% else %}
-  <div class="alert alert-info" role="alert">
-    {% trans "Вы ещё не участвуете в сотрудничествах." %}
-  </div>
-{% endif %}
+        </thead>
+        <tbody>
+          {% for collaboration in collaborations %}
+            <tr class="{% if collaboration.needs_attention %}table-warning{% endif %}">
+              <td>
+                {% if user == collaboration.author %}
+                  {{ collaboration.partner.get_full_name|default:collaboration.partner.username }}
+                {% else %}
+                  {{ collaboration.author.get_full_name|default:collaboration.author.username }}
+                {% endif %}
+                {% with rating=collaboration.partner_rating %}
+                  {% if rating is not None %}
+                    <div class="text-muted small">{% trans "Рейтинг" %}: {{ rating }}</div>
+                  {% endif %}
+                {% endwith %}
+              </td>
+
+              <td>
+                {% if collaboration.offer %}
+                  <a href="{% url 'collaborations:offer_detail' collaboration.offer.pk %}">{{ collaboration.offer.title }}</a>
+                {% elif collaboration.request %}
+                  <a href="{% url 'collaborations:blogger_request_detail' collaboration.request.pk %}">{{ collaboration.request.title }}</a>
+                {% else %}
+                  —
+                {% endif %}
+                <div class="text-muted small">{% trans "Создано" %}: {{ collaboration.created_at|date:"j E Y" }}</div>
+              </td>
+
+              <td>
+                <span class="badge text-bg-secondary">{{ collaboration.get_status_display }}</span>
+              </td>
+
+              <td>
+                {{ collaboration.deadline|date:"j E Y" }}
+                {% if collaboration.status == collaboration.Status.FAILED %}
+                  <div class="text-danger small">{% trans "Просрочено" %}</div>
+                {% endif %}
+              </td>
+
+              <td class="text-end">
+                {% if user == collaboration.partner %}
+                  {% if collaboration.status == collaboration.Status.NEGOTIATION or collaboration.status == collaboration.Status.ACTIVE %}
+                    <a href="{% url 'collaborations:collaboration_review' collaboration.pk %}" class="btn btn-sm btn-outline-primary me-2">
+                      <i class="bi bi-upload me-1"></i>{% trans "Отправить ссылки" %}
+                    </a>
+                  {% endif %}
+                {% endif %}
+
+                {% if user == collaboration.author %}
+                  {% if collaboration.status == collaboration.Status.NEGOTIATION or collaboration.status == collaboration.Status.ACTIVE %}
+                    <div class="btn-group">
+                      <a href="{% url 'collaborations:collaboration_confirm' collaboration.pk %}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-check-circle me-1"></i>{% trans "Подтвердить" %}
+                      </a>
+                      <a href="{% url 'collaborations:collaboration_fail' collaboration.pk %}" class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-exclamation-octagon me-1"></i>{% trans "Просрочено" %}
+                      </a>
+                    </div>
+                  {% endif %}
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="alert alert-info" role="alert">
+      {% trans "Вы ещё не участвуете в сотрудничествах." %}
+    </div>
+  {% endif %}
+
+</div>
 {% endblock %}

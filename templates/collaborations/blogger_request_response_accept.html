@@ -1,87 +1,232 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}{% trans "Принять отклик автора" %} · {{ block.super }}{% endblock %}
+{% block title %}{{ request_obj.title }} · {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ===== Тема страницы (совпадает с остальными страницами сотрудничества) ===== */
+.collab-theme{
+  --clb-accent:#d9a365;                /* основные кнопки */
+  --clb-accent-dark:#c68845;           /* hover / active */
+  --clb-soft:#fbe7b5;                  /* фон для шапок/выделений */
+  --clb-soft-12:rgba(251,231,181,.12);
+  --clb-soft-24:rgba(251,231,181,.24);
+}
+
+/* Кнопки под бренд */
+.collab-theme .btn-primary{
+  background-color:var(--clb-accent) !important;
+  border-color:var(--clb-accent) !important;
+  color:#2a1a09 !important;
+  font-weight:600;
+}
+.collab-theme .btn-primary:hover,
+.collab-theme .btn-primary:focus{
+  background-color:var(--clb-accent-dark) !important;
+  border-color:var(--clb-accent-dark) !important;
+  color:#2a1a09 !important;
+}
+
+.collab-theme .btn-outline-primary{
+  color:var(--clb-accent) !important;
+  border-color:var(--clb-accent) !important;
+  font-weight:600;
+}
+.collab-theme .btn-outline-primary:hover,
+.collab-theme .btn-outline-primary:focus{
+  background-color:var(--clb-accent) !important;
+  border-color:var(--clb-accent) !important;
+  color:#2a1a09 !important;
+}
+
+/* Фокус инпутов формы отклика */
+.collab-theme .form-control:focus,
+.collab-theme .form-select:focus,
+.collab-theme textarea:focus{
+  border-color:var(--clb-accent);
+  box-shadow:0 0 0 .25rem rgba(217,163,101,.25);
+}
+
+/* Карточки и шапки */
+.collab-theme .card{
+  border:1px solid var(--clb-soft-12);
+}
+.collab-theme .card-header{
+  background:var(--clb-soft);
+  border-bottom:1px solid var(--clb-soft-24);
+  font-weight:600;
+}
+
+/* Бейджи-«пилюли» для списков предпочтений */
+.collab-theme .badge.text-bg-light{
+  background:#fff9ea !important;
+  border:1px solid var(--clb-soft-24) !important;
+  color:#5b442c !important;
+  border-radius:999px;
+  padding:.35rem .6rem;
+}
+
+/* Мелкие улучшения */
+.collab-theme .alert-warning{
+  background:#fff2d7;
+  border-color:#ffe3ab;
+}
+.collab-theme .card.shadow-sm{
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.collab-theme .card.shadow-sm:hover{
+  transform:translateY(-1px);
+  box-shadow:0 16px 32px rgba(0,0,0,.10);
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="mb-4">
-  <a href="{% url 'collaborations:blogger_request_responses' %}" class="btn btn-link text-decoration-none ps-0">
-    <i class="bi bi-arrow-left"></i> {% trans "Назад к откликам" %}
-  </a>
-</div>
+<div class="collab-theme">
 
-<div class="card shadow-sm">
-  <div class="card-body">
-    <h1 class="h4 mb-3">{% trans "Подтверждение сотрудничества" %}</h1>
-    <p class="text-muted">
-      {% blocktrans with request_title=response.request.title author_name=response.author.get_full_name|default:response.author.username %}
-        Вы собираетесь принять отклик пользователя {{ author_name }} на заявку «{{ request_title }}».
-      {% endblocktrans %}
-    </p>
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+    <div>
+      <h1 class="h3 mb-1">{{ request_obj.title }}</h1>
+      <p class="text-muted mb-0">{% trans "Заявка блогера" %}</p>
+    </div>
+    <span class="badge text-bg-info fs-6">{{ request_obj.blogger.get_full_name|default:request_obj.blogger.username }}</span>
+  </div>
 
-    <dl class="row small text-muted">
-      <dt class="col-sm-4">{% trans "Отправлен" %}</dt>
-      <dd class="col-sm-8">{{ response.created_at|date:"j E Y, H:i" }}</dd>
-      <dt class="col-sm-4">{% trans "Статус отклика" %}</dt>
-      <dd class="col-sm-8">{{ response.get_status_display }}</dd>
-    </dl>
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          {% if request_obj.additional_info %}
+            <h2 class="h5">{% trans "О себе" %}</h2>
+            <p>{{ request_obj.additional_info|linebreaks }}</p>
+            <hr>
+          {% endif %}
 
-    {% if response.book %}
-      <div class="mb-4">
-        <h2 class="h6">{% trans "Предлагаемая книга" %}</h2>
-        <p class="mb-0">{{ response.book.title }}</p>
+          <h2 class="h5">{% trans "Предпочтения" %}</h2>
+          <dl class="row small text-muted">
+            <dt class="col-sm-5">{% trans "Жанры" %}</dt>
+            <dd class="col-sm-7">
+              {% for genre in request_obj.preferred_genres.all %}
+                <span class="badge text-bg-light border me-1">{{ genre.name }}</span>
+              {% empty %}
+                {% trans "Не указано" %}
+              {% endfor %}
+            </dd>
+
+            <dt class="col-sm-5">{% trans "Форматы" %}</dt>
+            <dd class="col-sm-7">
+              {% for item in request_obj.get_format_display_list %}
+                <span class="badge text-bg-light border me-1">{{ item }}</span>
+              {% empty %}
+                {% trans "Любые" %}
+              {% endfor %}
+            </dd>
+
+            <dt class="col-sm-5">{% trans "Платформы" %}</dt>
+            <dd class="col-sm-7">
+              {% for platform in request_obj.review_formats.all %}
+                <span class="badge text-bg-light border me-1">{{ platform.name }}</span>
+              {% empty %}
+                {% trans "Не указаны" %}
+              {% endfor %}
+            </dd>
+
+            <dt class="col-sm-5">{% trans "Условия" %}</dt>
+            <dd class="col-sm-7">{{ request_obj.get_collaboration_type_display }}</dd>
+          </dl>
+
+          {% if request_obj.collaboration_terms %}
+            <div class="mt-4">
+              <h2 class="h6">{% trans "Детали сотрудничества" %}</h2>
+              <p class="mb-0">{{ request_obj.collaboration_terms|linebreaks }}</p>
+            </div>
+          {% endif %}
+
+          {% if request_obj.review_platform_links %}
+            <div class="mt-4">
+              <h2 class="h6">{% trans "Ссылки на площадки" %}</h2>
+              <ul class="list-unstyled small mb-0">
+                {% for link in request_obj.review_platform_links.splitlines %}
+                  {% if link %}
+                    <li><a href="{{ link }}" target="_blank" rel="noopener">{{ link }}</a></li>
+                  {% endif %}
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+
+          {% if request_obj.paid_collaboration_disclaimer %}
+            <div class="alert alert-warning mt-4" role="alert">
+              <i class="bi bi-exclamation-triangle me-1"></i>{{ request_obj.paid_collaboration_disclaimer }}
+            </div>
+          {% endif %}
+        </div>
       </div>
-    {% endif %}
+    </div>
 
-    <div class="mb-4">
-      <h2 class="h6">{% trans "Сообщение" %}</h2>
-      {% if response.message %}
-        <p class="mb-0">{{ response.message|linebreaks }}</p>
+    <div class="col-lg-4">
+      <div class="card shadow-sm">
+        <div class="card-header">{% trans "Охват" %}</div>
+        <div class="card-body">
+          {% with platforms=request_obj.platforms.all %}
+            {% if platforms %}
+              <ul class="list-unstyled mb-0">
+                {% for platform in platforms %}
+                  <li class="mb-3">
+                    <div class="fw-semibold">
+                      {% if platform.display_name %}
+                        {{ platform.display_name }}
+                      {% else %}
+                        {% trans "Платформа" %}
+                      {% endif %}
+                    </div>
+                    <div class="text-muted small">
+                      <i class="bi bi-people-fill me-1"></i>{{ platform.followers_count|default:0 }}
+                      {% if platform.platform and platform.platform.url %}
+                        · <a href="{{ platform.platform.url }}" class="text-muted" target="_blank" rel="noopener">{% trans "профиль" %}</a>
+                      {% endif %}
+                    </div>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="text-muted mb-0">{% trans "Блогер не добавил информацию о подписчиках." %}</p>
+            {% endif %}
+          {% endwith %}
+        </div>
+      </div>
+
+      {% if user.is_authenticated %}
+        <div class="card shadow-sm mt-4">
+          <div class="card-header">{% trans "Откликнуться" %}</div>
+          <div class="card-body">
+            {% if can_respond %}
+              {% if existing_response %}
+                <p class="text-muted small mb-3">{% trans "Вы уже откликались на заявку. Можно обновить сообщение." %}</p>
+              {% endif %}
+              {% if response_conversation_url %}
+                <a href="{{ response_conversation_url }}" class="btn btn-outline-primary btn-sm mb-3 w-100">
+                  <i class="bi bi-chat-dots me-1"></i>{% trans "Открыть обсуждение" %}
+                </a>
+              {% endif %}
+              <form method="post" action="{% url 'collaborations:blogger_request_respond' request_obj.pk %}">
+                {% csrf_token %}
+                {{ response_form.as_p }}
+                <button type="submit" class="btn btn-primary w-100">
+                  <i class="bi bi-send me-1"></i>{% trans "Отправить предложение" %}
+                </button>
+              </form>
+            {% else %}
+              <p class="text-muted small mb-0">{% trans "На заявку могут откликаться только авторы." %}</p>
+            {% endif %}
+          </div>
+        </div>
       {% else %}
-        <p class="text-muted small mb-0">{% trans "Без дополнительного сообщения." %}</p>
+        <div class="alert alert-info mt-4" role="alert">{% trans "Войдите, чтобы связаться с блогером." %}</div>
       {% endif %}
     </div>
-
-    <div class="mb-4">
-      <a href="{% url 'collaborations:blogger_request_response_detail' response.pk %}" class="btn btn-outline-secondary btn-sm">
-        <i class="bi bi-chat-dots me-1"></i>{% trans "Открыть обсуждение отклика" %}
-      </a>
-    </div>
-
-    {% if comments %}
-      <div class="mb-4">
-        <h2 class="h6">{% trans "Комментарии" %}</h2>
-        <ul class="list-unstyled small mb-0">
-          {% for comment in comments %}
-            <li class="mb-2">
-              <strong>{{ comment.author.get_full_name|default:comment.author.username }}</strong>
-              <span class="text-muted">· {{ comment.created_at|date:"j E Y, H:i" }}</span>
-              <div>{{ comment.text|linebreaks }}</div>
-            </li>
-          {% endfor %}
-        </ul>
-      </div>
-    {% endif %}
-
-    <form method="post" class="mt-4">
-      {% csrf_token %}
-      <div class="mb-3">
-        <label for="{{ form.deadline.id_for_label }}" class="form-label">{{ form.deadline.label }}</label>
-        {{ form.deadline }}
-        {% if form.deadline.help_text %}
-          <div class="form-text">{{ form.deadline.help_text }}</div>
-        {% endif %}
-        {% for error in form.deadline.errors %}
-          <div class="invalid-feedback d-block">{{ error }}</div>
-        {% endfor %}
-      </div>
-      <button type="submit" class="btn btn-success">
-        <i class="bi bi-check-lg me-1"></i>{% trans "Принять сотрудничество" %}
-      </button>
-      <a href="{% url 'collaborations:blogger_request_responses' %}" class="btn btn-outline-secondary ms-2">
-        {% trans "Отмена" %}
-      </a>
-    </form>
   </div>
+
 </div>
 {% endblock %}

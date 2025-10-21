@@ -3,176 +3,271 @@
 
 {% block title %}{{ offer.title }} · {{ block.super }}{% endblock %}
 
+{% block extra_css %}
+<style>
+/* ===== Локальная тема предложения автора ===== */
+.offer-theme{
+  --offer-accent: #d9a365;       /* кнопки, активные элементы */
+  --offer-accent-dark:#c48847;   /* hover/active */
+  --offer-soft:  #fbe7b5;        /* мягкие подложки/выделения */
+  --offer-soft-10: rgba(251,231,181,.10);
+  --offer-soft-18: rgba(251,231,181,.18);
+  --offer-soft-28: rgba(251,231,181,.28);
+  --offer-ink:#2b1e0f;           /* тёмный текст */
+}
+
+/* Заголовочная строка */
+.offer-theme .h3{
+  display:inline-block;
+  padding:.3rem .55rem;
+  background:var(--offer-soft);
+  border:1px solid var(--offer-soft-18);
+  border-radius:.5rem;
+}
+
+/* Карточки и разделители */
+.offer-theme .card{
+  border-color:var(--offer-soft-18);
+  box-shadow:0 16px 36px rgba(0,0,0,.06);
+}
+.offer-theme .card-body{
+  background-image: radial-gradient(90% 120% at 100% 0%, var(--offer-soft-10), transparent 55%);
+}
+.offer-theme .card-header,
+.offer-theme .card-footer{
+  background:var(--offer-soft);
+  border-color:var(--offer-soft-18);
+}
+
+/* Кнопки */
+.offer-theme .btn-primary{
+  background-color:var(--offer-accent) !important;
+  border-color:var(--offer-accent) !important;
+  color:var(--offer-ink) !important;
+  font-weight:600;
+}
+.offer-theme .btn-primary:hover,
+.offer-theme .btn-primary:focus{
+  background-color:var(--offer-accent-dark) !important;
+  border-color:var(--offer-accent-dark) !important;
+  color:var(--offer-ink) !important;
+}
+.offer-theme .btn-outline-primary{
+  color:var(--offer-ink);
+  border-color:var(--offer-accent);
+}
+.offer-theme .btn-outline-primary:hover,
+.offer-theme .btn-outline-primary:focus{
+  background:var(--offer-soft);
+  border-color:var(--offer-accent-dark);
+  color:var(--offer-ink);
+}
+
+/* Бейджи */
+.offer-theme .badge.text-bg-primary{
+  background-color:var(--offer-accent) !important;
+  color:var(--offer-ink) !important;
+  border:1px solid var(--offer-accent-dark);
+}
+.offer-theme .badge.text-bg-secondary{
+  background-color:var(--offer-soft) !important;
+  color:var(--offer-ink) !important;
+  border:1px solid var(--offer-soft-28);
+}
+
+/* Иконки/ссылки в списках платформ */
+.offer-theme .bi-hash.text-primary{ color:var(--offer-accent) !important; }
+.offer-theme a.text-muted:hover{ color:var(--offer-accent-dark) !important; }
+
+/* Мелкие тексты теплее */
+.offer-theme .text-muted{ color:#6b5a41 !important; }
+
+/* Мобайл — компактнее отступы */
+@media (max-width:575.98px){
+  .offer-theme .card-body{ background-image:none; }
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
-  <div>
-    <h1 class="h3 mb-1">{{ offer.title }}</h1>
-    <p class="text-muted mb-0">{% trans "Предложение автора" %}</p>
+<div class="offer-theme">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+    <div>
+      <h1 class="h3 mb-1">{{ offer.title }}</h1>
+      <p class="text-muted mb-0">{% trans "Предложение автора" %}</p>
+    </div>
+    <span class="badge text-bg-primary fs-6">{{ offer.get_offered_format_display }}</span>
   </div>
-  <span class="badge text-bg-primary fs-6">{{ offer.get_offered_format_display }}</span>
-</div>
 
-<div class="row g-4">
-  <div class="col-lg-8">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        {% if offer.synopsis %}
-          <h2 class="h5">{% trans "О книге" %}</h2>
-          <p>{{ offer.synopsis|linebreaks }}</p>
-          <hr>
-        {% endif %}
-
-        <h2 class="h5">{% trans "Требования к отзыву" %}</h2>
-        <p>{{ offer.review_requirements|linebreaks }}</p>
-
-        <dl class="row small text-muted mt-4">
-          <dt class="col-sm-5">{% trans "Автор" %}</dt>
-          <dd class="col-sm-7">{{ offer.author.get_full_name|default:offer.author.username }}</dd>
-
-          <dt class="col-sm-5">{% trans "Объем текста" %}</dt>
-          <dd class="col-sm-7">
-            {% if offer.text_review_length %}
-              {{ offer.text_review_length }} {% trans "слов/знаков" %}
-            {% else %}
-              {% trans "На усмотрение блогера" %}
-            {% endif %}
-          </dd>
-
-          <dt class="col-sm-5">{% trans "Принимаются видеоотзывы" %}</dt>
-          <dd class="col-sm-7">{{ offer.get_video_review_type_display }}</dd>
-
-          {% if offer.video_review_type != offer.VideoReviewType.NONE %}
-            <dt class="col-sm-5">{% trans "Дополнительно" %}</dt>
-            <dd class="col-sm-7">
-              <ul class="list-unstyled mb-0">
-                <li>
-                  {% if offer.video_requires_unboxing %}
-                    <i class="bi bi-check2 text-success me-1"></i>{% trans "Распаковка" %}
-                  {% else %}
-                    <i class="bi bi-dash text-muted me-1"></i>{% trans "Распаковка не требуется" %}
-                  {% endif %}
-                </li>
-                <li>
-                  {% if offer.video_requires_aesthetics %}
-                    <i class="bi bi-check2 text-success me-1"></i>{% trans "Эстетика и атмосфера" %}
-                  {% else %}
-                    <i class="bi bi-dash text-muted me-1"></i>{% trans "Без специальных требований" %}
-                  {% endif %}
-                </li>
-                <li>
-                  {% if offer.video_requires_review %}
-                    <i class="bi bi-check2 text-success me-1"></i>{% trans "Полноценный видеоотзыв" %}
-                  {% else %}
-                    <i class="bi bi-dash text-muted me-1"></i>{% trans "Видеоотзыв не обязателен" %}
-                  {% endif %}
-                </li>
-              </ul>
-            </dd>
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          {% if offer.synopsis %}
+            <h2 class="h5">{% trans "О книге" %}</h2>
+            <p>{{ offer.synopsis|linebreaks }}</p>
+            <hr>
           {% endif %}
 
-          <dt class="col-sm-5">{% trans "Для кого" %}</dt>
-          <dd class="col-sm-7">
-            {% if offer.allow_regular_users %}
-              {% trans "Блогеры и читатели" %}
-            {% else %}
-              {% trans "Только блогеры" %}
+          <h2 class="h5">{% trans "Требования к отзыву" %}</h2>
+          <p>{{ offer.review_requirements|linebreaks }}</p>
+
+          <dl class="row small text-muted mt-4">
+            <dt class="col-sm-5">{% trans "Автор" %}</dt>
+            <dd class="col-sm-7">{{ offer.author.get_full_name|default:offer.author.username }}</dd>
+
+            <dt class="col-sm-5">{% trans "Объем текста" %}</dt>
+            <dd class="col-sm-7">
+              {% if offer.text_review_length %}
+                {{ offer.text_review_length }} {% trans "слов/знаков" %}
+              {% else %}
+                {% trans "На усмотрение блогера" %}
+              {% endif %}
+            </dd>
+
+            <dt class="col-sm-5">{% trans "Принимаются видеоотзывы" %}</dt>
+            <dd class="col-sm-7">{{ offer.get_video_review_type_display }}</dd>
+
+            {% if offer.video_review_type != offer.VideoReviewType.NONE %}
+              <dt class="col-sm-5">{% trans "Дополнительно" %}</dt>
+              <dd class="col-sm-7">
+                <ul class="list-unstyled mb-0">
+                  <li>
+                    {% if offer.video_requires_unboxing %}
+                      <i class="bi bi-check2 text-success me-1"></i>{% trans "Распаковка" %}
+                    {% else %}
+                      <i class="bi bi-dash text-muted me-1"></i>{% trans "Распаковка не требуется" %}
+                    {% endif %}
+                  </li>
+                  <li>
+                    {% if offer.video_requires_aesthetics %}
+                      <i class="bi bi-check2 text-success me-1"></i>{% trans "Эстетика и атмосфера" %}
+                    {% else %}
+                      <i class="bi bi-dash text-muted me-1"></i>{% trans "Без специальных требований" %}
+                    {% endif %}
+                  </li>
+                  <li>
+                    {% if offer.video_requires_review %}
+                      <i class="bi bi-check2 text-success me-1"></i>{% trans "Полноценный видеоотзыв" %}
+                    {% else %}
+                      <i class="bi bi-dash text-muted me-1"></i>{% trans "Видеоотзыв не обязателен" %}
+                    {% endif %}
+                  </li>
+                </ul>
+              </dd>
             {% endif %}
-          </dd>
-        </dl>
+
+            <dt class="col-sm-5">{% trans "Для кого" %}</dt>
+            <dd class="col-sm-7">
+              {% if offer.allow_regular_users %}
+                {% trans "Блогеры и читатели" %}
+              {% else %}
+                {% trans "Только блогеры" %}
+              {% endif %}
+            </dd>
+          </dl>
+        </div>
+        {% if offer.considers_paid_collaboration %}
+          <div class="card-footer text-warning-emphasis small">
+            <i class="bi bi-exclamation-triangle me-1"></i>{{ offer.paid_collaboration_disclaimer }}
+          </div>
+        {% endif %}
       </div>
-      {% if offer.considers_paid_collaboration %}
-        <div class="card-footer text-warning-emphasis small">
-          <i class="bi bi-exclamation-triangle me-1"></i>{{ offer.paid_collaboration_disclaimer }}
+    </div>
+
+    <div class="col-lg-4">
+      {% if offer.book %}
+        <div class="card shadow-sm mb-4">
+          <div class="card-body text-center">
+            {% with cover_url=offer.get_attached_book_cover_url %}
+              {% if cover_url %}
+                <a href="{% url 'book_detail' offer.book.pk %}" class="d-inline-block mb-3">
+                  <img src="{{ cover_url }}" alt="{{ offer.book.title }}" class="img-fluid rounded shadow-sm">
+                </a>
+              {% endif %}
+            {% endwith %}
+            <h2 class="h6 mb-1">
+              <a href="{% url 'book_detail' offer.book.pk %}" class="text-decoration-none">{{ offer.book.title }}</a>
+            </h2>
+            <p class="text-muted small mb-0">{% trans "Книга, связанная с предложением" %}</p>
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="card shadow-sm">
+        <div class="card-header">{% trans "Где нужен отзыв" %}</div>
+        <div class="card-body">
+          {% with platforms=offer.expected_platforms.all %}
+            {% if platforms %}
+              <ul class="list-unstyled mb-0">
+                {% for platform in platforms %}
+                  <li class="mb-2">
+                    <i class="bi bi-hash text-primary me-1"></i>{{ platform.name }}
+                    {% if platform.url %}
+                      · <a href="{{ platform.url }}" class="text-muted" target="_blank" rel="noopener">{% trans "ссылка" %}</a>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="text-muted mb-0">{% trans "Площадки можно обсудить отдельно." %}</p>
+            {% endif %}
+          {% endwith %}
+        </div>
+      </div>
+
+      {% if user.is_authenticated %}
+        <div class="card shadow-sm mt-4">
+          <div class="card-header">{% trans "Откликнуться" %}</div>
+          <div class="card-body">
+            {% if can_respond %}
+              {% if existing_response %}
+                <div class="alert alert-info small mb-3" role="alert">
+                  {% trans "Вы уже откликались на это предложение. Можно обновить сообщение." %}
+                  {% if response_conversation_url %}
+                    <a href="{{ response_conversation_url }}" class="alert-link">
+                      {% trans "Открыть обсуждение с автором" %}
+                    </a>
+                  {% endif %}
+                </div>
+              {% endif %}
+              <form method="post" action="{% url 'collaborations:offer_respond' offer.pk %}">
+                {% csrf_token %}
+                <div class="mb-3">
+                  {{ response_form.platform_links_label_tag }}
+                  {{ response_form.platform_links }}
+                  {% if response_form.platform_links.help_text %}
+                    <div class="form-text">{{ response_form.platform_links.help_text }}</div>
+                  {% endif %}
+                  {% for error in response_form.platform_links.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="mb-3">
+                  {{ response_form.message_label_tag }}
+                  {{ response_form.message }}
+                  {% if response_form.message.help_text %}
+                    <div class="form-text">{{ response_form.message.help_text }}</div>
+                  {% endif %}
+                  {% for error in response_form.message.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <button type="submit" class="btn btn-primary w-100">
+                  <i class="bi bi-send me-1"></i>{% trans "Отправить отклик" %}
+                </button>
+              </form>
+            {% else %}
+              <p class="text-muted small mb-0">{% trans "Автор ожидает отклики только от блогеров." %}</p>
+            {% endif %}
+          </div>
+        </div>
+      {% else %}
+        <div class="alert alert-info mt-4" role="alert">
+          {% trans "Авторизуйтесь, чтобы откликнуться на предложение." %}
         </div>
       {% endif %}
     </div>
-  </div>
-  <div class="col-lg-4">
-    {% if offer.book %}
-      <div class="card shadow-sm mb-4">
-        <div class="card-body text-center">
-          {% with cover_url=offer.get_attached_book_cover_url %}
-            {% if cover_url %}
-              <a href="{% url 'book_detail' offer.book.pk %}" class="d-inline-block mb-3">
-                <img src="{{ cover_url }}" alt="{{ offer.book.title }}" class="img-fluid rounded shadow-sm">
-              </a>
-            {% endif %}
-          {% endwith %}
-          <h2 class="h6 mb-1">
-            <a href="{% url 'book_detail' offer.book.pk %}" class="text-decoration-none">{{ offer.book.title }}</a>
-          </h2>
-          <p class="text-muted small mb-0">{% trans "Книга, связанная с предложением" %}</p>
-        </div>
-      </div>
-    {% endif %}
-    <div class="card shadow-sm">
-      <div class="card-header">{% trans "Где нужен отзыв" %}</div>
-      <div class="card-body">
-        {% with platforms=offer.expected_platforms.all %}
-          {% if platforms %}
-            <ul class="list-unstyled mb-0">
-              {% for platform in platforms %}
-                <li class="mb-2"><i class="bi bi-hash text-primary me-1"></i>{{ platform.name }}{% if platform.url %} · <a href="{{ platform.url }}" class="text-muted" target="_blank" rel="noopener">{% trans "ссылка" %}</a>{% endif %}</li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p class="text-muted mb-0">{% trans "Площадки можно обсудить отдельно." %}</p>
-          {% endif %}
-        {% endwith %}
-      </div>
-    </div>
-
-    {% if user.is_authenticated %}
-      <div class="card shadow-sm mt-4">
-        <div class="card-header">{% trans "Откликнуться" %}</div>
-        <div class="card-body">
-          {% if can_respond %}
-            {% if existing_response %}
-              <div class="alert alert-info small mb-3" role="alert">
-                {% trans "Вы уже откликались на это предложение. Можно обновить сообщение." %}
-                {% if response_conversation_url %}
-                  <a href="{{ response_conversation_url }}" class="alert-link">
-                    {% trans "Открыть обсуждение с автором" %}
-                  </a>
-                {% endif %}
-              </div>
-            {% endif %}
-            <form method="post" action="{% url 'collaborations:offer_respond' offer.pk %}">
-              {% csrf_token %}
-              <div class="mb-3">
-                {{ response_form.platform_links_label_tag }}
-                {{ response_form.platform_links }}
-                {% if response_form.platform_links.help_text %}
-                  <div class="form-text">{{ response_form.platform_links.help_text }}</div>
-                {% endif %}
-                {% for error in response_form.platform_links.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
-              <div class="mb-3">
-                {{ response_form.message_label_tag }}
-                {{ response_form.message }}
-                {% if response_form.message.help_text %}
-                  <div class="form-text">{{ response_form.message.help_text }}</div>
-                {% endif %}
-                {% for error in response_form.message.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
-              <button type="submit" class="btn btn-primary w-100">
-                <i class="bi bi-send me-1"></i>{% trans "Отправить отклик" %}
-              </button>
-            </form>
-          {% else %}
-            <p class="text-muted small mb-0">{% trans "Автор ожидает отклики только от блогеров." %}</p>
-          {% endif %}
-        </div>
-      </div>
-    {% else %}
-      <div class="alert alert-info mt-4" role="alert">
-        {% trans "Авторизуйтесь, чтобы откликнуться на предложение." %}
-      </div>
-    {% endif %}
   </div>
 </div>
 {% endblock %}

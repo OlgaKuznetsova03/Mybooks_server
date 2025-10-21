@@ -3,112 +3,197 @@
 
 {% block title %}{% trans "Отклики авторов" %} · {{ block.super }}{% endblock %}
 
+{% block extra_css %}
+<style>
+/* ===== Палитра для экрана откликов авторов ===== */
+.collab-theme{
+  --clb-accent:#d9a365;                /* основные кнопки */
+  --clb-accent-dark:#c68845;           /* hover / active */
+  --clb-soft:#fbe7b5;                  /* фон шапок/выделений */
+  --clb-soft-12:rgba(251,231,181,.12);
+  --clb-soft-24:rgba(251,231,181,.24);
+  --clb-ink:#2a1a09;                   /* текст на тёплом фоне */
+}
+
+/* Кнопки */
+.collab-theme .btn-primary{
+  background-color:var(--clb-accent) !important;
+  border-color:var(--clb-accent) !important;
+  color:var(--clb-ink) !important;
+  font-weight:600;
+}
+.collab-theme .btn-primary:hover,
+.collab-theme .btn-primary:focus{
+  background-color:var(--clb-accent-dark) !important;
+  border-color:var(--clb-accent-dark) !important;
+  color:var(--clb-ink) !important;
+}
+.collab-theme .btn-outline-primary{
+  color:var(--clb-accent) !important;
+  border-color:var(--clb-accent) !important;
+  font-weight:600;
+}
+.collab-theme .btn-outline-primary:hover,
+.collab-theme .btn-outline-primary:focus{
+  background-color:var(--clb-accent) !important;
+  border-color:var(--clb-accent) !important;
+  color:var(--clb-ink) !important;
+}
+/* ссылочная «Назад»/серые */
+.collab-theme .btn-outline-secondary{
+  border-color:var(--clb-soft-24) !important;
+}
+.collab-theme .btn-outline-secondary:hover,
+.collab-theme .btn-outline-secondary:focus{
+  background-color:var(--clb-soft) !important;
+  border-color:var(--clb-soft-24) !important;
+}
+
+/* Карточки */
+.collab-theme .card{
+  border:1px solid var(--clb-soft-12);
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.collab-theme .card.shadow-sm:hover{
+  transform:translateY(-1px);
+  box-shadow:0 16px 32px rgba(0,0,0,.10);
+}
+.collab-theme .card-footer{
+  border-top:1px solid var(--clb-soft-24);
+}
+.collab-theme .card-footer.bg-soft{
+  background:var(--clb-soft);
+}
+
+/* Бейджи */
+.collab-theme .badge.text-bg-secondary{
+  background:var(--clb-soft) !important;
+  color:var(--clb-ink) !important;
+  border:1px solid var(--clb-soft-24);
+  border-radius:999px;
+  padding:.35rem .6rem;
+}
+
+/* Формы/фокус */
+.collab-theme .form-select:focus,
+.collab-theme .form-control:focus{
+  border-color:var(--clb-accent);
+  box-shadow:0 0 0 .25rem rgba(217,163,101,.25);
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-  <div>
-    <h1 class="h3 mb-1">{% trans "Отклики авторов" %}</h1>
-    <p class="text-muted mb-0">{% trans "Свяжитесь с авторами, обсудите детали и запустите сотрудничество." %}</p>
-  </div>
-  <a href="{% url 'collaborations:blogger_request_list' %}" class="btn btn-outline-secondary">
-    <i class="bi bi-arrow-left me-1"></i>{% trans "К заявкам" %}
-  </a>
-</div>
+<div class="collab-theme">
 
-<form method="get" class="row g-3 align-items-end mb-4">
-  <div class="col-md-4 col-lg-3">
-    <label for="status" class="form-label">{% trans "Статус" %}</label>
-    <select id="status" name="status" class="form-select">
-      <option value="" {% if not active_status %}selected{% endif %}>{% trans "Все" %}</option>
-      {% for option in status_options %}
-        <option value="{{ option.value }}" {% if active_status == option.value %}selected{% endif %}>
-          {{ option.label }}{% if option.count %} ({{ option.count }}){% endif %}
-        </option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="col-md-3 col-lg-2">
-    <button type="submit" class="btn btn-outline-secondary w-100">
-      <i class="bi bi-funnel me-1"></i>{% trans "Фильтровать" %}
-    </button>
-  </div>
-  {% if active_status %}
-    <div class="col-md-3 col-lg-2">
-      <a href="{% url 'collaborations:blogger_request_responses' %}" class="btn btn-outline-secondary w-100">
-        <i class="bi bi-x-circle me-1"></i>{% trans "Сбросить" %}
-      </a>
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div>
+      <h1 class="h3 mb-1">{% trans "Отклики авторов" %}</h1>
+      <p class="text-muted mb-0">{% trans "Свяжитесь с авторами, обсудите детали и запустите сотрудничество." %}</p>
     </div>
-  {% endif %}
-</form>
+    <a href="{% url 'collaborations:blogger_request_list' %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>{% trans "К заявкам" %}
+    </a>
+  </div>
 
-{% if responses %}
-  <div class="d-flex flex-column gap-4">
-    {% for response in responses %}
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <div class="d-flex justify-content-between gap-3 flex-wrap">
-            <div>
-              <h2 class="h5 mb-1">
-                {{ response.author.get_full_name|default:response.author.username }}
-              </h2>
-              <p class="text-muted small mb-2">
-                {% trans "Отклик на" %}
-                <a href="{% url 'collaborations:blogger_request_detail' response.request.pk %}">{{ response.request.title }}</a>
-              </p>
-              <div class="text-muted small">
-                {% trans "Отправлен" %}: {{ response.created_at|date:"j E Y, H:i" }}
+  <form method="get" class="row g-3 align-items-end mb-4">
+    <div class="col-md-4 col-lg-3">
+      <label for="status" class="form-label">{% trans "Статус" %}</label>
+      <select id="status" name="status" class="form-select">
+        <option value="" {% if not active_status %}selected{% endif %}>{% trans "Все" %}</option>
+        {% for option in status_options %}
+          <option value="{{ option.value }}" {% if active_status == option.value %}selected{% endif %}>
+            {{ option.label }}{% if option.count %} ({{ option.count }}){% endif %}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3 col-lg-2">
+      <button type="submit" class="btn btn-outline-secondary w-100">
+        <i class="bi bi-funnel me-1"></i>{% trans "Фильтровать" %}
+      </button>
+    </div>
+    {% if active_status %}
+      <div class="col-md-3 col-lg-2">
+        <a href="{% url 'collaborations:blogger_request_responses' %}" class="btn btn-outline-secondary w-100">
+          <i class="bi bi-x-circle me-1"></i>{% trans "Сбросить" %}
+        </a>
+      </div>
+    {% endif %}
+  </form>
+
+  {% if responses %}
+    <div class="d-flex flex-column gap-4">
+      {% for response in responses %}
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <div class="d-flex justify-content-between gap-3 flex-wrap">
+              <div>
+                <h2 class="h5 mb-1">
+                  {{ response.author.get_full_name|default:response.author.username }}
+                </h2>
+                <p class="text-muted small mb-2">
+                  {% trans "Отклик на" %}
+                  <a href="{% url 'collaborations:blogger_request_detail' response.request.pk %}">{{ response.request.title }}</a>
+                </p>
+                <div class="text-muted small">
+                  {% trans "Отправлен" %}: {{ response.created_at|date:"j E Y, H:i" }}
+                </div>
               </div>
+              <span class="badge text-bg-secondary align-self-start">{{ response.get_status_display }}</span>
             </div>
-            <span class="badge text-bg-secondary align-self-start">{{ response.get_status_display }}</span>
+
+            {% if response.book %}
+              <div class="mt-3">
+                <h3 class="h6">{% trans "Предлагаемая книга" %}</h3>
+                <p class="mb-0">{{ response.book.title }}</p>
+              </div>
+            {% endif %}
+
+            <div class="mt-3">
+              <h3 class="h6">{% trans "Сообщение" %}</h3>
+              {% if response.message %}
+                <p class="mb-0">{{ response.message|linebreaks }}</p>
+              {% else %}
+                <p class="text-muted small mb-0">{% trans "Без дополнительного сообщения." %}</p>
+              {% endif %}
+            </div>
           </div>
 
-          {% if response.book %}
-            <div class="mt-3">
-              <h3 class="h6">{% trans "Предлагаемая книга" %}</h3>
-              <p class="mb-0">{{ response.book.title }}</p>
-            </div>
-          {% endif %}
-
-          <div class="mt-3">
-            <h3 class="h6">{% trans "Сообщение" %}</h3>
-            {% if response.message %}
-              <p class="mb-0">{{ response.message|linebreaks }}</p>
-            {% else %}
-              <p class="text-muted small mb-0">{% trans "Без дополнительного сообщения." %}</p>
+          <div class="card-footer d-flex justify-content-end gap-2 flex-wrap bg-soft">
+            <a href="{% url 'collaborations:blogger_request_response_detail' response.pk %}" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-chat-dots me-1"></i>{% trans "Обсудить" %}
+            </a>
+            {% if response.status == response.Status.PENDING %}
+              <a href="{% url 'collaborations:blogger_request_response_accept' response.pk %}" class="btn btn-sm btn-primary">
+                <i class="bi bi-check-lg me-1"></i>{% trans "Принять" %}
+              </a>
+              <form method="post" action="{% url 'collaborations:blogger_request_response_decline' response.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                  <i class="bi bi-x-lg me-1"></i>{% trans "Отклонить" %}
+                </button>
+              </form>
+            {% elif response.status == response.Status.ACCEPTED %}
+              <a href="{% url 'collaborations:collaboration_list' %}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-people-fill me-1"></i>{% trans "Перейти к сотрудничеству" %}
+              </a>
             {% endif %}
           </div>
         </div>
-        <div class="card-footer d-flex justify-content-end gap-2 flex-wrap">
-          <a href="{% url 'collaborations:blogger_request_response_detail' response.pk %}" class="btn btn-sm btn-outline-secondary">
-            <i class="bi bi-chat-dots me-1"></i>{% trans "Обсудить" %}
-          </a>
-          {% if response.status == response.Status.PENDING %}
-            <a href="{% url 'collaborations:blogger_request_response_accept' response.pk %}" class="btn btn-sm btn-success">
-              <i class="bi bi-check-lg me-1"></i>{% trans "Принять" %}
-            </a>
-            <form method="post" action="{% url 'collaborations:blogger_request_response_decline' response.pk %}">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-sm btn-outline-danger">
-                <i class="bi bi-x-lg me-1"></i>{% trans "Отклонить" %}
-              </button>
-            </form>
-          {% elif response.status == response.Status.ACCEPTED %}
-            <a href="{% url 'collaborations:collaboration_list' %}" class="btn btn-sm btn-outline-primary">
-              <i class="bi bi-people-fill me-1"></i>{% trans "Перейти к сотрудничеству" %}
-            </a>
-          {% endif %}
-        </div>
-      </div>
-    {% endfor %}
-  </div>
+      {% endfor %}
+    </div>
 
-  {% include "config/pagination.html" with page_obj=page_obj %}
-{% else %}
-  <div class="alert alert-info" role="alert">
-    {% if total_responses %}
-      {% trans "По выбранному статусу откликов нет." %}
-    {% else %}
-      {% trans "Пока нет откликов на ваши заявки." %}
-    {% endif %}
-  </div>
-{% endif %}
+    {% include "config/pagination.html" with page_obj=page_obj %}
+  {% else %}
+    <div class="alert alert-info" role="alert">
+      {% if total_responses %}
+        {% trans "По выбранному статусу откликов нет." %}
+      {% else %}
+        {% trans "Пока нет откликов на ваши заявки." %}
+      {% endif %}
+    </div>
+  {% endif %}
+
+</div>
 {% endblock %}

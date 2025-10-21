@@ -3,105 +3,213 @@
 
 {% block title %}{% trans "Обсуждение отклика" %} · {{ block.super }}{% endblock %}
 
+{% block extra_css %}
+<style>
+/* ===== Локальная тема для страницы обсуждения отклика ===== */
+.response-discussion-theme{
+  --accent:#d9a365;         /* основной акцент / кнопки */
+  --accent-dark:#c48847;    /* hover/active */
+  --soft:#fbe7b5;           /* мягкие подложки/выделения */
+  --soft-10:rgba(251,231,181,.10);
+  --soft-20:rgba(251,231,181,.20);
+  --ink:#2b1e0f;            /* тёмный текст */
+}
+
+/* Ссылка «Назад» — в акценте */
+.response-discussion-theme .btn-link{
+  color:var(--accent) !important;
+}
+.response-discussion-theme .btn-link:hover{
+  color:var(--accent-dark) !important;
+  text-decoration:underline;
+}
+
+/* Карточки и разделители */
+.response-discussion-theme .card{
+  border-color:var(--soft-20);
+  box-shadow:0 16px 36px rgba(0,0,0,.06);
+}
+.response-discussion-theme .card-body{
+  background-image: radial-gradient(90% 120% at 100% 0%, var(--soft-10), transparent 60%);
+}
+.response-discussion-theme .card-footer{
+  background:var(--soft);
+  border-top-color:var(--soft-20);
+}
+
+/* Теги-роль у автора/откликнувшегося */
+.response-discussion-theme .badge.text-bg-secondary{
+  background-color:var(--soft) !important;
+  color:var(--ink) !important;
+  border:1px solid var(--soft-20);
+}
+.response-discussion-theme .badge.text-bg-primary{
+  background-color:var(--accent) !important;
+  color:var(--ink) !important;
+  border:1px solid var(--accent-dark);
+}
+
+/* Ссылки внутри списков */
+.response-discussion-theme .list-unstyled a{
+  color:var(--accent);
+}
+.response-discussion-theme .list-unstyled a:hover{
+  color:var(--accent-dark);
+}
+
+/* Поля формы и фокус */
+.response-discussion-theme .form-label{ font-weight:600; }
+.response-discussion-theme .form-control{
+  border-color:var(--soft-20);
+}
+.response-discussion-theme .form-control:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 .2rem rgba(217,163,101,.25);
+}
+
+/* Кнопки */
+.response-discussion-theme .btn-primary{
+  background-color:var(--accent) !important;
+  border-color:var(--accent) !important;
+  color:var(--ink) !important;
+  font-weight:600;
+}
+.response-discussion-theme .btn-primary:hover,
+.response-discussion-theme .btn-primary:focus{
+  background-color:var(--accent-dark) !important;
+  border-color:var(--accent-dark) !important;
+  color:var(--ink) !important;
+}
+.response-discussion-theme .btn-outline-secondary{
+  border-color:var(--soft-20) !important;
+  color:#5b4a2e !important;
+  background:transparent;
+}
+.response-discussion-theme .btn-outline-secondary:hover,
+.response-discussion-theme .btn-outline-secondary:focus{
+  background:var(--soft);
+  border-color:var(--accent) !important;
+  color:var(--ink) !important;
+}
+
+/* Пузырь комментария — мягкая рамка */
+.response-discussion-theme .border{
+  border-color:var(--soft-20) !important;
+}
+
+/* Мьютед — тёплый оттенок */
+.response-discussion-theme .text-muted{ color:#6b5a41 !important; }
+
+/* Мобилка — проще фон */
+@media (max-width:575.98px){
+  .response-discussion-theme .card-body{ background-image:none; }
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="mb-4">
-  <a href="{{ back_url }}" class="btn btn-link text-decoration-none ps-0">
-    <i class="bi bi-arrow-left"></i> {% trans "Назад" %}
-  </a>
-</div>
+<div class="response-discussion-theme">
 
-<div class="row g-4">
-  <div class="col-lg-4">
-    <div class="card shadow-sm h-100">
-      <div class="card-body">
-        <h1 class="h5 mb-3">{{ offer.title }}</h1>
-        <dl class="row small text-muted mb-4">
-          <dt class="col-6">{% trans "Статус отклика" %}</dt>
-          <dd class="col-6">{{ response.get_status_display }}</dd>
-          <dt class="col-6">{% trans "Отправлен" %}</dt>
-          <dd class="col-6">{{ response.created_at|date:"j E Y, H:i" }}</dd>
-        </dl>
+  <div class="mb-4">
+    <a href="{{ back_url }}" class="btn btn-link text-decoration-none ps-0">
+      <i class="bi bi-arrow-left"></i> {% trans "Назад" %}
+    </a>
+  </div>
 
-        <div class="mb-4">
-          <h2 class="h6">{% trans "Сообщение отклика" %}</h2>
-          {% if response.message %}
-            <p class="mb-0">{{ response.message|linebreaks }}</p>
-          {% else %}
-            <p class="text-muted small mb-0">{% trans "Без дополнительного сообщения." %}</p>
+  <div class="row g-4">
+    <div class="col-lg-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h1 class="h5 mb-3">{{ offer.title }}</h1>
+          <dl class="row small text-muted mb-4">
+            <dt class="col-6">{% trans "Статус отклика" %}</dt>
+            <dd class="col-6">{{ response.get_status_display }}</dd>
+            <dt class="col-6">{% trans "Отправлен" %}</dt>
+            <dd class="col-6">{{ response.created_at|date:"j E Y, H:i" }}</dd>
+          </dl>
+
+          <div class="mb-4">
+            <h2 class="h6">{% trans "Сообщение отклика" %}</h2>
+            {% if response.message %}
+              <p class="mb-0">{{ response.message|linebreaks }}</p>
+            {% else %}
+              <p class="text-muted small mb-0">{% trans "Без дополнительного сообщения." %}</p>
+            {% endif %}
+          </div>
+
+          {% if response.platform_links %}
+            <div class="mb-0">
+              <h2 class="h6">{% trans "Предлагаемые площадки" %}</h2>
+              <ul class="list-unstyled small mb-0">
+                {% for link in response.platform_links.splitlines %}
+                  {% if link %}
+                    <li><a href="{{ link }}" target="_blank" rel="noopener">{{ link }}</a></li>
+                  {% endif %}
+                {% endfor %}
+              </ul>
+            </div>
           {% endif %}
         </div>
-
-        {% if response.platform_links %}
-          <div class="mb-0">
-            <h2 class="h6">{% trans "Предлагаемые площадки" %}</h2>
-            <ul class="list-unstyled small mb-0">
-              {% for link in response.platform_links.splitlines %}
-                {% if link %}
-                  <li><a href="{{ link }}" target="_blank" rel="noopener">{{ link }}</a></li>
-                {% endif %}
-              {% endfor %}
-            </ul>
-          </div>
-        {% endif %}
-      </div>
-      <div class="card-footer small text-muted">
-        {% if can_comment %}
-          {% trans "Обсуждение доступно, пока отклик не подтверждён." %}
-        {% else %}
-          {% trans "Отклик закрыт для новых комментариев." %}
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-  <div class="col-lg-8">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h2 class="h5 mb-4">{% trans "Комментарии" %}</h2>
-
-        {% if comments %}
-          <div class="d-flex flex-column gap-4">
-            {% for comment in comments %}
-              <div class="border rounded p-3">
-                <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
-                  <div>
-                    <strong>{{ comment.author.get_full_name|default:comment.author.username }}</strong>
-                    {% if comment.author_id == response.offer.author_id %}
-                      <span class="badge text-bg-secondary ms-2">{% trans "Автор" %}</span>
-                    {% elif comment.author_id == response.respondent_id %}
-                      <span class="badge text-bg-primary ms-2">{% trans "Откликнувшийся" %}</span>
-                    {% endif %}
-                  </div>
-                  <span class="text-muted small">{{ comment.created_at|date:"j E Y, H:i" }}</span>
-                </div>
-                <p class="mb-0">{{ comment.text|linebreaks }}</p>
-              </div>
-            {% endfor %}
-          </div>
-        {% else %}
-          <p class="text-muted mb-0">{% trans "Пока нет комментариев. Начните обсуждение, чтобы уточнить детали." %}</p>
-        {% endif %}
-      </div>
-      {% if can_comment %}
-        <div class="card-footer">
-          <form method="post" class="d-flex flex-column gap-3">
-            {% csrf_token %}
-            <div>
-              <label class="form-label" for="{{ form.text.id_for_label }}">{{ form.text.label }}</label>
-              {{ form.text }}
-              {% for error in form.text.errors %}
-                <div class="invalid-feedback d-block">{{ error }}</div>
-              {% endfor %}
-            </div>
-            <div class="d-flex justify-content-end">
-              <button type="submit" class="btn btn-primary">
-                <i class="bi bi-chat-dots me-1"></i>{% trans "Отправить" %}
-              </button>
-            </div>
-          </form>
+        <div class="card-footer small text-muted">
+          {% if can_comment %}
+            {% trans "Обсуждение доступно, пока отклик не подтверждён." %}
+          {% else %}
+            {% trans "Отклик закрыт для новых комментариев." %}
+          {% endif %}
         </div>
-      {% endif %}
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h2 class="h5 mb-4">{% trans "Комментарии" %}</h2>
+
+          {% if comments %}
+            <div class="d-flex flex-column gap-4">
+              {% for comment in comments %}
+                <div class="border rounded p-3">
+                  <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                    <div>
+                      <strong>{{ comment.author.get_full_name|default:comment.author.username }}</strong>
+                      {% if comment.author_id == response.offer.author_id %}
+                        <span class="badge text-bg-secondary ms-2">{% trans "Автор" %}</span>
+                      {% elif comment.author_id == response.respondent_id %}
+                        <span class="badge text-bg-primary ms-2">{% trans "Откликнувшийся" %}</span>
+                      {% endif %}
+                    </div>
+                    <span class="text-muted small">{{ comment.created_at|date:"j E Y, H:i" }}</span>
+                  </div>
+                  <p class="mb-0">{{ comment.text|linebreaks }}</p>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-muted mb-0">{% trans "Пока нет комментариев. Начните обсуждение, чтобы уточнить детали." %}</p>
+          {% endif %}
+        </div>
+        {% if can_comment %}
+          <div class="card-footer">
+            <form method="post" class="d-flex flex-column gap-3">
+              {% csrf_token %}
+              <div>
+                <label class="form-label" for="{{ form.text.id_for_label }}">{{ form.text.label }}</label>
+                {{ form.text }}
+                {% for error in form.text.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary">
+                  <i class="bi bi-chat-dots me-1"></i>{% trans "Отправить" %}
+                </button>
+              </div>
+            </form>
+          </div>
+        {% endif %}
+      </div>
     </div>
   </div>
+
 </div>
 {% endblock %}

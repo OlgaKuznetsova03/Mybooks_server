@@ -3,141 +3,264 @@
 
 {% block title %}{% trans "Предложения о сотрудничестве" %} · {{ block.super }}{% endblock %}
 
+{% block extra_css %}
+<style>
+/* ========= ТЕМА COLLAB ========= */
+.collab-theme{
+  --collab-hero-bg:#fbe7b5;         /* фон “шапки” и выделенных областей */
+  --collab-accent:#d9a365;          /* основные кнопки/акцент */
+  --collab-accent-dark:#c68845;     /* hover/active */
+  --collab-accent-25: rgba(217,163,101,.25);
+  --collab-accent-12: rgba(217,163,101,.12);
+}
+
+/* Кнопки под ваш акцент */
+.collab-theme .btn-primary{
+  background-color:var(--collab-accent) !important;
+  border-color:var(--collab-accent) !important;
+  color:#2b1906 !important;
+  font-weight:600;
+}
+.collab-theme .btn-primary:hover,
+.collab-theme .btn-primary:focus{
+  background-color:var(--collab-accent-dark) !important;
+  border-color:var(--collab-accent-dark) !important;
+}
+
+.collab-theme .btn-outline-primary{
+  color:var(--collab-accent) !important;
+  border-color:var(--collab-accent) !important;
+  font-weight:600;
+}
+.collab-theme .btn-outline-primary:hover,
+.collab-theme .btn-outline-primary:focus{
+  background-color:var(--collab-accent) !important;
+  border-color:var(--collab-accent) !important;
+  color:#2b1906 !important;
+}
+
+/* Вспомогательные outline */
+.collab-theme .btn-outline-secondary{
+  border-color:var(--collab-accent-25);
+}
+.collab-theme .btn-outline-secondary:hover{
+  background:var(--collab-accent-12);
+  border-color:var(--collab-accent);
+}
+
+/* HERO-панель */
+.collab-hero{
+  background:var(--collab-hero-bg);
+  border:1px solid rgba(0,0,0,.05);
+  border-radius:18px;
+  padding:1.25rem 1.25rem 1rem;
+  box-shadow:0 12px 28px rgba(0,0,0,.06);
+}
+.collab-hero h1{ margin-bottom:.25rem }
+.collab-hero__actions{ gap:.5rem }
+
+/* Форма фильтра — фокус под акцент */
+.collab-theme .form-control:focus,
+.collab-theme .form-select:focus{
+  border-color:var(--collab-accent);
+  box-shadow:0 0 0 .25rem rgba(217,163,101,.25);
+}
+
+/* Карточки предложений — мягкие рамки и тень */
+.collab-card.card{
+  border:1px solid var(--collab-accent-12);
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.collab-card.card:hover{
+  transform:translateY(-1px);
+  box-shadow:0 16px 32px rgba(0,0,0,.10);
+}
+.collab-card .badge.text-bg-primary{
+  background:var(--collab-accent) !important;
+  color:#2b1906 !important;
+  border:1px solid var(--collab-accent-dark);
+}
+
+/* Чипы платформ */
+.collab-chip{
+  background:var(--collab-accent-12) !important;
+  border:1px solid var(--collab-accent-25) !important;
+  color:#5b442e !important;
+  font-weight:600;
+}
+
+/* Футер карточки */
+.collab-card .card-footer{
+  background: #fff7ea !important;
+  border-top:1px solid var(--collab-accent-12);
+}
+
+/* Мобильные поправки */
+@media (max-width: 575.98px){
+  .collab-hero{ padding:1rem; }
+  .collab-hero__actions .btn-group,
+  .collab-hero__actions .btn{ width:100%; }
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-  <div>
-    <h1 class="h3 mb-1">{% trans "Предложения о сотрудничестве" %}</h1>
-    <p class="text-muted mb-0">{% trans "Найдите книги для обзора и договоритесь с автором или блогером." %}</p>
-  </div>
-  <div class="d-flex flex-column align-items-end gap-2">
-    <div class="btn-group" role="group" aria-label="{% trans 'Варианты предложений' %}">
-      <span class="btn btn-primary active disabled">
-        <i class="bi bi-journal-bookmark me-1"></i>{% trans "Предложения авторов" %}
-      </span>
-      <a href="{{ blogger_request_list_url }}" class="btn btn-outline-secondary">
-        <i class="bi bi-megaphone me-1"></i>{% trans "Заявки блогеров" %}
-      </a>
-    </div>
-    <a href="{% url 'collaborations:blogger_community' %}" class="btn btn-outline-secondary w-100">
-      <i class="bi bi-people-fill me-1"></i>{% trans "Блогерский хаб" %}
-    </a>
-  {% if request.user.is_authenticated %}
-      <div class="btn-group">
-        <a href="{% url 'collaborations:offer_create' %}" class="btn btn-primary">
-          <i class="bi bi-plus-lg me-1"></i> {% trans "Добавить предложение" %}
-        </a>
-        {% if user_is_blogger and blogger_request_create_url %}
-          <a href="{{ blogger_request_create_url }}" class="btn btn-outline-primary">
-            <i class="bi bi-stars me-1"></i>{% trans "Создать заявку блогера" %}
-          </a>
-        {% endif %}
-        {% if show_response_inbox %}
-          <a href="{% url 'collaborations:offer_responses' %}" class="btn btn-outline-secondary position-relative">
-            <i class="bi bi-inbox me-1"></i>{% trans "Отклики" %}
-            {% if pending_offer_responses_count %}
-              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                {{ pending_offer_responses_count }}
-              </span>
-            {% endif %}
-          </a>
-        {% endif %}
-        <a href="{% url 'collaborations:collaboration_list' %}" class="btn btn-outline-secondary">
-          <i class="bi bi-people-fill me-1"></i>{% trans "Мои сотрудничества" %}
-        </a>
+<div class="collab-theme">
+
+  <!-- HERO -->
+  <div class="collab-hero mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+      <div>
+        <h1 class="h4 mb-1">{% trans "Предложения о сотрудничестве" %}</h1>
+        <p class="text-muted mb-0">{% trans "Найдите книги для обзора и договоритесь с автором или блогером." %}</p>
       </div>
-    {% endif %}
-  </div>
-</div>
 
-<form method="get" class="row g-3 align-items-end mb-4">
-  <div class="col-md-6 col-lg-4">
-    <label for="search" class="form-label">{% trans "Поиск" %}</label>
-    <input id="search" type="search" name="q" value="{{ request.GET.q }}" class="form-control" placeholder="{% trans 'Название или описание' %}">
-  </div>
-  <div class="col-md-6 col-lg-4">
-    <label for="audience" class="form-label">{% trans "Доступность" %}</label>
-    <select id="audience" name="audience" class="form-select">
-      {% for option in audience_filter_options %}
-        <option value="{{ option.value }}"{% if option.value == active_audience_filter %} selected{% endif %}>{{ option.label }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="col-md-3 col-lg-2">
-    <button type="submit" class="btn btn-outline-secondary w-100">
-      <i class="bi bi-search me-1"></i>{% trans "Найти" %}
-    </button>
-  </div>
-</form>
+      <div class="collab-hero__actions d-flex flex-column align-items-end">
+        <div class="btn-group" role="group" aria-label="{% trans 'Варианты предложений' %}">
+          <span class="btn btn-primary active disabled">
+            <i class="bi bi-journal-bookmark me-1"></i>{% trans "Предложения авторов" %}
+          </span>
+          <a href="{{ blogger_request_list_url }}" class="btn btn-outline-primary">
+            <i class="bi bi-megaphone me-1"></i>{% trans "Заявки блогеров" %}
+          </a>
+        </div>
 
-{% if offers %}
-  <div class="row g-4">
-    {% for offer in offers %}
-      <div class="col-12 col-lg-6">
-        <div class="card h-100 shadow-sm">
-          <div class="card-body d-flex flex-column">
-            <div class="d-flex gap-3 mb-3">
-              {% with cover_url=offer.get_attached_book_cover_url %}
-                {% if offer.book and cover_url %}
-                  <a href="{% url 'book_detail' offer.book.pk %}" class="flex-shrink-0 d-block">
-                    <img src="{{ cover_url }}" alt="{{ offer.book.title }}" class="rounded shadow-sm" style="width: 96px; height: auto;">
-                  </a>
+        {% if request.user.is_authenticated %}
+          <div class="btn-group mt-2">
+            <a href="{% url 'collaborations:offer_create' %}" class="btn btn-primary">
+              <i class="bi bi-plus-lg me-1"></i> {% trans "Добавить предложение" %}
+            </a>
+            {% if user_is_blogger and blogger_request_create_url %}
+              <a href="{{ blogger_request_create_url }}" class="btn btn-outline-primary">
+                <i class="bi bi-stars me-1"></i>{% trans "Создать заявку блогера" %}
+              </a>
+            {% endif %}
+            {% if show_response_inbox %}
+              <a href="{% url 'collaborations:offer_responses' %}" class="btn btn-outline-secondary position-relative">
+                <i class="bi bi-inbox me-1"></i>{% trans "Отклики" %}
+                {% if pending_offer_responses_count %}
+                  <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                    {{ pending_offer_responses_count }}
+                  </span>
                 {% endif %}
-              {% endwith %}
-              <div class="flex-grow-1">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <h2 class="h5 mb-0"><a href="{% url 'collaborations:offer_detail' offer.pk %}" class="text-decoration-none">{{ offer.title }}</a></h2>
-                  <span class="badge text-bg-primary">{{ offer.get_offered_format_display }}</span>
+              </a>
+            {% endif %}
+            <a href="{% url 'collaborations:collaboration_list' %}" class="btn btn-outline-secondary">
+              <i class="bi bi-people-fill me-1"></i>{% trans "Мои сотрудничества" %}
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Фильтры -->
+  <form method="get" class="row g-3 align-items-end mb-4">
+    <div class="col-md-6 col-lg-4">
+      <label for="search" class="form-label">{% trans "Поиск" %}</label>
+      <input id="search" type="search" name="q" value="{{ request.GET.q }}" class="form-control"
+             placeholder="{% trans 'Название или описание' %}">
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <label for="audience" class="form-label">{% trans "Доступность" %}</label>
+      <select id="audience" name="audience" class="form-select">
+        {% for option in audience_filter_options %}
+          <option value="{{ option.value }}"{% if option.value == active_audience_filter %} selected{% endif %}>
+            {{ option.label }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3 col-lg-2">
+      <button type="submit" class="btn btn-outline-primary w-100">
+        <i class="bi bi-search me-1"></i>{% trans "Найти" %}
+      </button>
+    </div>
+  </form>
+
+  {% if offers %}
+    <div class="row g-4">
+      {% for offer in offers %}
+        <div class="col-12 col-lg-6">
+          <div class="card collab-card h-100 shadow-sm">
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex gap-3 mb-3">
+                {% with cover_url=offer.get_attached_book_cover_url %}
+                  {% if offer.book and cover_url %}
+                    <a href="{% url 'book_detail' offer.book.pk %}" class="flex-shrink-0 d-block">
+                      <img src="{{ cover_url }}" alt="{{ offer.book.title }}" class="rounded shadow-sm"
+                           style="width: 96px; height: auto;">
+                    </a>
+                  {% endif %}
+                {% endwith %}
+                <div class="flex-grow-1">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h2 class="h5 mb-0">
+                      <a href="{% url 'collaborations:offer_detail' offer.pk %}" class="text-decoration-none">
+                        {{ offer.title }}
+                      </a>
+                    </h2>
+                    <span class="badge text-bg-primary">{{ offer.get_offered_format_display }}</span>
+                  </div>
+
+                  {% if offer.book %}
+                    <p class="text-muted small mb-2">
+                      <i class="bi bi-book me-1"></i>{% trans "Книга:" %}
+                      <a href="{% url 'book_detail' offer.book.pk %}" class="text-reset text-decoration-none">
+                        {{ offer.book.title }}
+                      </a>
+                    </p>
+                  {% endif %}
+
+                  {% if offer.synopsis %}
+                    <p class="text-muted small mb-3">{{ offer.synopsis|truncatechars:160 }}</p>
+                  {% endif %}
+
+                  <ul class="list-unstyled small mb-3">
+                    <li class="mb-1"><i class="bi bi-person-workspace me-2"></i>{{ offer.author.get_full_name|default:offer.author.username }}</li>
+                    <li class="mb-1"><i class="bi bi-clock me-2"></i>{% trans "Опубликовано" %}: {{ offer.created_at|date:"j E Y" }}</li>
+                    <li class="mb-1"><i class="bi bi-people me-2"></i>
+                      {% if offer.allow_regular_users %}
+                        {% trans "Открыто блогерам и читателям" %}
+                      {% else %}
+                        {% trans "Только для блогеров" %}
+                      {% endif %}
+                    </li>
+                  </ul>
                 </div>
-                {% if offer.book %}
-                  <p class="text-muted small mb-2">
-                    <i class="bi bi-book me-1"></i>{% trans "Книга:" %}
-                    <a href="{% url 'book_detail' offer.book.pk %}" class="text-reset text-decoration-none">{{ offer.book.title }}</a>
-                  </p>
-                {% endif %}
-                {% if offer.synopsis %}
-                  <p class="text-muted small mb-3">{{ offer.synopsis|truncatechars:160 }}</p>
-                {% endif %}
-                <ul class="list-unstyled small mb-3">
-                  <li class="mb-1"><i class="bi bi-person-workspace me-2"></i>{{ offer.author.get_full_name|default:offer.author.username }}</li>
-                  <li class="mb-1"><i class="bi bi-clock me-2"></i>{% trans "Опубликовано" %}: {{ offer.created_at|date:"j E Y" }}</li>
-                  <li class="mb-1"><i class="bi bi-people me-2"></i>
-                    {% if offer.allow_regular_users %}
-                      {% trans "Открыто блогерам и читателям" %}
-                    {% else %}
-                      {% trans "Только для блогеров" %}
-                    {% endif %}
-                  </li>
-                </ul>
+              </div>
+
+              <div class="mt-auto d-flex flex-wrap gap-2 align-items-center">
+                {% for platform in offer.expected_platforms.all %}
+                  <span class="badge collab-chip"><i class="bi bi-hash me-1"></i>{{ platform.name }}</span>
+                {% empty %}
+                  <span class="text-muted small">{% trans "Платформы не указаны" %}</span>
+                {% endfor %}
               </div>
             </div>
-            <div class="mt-auto d-flex flex-wrap gap-2 align-items-center">
-              {% for platform in offer.expected_platforms.all %}
-                <span class="badge text-bg-light border"><i class="bi bi-hash me-1"></i>{{ platform.name }}</span>
-              {% empty %}
-                <span class="text-muted small">{% trans "Платформы не указаны" %}</span>
-              {% endfor %}
+
+            <div class="card-footer d-flex justify-content-between align-items-center">
+              <a href="{% url 'collaborations:offer_detail' offer.pk %}" class="btn btn-sm btn-outline-primary">
+                {% trans "Подробнее" %}
+              </a>
+              {% if offer.considers_paid_collaboration %}
+                <span class="small text-warning-emphasis"><i class="bi bi-shield-exclamation me-1"></i>{% trans "Возможна платная коллаборация" %}</span>
+              {% endif %}
             </div>
           </div>
-          <div class="card-footer bg-body-secondary d-flex justify-content-between align-items-center">
-            <a href="{% url 'collaborations:offer_detail' offer.pk %}" class="btn btn-sm btn-outline-primary">
-              {% trans "Подробнее" %}
-            </a>
-            {% if offer.considers_paid_collaboration %}
-              <span class="text-warning-emphasis small"><i class="bi bi-shield-exclamation me-1"></i>{% trans "Возможна платная коллаборация" %}</span>
-            {% endif %}
-          </div>
         </div>
-      </div>
-    {% endfor %}
-  </div>
+      {% endfor %}
+    </div>
 
-  {% include "config/pagination.html" with page_obj=page_obj %}
-{% else %}
-  <div class="text-center py-5">
-    <p class="lead mb-2">{% trans "Пока нет активных предложений." %}</p>
-    {% if request.user.is_authenticated %}
-      <p class="text-muted">{% trans "Станьте первым автором или блогером, кто предложит книгу!" %}</p>
-    {% endif %}
-  </div>
-{% endif %}
+    {% include "config/pagination.html" with page_obj=page_obj %}
+  {% else %}
+    <div class="text-center py-5">
+      <p class="lead mb-2">{% trans "Пока нет активных предложений." %}</p>
+      {% if request.user.is_authenticated %}
+        <p class="text-muted">{% trans "Станьте первым автором или блогером, кто предложит книгу!" %}</p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+</div>
 {% endblock %}

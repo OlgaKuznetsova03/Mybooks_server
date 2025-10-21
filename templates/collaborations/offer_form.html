@@ -3,35 +3,116 @@
 
 {% block title %}{% trans "Новое предложение" %} · {{ block.super }}{% endblock %}
 
-{% block content %}
-<h1 class="h3 mb-4">{% trans "Новое предложение" %}</h1>
+{% block extra_css %}
+<style>
+/* ===== Локальная тёплая тема для формы ===== */
+.offer-create-theme{
+  --accent: #d9a365;          /* кнопки/активные элементы */
+  --accent-dark:#c48847;      /* hover/active */
+  --soft:  #fbe7b5;           /* мягкие подложки/выделения */
+  --soft-12: rgba(251,231,181,.12);
+  --soft-20: rgba(251,231,181,.20);
+  --soft-30: rgba(251,231,181,.30);
+  --ink:#2b1e0f;              /* тёмный текст */
+}
 
-<form method="post" class="card shadow-sm">
-  <div class="card-body">
-    {% csrf_token %}
-    {{ form.non_field_errors }}
-    {% for field in form %}
-      <div class="mb-3">
-        {% if field.field.widget.input_type == 'checkbox' %}
-          <div class="form-check">
+/* Заголовок страницы — на тёплой плашке */
+.offer-create-theme .page-title{
+  display:inline-block;
+  padding:.35rem .65rem;
+  background:var(--soft);
+  border:1px solid var(--soft-20);
+  border-radius:.5rem;
+  margin-bottom:1rem;
+}
+
+/* Карточка формы */
+.offer-create-theme .card{
+  border-color:var(--soft-20);
+  box-shadow:0 16px 36px rgba(0,0,0,.06);
+}
+.offer-create-theme .card-body{
+  background-image: radial-gradient(90% 120% at 100% 0%, var(--soft-12), transparent 60%);
+}
+.offer-create-theme .card-footer{
+  background:var(--soft);
+  border-top-color:var(--soft-20);
+}
+
+/* Поля формы */
+.offer-create-theme .form-label{ font-weight:600; }
+.offer-create-theme .form-control,
+.offer-create-theme .form-select{
+  border-color:var(--soft-30);
+}
+.offer-create-theme .form-control:focus,
+.offer-create-theme .form-select:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 .2rem rgba(217,163,101,.25);
+}
+
+/* Чекбоксы/радио */
+.offer-create-theme .form-check-input:checked{
+  background-color:var(--accent);
+  border-color:var(--accent);
+}
+
+/* Подсказки и muted-текст — чуть теплее */
+.offer-create-theme .form-text,
+.offer-create-theme .text-muted{ color:#6b5a41 !important; }
+
+/* Кнопки */
+.offer-create-theme .btn-primary{
+  background-color:var(--accent) !important;
+  border-color:var(--accent) !important;
+  color:var(--ink) !important;
+  font-weight:600;
+}
+.offer-create-theme .btn-primary:hover,
+.offer-create-theme .btn-primary:focus{
+  background-color:var(--accent-dark) !important;
+  border-color:var(--accent-dark) !important;
+  color:var(--ink) !important;
+}
+
+/* Мобильные правки: убираем фон-градиент для экономии */
+@media (max-width:575.98px){
+  .offer-create-theme .card-body{ background-image:none; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="offer-create-theme">
+  <h1 class="h3 page-title">{% trans "Новое предложение" %}</h1>
+
+  <form method="post" class="card shadow-sm">
+    <div class="card-body">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      {% for field in form %}
+        <div class="mb-3">
+          {% if field.field.widget.input_type == 'checkbox' %}
+            <div class="form-check">
+              {{ field }}
+              <label class="form-check-label" for="id_{{ field.name }}">{{ field.label }}</label>
+            </div>
+          {% else %}
+            <label class="form-label" for="id_{{ field.name }}">{{ field.label }}</label>
             {{ field }}
-            <label class="form-check-label" for="id_{{ field.name }}">{{ field.label }}</label>
-          </div>
-        {% else %}
-          <label class="form-label" for="id_{{ field.name }}">{{ field.label }}</label>
-          {{ field }}
-        {% endif %}
-        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-        {% for error in field.errors %}
-          <div class="invalid-feedback d-block">{{ error }}</div>
-        {% endfor %}
-      </div>
-    {% endfor %}
-  </div>
-  <div class="card-footer text-end">
-    <button type="submit" class="btn btn-primary">
-      <i class="bi bi-check2-circle me-1"></i>{% trans "Сохранить" %}
-    </button>
-  </div>
-</form>
+          {% endif %}
+          {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+          {% for error in field.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+    <div class="card-footer text-end">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check2-circle me-1"></i>{% trans "Сохранить" %}
+      </button>
+    </div>
+  </form>
+</div>
 {% endblock %}

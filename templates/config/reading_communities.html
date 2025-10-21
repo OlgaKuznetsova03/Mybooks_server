@@ -279,7 +279,31 @@
     width: min(320px, 75%) !important;
   }
 }
+@media (max-width: 575.98px){
+  .reading-communities-controls{
+    align-items: stretch !important;
+  }
 
+  .reading-communities-tabs{
+    display: flex !important;
+    flex-direction: column !important; /* в столбик */
+    width: 100% !important;
+    gap: .5rem !important;
+
+    /* гасим горизонтальный скролл, заданный выше */
+    overflow: visible !important;
+    flex-wrap: nowrap !important;
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .reading-communities-tabs .nav-link{
+    width: 100% !important;   /* растянуть кнопку на всю ширину */
+    flex: 0 0 auto !important; 
+    white-space: normal !important;
+    text-align: center;
+  }
+}
 </style>
 
 {% endblock %}

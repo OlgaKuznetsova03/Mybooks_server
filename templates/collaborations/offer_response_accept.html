@@ -3,89 +3,194 @@
 
 {% block title %}{% trans "Принять отклик" %} · {{ block.super }}{% endblock %}
 
+{% block extra_css %}
+<style>
+/* ===== Локальная тема для страницы принятия отклика ===== */
+.accept-offer-theme{
+  --accent:#d9a365;          /* основной акцент/кнопки */
+  --accent-dark:#c48847;     /* hover/active */
+  --soft:#fbe7b5;            /* мягкие подложки/выделения */
+  --soft-12:rgba(251,231,181,.12);
+  --soft-20:rgba(251,231,181,.20);
+  --ink:#2b1e0f;             /* тёмный текст */
+}
+
+/* Хлебные крошки/ссылка назад — мягкий акцент */
+.accept-offer-theme .btn-link{
+  color:var(--accent) !important;
+}
+.accept-offer-theme .btn-link:hover{
+  color:var(--accent-dark) !important;
+  text-decoration:underline;
+}
+
+/* Карточка */
+.accept-offer-theme .card{
+  border-color:var(--soft-20);
+  box-shadow:0 16px 36px rgba(0,0,0,.06);
+}
+.accept-offer-theme .card-body{
+  background-image: radial-gradient(90% 120% at 100% 0%, var(--soft-12), transparent 60%);
+}
+.accept-offer-theme .card-footer{
+  background:var(--soft);
+  border-top-color:var(--soft-20);
+}
+
+/* Заголовок секции — лёгкая плашка */
+.accept-offer-theme h1.h4{
+  display:inline-block;
+  padding:.35rem .65rem;
+  background:var(--soft);
+  border:1px solid var(--soft-20);
+  border-radius:.5rem;
+}
+
+/* Списки/бейджи */
+.accept-offer-theme .badge.text-bg-secondary{
+  background-color:var(--soft) !important;
+  color:var(--ink) !important;
+  border:1px solid var(--soft-20);
+}
+.accept-offer-theme .list-unstyled a{
+  color:var(--accent);
+}
+.accept-offer-theme .list-unstyled a:hover{
+  color:var(--accent-dark);
+}
+
+/* Формы */
+.accept-offer-theme .form-label{ font-weight:600; }
+.accept-offer-theme .form-control{
+  border-color:var(--soft-20);
+}
+.accept-offer-theme .form-control:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 .2rem rgba(217,163,101,.25);
+}
+
+/* Кнопки: success перекрашиваем под акцент, чтобы всё выглядело единообразно */
+.accept-offer-theme .btn-success{
+  background-color:var(--accent) !important;
+  border-color:var(--accent) !important;
+  color:var(--ink) !important;
+  font-weight:600;
+}
+.accept-offer-theme .btn-success:hover,
+.accept-offer-theme .btn-success:focus{
+  background-color:var(--accent-dark) !important;
+  border-color:var(--accent-dark) !important;
+  color:var(--ink) !important;
+}
+
+/* Вторичная обводка — делаем теплее */
+.accept-offer-theme .btn-outline-secondary{
+  border-color:var(--soft-20) !important;
+  color:#5b4a2e !important;
+  background:transparent;
+}
+.accept-offer-theme .btn-outline-secondary:hover,
+.accept-offer-theme .btn-outline-secondary:focus{
+  background:var(--soft);
+  border-color:var(--accent) !important;
+  color:var(--ink) !important;
+}
+
+/* Подписи/мьютед — тёплый оттенок */
+.accept-offer-theme .text-muted{ color:#6b5a41 !important; }
+
+/* Мобилка — убираем фон-градиент ради производительности */
+@media (max-width:575.98px){
+  .accept-offer-theme .card-body{ background-image:none; }
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="mb-4">
-  <a href="{% url 'collaborations:offer_responses' %}" class="btn btn-link text-decoration-none ps-0">
-    <i class="bi bi-arrow-left"></i> {% trans "Назад к откликам" %}
-  </a>
-</div>
+<div class="accept-offer-theme">
+  <div class="mb-4">
+    <a href="{% url 'collaborations:offer_responses' %}" class="btn btn-link text-decoration-none ps-0">
+      <i class="bi bi-arrow-left"></i> {% trans "Назад к откликам" %}
+    </a>
+  </div>
 
-<div class="card shadow-sm">
-  <div class="card-body">
-    <h1 class="h4 mb-3">{% trans "Подтверждение сотрудничества" %}</h1>
-    <p class="text-muted">
-      {% blocktrans with offer_title=response.offer.title partner=response.respondent.get_full_name|default:response.respondent.username %}
-        Вы собираетесь принять отклик пользователя {{ partner }} на предложение «{{ offer_title }}».
-      {% endblocktrans %}
-    </p>
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h1 class="h4 mb-3">{% trans "Подтверждение сотрудничества" %}</h1>
+      <p class="text-muted">
+        {% blocktrans with offer_title=response.offer.title partner=response.respondent.get_full_name|default:response.respondent.username %}
+          Вы собираетесь принять отклик пользователя {{ partner }} на предложение «{{ offer_title }}».
+        {% endblocktrans %}
+      </p>
 
-    <dl class="row small text-muted">
-      <dt class="col-sm-4">{% trans "Отправлен" %}</dt>
-      <dd class="col-sm-8">{{ response.created_at|date:"j E Y, H:i" }}</dd>
-      <dt class="col-sm-4">{% trans "Статус отклика" %}</dt>
-      <dd class="col-sm-8">{{ response.get_status_display }}</dd>
-    </dl>
+      <dl class="row small text-muted">
+        <dt class="col-sm-4">{% trans "Отправлен" %}</dt>
+        <dd class="col-sm-8">{{ response.created_at|date:"j E Y, H:i" }}</dd>
+        <dt class="col-sm-4">{% trans "Статус отклика" %}</dt>
+        <dd class="col-sm-8">{{ response.get_status_display }}</dd>
+      </dl>
 
-    {% if platform_links %}
-      <div class="mb-4">
-        <h2 class="h6">{% trans "Предлагаемые площадки" %}</h2>
-        <ul class="list-unstyled small mb-0">
-          {% for link in platform_links %}
-            <li><a href="{{ link }}" target="_blank" rel="noopener">{{ link }}</a></li>
-          {% endfor %}
-        </ul>
-      </div>
-    {% endif %}
-
-    <div class="mb-4">
-      <h2 class="h6">{% trans "Сообщение" %}</h2>
-      {% if response.message %}
-        <p class="mb-0">{{ response.message|linebreaks }}</p>
-      {% else %}
-        <p class="text-muted small mb-0">{% trans "Без дополнительного сообщения." %}</p>
+      {% if platform_links %}
+        <div class="mb-4">
+          <h2 class="h6">{% trans "Предлагаемые площадки" %}</h2>
+          <ul class="list-unstyled small mb-0">
+            {% for link in platform_links %}
+              <li><a href="{{ link }}" target="_blank" rel="noopener">{{ link }}</a></li>
+            {% endfor %}
+          </ul>
+        </div>
       {% endif %}
-    </div>
 
-    <div class="mb-4">
-      <a href="{% url 'collaborations:offer_response_detail' response.pk %}" class="btn btn-outline-secondary btn-sm">
-        <i class="bi bi-chat-dots me-1"></i>{% trans "Открыть обсуждение отклика" %}
-      </a>
-    </div>
-
-    {% if comments %}
       <div class="mb-4">
-        <h2 class="h6">{% trans "Комментарии" %}</h2>
-        <ul class="list-unstyled small mb-0">
-          {% for comment in comments %}
-            <li class="mb-2">
-              <strong>{{ comment.author.get_full_name|default:comment.author.username }}</strong>
-              <span class="text-muted">· {{ comment.created_at|date:"j E Y, H:i" }}</span>
-              <div>{{ comment.text|linebreaks }}</div>
-            </li>
-          {% endfor %}
-        </ul>
-      </div>
-    {% endif %}
-    
-    <form method="post" class="mt-4">
-      {% csrf_token %}
-      <div class="mb-3">
-        <label for="{{ form.deadline.id_for_label }}" class="form-label">{{ form.deadline.label }}</label>
-        {{ form.deadline }}
-        {% if form.deadline.help_text %}
-          <div class="form-text">{{ form.deadline.help_text }}</div>
+        <h2 class="h6">{% trans "Сообщение" %}</h2>
+        {% if response.message %}
+          <p class="mb-0">{{ response.message|linebreaks }}</p>
+        {% else %}
+          <p class="text-muted small mb-0">{% trans "Без дополнительного сообщения." %}</p>
         {% endif %}
-        {% for error in form.deadline.errors %}
-          <div class="invalid-feedback d-block">{{ error }}</div>
-        {% endfor %}
       </div>
-      <button type="submit" class="btn btn-success">
-        <i class="bi bi-check-lg me-1"></i>{% trans "Принять сотрудничество" %}
-      </button>
-      <a href="{% url 'collaborations:offer_responses' %}" class="btn btn-outline-secondary ms-2">
-        {% trans "Отмена" %}
-      </a>
-    </form>
+
+      <div class="mb-4">
+        <a href="{% url 'collaborations:offer_response_detail' response.pk %}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-chat-dots me-1"></i>{% trans "Открыть обсуждение отклика" %}
+        </a>
+      </div>
+
+      {% if comments %}
+        <div class="mb-4">
+          <h2 class="h6">{% trans "Комментарии" %}</h2>
+          <ul class="list-unstyled small mb-0">
+            {% for comment in comments %}
+              <li class="mb-2">
+                <strong>{{ comment.author.get_full_name|default:comment.author.username }}</strong>
+                <span class="text-muted">· {{ comment.created_at|date:"j E Y, H:i" }}</span>
+                <div>{{ comment.text|linebreaks }}</div>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <form method="post" class="mt-4">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label for="{{ form.deadline.id_for_label }}" class="form-label">{{ form.deadline.label }}</label>
+          {{ form.deadline }}
+          {% if form.deadline.help_text %}
+            <div class="form-text">{{ form.deadline.help_text }}</div>
+          {% endif %}
+          {% for error in form.deadline.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          {% endfor %}
+        </div>
+        <button type="submit" class="btn btn-success">
+          <i class="bi bi-check-lg me-1"></i>{% trans "Принять сотрудничество" %}
+        </button>
+        <a href="{% url 'collaborations:offer_responses' %}" class="btn btn-outline-secondary ms-2">
+          {% trans "Отмена" %}
+        </a>
+      </form>
+    </div>
   </div>
 </div>
 {% endblock %}

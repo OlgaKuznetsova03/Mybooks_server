@@ -3,38 +3,134 @@
 
 {% block title %}{% trans "Отчёт по сотрудничеству" %} · {{ block.super }}{% endblock %}
 
-{% block content %}
-<h1 class="h3 mb-4">{% trans "Отправить ссылки на отзывы" %}</h1>
+{% block extra_css %}
+<style>
+/* ===== Тёплая тема отчёта ===== */
+.coop-theme{
+  --coop-accent:#d9a365;        /* кнопки, активы */
+  --coop-accent-dark:#c68845;   /* hover/active */
+  --coop-soft:#fbe7b5;          /* мягкий фон/выделения */
+  --coop-soft-12:rgba(251,231,181,.12);
+  --coop-soft-22:rgba(251,231,181,.22);
+  --coop-ink:#2a1a09;           /* тёмный текст */
+}
 
-<div class="card shadow-sm">
-  <div class="card-body">
-    <p class="text-muted small mb-4">
-      {% trans "Укажите ссылки на публикации, подтверждающие выполнение условий. Каждую ссылку размещайте с новой строки." %}
-    </p>
-    <form method="post">
-      {% csrf_token %}
-      {{ form.non_field_errors }}
-      {% for field in form %}
-        <div class="mb-3">
-          {% if field.field.widget.input_type == 'checkbox' %}
-            <div class="form-check">
+/* Карточка */
+.coop-theme .card{
+  border-color:var(--coop-soft-22);
+  box-shadow:0 14px 28px rgba(0,0,0,.06);
+}
+.coop-theme .card-body{
+  background-image: radial-gradient(ellipse at top right, var(--coop-soft-12), transparent 45%);
+}
+
+/* Заголовок/подсказки */
+.coop-theme h1.h3{
+  background:var(--coop-soft);
+  border:1px solid var(--coop-soft-22);
+  border-radius:.75rem;
+  padding:.6rem .9rem;
+  display:inline-block;
+}
+
+/* Кнопки */
+.coop-theme .btn-primary{
+  background-color:var(--coop-accent)!important;
+  border-color:var(--coop-accent)!important;
+  color:var(--coop-ink)!important;
+  font-weight:600;
+}
+.coop-theme .btn-primary:hover,
+.coop-theme .btn-primary:focus{
+  background-color:var(--coop-accent-dark)!important;
+  border-color:var(--coop-accent-dark)!important;
+  color:var(--coop-ink)!important;
+}
+
+/* Поля формы */
+.coop-theme .form-label{
+  font-weight:600;
+}
+.coop-theme .form-control,
+.coop-theme .form-check-input{
+  border-color:var(--coop-soft-22);
+}
+.coop-theme .form-control:focus,
+.coop-theme .form-select:focus{
+  border-color:var(--coop-accent)!important;
+  box-shadow:0 0 0 .25rem rgba(217,163,101,.25);
+}
+
+/* Текстовые зоны под ссылки — удобнее выше */
+.coop-theme textarea{
+  min-height: 180px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  line-height: 1.45;
+}
+
+/* Хелптексты и ошибки */
+.coop-theme .form-text{
+  background:var(--coop-soft);
+  border:1px dashed var(--coop-soft-22);
+  border-radius:.5rem;
+  padding:.4rem .6rem;
+  margin-top:.4rem;
+  color:#5b4630;
+}
+.coop-theme .invalid-feedback{
+  color:#b54708; /* тёплый янтарный для ошибок */
+}
+
+/* Мобайл: отступы помягче */
+@media (max-width:575.98px){
+  .coop-theme h1.h3{ display:block; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="coop-theme">
+
+  <h1 class="h3 mb-4">{% trans "Отправить ссылки на отзывы" %}</h1>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <p class="text-muted small mb-4">
+        {% trans "Укажите ссылки на публикации, подтверждающие выполнение условий. Каждую ссылку размещайте с новой строки." %}
+      </p>
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        {% for field in form %}
+          <div class="mb-3">
+            {% if field.field.widget.input_type == 'checkbox' %}
+              <div class="form-check">
+                {{ field }}
+                <label class="form-check-label" for="id_{{ field.name }}">{{ field.label }}</label>
+              </div>
+            {% else %}
+              <label class="form-label" for="id_{{ field.name }}">{{ field.label }}</label>
               {{ field }}
-              <label class="form-check-label" for="id_{{ field.name }}">{{ field.label }}</label>
-            </div>
-          {% else %}
-            <label class="form-label" for="id_{{ field.name }}">{{ field.label }}</label>
-            {{ field }}
-          {% endif %}
-          {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-          {% for error in field.errors %}
-            <div class="invalid-feedback d-block">{{ error }}</div>
-          {% endfor %}
-        </div>
-      {% endfor %}
-      <button type="submit" class="btn btn-primary">
-        <i class="bi bi-upload me-1"></i>{% trans "Отправить" %}
-      </button>
-    </form>
+            {% endif %}
+
+            {% if field.help_text %}
+              <div class="form-text">{{ field.help_text }}</div>
+            {% endif %}
+
+            {% for error in field.errors %}
+              <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endfor %}
+
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-upload me-1"></i>{% trans "Отправить" %}
+        </button>
+      </form>
+    </div>
   </div>
+
 </div>
 {% endblock %}
