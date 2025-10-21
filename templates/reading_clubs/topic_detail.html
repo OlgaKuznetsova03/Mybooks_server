@@ -6,9 +6,146 @@
 {% block extra_css %}
   {{ block.super }}
   <link rel="stylesheet" href="{% static 'reading_clubs/style.css' %}">
+  <style>
+    /* ===== Палитра страницы обсуждения ===== */
+    .discussion-theme{
+      --page-primary:#9d6f51;                 /* акцент/кнопки */
+      --page-primary-rgb:157,111,81;
+      --hero-bg:#e1b797;                      /* фон шапки */
+      --card-bg:#f3e6dd;                      /* карточки/посты */
+      --card-bg-hover:#efe0d5;
+      --card-border:rgba(157,111,81,.25);
+      --card-shadow:0 10px 24px rgba(157,111,81,.10);
+
+      --muted:#5a3c2b;
+      --link:#7e573f;
+
+      /* прокидываем в bootstrap */
+      --bs-primary:var(--page-primary);
+      --bs-primary-rgb:var(--page-primary-rgb);
+    }
+
+    /* ===== Шапка топика ===== */
+    .discussion-theme .reading-detail-header{
+      background:var(--hero-bg);
+      border:1px solid rgba(0,0,0,.08);
+      border-radius:1rem;
+      box-shadow:0 18px 40px rgba(0,0,0,.10);
+      padding:1.25rem 1rem 1.5rem;
+      color:#000;
+      margin-bottom:1.25rem;
+    }
+    .discussion-theme .reading-detail-header .text-muted{ color:#000; opacity:.85; }
+
+    /* ===== Кнопки ===== */
+    .discussion-theme .btn-reading,
+    .discussion-theme .btn-primary{
+      --bs-btn-bg:var(--page-primary);
+      --bs-btn-border-color:var(--page-primary);
+      --bs-btn-hover-bg:#b48264;
+      --bs-btn-hover-border-color:#b48264;
+      --bs-btn-active-bg:var(--page-primary);
+      --bs-btn-active-border-color:var(--page-primary);
+      color:#fff !important;
+      background-color:var(--bs-btn-bg);
+      border-color:var(--bs-btn-border-color);
+    }
+    .discussion-theme .btn-outline-primary{
+      --bs-btn-color:var(--page-primary);
+      --bs-btn-border-color:var(--page-primary);
+      --bs-btn-hover-bg:var(--page-primary);
+      --bs-btn-hover-border-color:var(--page-primary);
+      color:var(--page-primary);
+      border-color:var(--page-primary);
+    }
+    .discussion-theme .btn-outline-primary:hover{ color:#fff !important; }
+
+    /* ===== Карточка формы справа ===== */
+    .discussion-theme .card.border-0.shadow-sm{
+      background:#fff;
+      border:1px solid rgba(0,0,0,.08) !important;
+      border-radius:1rem;
+      box-shadow:0 10px 24px rgba(0,0,0,.08) !important;
+    }
+    .discussion-theme .discussion-form textarea,
+    .discussion-theme textarea{
+      border-radius:.75rem;
+      border:1px solid rgba(157,111,81,.35);
+    }
+    .discussion-theme .discussion-form textarea:focus{
+      border-color:rgba(157,111,81,.6);
+      box-shadow:0 0 0 .25rem rgba(157,111,81,.25);
+    }
+
+    /* ===== Посты и вложенность ===== */
+    .discussion-theme .discussion-thread{ display:flex; flex-direction:column; gap:1rem; }
+
+    .discussion-theme .discussion-post{
+      background:var(--card-bg);
+      border:1px solid var(--card-border);
+      border-radius:1rem;
+      padding:1rem;
+      box-shadow:var(--card-shadow);
+      transition:background-color .15s ease, box-shadow .15s ease, transform .15s ease;
+    }
+    .discussion-theme .discussion-post:hover{
+      background:var(--card-bg-hover);
+      box-shadow:0 14px 36px rgba(157,111,81,.16);
+      transform:translateY(-1px);
+    }
+
+    /* вложенные посты: вертикальная линия и отступы */
+    .discussion-theme .discussion-post--nested{
+      margin-left:1rem;
+      border-left:3px solid rgba(157,111,81,.35);
+    }
+    .discussion-theme .discussion-post__children{
+      margin-left:1rem;
+      display:flex; flex-direction:column; gap:1rem;
+      border-left:3px solid rgba(157,111,81,.25);
+      padding-left:1rem;
+    }
+
+    .discussion-theme .discussion-post__author{ font-weight:600; color:#2b1d17; }
+    .discussion-theme .discussion-post__timestamp{ color:rgba(0,0,0,.55); }
+    .discussion-theme .discussion-post__reply-meta{ color:var(--muted); font-size:.95rem; }
+    .discussion-theme .discussion-post__content{ color:#2b1d17; }
+
+    .discussion-theme .discussion-link{
+      color:var(--link);
+      text-decoration:none;
+      border-bottom:1px dotted rgba(157,111,81,.45);
+    }
+    .discussion-theme .discussion-link:hover{ color:#4c3324; border-bottom-color:transparent; }
+
+    /* бейджи */
+    .discussion-theme .badge.text-bg-success{ background-color:#6fb27a !important; }
+    .discussion-theme .badge.text-bg-secondary{
+      background:rgba(157,111,81,.25) !important;
+      color:#2b1d17 !important;
+      border:1px solid rgba(157,111,81,.35);
+    }
+
+    /* уведомление предпросмотра ответа */
+    .discussion-theme .alert-info.discussion-form__reply-preview{
+      background:rgba(157,111,81,.10);
+      border:1px solid rgba(157,111,81,.35);
+      color:#2b1d17;
+      border-radius:.75rem;
+    }
+    .discussion-theme .discussion-form__quoted{
+      max-height:10rem; overflow:auto;
+      padding:.5rem .75rem; border-radius:.5rem;
+      background:#fff; border:1px dashed rgba(157,111,81,.35);
+    }
+
+    /* заголовки секций */
+    .discussion-theme .reading-section-title{ color:#2b1d17; }
+  </style>
 {% endblock %}
 
 {% block content %}
+<div class="discussion-theme">
   <div class="reading-detail-header">
     <div class="d-flex justify-content-between flex-column flex-md-row gap-3">
       <div>
@@ -43,10 +180,12 @@
         <p class="text-muted">Пока нет сообщений. Станьте первым, кто поделится впечатлениями!</p>
       {% endif %}
     </div>
+
     <div class="col-lg-4">
       <div class="card border-0 shadow-sm">
         <div class="card-body">
           <h2 class="h5 reading-section-title">Новое сообщение</h2>
+
           {% if can_post %}
             <form class="discussion-form" action="{% url 'reading_clubs:post_add' reading.slug topic.pk %}" method="post" id="reply-form">
               {% csrf_token %}
@@ -59,11 +198,13 @@
                       <div class="small text-muted mb-1">{{ reply_to_post.created_at|date:"d E Y H:i" }}</div>
                       <div class="discussion-form__quoted">{{ reply_to_post.content|linebreaksbr }}</div>
                     </div>
-                    <a class="text-decoration-none" href="{% url 'reading_clubs:topic_detail' reading.slug topic.pk %}#reply-form">Отменить</a>
+                    <a class="text-decoration-none discussion-link" href="{% url 'reading_clubs:topic_detail' reading.slug topic.pk %}#reply-form">Отменить</a>
                   </div>
                 </div>
               {% endif %}
+
               {{ form.content }}
+
               {% if form.errors %}
                 {% for field, errors in form.errors.items %}
                   {% for error in errors %}
@@ -71,8 +212,10 @@
                   {% endfor %}
                 {% endfor %}
               {% endif %}
+
               <button class="btn btn-reading mt-3" type="submit">Отправить</button>
             </form>
+
           {% elif not is_participant %}
             <p class="text-muted">Только участники совместных чтений могут оставлять сообщения. Присоединитесь на главной странице чтения.</p>
           {% else %}
@@ -82,4 +225,5 @@
       </div>
     </div>
   </div>
+</div>
 {% endblock %}

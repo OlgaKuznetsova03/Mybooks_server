@@ -53,6 +53,7 @@ def _build_post_threads(posts: Iterable[DiscussionPost]) -> list[DiscussionPost]
     return list(children_map.get(None, ()))
 
 
+@dataclass
 class ReadingClubGrouping:
     title: str
     slug: str

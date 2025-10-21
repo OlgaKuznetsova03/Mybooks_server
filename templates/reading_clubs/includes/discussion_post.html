@@ -3,21 +3,26 @@
     <div class="discussion-post__author">{{ post.author.get_full_name|default:post.author.username }}</div>
     <div class="discussion-post__timestamp">{{ post.created_at|date:"d E Y H:i" }}</div>
   </div>
+
   {% if post.parent %}
     <div class="discussion-post__reply-meta">
       <i class="bi bi-arrow-return-right me-1"></i>
-      В ответ <a href="#post-{{ post.parent.pk }}">{{ post.parent.author.get_full_name|default:post.parent.author.username }}</a>
+      В ответ <a class="discussion-link" href="#post-{{ post.parent.pk }}">{{ post.parent.author.get_full_name|default:post.parent.author.username }}</a>
     </div>
   {% endif %}
-  <p class="mb-0">{{ post.content|linebreaksbr }}</p>
+
+  <p class="mb-0 discussion-post__content">{{ post.content|linebreaksbr }}</p>
+
   {% if can_post %}
     <div class="mt-2">
-      <a class="discussion-post__reply-link" href="{% url 'reading_clubs:topic_detail' reading.slug topic.pk %}?reply_to={{ post.pk }}#reply-form">
+      <a class="discussion-post__reply-link discussion-link"
+         href="{% url 'reading_clubs:topic_detail' reading.slug topic.pk %}?reply_to={{ post.pk }}#reply-form">
         <i class="bi bi-reply me-1"></i> Ответить
       </a>
     </div>
   {% endif %}
 </article>
+
 {% if post.thread_children %}
   <div class="discussion-post__children">
     {% for child in post.thread_children %}
