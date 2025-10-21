@@ -200,6 +200,31 @@
   font-size: 1.35rem;
 }
 
+.reading-detail-book {
+  width: 100%;
+}
+
+.reading-detail-book__cover {
+  width: 110px;
+  border-radius: 0.65rem;
+  overflow: hidden;
+  background: linear-gradient(140deg, rgba(76, 87, 96, 0.08), rgba(76, 87, 96, 0.18));
+  flex-shrink: 0;
+}
+
+.reading-detail-book__cover-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+
+@media (min-width: 992px) {
+  .reading-detail-book__cover {
+    width: 128px;
+  }
+}
+
 .reading-card__body {
   display: flex;
   flex-direction: column;

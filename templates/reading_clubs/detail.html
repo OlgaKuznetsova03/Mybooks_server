@@ -11,14 +11,23 @@
 {% block content %}
   <div class="reading-detail-header">
     <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
-      <div>
-        <h1 class="h2 mb-2">{{ reading.title }}</h1>
-        <div class="reading-detail-header__meta">
-          <div class="mb-1"><i class="bi bi-book me-1"></i> {{ reading.book.title }}</div>
-          <div class="mb-1">Старт: {{ reading.start_date|date:"d E Y" }}{% if reading.end_date %} · Завершение: {{ reading.end_date|date:"d E Y" }}{% endif %}</div>
-          <div class="mb-1">Создатель: {{ reading.creator.get_full_name|default:reading.creator.username }}</div>
-          <div class="mb-1">Присоединение: {{ reading.get_join_policy_display }}</div>
-          <div class="text-muted">Сообщений: {{ reading.message_count }} · Участников: {{ approved_participants|length }}</div>
+      <div class="reading-detail-book d-flex flex-column flex-sm-row align-items-start gap-3">
+        {% with cover=reading.book.get_cover_url %}
+          {% if cover %}
+            <div class="reading-detail-book__cover">
+              <img src="{{ cover }}" alt="Обложка {{ reading.book.title }}" class="reading-detail-book__cover-image">
+            </div>
+          {% endif %}
+        {% endwith %}
+        <div class="reading-detail-book__info">
+          <h1 class="h2 mb-2">{{ reading.title }}</h1>
+          <div class="reading-detail-header__meta">
+            <div class="mb-1"><i class="bi bi-book me-1"></i> {{ reading.book.title }}</div>
+            <div class="mb-1">Старт: {{ reading.start_date|date:"d E Y" }}{% if reading.end_date %} · Завершение: {{ reading.end_date|date:"d E Y" }}{% endif %}</div>
+            <div class="mb-1">Создатель: {{ reading.creator.get_full_name|default:reading.creator.username }}</div>
+            <div class="mb-1">Присоединение: {{ reading.get_join_policy_display }}</div>
+            <div class="text-muted">Сообщений: {{ reading.message_count }} · Участников: {{ approved_participants|length }}</div>
+          </div>
         </div>
       </div>
       <div class="d-flex flex-column align-items-start gap-2">
