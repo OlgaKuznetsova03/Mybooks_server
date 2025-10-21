@@ -11,169 +11,277 @@
 
   <!-- Локальная тема + яркий заголовок в #40534c -->
   <style>
-    /* ====== ЛОКАЛЬНАЯ ТЕМА СТРАНИЦЫ ====== */
-    .page-theme-communities{
-      /* базовый фирменный оттенок страницы (кнопки/табы и т.п.) */
-      --page-primary:#1a3636;
-      --page-primary-rgb:26,54,54;
-      --page-primary-light:#40534c;
+  /* ====== ТЕМА СТРАНИЦЫ ====== */
+  .page-theme-communities{
+    /* главный акцент для кнопок/активных элементов */
+    --page-primary:#9d6f51;
+    --page-primary-rgb:157,111,81;
 
-      /* акцент для шапки/заголовка (просили #40534c) */
-      --headline:#1a3636;
-      --headline-rgb:26,54,54;
+    /* фон шапки (hero) по макету */
+    --hero-bg:#e1b797;
 
-      /* прокидываем в ваши кастомные переменные */
-      --reading-communities-accent:var(--page-primary);
-      --reading-communities-accent-light:var(--page-primary-light);
-      --reading-communities-accent-soft:rgba(var(--page-primary-rgb), .12);
-      --reading-communities-shadow:rgba(var(--page-primary-rgb), .18);
+    /* вспомогательные */
+    --reading-communities-accent:var(--page-primary);
+    --reading-communities-accent-light:#b48264;  /* чуть светлее для hover */
+    --reading-communities-accent-soft:rgba(var(--page-primary-rgb), .12);
+    --reading-communities-shadow:rgba(var(--page-primary-rgb), .18);
 
-      /* и в bootstrap */
-      --bs-primary:var(--page-primary);
-      --bs-primary-rgb:var(--page-primary-rgb);
-    }
+    /* прокинем в bootstrap-переменные */
+    --bs-primary:var(--page-primary);
+    --bs-primary-rgb:var(--page-primary-rgb);
+  }
 
-    /* Кнопки Bootstrap под тему */
-    .page-theme-communities .btn-primary{
-      --bs-btn-bg:var(--page-primary);
-      --bs-btn-border-color:var(--page-primary);
-      --bs-btn-hover-bg:var(--page-primary-light);
-      --bs-btn-hover-border-color:var(--page-primary-light);
-      --bs-btn-active-bg:var(--page-primary);
-      --bs-btn-active-border-color:var(--page-primary);
-      --bs-btn-focus-shadow-rgb:var(--page-primary-rgb);
-    }
-    .page-theme-communities .btn-outline-primary{
-      --bs-btn-color:var(--page-primary);
-      --bs-btn-border-color:var(--page-primary);
-      --bs-btn-hover-bg:var(--page-primary);
-      --bs-btn-hover-border-color:var(--page-primary);
-      --bs-btn-active-bg:var(--page-primary);
-      --bs-btn-active-border-color:var(--page-primary);
-    }
+  /* ====== КНОПКИ ====== */
+  /* Используешь в разметке .btn-communities-primary / .btn-communities-outline */
+  .page-theme-communities .btn-communities-primary,
+  .page-theme-communities .btn-primary{
+    --bs-btn-bg:var(--page-primary);
+    --bs-btn-border-color:var(--page-primary);
+    --bs-btn-hover-bg:var(--reading-communities-accent-light);
+    --bs-btn-hover-border-color:var(--reading-communities-accent-light);
+    --bs-btn-active-bg:var(--page-primary);
+    --bs-btn-active-border-color:var(--page-primary);
+    --bs-btn-disabled-bg:var(--page-primary);
+    --bs-btn-disabled-border-color:var(--page-primary);
+    color:#fff !important;
+    background-color:var(--bs-btn-bg);
+    border-color:var(--bs-btn-border-color);
+  }
 
-    /* Фокус инпутов */
-    .page-theme-communities .form-control:focus{
-      border-color:rgba(var(--page-primary-rgb), .45);
-      box-shadow:0 0 0 .25rem rgba(var(--page-primary-rgb), .25);
-    }
+  .page-theme-communities .btn-communities-outline,
+  .page-theme-communities .btn-outline-primary{
+    --bs-btn-color:var(--page-primary);
+    --bs-btn-border-color:var(--page-primary);
+    --bs-btn-hover-bg:var(--page-primary);
+    --bs-btn-hover-border-color:var(--page-primary);
+    --bs-btn-active-bg:var(--page-primary);
+    --bs-btn-active-border-color:var(--page-primary);
+    color:var(--bs-btn-color);
+    border-color:var(--bs-btn-border-color);
+  }
+  .page-theme-communities .btn-communities-outline:hover,
+  .page-theme-communities .btn-communities-outline:focus,
+  .page-theme-communities .btn-outline-primary:hover,
+  .page-theme-communities .btn-outline-primary:focus{
+    color:#fff !important;
+  }
 
-    /* Nav-pills (табы) — активный фон = фирменный */
-    .reading-communities-tabs.nav-pills{
-      --bs-nav-pills-link-active-bg:var(--page-primary);
-      --bs-nav-pills-link-active-color:#fff;
-      --bs-primary:var(--page-primary);
-      --bs-primary-rgb:var(--page-primary-rgb);
-    }
-    .reading-communities-tabs .nav-link{
-      border-radius:999px;
-      border:1px solid rgba(var(--page-primary-rgb), .35);
-      color:var(--page-primary);
-      background:rgba(var(--page-primary-rgb), .10);
-      font-weight:600;
-      padding:.625rem 1.5rem;
-      transition:transform .2s ease, box-shadow .2s ease, background-color .2s ease;
-    }
-    .reading-communities-tabs .nav-link:hover,
-    .reading-communities-tabs .nav-link:focus{
-      background:rgba(var(--page-primary-rgb), .18);
-      color:var(--page-primary);
-      transform:translateY(-1px);
-    }
-    .reading-communities-tabs.nav.nav-pills .nav-link.active,
-    .reading-communities-tabs.nav.nav-pills .show > .nav-link{
-      background:var(--bs-nav-pills-link-active-bg) !important;
-      color:var(--bs-nav-pills-link-active-color) !important;
-      border-color:transparent !important;
-      box-shadow:0 12px 28px rgba(var(--page-primary-rgb), .30) !important;
-    }
+  /* ====== ТАБЫ (nav-pills) под новый акцент ====== */
+  .reading-communities-tabs.nav-pills{
+    --bs-nav-pills-link-active-bg:var(--page-primary);
+    --bs-nav-pills-link-active-color:#fff;
+  }
+  .reading-communities-tabs .nav-link{
+    border-radius:999px;
+    border:1px solid rgba(var(--page-primary-rgb), .35);
+    color:var(--page-primary);
+    background:rgba(var(--page-primary-rgb), .10);
+    font-weight:600;
+    padding:.625rem 1.5rem;
+    transition:transform .2s ease, box-shadow .2s ease, background-color .2s ease;
+  }
+  .reading-communities-tabs .nav-link:hover,
+  .reading-communities-tabs .nav-link:focus{
+    background:rgba(var(--page-primary-rgb), .18);
+    color:var(--page-primary);
+    transform:translateY(-1px);
+  }
+  .reading-communities-tabs.nav.nav-pills .nav-link.active,
+  .reading-communities-tabs.nav.nav-pills .show > .nav-link{
+    background:var(--bs-nav-pills-link-active-bg) !important;
+    color:var(--bs-nav-pills-link-active-color) !important;
+    border-color:transparent !important;
+    box-shadow:0 12px 28px rgba(var(--page-primary-rgb), .30) !important;
+  }
 
-    /* ====== КРАСИВЫЙ ФОН ШАПКИ + ЯРКИЙ ЗАГОЛОВОК #40534c ====== */
+  /* ====== ШАПКА (HERO) ====== */
+  .page-theme-communities .reading-communities-hero{
+    position:relative;
+    border-radius:1.25rem;
+    padding:3rem clamp(1.5rem, 4vw, 3rem);
+    background: var(--hero-bg);            /* #e1b797 */
+    border: 1px solid rgba(0,0,0,.08);
+    box-shadow: 0 18px 40px rgba(0,0,0,.10);
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:clamp(1.75rem, 4vw, 3.5rem);
+  }
+  .page-theme-communities .reading-communities-hero::before,
+  .page-theme-communities .reading-communities-hero::after{
+    content:none !important; /* убираем декоративные круги */
+  }
+  /* Текст в шапке — ЧЁРНЫЙ */
+  .page-theme-communities .reading-communities-hero h1{
+    color:#000;
+  }
+  .page-theme-communities .reading-communities-hero p{
+    color:#000;
+  }
+
+  /* Фокус инпутов под новый акцент */
+  .page-theme-communities .form-control:focus{
+    border-color:rgba(var(--page-primary-rgb), .45);
+    box-shadow:0 0 0 .25rem rgba(var(--page-primary-rgb), .25);
+  }
+
+  /* ====== Мобилка (без изменений по цветам) ====== */
+  @media (max-width: 767.98px){
     .page-theme-communities .reading-communities-hero{
-      position:relative;
-      border-radius:1.25rem;
-      padding:3rem clamp(1.5rem, 4vw, 3rem);
-      background: var(--page-primary-light);
-      border: 1px solid rgba(var(--headline-rgb, 64,83,76), .18);
-      box-shadow: 0 18px 40px rgba(var(--headline-rgb, 64,83,76), .12);
-      overflow:hidden;
-      display:flex;
-      align-items:center;
-      flex-wrap:wrap;
-      gap:clamp(1.75rem, 4vw, 3.5rem);
+      text-align:center;
+      padding:2.5rem 1.75rem;
+      flex-direction:column;
     }
-    .page-theme-communities .reading-communities-hero::before{
-      content: None !important;
+    .reading-communities-hero__image{ width:min(280px, 75%); }
+    .reading-communities-controls{ align-items:stretch !important; }
+    .reading-communities-controls__hint{ text-align:center; }
+    .reading-communities-tabs{
+      width:100%; flex-wrap:nowrap; overflow-x:auto;
+      padding-bottom:.75rem; margin-bottom:.25rem; gap:.75rem;
+      scrollbar-width:thin;
     }
-    .page-theme-communities .reading-communities-hero::after{
-      content: None !important;
+    .reading-communities-tabs::-webkit-scrollbar{ height:6px; }
+    .reading-communities-tabs::-webkit-scrollbar-thumb{
+      background:rgba(var(--page-primary-rgb), .35); border-radius:999px;
     }
-    .reading-communities-hero__content{
-      position:relative;
-      z-index:2;
-      flex:1 1 0;
-      max-width:38rem;
-    }
-    .reading-communities-hero__image{
-      position:relative;
-      z-index:1;
-      flex:0 0 auto;
-      width:clamp(200px, 32vw, 340px);
-    }
-    .reading-communities-hero__image img{
-      display:block;
-      width:100%;
-      height:auto;
-      object-fit:contain;
-    }
-    .page-theme-communities .reading-communities-hero h1{
-      color: #fff
-    }
-    .page-theme-communities .reading-communities-hero p{
-      color:#fff
-    }
-    [data-bs-theme="dark"] .page-theme-communities .reading-communities-hero{
-      background:
-        linear-gradient(135deg,
-          rgba(var(--headline-rgb), .38) 0%,
-          rgba(var(--headline-rgb), .24) 55%,
-          rgba(var(--page-primary-rgb), .18) 100%);
-      border-color:rgba(var(--headline-rgb), .45);
-      box-shadow:0 24px 55px rgba(0,0,0,.35);
-    }
+    .reading-communities-tabs .nav-link{ flex:1 0 auto; white-space:nowrap; }
+    .reading-communities-actions .btn{ width:100%; }
+  }
+  /* --- Фикс шапки с иллюстрацией --- */
+.page-theme-communities .reading-communities-hero{
+  background-image: none !important; /* на случай, если где-то задаётся bg-image */
+  position: relative;
+}
 
-    /* ====== Мобилка ====== */
-    @media (max-width: 767.98px){
-      .page-theme-communities .reading-communities-hero{
-        text-align:center;
-        padding:2.5rem 1.75rem;
-        flex-direction:column;
-      }
-      .page-theme-communities .reading-communities-hero::before{
-        left:-45%; top:-45%; width:360px; height:240px;
-      }
-      .page-theme-communities .reading-communities-hero::after{
-        right:-45%; bottom:-45%; width:420px; height:300px;
-      }
-      .reading-communities-hero__image{
-        width:min(280px, 75%);
-      }
-      .reading-communities-controls{ align-items:stretch !important; }
-      .reading-communities-controls__hint{ text-align:center; }
-      .reading-communities-tabs{
-        width:100%; flex-wrap:nowrap; overflow-x:auto;
-        padding-bottom:.75rem; margin-bottom:.25rem; gap:.75rem;
-        scrollbar-width:thin;
-      }
-      .reading-communities-tabs::-webkit-scrollbar{ height:6px; }
-      .reading-communities-tabs::-webkit-scrollbar-thumb{
-        background:rgba(var(--page-primary-rgb), .35); border-radius:999px;
-      }
-      .reading-communities-tabs .nav-link{ flex:1 0 auto; white-space:nowrap; }
-      .reading-communities-actions{ width:100%; }
-      .reading-communities-actions .btn{ width:100%; }
-    }
-  </style>
+.page-theme-communities .reading-communities-hero__image{
+  position: relative !important;        /* сбиваем возможное absolute */
+  z-index: 1;
+  flex: 0 0 auto;
+  width: clamp(200px, 32vw, 340px) !important;  /* ограничиваем ширину */
+  height: auto !important;
+  align-self: center;
+}
+
+.page-theme-communities .reading-communities-hero__image img{
+  position: static !important;          /* отменяем absolute из сторонних стилей */
+  display: block;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  object-fit: contain !important;       /* никакого cover */
+}
+
+/* Если где-то есть агрессивное правило для всех .reading-communities-hero img */
+.page-theme-communities .reading-communities-hero > img{
+  display: none !important;             /* на всякий случай скрыть «фоновые» img, если вставлены прямым дочерним */
+}
+
+/* Мобайл: картинка не должна занимать весь блок */
+@media (max-width: 767.98px){
+  .page-theme-communities .reading-communities-hero__image{
+    width: min(280px, 70%) !important;
+  }
+}
+/* — размещаем картинку справа в hero — */
+.page-theme-communities .reading-communities-hero{
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* текст слева, картинка справа */
+  gap: clamp(1.5rem, 4vw, 3rem);
+}
+
+.page-theme-communities .reading-communities-hero__content{
+  flex: 1 1 auto;           /* текст занимает всё доступное слева */
+  min-width: 280px;
+}
+
+.page-theme-communities .reading-communities-hero__image{
+  margin-left: auto !important;  /* толкаем блок картинки к правому краю */
+  flex: 0 0 auto;
+  position: relative !important;
+  width: clamp(220px, 30vw, 360px) !important;
+}
+
+.page-theme-communities .reading-communities-hero__image img{
+  position: static !important;
+  display: block;
+  width: 100% !important;
+  height: auto !important;
+  object-fit: contain !important;
+}
+
+/* На мобилке можно стэкать, но картинка — под текстом */
+@media (max-width: 767.98px){
+  .page-theme-communities .reading-communities-hero{
+    flex-direction: column;
+    text-align: center;
+  }
+  .page-theme-communities .reading-communities-hero__image{
+    margin-left: 0 !important;
+    width: min(280px, 75%) !important;
+  }
+}
+/* ====== HERO: сетка + ровное выравнивание, как на первом скрине ====== */
+.page-theme-communities .reading-communities-hero{
+  display: grid !important;
+  grid-template-columns: 1fr auto;          /* текст слева, иллюстрация справа */
+  align-items: center;                       /* центруем по вертикали */
+  gap: clamp(2rem, 5vw, 4rem);
+  min-height: clamp(280px, 28vw, 420px);     /* высота шапки адаптивно */
+  padding: clamp(2rem, 4vw, 3rem);
+}
+
+.page-theme-communities .reading-communities-hero__content{
+  max-width: 46rem;                          /* комфортная ширина текста */
+  align-self: center;                        /* ровно по центру по вертикали */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.page-theme-communities .reading-communities-hero__image{
+  margin: 0 !important;
+  justify-self: end;                         /* прижимаем к правому краю */
+  align-self: center;                        /* по центру по вертикали */
+  width: clamp(260px, 32vw, 420px) !important;
+  max-height: calc(100% - 0.5rem);
+  position: relative !important;
+  float: none !important;
+  order: 2 !important;
+}
+
+.page-theme-communities .reading-communities-hero__image img{
+  display: block;
+  width: 100% !important;
+  height: auto !important;
+  object-fit: contain !important;            /* не обрезаем рисунок */
+  position: static !important;
+}
+
+/* На очень широких экранах чуть увеличим отступ справа,
+   чтобы картинка «дышала» */
+@media (min-width: 1400px){
+  .page-theme-communities .reading-communities-hero{
+    padding-right: clamp(3rem, 6vw, 5rem);
+  }
+}
+
+/* Мобилка: стекаем, картинка под текстом и по центру */
+@media (max-width: 767.98px){
+  .page-theme-communities .reading-communities-hero{
+    grid-template-columns: 1fr;
+    text-align: center;
+    min-height: unset;
+  }
+  .page-theme-communities .reading-communities-hero__image{
+    justify-self: center;
+    width: min(320px, 75%) !important;
+  }
+}
+
+</style>
+
 {% endblock %}
 
 {% block content %}
