@@ -359,6 +359,12 @@
   font-size: 0.85rem;
 }
 
+.discussion-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
 .discussion-post {
   background: #ffffff;
   border: 1px solid rgba(76, 87, 96, 0.14);
@@ -367,14 +373,43 @@
   box-shadow: 0 10px 22px rgba(76, 87, 96, 0.1);
 }
 
-.discussion-post__reply-reference {
-  border-left: 3px solid rgba(76, 87, 96, 0.25);
-  padding-left: 1rem;
+.discussion-post--nested {
+  background: #fbfcfe;
 }
 
-.discussion-post__quoted {
-  font-size: 0.95rem;
-  color: rgba(33, 37, 41, 0.75);
+.discussion-post__reply-meta {
+  font-size: 0.85rem;
+  color: #6c7682;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.discussion-post__reply-meta a {
+  color: inherit;
+  font-weight: 600;
+}
+
+.discussion-post__reply-meta a:hover,
+.discussion-post__reply-meta a:focus {
+  color: var(--reading-primary);
+  text-decoration: none;
+}
+
+.discussion-post__children {
+  margin-top: 1rem;
+  padding-left: 1.25rem;
+  border-left: 2px solid rgba(76, 87, 96, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .discussion-post__children {
+    padding-left: 1.75rem;
+  }
 }
 
 .discussion-post__reply-link {
@@ -386,10 +421,6 @@
 .discussion-post__reply-link:focus {
   color: var(--reading-primary-light);
   text-decoration: none;
-}
-
-.discussion-post + .discussion-post {
-  margin-top: 1rem;
 }
 
 .discussion-post__author {

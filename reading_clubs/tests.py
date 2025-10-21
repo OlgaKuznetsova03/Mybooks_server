@@ -120,3 +120,48 @@ class ReadingClubJoinViewTests(TestCase):
         self.assertEqual(response.status_code, 302)
         participation = ReadingParticipant.objects.get(reading=club, user=self.reader)
         self.assertEqual(participation.status, ReadingParticipant.Status.PENDING)
+
+
+class ReadingTopicDetailViewTests(TestCase):
+    def setUp(self):
+        self.author = Author.objects.create(name="Автор")
+        self.genre = Genre.objects.create(name="Жанр")
+        self.book = Book.objects.create(title="Книга")
+        self.book.authors.add(self.author)
+        self.book.genres.add(self.genre)
+        self.creator = User.objects.create_user(username="creator", password="pass12345")
+        self.reader = User.objects.create_user(username="reader", password="pass12345")
+        self.reading = ReadingClub.objects.create(
+            book=self.book,
+            creator=self.creator,
+            title="Чтение",
+            start_date=date.today(),
+        )
+        self.topic = ReadingNorm.objects.create(
+            reading=self.reading,
+            title="Глава 1",
+            order=1,
+            discussion_opens_at=date.today(),
+        )
+
+    def test_threaded_posts_in_context(self):
+        parent = DiscussionPost.objects.create(
+            topic=self.topic,
+            author=self.creator,
+            content="Первое сообщение",
+        )
+        reply = DiscussionPost.objects.create(
+            topic=self.topic,
+            author=self.reader,
+            content="Ответ",
+            parent=parent,
+        )
+        response = self.client.get(
+            reverse("reading_clubs:topic_detail", args=[self.reading.slug, self.topic.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+        threaded_posts = response.context["threaded_posts"]
+        self.assertEqual(len(threaded_posts), 1)
+        self.assertEqual(threaded_posts[0].pk, parent.pk)
+        self.assertTrue(hasattr(threaded_posts[0], "thread_children"))
+        self.assertEqual([child.pk for child in threaded_posts[0].thread_children], [reply.pk])
