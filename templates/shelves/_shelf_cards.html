@@ -52,6 +52,128 @@
     .shelf-card__body{padding:2rem 1.25rem 1.75rem}
     .shelf-card__body::after{left:1rem;right:1rem;bottom:1rem}
   }
+  :root { --book-info-min-h: 120px; }
+@media (max-width: 575.98px){ :root { --book-info-min-h: 110px; } }
+
+/* каждая книжка — вертикальная колонка */
+.book-item{
+  display:flex;
+  flex-direction:column;
+  align-items:center;            /* обложка остаётся по центру */
+}
+
+/* инфоблок с подложкой */
+.book-info{
+  width:100%;
+  margin-top:.6rem;
+  padding:.6rem .6rem .65rem;
+  background: rgba(255,255,255,.88);            /* светлая подложка */
+  border: 1px solid rgba(0,0,0,.06);
+  border-radius: .75rem;
+  box-shadow: 0 .35rem .85rem rgba(0,0,0,.06);
+  display:flex;
+  flex-direction:column;
+  min-height: var(--book-info-min-h);           /* ВАЖНО: одинаковая высота */
+}
+
+/* название и автор — ограничим кол-во строк, чтобы не «гуляло» */
+.book-title{
+  margin:0;
+  font-size:.9rem;
+  font-weight:600;
+  line-height:1.3;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.book-author{
+  margin-top:.15rem;
+  font-size:.75rem;
+  color:rgba(33,37,41,.65);
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+
+/* нижняя зона (кнопка/подпись) всегда прижата вниз */
+.book-actions{
+  margin-top:auto;               /* магия выравнивания по одной линии */
+  width:100%;
+}
+
+/* мелкая косметика под твою гамму */
+.book-actions__button{
+  border-color: #9d6f51;
+  color:#9d6f51;
+}
+.book-actions__button:hover,
+.book-actions__button:focus{
+  background:#9d6f51;
+  border-color:#9d6f51;
+  color:#fff;
+}
+
+/* чуть мягче фон «полки» для читаемости поверх картинки */
+.shelf-card__body::before{
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.35)) !important;
+}
+.shelf-card .book-info{
+  position: relative;
+  z-index: 2;                                /* выше декоративных слоёв полки */
+  width: 100%;
+  margin-top: .6rem;
+  padding: .6rem .6rem .65rem;
+  background: rgba(255,255,255,.96) !important; /* была слишком прозрачной */
+  border: 1px solid rgba(157,111,81,.25);
+  border-radius: .75rem;
+  box-shadow: 0 .35rem .85rem rgba(0,0,0,.06);
+  display: flex;
+  flex-direction: column;
+  min-height: var(--book-info-min-h, 120px);
+  text-align: left;                           /* читаемее на узкой карточке */
+  backdrop-filter: saturate(120%) blur(1.5px);
+  -webkit-backdrop-filter: blur(1.5px);
+}
+
+/* заголовок/автор по плашке, с обрезкой строк */
+.shelf-card .book-info .book-title{
+  margin: 0;
+  font-size: .9rem;
+  font-weight: 600;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.shelf-card .book-info .book-author{
+  margin-top: .15rem;
+  font-size: .75rem;
+  color: rgba(33,37,41,.65);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* кнопка/подпись всегда на одной линии внизу */
+.shelf-card .book-info .book-actions{
+  margin-top: auto;
+  width: 100%;
+}
+
+/* на всякий случай поднимем z-index у текста внутри тела полки */
+.shelf-card__body > *{ position: relative; z-index: 1; }
+
+/* если «брусок» полки перекрывает, опустим его слой */
+.shelf-card__body::after{ z-index: 0 !important; }
+
+@media (max-width:575.98px){
+  :root{ --book-info-min-h: 110px; }
+}
 </style>
 
 {% for shelf in shelves %}
