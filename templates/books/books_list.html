@@ -331,7 +331,7 @@
     <div class="books-empty-state card border-0 shadow-sm mb-4">
       <div class="card-body">
         <h2 class="h5 mb-2">Мы не нашли «{{ q }}»</h2>
-        <p class="text-muted mb-3">Попробуйте изменить запрос или добавить книгу вручную. Мы также поискали подходящие издания через Google Books.</p>
+        <p class="text-muted mb-3">Попробуйте изменить запрос или добавить книгу вручную. Мы также поискали подходящие издания через ISBNdb.</p>
         <a class="btn btn-primary" href="{% url 'book_create' %}">Добавить новую книгу</a>
       </div>
     </div>
@@ -376,7 +376,7 @@
                     </div>
                   {% endif %}
                   <div class="mt-auto pt-3 d-flex flex-column gap-2">
-                    {% if data.source_url %}<a class="btn btn-outline-secondary btn-sm" href="{{ data.source_url }}" target="_blank" rel="noopener">Открыть в Google Books</a>{% endif %}
+                    {% if data.source_url %}<a class="btn btn-outline-secondary btn-sm" href="{{ data.source_url }}" target="_blank" rel="noopener">Открыть в ISBNdb</a>{% endif %}
                     {% if request.user.is_authenticated %}
                       <form method="post" action="{% url 'book_prefill_external' %}">
                         {% csrf_token %}
@@ -394,7 +394,7 @@
         {% endfor %}
       </div>
     {% else %}
-      <div class="alert alert-info">Мы не нашли подходящих изданий в Google Books. Попробуйте изменить запрос или добавить книгу вручную.</div>
+      <div class="alert alert-info">Мы не нашли подходящих изданий в ISBNdb. Попробуйте изменить запрос или добавить книгу вручную.</div>
     {% endif %}
   {% else %}
     <div class="books-empty-state card border-0 shadow-sm">

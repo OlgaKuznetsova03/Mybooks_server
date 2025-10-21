@@ -46,7 +46,7 @@ from reading_clubs.models import ReadingClub
 from .models import Author, Book, Genre, Rating, ISBNModel
 from .forms import BookForm, RatingForm
 from .services import EditionRegistrationResult, register_book_edition
-from .api_clients import google_books_client
+from .api_clients import isbndb_client
 from .utils import normalize_isbn
 
 
@@ -256,16 +256,16 @@ def book_lookup(request):
     external_error = None
     if force_external or not local_results:
         try:
-            search_results = google_books_client.search(
+            search_results = isbndb_client.search(
                 title=title or None,
                 author=author or None,
                 isbn=isbn or None,
                 limit=5,
             )
         except Exception as exc:  # pragma: no cover - defensive logging
-            logger.exception("Google Books lookup failed: %s", exc)
+            logger.exception("ISBNdb lookup failed: %s", exc)
             search_results = []
-            external_error = "Не удалось получить данные от Google Books. Попробуйте позже."
+            external_error = "Не удалось получить данные от ISBNdb. Попробуйте позже."
 
         for item in search_results:
             external_results.append(_serialize_external_item(item))
@@ -442,15 +442,15 @@ def book_list(request):
             isbn_candidate = normalize_isbn(q)
             title_query = q if len(isbn_candidate) not in (10, 13) else ""
             try:
-                results = google_books_client.search(
+                results = isbndb_client.search(
                     title=title_query or None,
                     isbn=isbn_candidate or None,
                     limit=6,
                 )
             except Exception as exc:  # pragma: no cover - defensive logging
-                logger.exception("Google Books search for list failed: %s", exc)
+                logger.exception("ISBNdb search for list failed: %s", exc)
                 results = []
-                external_error = "Не удалось получить данные из Google Books. Попробуйте позже."
+                external_error = "Не удалось получить данные из ISBNdb. Попробуйте позже."
 
             for item in results:
                 serialized = _serialize_external_item(item)

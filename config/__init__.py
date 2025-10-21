@@ -1,0 +1,1 @@
+self.api_key = api_key or getattr(settings, "ISBNDB_API_KEY", None)

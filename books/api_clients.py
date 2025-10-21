@@ -1,20 +1,27 @@
-"""Clients for integrating with external book APIs."""
+"""Clients for integrating with external book APIs (ISBNdb)."""
 
 from __future__ import annotations
 
+import copy
 import json
 import logging
+import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, List, Optional
-from urllib import parse, request, error
+from urllib import error, parse, request
+
+from django.conf import settings
 
 
 logger = logging.getLogger(__name__)
 
+# --- ISBNdb endpoints (v2) ---
+ISBNDB_SEARCH_URL = "https://api2.isbndb.com/books"
+ISBNDB_BOOK_URL   = "https://api2.isbndb.com/book"
+ISBNDB_USER_AGENT = "MyBooksLibraryBot/1.0 (+https://github.com)"
 
-GOOGLE_BOOKS_SEARCH_URL = "https://www.googleapis.com/books/v1/volumes"
-GOOGLE_BOOKS_USER_AGENT = "MyBooksLibraryBot/1.0 (+https://github.com)"
 
+# ----------------- helpers: coercion & normalization -----------------
 
 def _normalize_isbn(value: str) -> str:
     return "".join(ch for ch in (value or "") if ch.isdigit() or ch.upper() == "X")
@@ -56,16 +63,13 @@ def _deduplicate(sequence: Iterable[str]) -> List[str]:
 
 
 def _coerce_int(value: Any) -> Optional[int]:
+    """Return the first integer found; supports '256 p.' / ['','256'] etc."""
     if isinstance(value, int):
         return value
     if isinstance(value, str):
-        value = value.strip()
-        if value.isdigit():
-            return int(value)
-        try:
-            return int(float(value))
-        except ValueError:
-            return None
+        s = value.strip()
+        m = re.search(r"\d+", s)
+        return int(m.group()) if m else None
     if isinstance(value, (list, tuple)):
         for item in value:
             parsed = _coerce_int(item)
@@ -84,6 +88,8 @@ def _extract_description(value: Any) -> Optional[str]:
             return str(value["description"]).strip() or None
     return str(value).strip() or None
 
+
+# ----------------- data model -----------------
 
 @dataclass
 class ExternalBookData:
@@ -118,7 +124,6 @@ class ExternalBookData:
 
     def to_metadata_mapping(self) -> Dict[str, Dict[str, Any]]:
         """Return metadata keyed by ISBN suitable for form consumption."""
-
         metadata = {
             "title": self.title,
             "subtitle": self.subtitle,
@@ -134,177 +139,229 @@ class ExternalBookData:
             "isbn_10_list": self.isbn_10,
             "isbn_13_list": self.isbn_13,
         }
-
         result: Dict[str, Dict[str, Any]] = {}
+        # Independent copies so mutating one ISBN block won't affect others.
         for isbn in self.combined_isbns():
-            result[isbn] = metadata
+            result[isbn] = copy.deepcopy(metadata)
         return result
 
 
-class GoogleBooksClient:
-    """Lightweight client for the Google Books public API."""
+# ----------------- Transliteration helpers (Latin -> Cyrillic) -----------------
+
+_LATIN_MULTI_CHAR = [
+    ("shch", "щ"),
+    ("sch", "щ"),
+    ("yo", "ё"),
+    ("jo", "ё"),
+    ("yu", "ю"),
+    ("ju", "ю"),
+    ("ya", "я"),
+    ("ja", "я"),
+    ("ye", "е"),
+    ("je", "е"),
+    ("yi", "ый"),
+    ("iy", "ий"),
+    ("ia", "я"),
+    ("ie", "ие"),
+    ("io", "ио"),
+    ("iu", "ю"),
+    ("zh", "ж"),
+    ("kh", "х"),
+    ("ts", "ц"),
+    ("ch", "ч"),
+    ("sh", "ш"),
+]
+
+_LATIN_SINGLE_CHAR = {
+    "a": "а", "b": "б", "c": "к", "d": "д", "e": "е", "f": "ф", "g": "г",
+    "h": "х", "i": "и", "j": "й", "k": "к", "l": "л", "m": "м", "n": "н",
+    "o": "о", "p": "п", "q": "к", "r": "р", "s": "с", "t": "т", "u": "у",
+    "v": "в", "w": "в", "x": "кс", "y": "й", "z": "з",
+}
+
+_LATIN_RE = re.compile(r"[A-Za-z]")
+
+
+def _apply_case(sample: str, replacement: str) -> str:
+    if not replacement:
+        return replacement
+    if sample.isupper():
+        return replacement.upper()
+    if sample[0].isupper():
+        if len(replacement) == 1:
+            return replacement.upper()
+        return replacement[0].upper() + replacement[1:]
+    return replacement
+
+
+def _should_transliterate(value: str) -> bool:
+    if not value:
+        return False
+    if not value.isascii():
+        return False
+    return bool(_LATIN_RE.search(value))
+
+
+def _transliterate_text(value: str) -> str:
+    if not _should_transliterate(value):
+        return value
+    result: List[str] = []
+    index = 0
+    length = len(value)
+    while index < length:
+        matched = False
+        for latin, cyrillic in _LATIN_MULTI_CHAR:
+            chunk = value[index : index + len(latin)]
+            if chunk.lower() == latin:
+                result.append(_apply_case(chunk, cyrillic))
+                index += len(latin)
+                matched = True
+                break
+        if matched:
+            continue
+        char = value[index]
+        mapped = _LATIN_SINGLE_CHAR.get(char.lower())
+        result.append(_apply_case(char, mapped) if mapped else char)
+        index += 1
+    return "".join(result)
+
+
+def _transliterate_optional(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    return _transliterate_text(value)
+
+
+def _transliterate_list(values: List[str]) -> List[str]:
+    return [_transliterate_text(item) for item in values]
+
+
+# ----------------- ISBNdb client -----------------
+
+class ISBNDBClient:
+    """Client for interacting with the ISBNdb API."""
 
     def __init__(self, *, api_key: Optional[str] = None, timeout: float = 10.0):
-        self.api_key = api_key
+        self.api_key = api_key or getattr(settings, "ISBNDB_API_KEY", None)
         self.timeout = timeout
 
-    def _fetch_json(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        query_params = {k: v for k, v in params.items() if v not in (None, "")}
-        if self.api_key:
-            query_params["key"] = self.api_key
+    # --- low-level HTTP ---
+
+    def _fetch_json_url(self, url: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        query_params = {k: v for k, v in (params or {}).items() if v not in (None, "")}
         query = parse.urlencode(query_params)
-        url = f"{GOOGLE_BOOKS_SEARCH_URL}?{query}"
-        req = request.Request(url, headers={"User-Agent": GOOGLE_BOOKS_USER_AGENT})
+        full_url = f"{url}?{query}" if query else url
+
+        headers = {"User-Agent": ISBNDB_USER_AGENT}
+        if self.api_key:
+            # IMPORTANT for ISBNdb v2: x-api-key header
+            headers["x-api-key"] = self.api_key
+
+        req = request.Request(full_url, headers=headers)
         try:
             with request.urlopen(req, timeout=self.timeout) as response:
                 payload = response.read().decode("utf-8")
-        except error.URLError as exc:  # pragma: no cover - network errors covered by logging
-            logger.warning("Failed to fetch %s: %s", url, exc)
+        except error.HTTPError as exc:  # pragma: no cover
+            logger.warning("HTTP %s on %s: %s", exc.code, full_url, exc.reason)
             return {}
+        except error.URLError as exc:  # pragma: no cover
+            logger.warning("Network error for %s: %s", full_url, exc)
+            return {}
+
         try:
             data = json.loads(payload)
-        except json.JSONDecodeError:  # pragma: no cover - guard against invalid responses
-            logger.warning("Received invalid JSON from %s", url)
+        except json.JSONDecodeError:  # pragma: no cover
+            logger.warning("Invalid JSON from %s", full_url)
             return {}
         return data if isinstance(data, dict) else {}
 
-    def _build_query(
-        self,
-        *,
-        title: Optional[str] = None,
-        author: Optional[str] = None,
-        isbn: Optional[str] = None,
-    ) -> Optional[str]:
-        terms: List[str] = []
+    # --- normalization helpers ---
 
-        def _quoted(value: str) -> str:
-            return "\"" + value.replace("\"", " ").strip() + "\""
+    def _normalize_language(self, value: str) -> List[str]:
+        normalized = (value or "").strip()
+        if not normalized:
+            return []
+        lowered = normalized.lower()
+        if lowered in {"ru", "rus", "russian"}:
+            return ["ru"]
+        if "ru" in lowered:
+            return ["ru"]
+        return [normalized]
 
-        if title:
-            terms.append(f"intitle:{_quoted(str(title))}")
-        if author:
-            terms.append(f"inauthor:{_quoted(str(author))}")
-        normalized_isbn = _normalize_isbn(isbn or "") if isbn else ""
-        if normalized_isbn:
-            terms.append(f"isbn:{normalized_isbn}")
+    def _apply_russian_transliteration(self, data: ExternalBookData) -> ExternalBookData:
+        if not any(lang.lower() == "ru" for lang in data.languages):
+            return data
+        data.title = _transliterate_text(data.title)
+        data.subtitle = _transliterate_optional(data.subtitle)
+        data.authors = _transliterate_list(data.authors)
+        data.publishers = _transliterate_list(data.publishers)
+        data.subjects = _transliterate_list(data.subjects)
+        data.description = _transliterate_optional(data.description)
+        data.physical_format = _transliterate_optional(data.physical_format)
+        data.languages = ["ru"]
+        return data
 
-        fallback = str(title or author or normalized_isbn or "").strip()
-        if not terms and fallback:
-            terms.append(fallback)
-
-        if not terms:
-            return None
-        return " ".join(terms)
-
-    def _pick_cover_url(self, volume_info: Dict[str, Any]) -> Optional[str]:
-        links = volume_info.get("imageLinks")
-        if not isinstance(links, dict):
-            return None
-        for key in [
-            "extraLarge",
-            "large",
-            "medium",
-            "small",
-            "thumbnail",
-            "smallThumbnail",
-        ]:
-            value = links.get(key)
-            if value:
-                candidate = str(value).strip()
-                if not candidate:
-                    continue
-
-                parsed = parse.urlparse(candidate)
-                if (
-                    parsed.netloc == "books.google.com"
-                    and parsed.path.startswith("/books/content")
-                ):
-                    params = parse.parse_qsl(
-                        parsed.query, keep_blank_values=True
-                    )
-                    zoom_found = False
-                    download_found = False
-                    updated_params = []
-                    for name, raw_value in params:
-                        if name == "zoom":
-                            try:
-                                zoom_value = int(raw_value)
-                            except (TypeError, ValueError):
-                                zoom_value = 0
-                            updated_params.append((name, str(max(zoom_value, 3))))
-                            zoom_found = True
-                        elif name == "download":
-                            updated_params.append((name, "1"))
-                            download_found = True
-                        else:
-                            updated_params.append((name, raw_value))
-
-                    if not zoom_found:
-                        updated_params.append(("zoom", "3"))
-                    if not download_found:
-                        updated_params.append(("download", "1"))
-
-                    candidate = parse.urlunparse(
-                        parsed._replace(
-                            scheme="https",
-                            query=parse.urlencode(updated_params, doseq=True),
-                        )
-                    )
-
-                return candidate
-        return None
-
-    def _parse_volume(self, item: Dict[str, Any]) -> Optional[ExternalBookData]:
-        volume_info = item.get("volumeInfo")
-        if not isinstance(volume_info, dict):
-            return None
-
-        title = str(volume_info.get("title") or "").strip()
+    def _parse_book(self, item: Dict[str, Any]) -> Optional[ExternalBookData]:
+        title = str(item.get("title") or "").strip()
         if not title:
             return None
-        
-        subtitle = str(volume_info.get("subtitle") or "").strip() or None
-        authors = _deduplicate(_coerce_list(volume_info.get("authors")))
-        publishers = _deduplicate(_coerce_list(volume_info.get("publisher")))
-        publish_date = str(volume_info.get("publishedDate") or "").strip() or None
-        number_of_pages = _coerce_int(volume_info.get("pageCount"))
-        physical_format = str(volume_info.get("printType") or "").strip() or None
-        subjects = _deduplicate(_coerce_list(volume_info.get("categories")))
-        language = str(volume_info.get("language") or "").strip()
-        languages = [language] if language else []
-        description = _extract_description(volume_info.get("description"))
+
+        subtitle = str(item.get("title_long") or "").strip() or None
+        authors = _deduplicate(_coerce_list(item.get("authors")))
+        publishers = _deduplicate(_coerce_list(item.get("publisher")))
+        publish_date = str(item.get("date_published") or "").strip() or None
+        number_of_pages = _coerce_int(item.get("pages"))
+        physical_format = str(item.get("binding") or "").strip() or None
+        subjects = _deduplicate(_coerce_list(item.get("subjects")))
+        language_value = str(item.get("language") or item.get("language_code") or "").strip()
+        languages = self._normalize_language(language_value)
+        description = _extract_description(
+            item.get("synopsis") or item.get("overview") or item.get("excerpt")
+        )
 
         isbn_10: List[str] = []
         isbn_13: List[str] = []
-        identifiers = volume_info.get("industryIdentifiers")
-        if isinstance(identifiers, list):
-            for entry in identifiers:
-                if not isinstance(entry, dict):
-                    continue
-                identifier = str(entry.get("identifier") or "").strip()
-                normalized = _normalize_isbn(identifier)
-                if not normalized:
-                    continue
-                identifier_type = str(entry.get("type") or "").upper()
-                if identifier_type == "ISBN_10" and normalized not in isbn_10:
-                    isbn_10.append(normalized)
-                elif identifier_type == "ISBN_13" and normalized not in isbn_13:
-                    isbn_13.append(normalized)
-                elif not identifier_type:
-                    if len(normalized) == 10 and normalized not in isbn_10:
-                        isbn_10.append(normalized)
-                    elif len(normalized) == 13 and normalized not in isbn_13:
-                        isbn_13.append(normalized)
 
-        cover_url = self._pick_cover_url(volume_info)
+        primary_isbn = _normalize_isbn(str(item.get("isbn") or ""))
+        if primary_isbn:
+            if len(primary_isbn) == 10:
+                isbn_10.append(primary_isbn)
+            elif len(primary_isbn) == 13:
+                isbn_13.append(primary_isbn)
+
+        secondary_isbn = _normalize_isbn(str(item.get("isbn13") or ""))
+        if secondary_isbn:
+            if len(secondary_isbn) == 13 and secondary_isbn not in isbn_13:
+                isbn_13.append(secondary_isbn)
+            elif len(secondary_isbn) == 10 and secondary_isbn not in isbn_10:
+                isbn_10.append(secondary_isbn)
+
+        for raw_value in _coerce_list(item.get("isbns")):
+            normalized = _normalize_isbn(str(raw_value))
+            if not normalized:
+                continue
+            if len(normalized) == 13 and normalized not in isbn_13:
+                isbn_13.append(normalized)
+            elif len(normalized) == 10 and normalized not in isbn_10:
+                isbn_10.append(normalized)
+
+        cover_url = str(item.get("image") or item.get("image_l") or "").strip() or None
+
         source_url = (
-            str(volume_info.get("infoLink") or "").strip()
-            or str(volume_info.get("canonicalVolumeLink") or "").strip()
-            or str(item.get("selfLink") or "").strip()
+            str(item.get("url") or "").strip()
+            or str(item.get("link") or "").strip()
             or None
         )
 
-        return ExternalBookData(
+        ext_id = str(item.get("id") or secondary_isbn or primary_isbn or "").strip() or None
+
+        # Fallback source page on ISBNdb if we have any ISBN
+        if not source_url:
+            first_isbn = (isbn_13 or isbn_10 or [])
+            if first_isbn:
+                source_url = f"https://isbndb.com/book/{first_isbn[0]}"
+
+        data = ExternalBookData(
             title=title,
             subtitle=subtitle,
             authors=authors,
@@ -319,8 +376,43 @@ class GoogleBooksClient:
             description=description,
             cover_url=cover_url,
             source_url=source_url,
-            external_id=str(item.get("id") or "").strip() or None,
+            external_id=ext_id,
         )
+        return self._apply_russian_transliteration(data)
+
+    # --- query building & search ---
+
+    def _build_params(
+        self,
+        *,
+        title: Optional[str] = None,
+        author: Optional[str] = None,
+        isbn: Optional[str] = None,
+        limit: int,
+    ) -> Dict[str, Any]:
+        page_size = max(1, min(limit, 100))
+        params: Dict[str, Any] = {"pageSize": page_size}
+
+        normalized_isbn = _normalize_isbn(isbn or "") if isbn else ""
+        if normalized_isbn:
+            params["_direct_isbn"] = normalized_isbn
+            return params
+
+        query_parts = []
+        if title:
+            query_parts.append(str(title).strip())
+        if author:
+            query_parts.append(str(author).strip())
+
+        if query_parts:
+            params["_books_path_query"] = " ".join(part for part in query_parts if part)
+            if author:
+                params["author"] = str(author).strip()  # API supports author filter
+            return params
+
+        # Fallback marker to try /search?q=...
+        params["_search_all"] = True
+        return params
 
     def search(
         self,
@@ -330,32 +422,55 @@ class GoogleBooksClient:
         isbn: Optional[str] = None,
         limit: int = 5,
     ) -> List[ExternalBookData]:
-        query = self._build_query(title=title, author=author, isbn=isbn)
-        if not query:
-            return []
-        
-        params = {
-            "q": query,
-            "maxResults": max(1, min(limit, 40)),
-            "printType": "books",
-            "orderBy": "relevance",
-        }
+        params = self._build_params(title=title, author=author, isbn=isbn, limit=limit)
 
-        data = self._fetch_json(params)
-        items = data.get("items") if isinstance(data, dict) else None
-        if not items or not isinstance(items, list):
+        # /book/{isbn} - exact lookup
+        direct_isbn = params.pop("_direct_isbn", None)
+        if direct_isbn:
+            data = self._fetch_json_url(f"{ISBNDB_BOOK_URL}/{direct_isbn}")
+            item = data.get("book") if isinstance(data, dict) else None
+            if isinstance(item, dict):
+                parsed = self._parse_book(item)
+                return [parsed] if parsed else []
             return []
 
-        results: List[ExternalBookData] = []
-        for item in items:
-            parsed = self._parse_volume(item) if isinstance(item, dict) else None
-            if not parsed:
-                continue
+        # /books/{query}?author=&pageSize=
+        books_path_query = params.pop("_books_path_query", None)
+        if books_path_query:
+            safe_query = parse.quote(books_path_query)
+            data = self._fetch_json_url(f"{ISBNDB_SEARCH_BOOKS_URL}/{safe_query}", params)
+            items = data.get("books") if isinstance(data, dict) else None
+            if not isinstance(items, list):
+                return []
+            results: List[ExternalBookData] = []
+            for item in items:
+                parsed = self._parse_book(item) if isinstance(item, dict) else None
+                if parsed:
+                    results.append(parsed)
+                    if len(results) >= limit:
+                        break
+            return results
 
-            results.append(parsed)
-            if len(results) >= limit:
-                break
-        return results
+        # Fallback: /search?q=... (broader search across datasets)
+        if params.pop("_search_all", None):
+            q = " ".join(filter(None, [title or "", author or ""])).strip()
+            if not q:
+                return []
+            data = self._fetch_json_url(ISBNDB_SEARCH_ALL_URL, {"q": q, "pageSize": max(1, min(limit, 100))})
+            # /search often responds with "data" list
+            items = data.get("data") if isinstance(data, dict) else None
+            if not isinstance(items, list):
+                return []
+            results: List[ExternalBookData] = []
+            for item in items:
+                parsed = self._parse_book(item) if isinstance(item, dict) else None
+                if parsed:
+                    results.append(parsed)
+                    if len(results) >= limit:
+                        break
+            return results
+
+        return []
 
 
-google_books_client = GoogleBooksClient()
+isbndb_client = ISBNDBClient()

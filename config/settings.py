@@ -216,3 +216,7 @@ AUTHENTICATION_BACKENDS = [
     "accounts.backends.EmailBackend",
     "django.contrib.auth.backends.ModelBackend",
 ]
+
+ISBNDB_API_KEY = os.getenv("ISBNDB_API_KEY")
+if not ISBNDB_API_KEY:
+    print("⚠️  ISBNDB_API_KEY is not set (put it into BASE_DIR/.env)")

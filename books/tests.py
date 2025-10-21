@@ -1,7 +1,5 @@
 import tempfile
 from unittest import mock
-from urllib import parse
-
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
@@ -14,32 +12,46 @@ from shelves.services import ALL_DEFAULT_READ_SHELF_NAMES
 
 from .models import Author, Genre, Publisher, Book, ISBNModel
 from .services import register_book_edition
-from .api_clients import ExternalBookData, GoogleBooksClient
+from .api_clients import ExternalBookData, ISBNDBClient
 
 
-class GoogleBooksClientTests(TestCase):
-    def test_pick_cover_url_upgrades_zoom_and_scheme(self):
-        client = GoogleBooksClient()
-        volume_info = {
-            "imageLinks": {
-                "thumbnail": (
-                    "http://books.google.com/books/content"
-                    "?id=test-id&printsec=frontcover&img=1&zoom=1"
-                )
-            }
+class ISBNDBClientTests(TestCase):
+    def test_parse_book_transliterates_russian_entries(self):
+        client = ISBNDBClient()
+        payload = {
+            "title": "Moskva i Peterburg",
+            "title_long": "Puteshestvie po Rossii",
+            "authors": ["Ivan Ivanov", "Petr Petrov"],
+            "publisher": "Izdatelstvo Nauka",
+            "date_published": "2020",
+            "pages": "320",
+            "binding": "Tverdyi pereplet",
+            "subjects": ["Russkaia istoriia"],
+            "language": "Russian",
+            "synopsis": "Podrobnoe opisanie knigi",
+            "isbn": "1234567890",
+            "isbn13": "9781234567897",
+            "isbns": ["9781234567897"],
+            "image": "https://example.com/cover.jpg",
+            "url": "https://isbndb.com/book/9781234567897",
         }
 
-        result = client._pick_cover_url(volume_info)
+        result = client._parse_book(payload)
 
         self.assertIsNotNone(result)
-        parsed_url = parse.urlparse(result)
-        self.assertEqual(parsed_url.scheme, "https")
-        self.assertEqual(parsed_url.netloc, "books.google.com")
-        self.assertTrue(parsed_url.path.startswith("/books/content"))
-
-        params = dict(parse.parse_qsl(parsed_url.query))
-        self.assertEqual(params.get("zoom"), "3")
-        self.assertEqual(params.get("download"), "1")
+        assert result is not None
+        self.assertEqual(result.title, "Москва и Петербург")
+        self.assertEqual(result.subtitle, "Путешествие по России")
+        self.assertEqual(result.authors, ["Иван Иванов", "Петр Петров"])
+        self.assertEqual(result.publishers, ["Издателство Наука"])
+        self.assertEqual(result.languages, ["ru"])
+        self.assertEqual(result.subjects, ["Русская история"])
+        self.assertEqual(result.description, "Подробное описание книги")
+        self.assertEqual(result.physical_format, "Твердый переплет")
+        self.assertEqual(result.cover_url, "https://example.com/cover.jpg")
+        self.assertEqual(result.source_url, "https://isbndb.com/book/9781234567897")
+        self.assertIn("1234567890", result.isbn_10)
+        self.assertIn("9781234567897", result.isbn_13)
 
 
 class GenreModelTests(TestCase):
@@ -372,7 +384,7 @@ class BookLookupViewTests(TestCase):
         self.assertEqual(data["local_results"][0]["title"], "Поисковая книга")
         self.assertEqual(data["external_results"], [])
 
-    @mock.patch("books.views.google_books_client")
+    @mock.patch("books.views.isbndb_client")
     def test_fetches_external_results_when_forced(self, mock_client):
         mock_client.search.return_value = [
             ExternalBookData(
@@ -388,7 +400,7 @@ class BookLookupViewTests(TestCase):
                 isbn_13=["1234567890123"],
                 description="Описание", 
                 cover_url="https://example.com/cover.jpg",
-                source_url="https://books.google.com/books?id=123",
+                source_url="https://isbndb.com/book/123",
             )
         ]
 
