@@ -210,6 +210,12 @@ class Book(models.Model):
 
     # новое поле для обложки
     cover = models.ImageField(upload_to="book_covers/", blank=True, null=True)
+    contributors = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name="contributed_books",
+        help_text="Пользователи сайта, которые указаны авторами этой книги.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def get_cover_url(self) -> str:

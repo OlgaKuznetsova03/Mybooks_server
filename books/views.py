@@ -1439,6 +1439,11 @@ def book_create(request):
     duplicate_candidates = []
     duplicate_resolution = request.POST.get("duplicate_resolution") if request.method == "POST" else None
     prefill_data = request.session.pop("book_prefill", None)
+    submitted_by_user = (
+        request.user
+        if request.user.is_authenticated and request.user.groups.filter(name="author").exists()
+        else None
+    )
 
     if request.method == "POST":
         form = BookForm(request.POST, request.FILES)
@@ -1472,6 +1477,7 @@ def book_create(request):
                             cover_file=form.cleaned_data.get("cover"),
                             force_new=True,
                             isbn_metadata=isbn_metadata,
+                            submitted_by=submitted_by_user,
                         )
                         _notify_about_registration(request, result)
                         return redirect("book_detail", pk=result.book.pk)
@@ -1506,6 +1512,7 @@ def book_create(request):
                             cover_file=form.cleaned_data.get("cover"),
                             target_book=selected_book,
                             isbn_metadata=isbn_metadata,
+                            submitted_by=submitted_by_user,
                         )
                         
                         _notify_about_registration(request, result)
@@ -1528,6 +1535,7 @@ def book_create(request):
                     cover_file=form.cleaned_data.get("cover"),
                     force_new=False,
                     isbn_metadata=isbn_metadata,
+                    submitted_by=submitted_by_user,
                 )
 
                 _notify_about_registration(request, result)

@@ -1,6 +1,6 @@
 import tempfile
 from unittest import mock
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.test import TestCase
 from django.urls import reverse
 from django.core.files.base import ContentFile
@@ -89,7 +89,7 @@ class ISBNDBClientTests(TestCase):
         self.assertEqual(result.physical_format, "Твёрдый переплёт")
         self.assertEqual(result.format_canonical, "Hardcover")
         self.assertEqual(result.format_kind, "print")
-        
+
     def test_translate_subjects_to_russian(self):
         client = ISBNDBClient()
         payload = {
@@ -203,6 +203,27 @@ class BookCreateViewTests(TestCase):
         self.assertRedirects(response, reverse("book_detail", args=[book.pk]))
         self.assertContains(response, "Новая книга")
 
+    def test_author_user_linked_to_created_book(self):
+        user = User.objects.create_user(username="author", password="pass12345")
+        author_group, _ = Group.objects.get_or_create(name="author")
+        user.groups.add(author_group)
+        self.client.login(username="author", password="pass12345")
+
+        response = self.client.post(
+            reverse("book_create"),
+            {
+                "title": "Авторская книга",
+                "authors": "Тестовый автор",
+                "genres": "Фантастика",
+                "publisher": "Тестовое издательство",
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        book = Book.objects.get(title="Авторская книга")
+        self.assertIn(user, book.contributors.all())
+        
     def test_adding_new_edition_preserves_existing_cover(self):
         user = User.objects.create_user(username="editor", password="pass12345")
         self.client.login(username="editor", password="pass12345")

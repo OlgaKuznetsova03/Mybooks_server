@@ -771,7 +771,66 @@
 
     <!-- Мои книги -->
     <div class="tab-pane fade{% if current_tab == 'books' %} show active{% endif %}" id="books" role="tabpanel">
-      <p>Если пользователь автор — здесь появится список его книг.</p>
+      <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-between">
+        <div>
+          <h3 class="h6 mb-1">Книги автора</h3>
+          <p class="text-muted small mb-0">Подборка произведений, добавленных на сайт самим автором.</p>
+        </div>
+        {% if can_manage_author_books %}
+          <a class="btn btn-primary btn-sm" href="{% url 'book_create' %}">
+            <i class="bi bi-plus-lg me-1"></i>Добавить книгу
+          </a>
+        {% endif %}
+      </div>
+
+      {% if author_books %}
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3 mt-3">
+          {% for book in author_books %}
+            <div class="col">
+              <div class="card h-100 border-0 shadow-sm">
+                {% with cover=book.get_cover_url %}
+                  {% if cover %}
+                    <img src="{{ cover }}" class="card-img-top" alt="Обложка {{ book.title }}">
+                  {% else %}
+                    <div class="ratio ratio-2x3 bg-light d-flex align-items-center justify-content-center text-muted fw-semibold">
+                      Без обложки
+                    </div>
+                  {% endif %}
+                {% endwith %}
+                <div class="card-body d-flex flex-column">
+                  <h3 class="h6 mb-1">
+                    <a class="text-decoration-none" href="{% url 'book_detail' book.pk %}">{{ book.title }}</a>
+                  </h3>
+                  {% with book_authors=book.authors.all %}
+                    <p class="text-muted small mb-3">
+                      {% if book_authors %}
+                        {{ book_authors|join:", " }}
+                      {% else %}
+                        Автор не указан
+                      {% endif %}
+                    </p>
+                  {% endwith %}
+                  <div class="mt-auto">
+                    <a class="btn btn-outline-primary btn-sm" href="{% url 'book_detail' book.pk %}">Подробнее</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="alert alert-light border mt-3 mb-0">
+          {% if is_author %}
+            {% if can_manage_author_books %}
+              У вас пока нет добавленных книг. Нажмите «Добавить книгу», чтобы опубликовать первую.
+            {% else %}
+              Автор пока не добавил свои книги.
+            {% endif %}
+          {% else %}
+            Пользователь пока не указал свои книги.
+          {% endif %}
+        </div>
+      {% endif %}
     </div>
 
     <!-- Обзоры -->

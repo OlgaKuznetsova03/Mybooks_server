@@ -163,6 +163,7 @@ def register_book_edition(
     target_book: Book | None = None,
     force_new: bool = False,
     isbn_metadata: Mapping[str, Mapping[str, Any]] | None = None,
+    submitted_by=None,
 ) -> EditionRegistrationResult:
     """Register a new edition and attach it to an existing book when possible."""
 
@@ -337,6 +338,9 @@ def register_book_edition(
 
         book.refresh_edition_group_key()
 
+        if submitted_by is not None:
+            book.contributors.add(submitted_by)
+            
         return EditionRegistrationResult(
             book=book,
             created=created,

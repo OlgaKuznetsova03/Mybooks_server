@@ -576,6 +576,17 @@ def profile(request, username=None):
         .order_by("-is_default", "name")
     )
 
+    is_author = user_obj.groups.filter(name="author").exists()
+
+    author_books_qs = (
+        Book.objects.filter(contributors=user_obj)
+        .select_related("primary_isbn")
+        .prefetch_related("authors")
+        .order_by("-created_at", "title")
+    )
+    author_books = list(author_books_qs)
+    can_manage_author_books = request.user == user_obj and is_author
+
     user_reviews = (
         Rating.objects.filter(user=user_obj)
         .exclude(review__isnull=True)
@@ -596,6 +607,8 @@ def profile(request, username=None):
         "u": user_obj,
         "is_blogger": user_obj.groups.filter(name="blogger").exists(),
         "is_author":  user_obj.groups.filter(name="author").exists(),
+        "is_author": is_author,
+        "is_reader": user_obj.groups.filter(name="reader").exists(),
         "is_reader":  user_obj.groups.filter(name="reader").exists(),
         "stats": stats_payload["stats"],
         "stats_period": stats_payload["stats_period"],
@@ -606,6 +619,8 @@ def profile(request, username=None):
         "default_home_library_shelf_name": DEFAULT_HOME_LIBRARY_SHELF,
         "default_read_shelf_name": DEFAULT_READ_SHELF,
         "reading_progress_label": READING_PROGRESS_LABEL,
+        "author_books": author_books,
+        "can_manage_author_books": can_manage_author_books,
         "user_reviews": user_reviews,
         "reading_pages_total": total_pages_read,
         "rating_points_total": UserPointEvent.objects.filter(user=user_obj).aggregate(
