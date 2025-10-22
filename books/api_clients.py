@@ -581,7 +581,7 @@ class ISBNDBClient:
         data.subtitle = _transliterate_optional(data.subtitle)
         data.authors = _transliterate_list(data.authors)
         data.publishers = _transliterate_list(data.publishers)
-        data.subjects = _transliterate_list(data.subjects)
+        # Genres are now translated separately, no transliteration needed
         data.description = _transliterate_optional(data.description)
         data.physical_format = _transliterate_optional(data.physical_format)
         data.languages = ["ru"]

@@ -26,7 +26,7 @@ class ISBNDBClientTests(TestCase):
             "date_published": "2020",
             "pages": "320",
             "binding": "Tverdyi pereplet",
-            "subjects": ["Russkaia istoriia"],
+            "subjects": ["Science Fiction"],
             "language": "Russian",
             "synopsis": "Podrobnoe opisanie knigi",
             "isbn": "1234567890",
@@ -46,7 +46,7 @@ class ISBNDBClientTests(TestCase):
         self.assertEqual(result.authors, ["Иван Иванов", "Петр Петров"])
         self.assertEqual(result.publishers, ["Издателство Наука"])
         self.assertEqual(result.languages, ["ru"])
-        self.assertEqual(result.subjects, ["Русская история"])
+        self.assertEqual(result.subjects, ["Научная фантастика"])
         self.assertEqual(result.description, "Подробное описание книги")
         self.assertEqual(result.physical_format, "Твердый переплет")
         self.assertEqual(result.cover_url, "https://example.com/cover-large.jpg")
