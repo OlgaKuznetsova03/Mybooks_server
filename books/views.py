@@ -233,13 +233,27 @@ def _perform_book_lookup(
     if not any([normalized_title, normalized_author, isbn]):
         raise BookLookupQueryError("Укажите название, автора или ISBN.")
 
-    qs = Book.objects.all().prefetch_related("authors", "isbn")
+    qs = Book.objects.all().prefetch_related("authors", "isbn", "isbn__authors")
+
+    filters: list[Q] = []
     if normalized_title:
-        qs = qs.filter(title__icontains=normalized_title)
+        filters.append(
+            Q(title__icontains=normalized_title)
+            | Q(isbn__title__icontains=normalized_title)
+        )
     if normalized_author:
-        qs = qs.filter(authors__name__icontains=normalized_author)
+        filters.append(
+            Q(authors__name__icontains=normalized_author)
+            | Q(isbn__authors__name__icontains=normalized_author)
+        )
     if isbn:
-        qs = qs.filter(Q(isbn__isbn__iexact=isbn) | Q(isbn__isbn13__iexact=isbn))
+        filters.append(Q(isbn__isbn__iexact=isbn) | Q(isbn__isbn13__iexact=isbn))
+
+    if filters:
+        combined_filter = filters[0]
+        for condition in filters[1:]:
+            combined_filter &= condition
+        qs = qs.filter(combined_filter)
 
     local_results = []
     for book in qs.distinct()[: max(1, local_limit)]:

@@ -456,6 +456,7 @@ class BookLookupAPIViewTests(TestCase):
             title="Существующее издание",
         )
         self.book.isbn.add(self.isbn)
+        self.isbn.authors.add(self.author)
 
     def test_rejects_empty_query(self):
         response = self.client.get(reverse("book_lookup_api"))
@@ -471,6 +472,31 @@ class BookLookupAPIViewTests(TestCase):
 
     def test_search_by_title(self):
         response = self.client.get(reverse("book_lookup_api"), {"title": "Поисковая"})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["local_results"]), 1)
+        self.assertEqual(data["local_results"][0]["title"], "Поисковая книга")
+
+    def test_search_by_isbn_metadata_title(self):
+        self.isbn.title = "Особое издание поиска"
+        self.isbn.save(update_fields=["title"])
+
+        response = self.client.get(
+            reverse("book_lookup_api"),
+            {"title": "Особое"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["local_results"]), 1)
+        self.assertEqual(data["local_results"][0]["title"], "Поисковая книга")
+
+    def test_search_by_isbn_metadata_author(self):
+        edition_author = Author.objects.create(name="Редактор Поиска")
+        self.isbn.authors.add(edition_author)
+
+        response = self.client.get(reverse("book_lookup_api"), {"author": "Редактор"})
+
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(len(data["local_results"]), 1)
