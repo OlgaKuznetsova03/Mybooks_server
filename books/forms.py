@@ -215,6 +215,7 @@ class BookForm(forms.ModelForm):
         value = self.cleaned_data.get("publisher", "")
         names = self._split_list(value)
         seen: set[str] = set()
+        publishers: list[Publisher] = []
         for name in names:
             normalized = transliterate_to_cyrillic(name).strip()
             if not normalized:
