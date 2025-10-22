@@ -136,6 +136,11 @@ class BookForm(forms.ModelForm):
         help_text="Можно указать несколько издательств через запятую.",
         widget=forms.TextInput(attrs={"placeholder": "Эксмо, Азбука"}),
     )
+    confirm_authorship = forms.BooleanField(
+        label="Я подтверждаю, что являюсь автором этой книги",
+        required=False,
+        help_text="Отметьте, чтобы книга появилась в разделе «Мои книги» вашего профиля.",
+    )
 
     class Meta:
         model = Book
@@ -159,8 +164,21 @@ class BookForm(forms.ModelForm):
             "cover": forms.ClearableFileInput(),   # виджет для загрузки файла
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, **kwargs):
+        self._form_user = user
+        self._user_is_author = bool(
+            user
+            and getattr(user, "is_authenticated", False)
+            and user.groups.filter(name="author").exists()
+        )
         super().__init__(*args, **kwargs)
+
+        if not self._user_is_author:
+            confirm_field = self.fields.get("confirm_authorship")
+            if confirm_field:
+                confirm_field.widget = forms.HiddenInput()
+                confirm_field.required = False
+                confirm_field.initial = False
 
         if not self.is_bound and self.instance.pk:
             self.fields["authors"].initial = ", ".join(
@@ -184,6 +202,12 @@ class BookForm(forms.ModelForm):
                 widget.attrs.setdefault("class", "form-select")
             elif isinstance(widget, forms.CheckboxInput):
                 widget.attrs.setdefault("class", "form-check-input")
+
+    def clean_confirm_authorship(self):
+        value = self.cleaned_data.get("confirm_authorship")
+        if not self._user_is_author:
+            return False
+        return bool(value)
     def _split_list(self, value: str):
         if not value:
             return []

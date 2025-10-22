@@ -1439,19 +1439,21 @@ def book_create(request):
     duplicate_candidates = []
     duplicate_resolution = request.POST.get("duplicate_resolution") if request.method == "POST" else None
     prefill_data = request.session.pop("book_prefill", None)
-    submitted_by_user = (
-        request.user
-        if request.user.is_authenticated and request.user.groups.filter(name="author").exists()
-        else None
+    is_author_user = (
+        request.user.is_authenticated
+        and request.user.groups.filter(name="author").exists()
     )
 
     if request.method == "POST":
-        form = BookForm(request.POST, request.FILES)
+        form = BookForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             isbn_metadata = form.cleaned_data.get("isbn_metadata") or {}
             duplicate_candidates = _find_books_with_same_title_and_authors(
                 form.cleaned_data.get("title"),
                 form.cleaned_data.get("authors"),
+            )
+            submitted_by_user = (
+                request.user if is_author_user and form.cleaned_data.get("confirm_authorship") else None
             )
 
             if duplicate_candidates:
@@ -1544,7 +1546,7 @@ def book_create(request):
         else:
             messages.error(request, "Не удалось сохранить книгу. Проверьте форму.")
     else:
-        form = BookForm()
+        form = BookForm(user=request.user)
     context = {
         "form": form,
         "duplicate_candidates": duplicate_candidates,
@@ -1558,12 +1560,12 @@ def book_create(request):
 def book_edit(request, pk):
     book = get_object_or_404(Book, pk=pk)
     if request.method == "POST":
-        form = BookForm(request.POST, request.FILES, instance=book)
+        form = BookForm(request.POST, request.FILES, instance=book, user=request.user)
         if form.is_valid():
             form.save()
             return redirect("book_detail", pk=book.pk)
     else:
-        form = BookForm(instance=book)
+        form = BookForm(instance=book, user=request.user)
     return render(request, "books/book_form.html", {"form": form})
 
 @login_required
