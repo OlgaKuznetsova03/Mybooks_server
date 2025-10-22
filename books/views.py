@@ -1094,6 +1094,8 @@ def book_detail(request, pk):
     active_cover_key = active_cover.get("key") if active_cover else None
     primary_edition_id = str(display_primary_isbn_id) if display_primary_isbn_id else ""
 
+    seen_thumbnail_ids: set[str] = set()
+
     for variant in cover_variants:
         key = variant.get("key")
         image_url = variant.get("image")
@@ -1115,6 +1117,10 @@ def book_detail(request, pk):
         elif not edition_id:
             continue
 
+        seen_key = edition_id or f"key:{key}"
+        if seen_key in seen_thumbnail_ids:
+            continue
+
         alt_text = variant.get("alt") or variant.get("label") or f"Обложка книги «{book.title}»"
         query_suffix = f"?edition={edition_id}" if edition_id else ""
 
@@ -1128,6 +1134,8 @@ def book_detail(request, pk):
                 "url_query": query_suffix,
             }
         )
+
+        seen_thumbnail_ids.add(seen_key)
 
     show_cover_thumbnails = bool(additional_cover_variants)
 
