@@ -17,8 +17,7 @@ logger = logging.getLogger(__name__)
 
 # --- ISBNdb endpoints (v2) ---
 ISBNDB_BOOK_URL = "https://api2.isbndb.com/book"    # /book/{isbn}
-ISBNDB_SEARCH_BOOKS_URL = "https://api2.isbndb.com/books"  # /books/{query}
-ISBNDB_SEARCH_ALL_URL = "https://api2.isbndb.com/search"   # /search?q=...
+ISBNDB_SEARCH_BOOKS_URL = "https://api2.isbndb.com/search/books"
 ISBNDB_USER_AGENT = "MyBooksLibraryBot/1.0 (+https://github.com)"
 
 
@@ -88,18 +87,6 @@ def _extract_description(value: Any) -> Optional[str]:
         if "description" in value:
             return str(value["description"]).strip() or None
     return str(value).strip() or None
-
-
-def _is_ascii(text: str) -> bool:
-    try:
-        return text.isascii()
-    except AttributeError:
-        # Python <3.7 compatibility (не требуется у нас, но пусть будет)
-        try:
-            text.encode("ascii")
-            return True
-        except UnicodeEncodeError:
-            return False
 
 
 # ----------------- genre translation helpers (ISBNdb subjects -> RU) -----------------
@@ -708,18 +695,14 @@ class ISBNDBClient:
         query_parts: List[str] = []
         if title:
             query_parts.append(str(title).strip())
-        if author:
+        elif author:
             query_parts.append(str(author).strip())
 
         if query_parts:
             q_text = " ".join(part for part in query_parts if part)
-            # Если запрос содержит не-ASCII (кириллица и т.п.), используем /search?q=...
-            if not _is_ascii(q_text):
-                params["_search_q"] = q_text
-            else:
-                params["_books_path_query"] = q_text
-                if author:
-                    params["author"] = str(author).strip()  # author-фильтр поддерживается
+            params["_search_q"] = q_text
+            if author:
+                params["author"] = str(author).strip()
             return params
 
         # Ничего не передано — вернём пустой результат в search()
@@ -745,29 +728,12 @@ class ISBNDBClient:
                 return [parsed] if parsed else []
             return []
 
-        # /books/{query}?author=&pageSize=  (только для ASCII-запросов)
-        books_path_query = params.pop("_books_path_query", None)
-        if books_path_query:
-            safe_query = parse.quote(books_path_query)
-            data = self._fetch_json_url(f"{ISBNDB_SEARCH_BOOKS_URL}/{safe_query}", params)
-            items = data.get("books") if isinstance(data, dict) else None
-            if not isinstance(items, list):
-                return []
-            results: List[ExternalBookData] = []
-            for item in items:
-                parsed = self._parse_book(item) if isinstance(item, dict) else None
-                if parsed:
-                    results.append(parsed)
-                    if len(results) >= limit:
-                        break
-            return results
-
         # /search?q=... — безопасно для Unicode/кириллицы
         search_q = params.pop("_search_q", None)
         if search_q:
-            q_params = {"q": search_q, "pageSize": max(1, min(limit, 100))}
-            # author можем передать как часть q или как отдельный параметр — оставим как часть q
-            data = self._fetch_json_url(ISBNDB_SEARCH_ALL_URL, q_params)
+            q_params = copy.deepcopy(params)
+            q_params.update({"q": search_q, "pageSize": max(1, min(limit, 100))})
+            data = self._fetch_json_url(ISBNDB_SEARCH_BOOKS_URL, q_params)
             # У /search иногда "books", иногда "data"
             items = data.get("books") or data.get("data")
             if not isinstance(items, list):
