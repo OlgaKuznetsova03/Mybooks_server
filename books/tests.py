@@ -45,7 +45,7 @@ class ISBNDBClientTests(TestCase):
         self.assertEqual(result.subtitle, "Путешествие по России")
         self.assertEqual(result.authors, ["Иван Иванов", "Петр Петров"])
         self.assertEqual(result.publishers, ["Издателство Наука"])
-        self.assertEqual(result.languages, ["ru"])
+        self.assertEqual(result.languages, ["Русский"])
         self.assertEqual(result.subjects, ["Научная фантастика"])
         self.assertEqual(result.description, "Подробное описание книги")
         self.assertEqual(result.physical_format, "Твердый переплет")
@@ -75,10 +75,7 @@ class ISBNDBClientTests(TestCase):
 
         self.assertIsNotNone(result)
         assert result is not None
-        self.assertEqual(
-            result.subjects,
-            ["Научная фантастика", "Unknown Topic", "Космическая опера"],
-        )
+        self.assertEqual(result.subjects, ["Научная фантастика", "Космическая опера"])
 
 
 class GenreModelTests(TestCase):
@@ -341,7 +338,7 @@ class RegisterBookEditionTests(TestCase):
         self.assertEqual(isbn.total_pages, 320)
         self.assertEqual(isbn.binding, "Hardcover")
         self.assertEqual(isbn.subjects, "Фэнтези, Приключения")
-        self.assertEqual(isbn.language, "rus")
+        self.assertEqual(isbn.language, "Русский")
         self.assertEqual(isbn.synopsis, "Описание из API")
         self.assertEqual(isbn.image, "https://example.org/cover.jpg")
         self.assertEqual(isbn.isbn13, "9781234567897")

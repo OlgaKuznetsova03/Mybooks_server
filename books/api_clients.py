@@ -15,6 +15,21 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
+
+RUSSIAN_LANGUAGE_KEYS: set[str] = {
+    "ru",
+    "rus",
+    "russian",
+    "русский",
+    "русский язык",
+}
+
+
+def _is_russian_language(value: str) -> bool:
+    if not value:
+        return False
+    return value.strip().lower() in RUSSIAN_LANGUAGE_KEYS
+
 # --- ISBNdb endpoints (v2) ---
 ISBNDB_BOOK_URL = "https://api2.isbndb.com/book"    # /book/{isbn}
 ISBNDB_SEARCH_BOOKS_URL = "https://api2.isbndb.com/search/books"
@@ -350,10 +365,12 @@ def _translate_subjects(subjects: Iterable[str]) -> List[str]:
             continue
 
         canonical = _map_subject(raw)
-        if canonical:
-            mapped = GENRE_EN_RU.get(canonical, raw)
-        else:
-            mapped = raw
+        if not canonical:
+            continue
+
+        mapped = GENRE_EN_RU.get(canonical)
+        if not mapped:
+            continue
 
         normalized = mapped.strip()
         if not normalized:
@@ -567,15 +584,19 @@ class ISBNDBClient:
         normalized = (value or "").strip()
         if not normalized:
             return []
+        
+        if _is_russian_language(normalized):
+            return ["Русский"]
+        
         lowered = normalized.lower()
         if lowered in {"ru", "rus", "russian"}:
-            return ["ru"]
+            return ["Русский"]
         if "ru" in lowered:
-            return ["ru"]
+            return ["Русский"]
         return [normalized]
 
     def _apply_russian_transliteration(self, data: ExternalBookData) -> ExternalBookData:
-        if not any(lang.lower() == "ru" for lang in data.languages):
+        if not any(_is_russian_language(lang) for lang in data.languages):
             return data
         data.title = _transliterate_text(data.title)
         data.subtitle = _transliterate_optional(data.subtitle)
@@ -584,7 +605,7 @@ class ISBNDBClient:
         # Genres are now translated separately, no transliteration needed
         data.description = _transliterate_optional(data.description)
         data.physical_format = _transliterate_optional(data.physical_format)
-        data.languages = ["ru"]
+        data.languages = ["Русский"]
         return data
 
     def _parse_book(self, item: Dict[str, Any]) -> Optional[ExternalBookData]:
