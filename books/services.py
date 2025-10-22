@@ -12,6 +12,7 @@ from .utils import (
     normalize_isbn,
     download_cover_from_url,
 )
+from .api_clients import transliterate_to_cyrillic
 
 
 @dataclass
@@ -84,9 +85,11 @@ def _apply_isbn_metadata(
     publishers = metadata.get("publishers")
     if publishers and not isbn.publisher:
         if isinstance(publishers, (list, tuple)):
-            publisher_value = ", ".join(str(p).strip() for p in publishers if p)
+            publisher_items = [str(p).strip() for p in publishers if p]
         else:
-            publisher_value = str(publishers)
+            publisher_items = [str(publishers)]
+        publisher_items = [transliterate_to_cyrillic(item).strip() for item in publisher_items if item]
+        publisher_value = ", ".join(filter(None, publisher_items))
         set_if_empty("publisher", publisher_value.strip())
 
     subjects = metadata.get("subjects")
@@ -270,15 +273,38 @@ def register_book_edition(
                     seen_names.add(normalized)
         manual_subjects_value = ", ".join(manual_subject_names)
 
+        manual_publisher_names: list[str] = []
+        if publishers:
+            seen_publishers: set[str] = set()
+            for publisher in publishers:
+                name = getattr(publisher, "name", "") or ""
+                normalized = transliterate_to_cyrillic(name).strip()
+                if not normalized:
+                    continue
+                key = normalized.lower()
+                if key in seen_publishers:
+                    continue
+                seen_publishers.add(key)
+                manual_publisher_names.append(normalized)
+        manual_publisher_value = ", ".join(manual_publisher_names)
+
         for isbn in isbn_entries:
             if isbn.pk not in existing_isbn_ids:
                 book.isbn.add(isbn)
                 added_isbns.append(isbn)
             _apply_isbn_metadata(isbn, metadata_map)
 
+            updated_fields: list[str] = []
             if manual_subjects_value and isbn.subjects != manual_subjects_value:
                 isbn.subjects = manual_subjects_value
-                isbn.save(update_fields=["subjects"])
+                updated_fields.append("subjects")
+            if manual_publisher_value:
+                prioritized = manual_publisher_value
+                if isbn.publisher != prioritized:
+                    isbn.publisher = prioritized
+                    updated_fields.append("publisher")
+            if updated_fields:
+                isbn.save(update_fields=list(dict.fromkeys(updated_fields)))
 
         if not book.primary_isbn and (added_isbns or isbn_entries):
             book.primary_isbn = (added_isbns or isbn_entries)[0]

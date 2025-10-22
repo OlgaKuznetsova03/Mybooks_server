@@ -7,7 +7,7 @@ import json
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Sequence
 from urllib import error, parse, request
 
 from django.conf import settings
@@ -410,11 +410,13 @@ class ExternalBookData:
     external_id: Optional[str] = None
 
     def combined_isbns(self) -> List[str]:
-        seen = set()
-        merged = []
-        for value in self.isbn_13 + self.isbn_10:
+        """Return only normalized ISBN-13 values for downstream consumers."""
+
+        seen: set[str] = set()
+        merged: List[str] = []
+        for value in self.isbn_13:
             normalized = _normalize_isbn(value)
-            if normalized and normalized not in seen:
+            if len(normalized) == 13 and normalized.isdigit() and normalized not in seen:
                 seen.add(normalized)
                 merged.append(normalized)
         return merged
@@ -527,6 +529,22 @@ def _transliterate_optional(value: Optional[str]) -> Optional[str]:
     if value is None:
         return None
     return _transliterate_text(value)
+
+
+def _transliterate_list(values: Sequence[str]) -> List[str]:
+    return [_transliterate_text(str(item)) for item in values]
+
+
+def transliterate_to_cyrillic(value: str) -> str:
+    """Expose transliteration logic for reuse in other modules."""
+
+    return _transliterate_text(value)
+
+
+def transliterate_list(values: Sequence[str]) -> List[str]:
+    """Convenience wrapper to transliterate multiple values."""
+
+    return _transliterate_list(values)
 
 
 def _transliterate_list(values: List[str]) -> List[str]:

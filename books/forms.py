@@ -9,22 +9,12 @@ from .models import (
     AudioBook, Book, Rating, RatingComment
 )
 from .utils import normalize_isbn
+from .api_clients import transliterate_to_cyrillic
 
 
 def _isbn_digits(value: str) -> str:
     """Оставить только цифры и X, привести к верхнему регистру."""
     return normalize_isbn(value)
-
-def _is_valid_isbn10(v: str) -> bool:
-    # алгоритм проверки контрольной суммы ISBN-10
-    if len(v) != 10: 
-        return False
-    if not v[:-1].isdigit(): 
-        return False
-    s = sum((10 - i) * int(x) for i, x in enumerate(v[:9]))
-    check = 11 - (s % 11)
-    check_char = "X" if check == 10 else "0" if check == 11 else str(check)
-    return v[-1] == check_char
 
 def _is_valid_isbn13(v: str) -> bool:
     # алгоритм проверки контрольной суммы ISBN-13
@@ -67,13 +57,12 @@ class ISBNModelForm(forms.ModelForm):
     class Meta:
         model = ISBNModel
         fields = [
-            "isbn", "isbn13", "title", "authors", "publisher",
+            "isbn", "title", "authors", "publisher",
             "publish_date", "binding", "total_pages", "synopsis",
             "language", "subjects", "image"
         ]
         labels = {
-            "isbn": "ISBN-10",
-            "isbn13": "ISBN-13",
+            "isbn": "ISBN-13",
             "title": "Название издания",
             "authors": "Авторы",
             "publisher": "Издательство",
@@ -91,31 +80,26 @@ class ISBNModelForm(forms.ModelForm):
             "image": forms.URLInput(attrs={"placeholder": "https://…"}),
         }
         help_texts = {
-            "isbn": "ISBN-10 или ISBN-13 (можно с дефисами — мы очистим).",
-            "isbn13": "Если указали здесь, укажите именно 13-значный ISBN.",
+            "isbn": "Введите корректный ISBN-13 (можно с дефисами — мы очистим).",
         }
 
     def clean_isbn(self):
         raw = self.cleaned_data.get("isbn", "") or ""
         val = _isbn_digits(raw)
-        if len(val) == 10:
-            if not _is_valid_isbn10(val):
-                raise ValidationError("Некорректный ISBN-10.")
-        elif len(val) == 13:
-            if not _is_valid_isbn13(val):
-                raise ValidationError("Некорректный ISBN-13.")
-        else:
-            raise ValidationError("ISBN должен быть 10 или 13 символов.")
+        if len(val) != 13 or not _is_valid_isbn13(val):
+            raise ValidationError("Некорректный ISBN-13. Убедитесь, что указали 13 цифр.")
         return val
 
-    def clean_isbn13(self):
-        v = self.cleaned_data.get("isbn13")
-        if not v:
-            return v
-        v = _isbn_digits(v)
-        if len(v) != 13 or not _is_valid_isbn13(v):
-            raise ValidationError("Некорректный ISBN-13.")
-        return v
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        normalized = _isbn_digits(instance.isbn)
+        if len(normalized) == 13:
+            instance.isbn = normalized
+            instance.isbn13 = normalized
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
 
 
 class AudioBookForm(forms.ModelForm):
@@ -136,8 +120,8 @@ class BookForm(forms.ModelForm):
     isbn = forms.CharField(
         label="Связанные ISBN",
         required=False,
-        help_text="Введите ISBN-10 или ISBN-13 через запятую.",
-        widget=forms.TextInput(attrs={"placeholder": "9785000000001, 5-02-013850-9"}),
+        help_text="Введите ISBN-13 через запятую.",
+        widget=forms.TextInput(attrs={"placeholder": "9785000000001"}),
     )
     isbn_metadata = forms.CharField(required=False, widget=forms.HiddenInput())
     genres = forms.CharField(
@@ -230,9 +214,16 @@ class BookForm(forms.ModelForm):
     def clean_publisher(self):
         value = self.cleaned_data.get("publisher", "")
         names = self._split_list(value)
-        publishers = []
+        seen: set[str] = set()
         for name in names:
-            publisher, _ = Publisher.objects.get_or_create(name=name)
+            normalized = transliterate_to_cyrillic(name).strip()
+            if not normalized:
+                continue
+            key = normalized.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            publisher, _ = Publisher.objects.get_or_create(name=normalized)
             publishers.append(publisher)
         return publishers
 
@@ -244,13 +235,10 @@ class BookForm(forms.ModelForm):
         seen = set()
         for raw in numbers:
             digits = _isbn_digits(raw)
-            if len(digits) not in (10, 13):
-                errors.append(f"ISBN '{raw}' должен содержать 10 или 13 символов.")
+            if len(digits) != 13:
+                errors.append(f"ISBN '{raw}' должен содержать 13 цифр.")
                 continue
-            if len(digits) == 10 and not _is_valid_isbn10(digits):
-                errors.append(f"ISBN-10 '{raw}' некорректен.")
-                continue
-            if len(digits) == 13 and not _is_valid_isbn13(digits):
+            if not _is_valid_isbn13(digits):
                 errors.append(f"ISBN-13 '{raw}' некорректен.")
                 continue
             if digits in seen:
@@ -258,9 +246,9 @@ class BookForm(forms.ModelForm):
             seen.add(digits)
             isbn_obj, _ = ISBNModel.objects.get_or_create(
                 isbn=digits,
-                defaults={"isbn13": digits if len(digits) == 13 else None},
+                defaults={"isbn13": digits},
             )
-            if len(digits) == 13 and not isbn_obj.isbn13:
+            if not isbn_obj.isbn13:
                 isbn_obj.isbn13 = digits
                 isbn_obj.save(update_fields=["isbn13"])
             isbn_objects.append(isbn_obj)

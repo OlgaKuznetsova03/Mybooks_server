@@ -15,6 +15,19 @@ from .services import register_book_edition
 from .api_clients import ExternalBookData, ISBNDBClient
 
 
+def make_isbn13(seed: int) -> str:
+    """Generate a deterministic valid ISBN-13 for tests."""
+
+    prefix = f"9780000{seed:07d}"
+    prefix12 = prefix[:12]
+    total = 0
+    for index, char in enumerate(prefix12):
+        digit = int(char)
+        total += digit if index % 2 == 0 else digit * 3
+    check = (10 - (total % 10)) % 10
+    return f"{prefix12}{check}"
+
+
 class ISBNDBClientTests(TestCase):
     def test_parse_book_transliterates_russian_entries(self):
         client = ISBNDBClient()
@@ -99,9 +112,10 @@ class GenreModelTests(TestCase):
 
 class ISBNModelGetImageURLTests(TestCase):
     def _create_isbn(self, suffix: int, image: str = "book_covers/sample.jpg") -> ISBNModel:
+        value = make_isbn13(100 + suffix)
         return ISBNModel.objects.create(
-            isbn=f"123456789{suffix}",
-            isbn13=f"123456789012{suffix}",
+            isbn=value,
+            isbn13=value,
             title=f"Edition {suffix}",
             image=image,
         )
@@ -262,12 +276,14 @@ class RegisterBookEditionTests(TestCase):
         book.genres.add(self.genre)
         book.publisher.add(self.publisher)
 
-        isbn = ISBNModel.objects.create(isbn="1234567890", title="Старое издание")
+        old_value = make_isbn13(1)
+        isbn = ISBNModel.objects.create(isbn=old_value, isbn13=old_value, title="Старое издание")
         book.isbn.add(isbn)
         book.primary_isbn = isbn
         book.save(update_fields=["primary_isbn"])
 
-        new_isbn = ISBNModel.objects.create(isbn="1234567890123", title="Новое издание")
+        new_value = make_isbn13(2)
+        new_isbn = ISBNModel.objects.create(isbn=new_value, isbn13=new_value, title="Новое издание")
 
         result = register_book_edition(
             title="Книга",
@@ -287,10 +303,12 @@ class RegisterBookEditionTests(TestCase):
         existing = Book.objects.create(title="Книга", synopsis="Описание")
         existing.authors.add(self.author)
 
-        isbn_existing = ISBNModel.objects.create(isbn="0000000000", title="Издание")
+        existing_value = make_isbn13(3)
+        isbn_existing = ISBNModel.objects.create(isbn=existing_value, isbn13=existing_value, title="Издание")
         existing.isbn.add(isbn_existing)
 
-        isbn_new = ISBNModel.objects.create(isbn="0000000000000", title="Новое издание")
+        new_value = make_isbn13(4)
+        isbn_new = ISBNModel.objects.create(isbn=new_value, isbn13=new_value, title="Новое издание")
 
         result = register_book_edition(
             title="Книга",
@@ -303,11 +321,35 @@ class RegisterBookEditionTests(TestCase):
         self.assertNotEqual(result.book.pk, existing.pk)
         self.assertEqual(result.added_isbns, [isbn_new])
 
-    def test_applies_isbn_metadata(self):
-        isbn = ISBNModel.objects.create(isbn="1234567890")
+    def test_manual_publisher_overrides_metadata(self):
+        isbn_value = make_isbn13(9)
+        isbn = ISBNModel.objects.create(isbn=isbn_value, isbn13=isbn_value)
+        user_publisher = Publisher.objects.create(name="Пользовательское издательство")
 
         metadata = {
-            "1234567890": {
+            isbn_value: {
+                "publishers": ["API Publisher"],
+            }
+        }
+
+        result = register_book_edition(
+            title="Книга",
+            authors=[self.author],
+            publishers=[user_publisher],
+            isbn_entries=[isbn],
+            isbn_metadata=metadata,
+        )
+
+        self.assertIn(isbn, result.added_isbns)
+        isbn.refresh_from_db()
+        self.assertEqual(isbn.publisher, user_publisher.name)
+
+    def test_applies_isbn_metadata(self):
+        isbn_value = make_isbn13(5)
+        isbn = ISBNModel.objects.create(isbn=isbn_value, isbn13=isbn_value)
+
+        metadata = {
+            isbn_value: {
                 "title": "API Title",
                 "authors": ["Новый Автор"],
                 "publishers": ["API Publisher"],
@@ -318,7 +360,7 @@ class RegisterBookEditionTests(TestCase):
                 "languages": ["rus"],
                 "description": "Описание из API",
                 "cover_url": "https://example.org/cover.jpg",
-                "isbn_13_list": ["9781234567897"],
+                "isbn_13_list": [isbn_value],
             }
         }
 
@@ -346,10 +388,11 @@ class RegisterBookEditionTests(TestCase):
 
     @mock.patch("books.services.download_cover_from_url")
     def test_downloads_cover_from_metadata_when_no_upload(self, mock_download):
-        isbn = ISBNModel.objects.create(isbn="1234567890")
+        isbn_value = make_isbn13(6)
+        isbn = ISBNModel.objects.create(isbn=isbn_value, isbn13=isbn_value)
 
         metadata = {
-            "1234567890": {
+            isbn_value: {
                 "cover_url": "https://covers.example.com/api.jpg",
             }
         }
@@ -383,9 +426,10 @@ class BookLookupViewTests(TestCase):
         self.author = Author.objects.create(name="Автор Поиска")
         self.book = Book.objects.create(title="Поисковая книга", synopsis="")
         self.book.authors.add(self.author)
+        isbn_value = make_isbn13(7)
         self.isbn = ISBNModel.objects.create(
-            isbn="1234567890",
-            isbn13="1234567890123",
+            isbn=isbn_value,
+            isbn13=isbn_value,
             title="Существующее издание",
         )
         self.book.isbn.add(self.isbn)
@@ -447,9 +491,10 @@ class BookLookupAPIViewTests(TestCase):
         self.author = Author.objects.create(name="Автор Поиска")
         self.book = Book.objects.create(title="Поисковая книга", synopsis="")
         self.book.authors.add(self.author)
+        isbn_value = make_isbn13(8)
         self.isbn = ISBNModel.objects.create(
-            isbn="1234567890",
-            isbn13="1234567890123",
+            isbn=isbn_value,
+            isbn13=isbn_value,
             title="Существующее издание",
         )
         self.book.isbn.add(self.isbn)
