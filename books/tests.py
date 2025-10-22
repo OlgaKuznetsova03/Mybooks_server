@@ -33,6 +33,7 @@ class ISBNDBClientTests(TestCase):
             "isbn13": "9781234567897",
             "isbns": ["9781234567897"],
             "image": "https://example.com/cover.jpg",
+            "image_l": "https://example.com/cover-large.jpg",
             "url": "https://isbndb.com/book/9781234567897",
         }
 
@@ -48,7 +49,7 @@ class ISBNDBClientTests(TestCase):
         self.assertEqual(result.subjects, ["Русская история"])
         self.assertEqual(result.description, "Подробное описание книги")
         self.assertEqual(result.physical_format, "Твердый переплет")
-        self.assertEqual(result.cover_url, "https://example.com/cover.jpg")
+        self.assertEqual(result.cover_url, "https://example.com/cover-large.jpg")
         self.assertEqual(result.source_url, "https://isbndb.com/book/9781234567897")
         self.assertIn("1234567890", result.isbn_10)
         self.assertIn("9781234567897", result.isbn_13)

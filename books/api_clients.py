@@ -16,9 +16,9 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 # --- ISBNdb endpoints (v2) ---
-ISBNDB_BOOK_URL = "https://api2.isbndb.com/book"
-ISBNDB_SEARCH_BOOKS_URL = "https://api2.isbndb.com/books"
-ISBNDB_SEARCH_ALL_URL = "https://api2.isbndb.com/search"
+ISBNDB_BOOK_URL = "https://api2.isbndb.com/book"    # /book/{isbn}
+ISBNDB_SEARCH_BOOKS_URL = "https://api2.isbndb.com/books"  # /books/{query}
+ISBNDB_SEARCH_ALL_URL = "https://api2.isbndb.com/search"   # /search?q=...
 ISBNDB_USER_AGENT = "MyBooksLibraryBot/1.0 (+https://github.com)"
 
 
@@ -88,6 +88,18 @@ def _extract_description(value: Any) -> Optional[str]:
         if "description" in value:
             return str(value["description"]).strip() or None
     return str(value).strip() or None
+
+
+def _is_ascii(text: str) -> bool:
+    try:
+        return text.isascii()
+    except AttributeError:
+        # Python <3.7 compatibility (не требуется у нас, но пусть будет)
+        try:
+            text.encode("ascii")
+            return True
+        except UnicodeEncodeError:
+            return False
 
 
 # ----------------- data model -----------------
@@ -243,7 +255,10 @@ class ISBNDBClient:
     """Client for interacting with the ISBNdb API."""
 
     def __init__(self, *, api_key: Optional[str] = None, timeout: float = 10.0):
-        self.api_key = api_key or getattr(settings, "ISBNDB_API_KEY", None)
+        key = api_key or getattr(settings, "ISBNDB_API_KEY", None)
+        if isinstance(key, str):
+            key = key.strip()
+        self.api_key = key
         self.timeout = timeout
 
     # --- low-level HTTP ---
@@ -255,15 +270,18 @@ class ISBNDBClient:
 
         headers = {"User-Agent": ISBNDB_USER_AGENT}
         if self.api_key:
-            # IMPORTANT for ISBNdb v2: x-api-key header
-            headers["x-api-key"] = self.api_key
+            # ВАЖНО для api2.isbndb.com: именно Authorization, не x-api-key
+            headers["Authorization"] = self.api_key
 
         req = request.Request(full_url, headers=headers)
         try:
             with request.urlopen(req, timeout=self.timeout) as response:
                 payload = response.read().decode("utf-8")
         except error.HTTPError as exc:  # pragma: no cover
-            logger.warning("HTTP %s on %s: %s", exc.code, full_url, exc.reason)
+            logger.warning(
+                "HTTP %s on %s (auth=%s): %s",
+                exc.code, full_url, "yes" if "Authorization" in headers else "no", exc.reason
+            )
             return {}
         except error.URLError as exc:  # pragma: no cover
             logger.warning("Network error for %s: %s", full_url, exc)
@@ -346,7 +364,16 @@ class ISBNDBClient:
             elif len(normalized) == 10 and normalized not in isbn_10:
                 isbn_10.append(normalized)
 
-        cover_url = str(item.get("image") or item.get("image_l") or "").strip() or None
+        cover_url = (
+            str(
+                item.get("image_l")
+                or item.get("image")
+                or item.get("image_m")
+                or item.get("image_s")
+                or ""
+            ).strip()
+            or None
+        )
 
         source_url = (
             str(item.get("url") or "").strip()
@@ -399,20 +426,24 @@ class ISBNDBClient:
             params["_direct_isbn"] = normalized_isbn
             return params
 
-        query_parts = []
+        query_parts: List[str] = []
         if title:
             query_parts.append(str(title).strip())
         if author:
             query_parts.append(str(author).strip())
 
         if query_parts:
-            params["_books_path_query"] = " ".join(part for part in query_parts if part)
-            if author:
-                params["author"] = str(author).strip()  # API supports author filter
+            q_text = " ".join(part for part in query_parts if part)
+            # Если запрос содержит не-ASCII (кириллица и т.п.), используем /search?q=...
+            if not _is_ascii(q_text):
+                params["_search_q"] = q_text
+            else:
+                params["_books_path_query"] = q_text
+                if author:
+                    params["author"] = str(author).strip()  # author-фильтр поддерживается
             return params
 
-        # Fallback marker to try /search?q=...
-        params["_search_all"] = True
+        # Ничего не передано — вернём пустой результат в search()
         return params
 
     def search(
@@ -435,7 +466,7 @@ class ISBNDBClient:
                 return [parsed] if parsed else []
             return []
 
-        # /books/{query}?author=&pageSize=
+        # /books/{query}?author=&pageSize=  (только для ASCII-запросов)
         books_path_query = params.pop("_books_path_query", None)
         if books_path_query:
             safe_query = parse.quote(books_path_query)
@@ -452,14 +483,14 @@ class ISBNDBClient:
                         break
             return results
 
-        # Fallback: /search?q=... (broader search across datasets)
-        if params.pop("_search_all", None):
-            q = " ".join(filter(None, [title or "", author or ""])).strip()
-            if not q:
-                return []
-            data = self._fetch_json_url(ISBNDB_SEARCH_ALL_URL, {"q": q, "pageSize": max(1, min(limit, 100))})
-            # /search often responds with "data" list
-            items = data.get("data") if isinstance(data, dict) else None
+        # /search?q=... — безопасно для Unicode/кириллицы
+        search_q = params.pop("_search_q", None)
+        if search_q:
+            q_params = {"q": search_q, "pageSize": max(1, min(limit, 100))}
+            # author можем передать как часть q или как отдельный параметр — оставим как часть q
+            data = self._fetch_json_url(ISBNDB_SEARCH_ALL_URL, q_params)
+            # У /search иногда "books", иногда "data"
+            items = data.get("books") or data.get("data")
             if not isinstance(items, list):
                 return []
             results: List[ExternalBookData] = []
