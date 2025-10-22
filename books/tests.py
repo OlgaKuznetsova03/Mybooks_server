@@ -54,7 +54,33 @@ class ISBNDBClientTests(TestCase):
         self.assertIn("1234567890", result.isbn_10)
         self.assertIn("9781234567897", result.isbn_13)
 
+    def test_translate_subjects_to_russian(self):
+        client = ISBNDBClient()
+        payload = {
+            "title": "Test title",
+            "authors": ["Author"],
+            "publisher": "Publisher",
+            "date_published": "2023",
+            "subjects": [
+                "Science Fiction",
+                "sci-fi",
+                "Unknown Topic",
+                "Space Opera & Fantasy",
+            ],
+            "language": "English",
+            "isbn": "1234567890",
+        }
 
+        result = client._parse_book(payload)
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertEqual(
+            result.subjects,
+            ["Научная фантастика", "Unknown Topic", "Космическая опера"],
+        )
+
+        
 class GenreModelTests(TestCase):
     def test_slug_generated_from_name(self):
         genre = Genre.objects.create(name="Научная фантастика")

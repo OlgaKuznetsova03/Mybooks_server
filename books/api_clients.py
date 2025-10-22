@@ -102,6 +102,285 @@ def _is_ascii(text: str) -> bool:
             return False
 
 
+# ----------------- genre translation helpers (ISBNdb subjects -> RU) -----------------
+
+GENRE_EN_RU: Dict[str, str] = {
+    # Базовые
+    "Fiction": "Художественная литература",
+    "Nonfiction": "Нехудожественная литература",
+    "Poetry": "Поэзия",
+    "Drama": "Драма",
+    "Short Stories": "Рассказы",
+    "Essays": "Эссе",
+    "Classics": "Классическая литература",
+
+    # Детектив / триллер / ужасы
+    "Mystery": "Детективы",
+    "Detective": "Детективы",
+    "Crime": "Криминальные романы",
+    "Thriller": "Триллеры",
+    "Suspense": "Саспенс",
+    "Horror": "Ужасы",
+    "True Crime": "Реальные преступления",
+
+    # Романы о любви / отношения
+    "Romance": "Любовные романы",
+    "Contemporary Romance": "Современная романтика",
+    "Historical Romance": "Историческая романтика",
+    "Family & Relationships": "Семья и отношения",
+    "Women's Fiction": "Женская проза",
+
+    # Фантастика / фэнтези
+    "Science Fiction": "Научная фантастика",
+    "Fantasy": "Фэнтези",
+    "Urban Fantasy": "Городское фэнтези",
+    "Paranormal": "Паранормальное",
+    "Dystopian": "Антиутопия",
+    "Space Opera": "Космическая опера",
+
+    # История / биографии
+    "History": "История",
+    "Biography": "Биографии",
+    "Memoir": "Мемуары",
+    "Autobiography": "Автобиографии",
+    "Historical Studies": "Исторические исследования",
+
+    # Соцнауки / политика / право
+    "Sociology": "Социология",
+    "Politics": "Политика",
+    "Economics": "Экономика",
+    "Law": "Право",
+    "Education": "Образование",
+    "Anthropology": "Антропология",
+
+    # Наука и техника
+    "Mathematics": "Математика",
+    "Physics": "Физика",
+    "Chemistry": "Химия",
+    "Biology": "Биология",
+    "Medicine": "Медицина",
+    "Engineering": "Инженерия",
+    "Computer Science": "Информатика",
+    "Technology": "Технологии",
+    "Data Science": "Наука о данных",
+    "Artificial Intelligence": "Искусственный интеллект",
+
+    # Бизнес
+    "Business": "Бизнес",
+    "Finance": "Финансы",
+    "Marketing": "Маркетинг",
+    "Management": "Менеджмент",
+    "Entrepreneurship": "Предпринимательство",
+    "Investing": "Инвестиции",
+    "Personal Finance": "Личные финансы",
+
+    # Дом / хобби / досуг
+    "Cooking": "Кулинария",
+    "Food & Drink": "Еда и напитки",
+    "Crafts & Hobbies": "Рукоделие и хобби",
+    "Gardening": "Садоводство",
+    "Home Improvement": "Дом и интерьер",
+    "Pets": "Домашние животные",
+    "Travel": "Путешествия",
+    "Health & Fitness": "Здоровье и фитнес",
+    "Self-Help": "Саморазвитие",
+
+    # Детям и подросткам
+    "Children's Books": "Детская литература",
+    "Young Adult": "Подростковая литература",
+    "Picture Books": "Книги с иллюстрациями",
+    "Fairy Tales": "Сказки",
+
+    # Искусство и культура
+    "Art": "Искусство",
+    "Photography": "Фотография",
+    "Music": "Музыка",
+    "Performing Arts": "Сценическое искусство",
+    "Architecture": "Архитектура",
+    "Design": "Дизайн",
+    "Comics & Graphic Novels": "Комиксы и графические романы",
+
+    # Религия / духовные практики
+    "Religion": "Религия",
+    "Spirituality": "Духовные практики",
+    "Occult": "Оккультизм",
+}
+
+
+GENRE_ALIASES: Dict[str, str] = {
+    # Fiction
+    "lit": "Fiction",
+    "literature": "Fiction",
+    "novel": "Fiction",
+    "novels": "Fiction",
+
+    # Nonfiction
+    "non-fiction": "Nonfiction",
+    "non fiction": "Nonfiction",
+
+    # Mystery/Detective
+    "mystery & detective": "Mystery",
+    "detective & mystery": "Mystery",
+
+    # Crime/Thriller
+    "crime fiction": "Crime",
+    "noir": "Crime",
+    "legal thriller": "Thriller",
+    "psychological thriller": "Thriller",
+
+    # Horror
+    "dark fiction": "Horror",
+
+    # Romance
+    "romantic fiction": "Romance",
+    "rom-com": "Romance",
+    "romcom": "Romance",
+    "new adult romance": "Contemporary Romance",
+
+    # Fantasy
+    "high fantasy": "Fantasy",
+    "epic fantasy": "Fantasy",
+    "dark fantasy": "Fantasy",
+    "ya fantasy": "Fantasy",
+    "urban-fantasy": "Urban Fantasy",
+
+    # Sci-Fi
+    "sci-fi": "Science Fiction",
+    "scifi": "Science Fiction",
+    "sf": "Science Fiction",
+    "hard science fiction": "Science Fiction",
+    "cyberpunk": "Science Fiction",
+    "space-opera": "Space Opera",
+
+    # Dystopian
+    "post-apocalyptic": "Dystopian",
+    "post apocalyptic": "Dystopian",
+
+    # History/Bio
+    "historical": "History",
+    "historical fiction": "History",
+    "bio": "Biography",
+    "autobio": "Autobiography",
+
+    # Social Sciences
+    "political science": "Politics",
+    "econ": "Economics",
+
+    # CS/Tech
+    "cs": "Computer Science",
+    "programming": "Computer Science",
+    "software engineering": "Computer Science",
+    "information technology": "Technology",
+    "ai": "Artificial Intelligence",
+    "machine learning": "Data Science",
+    "ml": "Data Science",
+    "data analytics": "Data Science",
+
+    # Business
+    "personal finance": "Personal Finance",
+    "startup": "Entrepreneurship",
+    "startups": "Entrepreneurship",
+
+    # Cooking
+    "cookbook": "Cooking",
+    "food": "Food & Drink",
+    "drinks": "Food & Drink",
+
+    # Children/YA
+    "ya": "Young Adult",
+    "kid lit": "Children's Books",
+
+    # Arts
+    "graphic novels": "Comics & Graphic Novels",
+    "graphic novel": "Comics & Graphic Novels",
+    "performing arts": "Performing Arts",
+
+    # Religion/Spiritual
+    "occult & esoterica": "Occult",
+    "esoterica": "Occult",
+}
+
+
+_ALIAS_HINTS: List[tuple[re.Pattern, str]] = [
+    (re.compile(r"\bya\b|\byoung adult\b", re.I), "Young Adult"),
+    (re.compile(r"\bgraphic novel", re.I), "Comics & Graphic Novels"),
+    (re.compile(r"\bspace opera\b", re.I), "Space Opera"),
+    (re.compile(r"\b(post[- ]apocalyptic|dystop(i|a))", re.I), "Dystopian"),
+    (re.compile(r"\b(paranormal|vampire|werewolf|witch)", re.I), "Paranormal"),
+    (re.compile(r"\b(cozy mystery)\b", re.I), "Mystery"),
+    (re.compile(r"\b(self[- ]help)\b", re.I), "Self-Help"),
+    (re.compile(r"\b(rom[- ]?com|romcom)\b", re.I), "Romance"),
+    (re.compile(r"\b(cyberpunk|hard sci[- ]?fi|hard sf)\b", re.I), "Science Fiction"),
+]
+
+
+def _canonize_key(text: str) -> str:
+    """Normalize key for alias lookup."""
+
+    return re.sub(r"\s+", " ", text.strip().lower())
+
+
+def _map_subject(raw: str) -> Optional[str]:
+    """Return canonical English subject key or None if not found."""
+
+    if not raw:
+        return None
+
+    candidate = raw.strip()
+    if not candidate:
+        return None
+
+    for en_name in GENRE_EN_RU.keys():
+        if candidate.lower() == en_name.lower():
+            return en_name
+
+    alias_key = _canonize_key(candidate)
+    if alias_key in GENRE_ALIASES:
+        return GENRE_ALIASES[alias_key]
+
+    for pattern, target in _ALIAS_HINTS:
+        if pattern.search(candidate):
+            return target
+
+    if any(separator in candidate for separator in {"&", "/", "-"}):
+        for part in re.split(r"[&/,-]+", candidate):
+            mapped = _map_subject(part.strip())
+            if mapped:
+                return mapped
+
+    return None
+
+
+def _translate_subjects(subjects: Iterable[str]) -> List[str]:
+    """Translate known ISBNdb subjects to Russian equivalents."""
+
+    translated: List[str] = []
+    seen: set[str] = set()
+
+    for raw in subjects:
+        if not raw:
+            continue
+
+        canonical = _map_subject(raw)
+        if canonical:
+            mapped = GENRE_EN_RU.get(canonical, raw)
+        else:
+            mapped = raw
+
+        normalized = mapped.strip()
+        if not normalized:
+            continue
+
+        lowered = normalized.lower()
+        if lowered in seen:
+            continue
+
+        seen.add(lowered)
+        translated.append(normalized)
+
+    return translated
+
+
 # ----------------- data model -----------------
 
 @dataclass
@@ -331,7 +610,7 @@ class ISBNDBClient:
         publish_date = str(item.get("date_published") or "").strip() or None
         number_of_pages = _coerce_int(item.get("pages"))
         physical_format = str(item.get("binding") or "").strip() or None
-        subjects = _deduplicate(_coerce_list(item.get("subjects")))
+        subjects = _translate_subjects(_deduplicate(_coerce_list(item.get("subjects"))))
         language_value = str(item.get("language") or item.get("language_code") or "").strip()
         languages = self._normalize_language(language_value)
         description = _extract_description(
