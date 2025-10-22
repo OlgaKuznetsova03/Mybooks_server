@@ -16,8 +16,9 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 # --- ISBNdb endpoints (v2) ---
-ISBNDB_SEARCH_URL = "https://api2.isbndb.com/books"
-ISBNDB_BOOK_URL   = "https://api2.isbndb.com/book"
+ISBNDB_BOOK_URL = "https://api2.isbndb.com/book"
+ISBNDB_SEARCH_BOOKS_URL = "https://api2.isbndb.com/books"
+ISBNDB_SEARCH_ALL_URL = "https://api2.isbndb.com/search"
 ISBNDB_USER_AGENT = "MyBooksLibraryBot/1.0 (+https://github.com)"
 
 
