@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 # --- ISBNdb endpoints (v2) ---
 ISBNDB_BOOK_URL = "https://api2.isbndb.com/book"    # /book/{isbn}
 ISBNDB_SEARCH_BOOKS_URL = "https://api2.isbndb.com/search/books"
+ISBNDB_BOOKS_COLLECTION_URL = "https://api2.isbndb.com/books"
 ISBNDB_USER_AGENT = "MyBooksLibraryBot/1.0 (+https://github.com)"
 
 
@@ -736,8 +737,17 @@ class ISBNDBClient:
             data = self._fetch_json_url(ISBNDB_SEARCH_BOOKS_URL, q_params)
             # У /search иногда "books", иногда "data"
             items = data.get("books") or data.get("data")
+
+            if not isinstance(items, list):
+                # Fallback: публичное API ISBNdb может не поддерживать /search/books
+                # (возвращает 404). В таком случае пробуем коллекцию /books/<q>.
+                fallback_url = f"{ISBNDB_BOOKS_COLLECTION_URL}/{parse.quote(search_q)}"
+                data = self._fetch_json_url(fallback_url, params)
+                items = data.get("books") or data.get("data")
+
             if not isinstance(items, list):
                 return []
+            
             results: List[ExternalBookData] = []
             for item in items:
                 parsed = self._parse_book(item) if isinstance(item, dict) else None
