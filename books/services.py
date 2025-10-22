@@ -259,11 +259,26 @@ def register_book_edition(
 
         added_isbns: List[ISBNModel] = []
         existing_isbn_ids = set(book.isbn.values_list("id", flat=True))
+        manual_subject_names: list[str] = []
+        if genres:
+            seen_names: set[str] = set()
+            for genre in genres:
+                name = getattr(genre, "name", "") or ""
+                normalized = name.strip()
+                if normalized and normalized not in seen_names:
+                    manual_subject_names.append(normalized)
+                    seen_names.add(normalized)
+        manual_subjects_value = ", ".join(manual_subject_names)
+
         for isbn in isbn_entries:
             if isbn.pk not in existing_isbn_ids:
                 book.isbn.add(isbn)
                 added_isbns.append(isbn)
             _apply_isbn_metadata(isbn, metadata_map)
+
+            if manual_subjects_value and isbn.subjects != manual_subjects_value:
+                isbn.subjects = manual_subjects_value
+                isbn.save(update_fields=["subjects"])
 
         if not book.primary_isbn and (added_isbns or isbn_entries):
             book.primary_isbn = (added_isbns or isbn_entries)[0]
