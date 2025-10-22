@@ -80,7 +80,7 @@ class ISBNDBClientTests(TestCase):
             ["Научная фантастика", "Unknown Topic", "Космическая опера"],
         )
 
-        
+
 class GenreModelTests(TestCase):
     def test_slug_generated_from_name(self):
         genre = Genre.objects.create(name="Научная фантастика")
@@ -442,6 +442,70 @@ class BookLookupViewTests(TestCase):
         self.assertEqual(len(data["external_results"]), 1)
         self.assertEqual(data["external_results"][0]["title"], "API Книга")
         self.assertIn("metadata", data["external_results"][0])
+        mock_client.search.assert_called_once()
+
+
+class BookLookupAPIViewTests(TestCase):
+    def setUp(self):
+        self.author = Author.objects.create(name="Автор Поиска")
+        self.book = Book.objects.create(title="Поисковая книга", synopsis="")
+        self.book.authors.add(self.author)
+        self.isbn = ISBNModel.objects.create(
+            isbn="1234567890",
+            isbn13="1234567890123",
+            title="Существующее издание",
+        )
+        self.book.isbn.add(self.isbn)
+
+    def test_rejects_empty_query(self):
+        response = self.client.get(reverse("book_lookup_api"))
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error"], "Укажите название, автора или ISBN.")
+
+    def test_search_by_author(self):
+        response = self.client.get(reverse("book_lookup_api"), {"author": "Поиска"})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["local_results"]), 1)
+        self.assertEqual(data["local_results"][0]["title"], "Поисковая книга")
+
+    def test_search_by_title(self):
+        response = self.client.get(reverse("book_lookup_api"), {"title": "Поисковая"})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["local_results"]), 1)
+        self.assertEqual(data["local_results"][0]["title"], "Поисковая книга")
+
+    @mock.patch("books.views.isbndb_client")
+    def test_external_results_when_forced(self, mock_client):
+        mock_client.search.return_value = [
+            ExternalBookData(
+                title="API Книга",
+                authors=["API Автор"],
+                publishers=["API Издательство"],
+                publish_date="2020",
+                number_of_pages=250,
+                physical_format="Paperback",
+                subjects=["Приключения"],
+                languages=["eng"],
+                isbn_10=["1234567890"],
+                isbn_13=["1234567890123"],
+                description="Описание",
+                cover_url="https://example.com/cover.jpg",
+                source_url="https://isbndb.com/book/123",
+            )
+        ]
+
+        response = self.client.get(
+            reverse("book_lookup_api"),
+            {"author": "Неизвестный", "force_external": "1", "external_limit": "3"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["local_results"], [])
+        self.assertEqual(len(data["external_results"]), 1)
+        self.assertEqual(data["external_results"][0]["title"], "API Книга")
         mock_client.search.assert_called_once()
 
 

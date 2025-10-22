@@ -8,6 +8,7 @@ urlpatterns = [
     path("genres/<slug:slug>/", views.genre_detail, name="genre_detail"),
 
     path("lookup/", views.book_lookup, name="book_lookup"),
+    path("api/lookup/", views.book_lookup_api, name="book_lookup_api"),
     path("prefill/", views.book_prefill_external, name="book_prefill_external"),
     
     # детальная страница книги

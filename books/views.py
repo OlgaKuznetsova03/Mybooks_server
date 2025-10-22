@@ -211,56 +211,70 @@ def _serialize_external_item(item) -> dict[str, object]:
     }
 
 
-@login_required
-@require_GET
-def book_lookup(request):
-    title = (request.GET.get("title") or "").strip()
-    author = (request.GET.get("author") or "").strip()
-    isbn_raw = request.GET.get("isbn")
-    isbn = _isbn_query(isbn_raw)
-    force_external = str(request.GET.get("force_external", "")).lower() in {"1", "true", "yes"}
+class BookLookupQueryError(ValueError):
+    """Raised when a lookup request lacks searchable parameters."""
 
-    if not any([title, author, isbn]):
-        return JsonResponse({"error": "Укажите название, автора или ISBN."}, status=400)
+
+def _perform_book_lookup(
+    *,
+    title: str,
+    author: str,
+    isbn_raw: str | None,
+    force_external: bool = False,
+    local_limit: int = 10,
+    external_limit: int = 5,
+):
+    """Execute local and external lookups for books matching the query."""
+
+    normalized_title = (title or "").strip()
+    normalized_author = (author or "").strip()
+    isbn = _isbn_query(isbn_raw)
+
+    if not any([normalized_title, normalized_author, isbn]):
+        raise BookLookupQueryError("Укажите название, автора или ISBN.")
 
     qs = Book.objects.all().prefetch_related("authors", "isbn")
-    if title:
-        qs = qs.filter(title__icontains=title)
-    if author:
-        qs = qs.filter(authors__name__icontains=author)
+    if normalized_title:
+        qs = qs.filter(title__icontains=normalized_title)
+    if normalized_author:
+        qs = qs.filter(authors__name__icontains=normalized_author)
     if isbn:
         qs = qs.filter(Q(isbn__isbn__iexact=isbn) | Q(isbn__isbn13__iexact=isbn))
 
     local_results = []
-    for book in qs.distinct()[:10]:
+    for book in qs.distinct()[: max(1, local_limit)]:
         isbn_values = list(book.isbn.values("isbn", "isbn13"))
-        isbn_candidates = []
+        isbn_candidates: list[str] = []
         for entry in isbn_values:
             primary = normalize_isbn(entry.get("isbn")) if entry.get("isbn") else ""
             secondary = normalize_isbn(entry.get("isbn13")) if entry.get("isbn13") else ""
             isbn_candidates.extend([primary, secondary])
-        seen_isbns = []
+        seen_isbns: list[str] = []
         for candidate in isbn_candidates:
             if candidate and candidate not in seen_isbns:
                 seen_isbns.append(candidate)
-        local_results.append({
-            "id": book.pk,
-            "title": book.title,
-            "authors": list(book.authors.order_by("name").values_list("name", flat=True)),
-            "isbn_list": seen_isbns,
-            "detail_url": reverse("book_detail", args=[book.pk]),
-            "edition_count": len(isbn_values),
-        })
+        local_results.append(
+            {
+                "id": book.pk,
+                "title": book.title,
+                "authors": list(
+                    book.authors.order_by("name").values_list("name", flat=True)
+                ),
+                "isbn_list": seen_isbns,
+                "detail_url": reverse("book_detail", args=[book.pk]),
+                "edition_count": len(isbn_values),
+            }
+        )
 
     external_results = []
     external_error = None
     if force_external or not local_results:
         try:
             search_results = isbndb_client.search(
-                title=title or None,
-                author=author or None,
+                title=normalized_title or None,
+                author=normalized_author or None,
                 isbn=isbn or None,
-                limit=5,
+                limit=max(1, external_limit),
             )
         except Exception as exc:  # pragma: no cover - defensive logging
             logger.exception("ISBNdb lookup failed: %s", exc)
@@ -270,15 +284,67 @@ def book_lookup(request):
         for item in search_results:
             external_results.append(_serialize_external_item(item))
 
-    return JsonResponse(
-        {
-            "query": {"title": title, "author": author, "isbn": isbn, "raw_isbn": isbn_raw},
-            "local_results": local_results,
-            "external_results": external_results,
-            "external_error": external_error,
-            "force_external": force_external,
-        }
-    )
+    return {
+        "query": {
+            "title": normalized_title,
+            "author": normalized_author,
+            "isbn": isbn,
+            "raw_isbn": isbn_raw,
+        },
+        "local_results": local_results,
+        "external_results": external_results,
+        "external_error": external_error,
+        "force_external": force_external,
+    }
+
+
+@login_required
+@require_GET
+def book_lookup(request):
+    force_external = str(request.GET.get("force_external", "")).lower() in {"1", "true", "yes"}
+    try:
+        payload = _perform_book_lookup(
+            title=request.GET.get("title", ""),
+            author=request.GET.get("author", ""),
+            isbn_raw=request.GET.get("isbn"),
+            force_external=force_external,
+        )
+    except BookLookupQueryError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
+
+    return JsonResponse(payload)
+
+
+@require_GET
+def book_lookup_api(request):
+    force_external = str(request.GET.get("force_external", "")).lower() in {"1", "true", "yes"}
+    local_limit = request.GET.get("limit")
+    external_limit = request.GET.get("external_limit")
+
+    def _parse_limit(value: str | None, default: int) -> int:
+        try:
+            if value is None:
+                return default
+            parsed = int(value)
+            if parsed <= 0:
+                return default
+            return parsed
+        except (TypeError, ValueError):
+            return default
+
+    try:
+        payload = _perform_book_lookup(
+            title=request.GET.get("title", ""),
+            author=request.GET.get("author", ""),
+            isbn_raw=request.GET.get("isbn"),
+            force_external=force_external,
+            local_limit=_parse_limit(local_limit, 10),
+            external_limit=_parse_limit(external_limit, 5),
+        )
+    except BookLookupQueryError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
+
+    return JsonResponse(payload)
 
 @login_required
 @require_POST
