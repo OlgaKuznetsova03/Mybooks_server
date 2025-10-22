@@ -45,6 +45,18 @@ class BootstrapModelForm(forms.ModelForm):
 
 
 class AuthorOfferForm(BootstrapModelForm):
+    def __init__(self, *args, **kwargs):
+        author = kwargs.pop("author", None)
+        super().__init__(*args, **kwargs)
+        book_field = self.fields.get("book")
+        if book_field is None:
+            return
+
+        queryset = Book.objects.none()
+        if author is not None and getattr(author, "is_authenticated", False):
+            queryset = Book.objects.filter(contributors=author)
+        book_field.queryset = queryset.order_by("title").distinct()
+        
     class Meta:
         model = AuthorOffer
         fields = [

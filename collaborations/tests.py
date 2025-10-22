@@ -5,6 +5,9 @@ from django.contrib.auth.models import Group
 from django.test import TestCase
 from django.urls import reverse
 
+from books.models import Book
+
+from .forms import AuthorOfferForm
 from .models import (
     AuthorOffer,
     AuthorOfferResponse,
@@ -13,6 +16,37 @@ from .models import (
 )
 
 
+class OfferFormTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.author = user_model.objects.create_user(
+            username="author", password="password123", email="author@example.com"
+        )
+        self.other_user = user_model.objects.create_user(
+            username="outsider",
+            password="password123",
+            email="outsider@example.com",
+        )
+
+        author_group, _ = Group.objects.get_or_create(name="author")
+        self.author.groups.add(author_group)
+
+        self.own_book = Book.objects.create(title="Моя книга")
+        self.own_book.contributors.add(self.author)
+        self.other_book = Book.objects.create(title="Чужая книга")
+        self.other_book.contributors.add(self.other_user)
+
+    def test_author_offer_form_limits_books_to_contributors(self):
+        form = AuthorOfferForm(author=self.author)
+        books = list(form.fields["book"].queryset)
+        self.assertEqual(books, [self.own_book])
+
+    def test_author_offer_form_without_author_has_empty_queryset(self):
+        form = AuthorOfferForm()
+        books = list(form.fields["book"].queryset)
+        self.assertEqual(books, [])
+
+        
 class OfferResponseViewsTests(TestCase):
     def setUp(self):
         self.UserModel = get_user_model()

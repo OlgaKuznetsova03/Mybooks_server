@@ -386,7 +386,12 @@ class OfferCreateView(LoginRequiredMixin, CreateView):
         messages.success(self.request, _("Предложение опубликовано."))
         return super().form_valid(form)
 
-
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["author"] = self.request.user
+        return kwargs
+    
+    
 class OfferRespondView(LoginRequiredMixin, FormView):
     form_class = AuthorOfferResponseForm
 
