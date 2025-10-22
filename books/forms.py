@@ -127,6 +127,7 @@ class BookForm(forms.ModelForm):
     genres = forms.CharField(
         label="Жанры",
         help_text="Перечислите жанры через запятую.",
+        required=False,
         widget=forms.TextInput(attrs={"placeholder": "Фэнтези, Приключения"}),
     )
     publisher = forms.CharField(
@@ -200,9 +201,54 @@ class BookForm(forms.ModelForm):
             authors.append(author)
         return authors
 
+    def _metadata_subject_names(self) -> list[str]:
+        metadata = self.cleaned_data.get("isbn_metadata")
+        if not isinstance(metadata, dict):
+            return []
+
+        collected: list[str] = []
+        seen: set[str] = set()
+
+        def _push(name: str) -> None:
+            normalized = name.strip()
+            if not normalized:
+                return
+            lowered = normalized.lower()
+            if lowered in seen:
+                return
+            seen.add(lowered)
+            collected.append(normalized)
+
+        def _extract(value) -> None:
+            if not value:
+                return
+            if isinstance(value, str):
+                for item in self._split_list(value):
+                    _push(item)
+                return
+            if isinstance(value, dict):
+                for key in ("name", "value", "title"):
+                    if value.get(key):
+                        _extract(value[key])
+                        return
+                return
+            if isinstance(value, (list, tuple, set)):
+                for item in value:
+                    _extract(item)
+                return
+            _extract(str(value))
+
+        for details in metadata.values():
+            if isinstance(details, dict):
+                _extract(details.get("subjects"))
+
+        return collected
+    
     def clean_genres(self):
         value = self.cleaned_data.get("genres", "")
         names = self._split_list(value)
+        if not names:
+            names = self._metadata_subject_names()
         if not names:
             raise ValidationError("Укажите хотя бы один жанр.")
         genres = []
