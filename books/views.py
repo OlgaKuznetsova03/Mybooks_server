@@ -507,7 +507,7 @@ def book_list(request):
                 request.user,
             )
 
-         if q:
+        if q:
             lookup_params = request.GET.copy()
             lookup_params._mutable = True
             lookup_params.pop("page", None)
