@@ -88,7 +88,6 @@ def _apply_isbn_metadata(
             publisher_items = [str(p).strip() for p in publishers if p]
         else:
             publisher_items = [str(publishers)]
-        publisher_items = [transliterate_to_cyrillic(item).strip() for item in publisher_items if item]
         publisher_value = ", ".join(filter(None, publisher_items))
         set_if_empty("publisher", publisher_value.strip())
 
