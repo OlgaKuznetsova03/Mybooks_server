@@ -480,6 +480,10 @@ def book_list(request):
     sort_options: list[dict[str, object]] = []
     external_suggestions: list[dict[str, object]] = []
     external_error = None
+    show_external_results = False
+    isbndb_lookup_active = (request.GET.get("external") or "").lower() == "isbndb"
+    isbndb_lookup_url = None
+    isbndb_reset_url = None
     discovery_shelves: list[dict[str, object]] = []
 
     if view_mode == "grid":
@@ -502,7 +506,24 @@ def book_list(request):
                 page_obj.object_list,
                 request.user,
             )
-                        
+
+         if q:
+            lookup_params = request.GET.copy()
+            lookup_params._mutable = True
+            lookup_params.pop("page", None)
+            lookup_params["view"] = "grid"
+            lookup_params["external"] = "isbndb"
+            isbndb_lookup_url = f"?{lookup_params.urlencode()}"
+
+            reset_params = request.GET.copy()
+            reset_params._mutable = True
+            reset_params.pop("page", None)
+            reset_params.pop("external", None)
+            reset_params["view"] = "grid"
+            isbndb_reset_url = (
+                f"?{reset_params.urlencode()}" if reset_params else request.path
+            )
+
         preserved_query = request.GET.copy()
         preserved_query._mutable = True
         preserved_query.pop("page", None)
@@ -520,32 +541,55 @@ def book_list(request):
                 }
             )
 
-        if q and page_obj.paginator.count == 0:
-            isbn_candidate = normalize_isbn(q)
-            title_query = q if len(isbn_candidate) not in (10, 13) else ""
-            try:
-                results = isbndb_client.search(
-                    title=title_query or None,
-                    isbn=isbn_candidate or None,
-                    limit=6,
-                )
-            except Exception as exc:  # pragma: no cover - defensive logging
-                logger.exception("ISBNdb search for list failed: %s", exc)
-                results = []
-                external_error = "Не удалось получить данные из ISBNdb. Попробуйте позже."
+        if q and page_obj:
+            should_fetch_external = page_obj.paginator.count == 0 or isbndb_lookup_active
+            if should_fetch_external:
+                normalized_query = q.casefold()
+                matched_author = False
+                if page_obj.object_list and page_obj.paginator.count:
+                    for book in page_obj.object_list:
+                        for author in book.authors.all():
+                            if normalized_query in author.name.casefold():
+                                matched_author = True
+                                break
+                        if matched_author:
+                            break
 
-            for item in results:
-                serialized = _serialize_external_item(item)
-                payload = {
-                    "query": {"title": q, "author": "", "isbn": isbn_candidate},
-                    "external_result": serialized,
-                }
-                external_suggestions.append(
-                    {
-                        "data": serialized,
-                        "payload": json.dumps(payload, ensure_ascii=False),
+                isbn_candidate = normalize_isbn(q)
+                has_valid_isbn = len(isbn_candidate) in (10, 13)
+                title_query = q if not has_valid_isbn else ""
+                author_query = q if matched_author else ""
+
+                try:
+                    results = isbndb_client.search(
+                        title=title_query or None,
+                        author=author_query or None,
+                        isbn=isbn_candidate or None,
+                        limit=6,
+                    )
+                except Exception as exc:  # pragma: no cover - defensive logging
+                    logger.exception("ISBNdb search for list failed: %s", exc)
+                    results = []
+                    external_error = "Не удалось получить данные из ISBNdb. Попробуйте позже."
+
+                for item in results:
+                    serialized = _serialize_external_item(item)
+                    payload = {
+                        "query": {
+                            "title": title_query,
+                            "author": author_query,
+                            "isbn": isbn_candidate,
+                        },
+                        "external_result": serialized,
                     }
-                )
+                    external_suggestions.append(
+                        {
+                            "data": serialized,
+                            "payload": json.dumps(payload, ensure_ascii=False),
+                        }
+                    )
+
+                show_external_results = True
     else:
         now = timezone.now()
         recent_cutoff = now - timedelta(days=10)
@@ -737,6 +781,10 @@ def book_list(request):
             "sort_options": sort_options,
             "external_suggestions": external_suggestions,
             "external_error": external_error,
+            "show_external_results": show_external_results,
+            "isbndb_lookup_active": isbndb_lookup_active,
+            "isbndb_lookup_url": isbndb_lookup_url,
+            "isbndb_reset_url": isbndb_reset_url,
             "total_books": total_books,
             "view_mode": view_mode,
             "discovery_shelves": discovery_shelves,
