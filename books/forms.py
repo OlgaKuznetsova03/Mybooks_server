@@ -204,6 +204,17 @@ class BookForm(forms.ModelForm):
     def _metadata_subject_names(self) -> list[str]:
         metadata = self.cleaned_data.get("isbn_metadata")
         if not isinstance(metadata, dict):
+            raw_metadata = self.data.get(self.add_prefix("isbn_metadata"))
+            if isinstance(raw_metadata, dict):
+                metadata = raw_metadata
+            elif raw_metadata:
+                try:
+                    parsed = json.loads(raw_metadata)
+                except (TypeError, json.JSONDecodeError):
+                    parsed = {}
+                if isinstance(parsed, dict):
+                    metadata = parsed
+        if not isinstance(metadata, dict):
             return []
 
         collected: list[str] = []
