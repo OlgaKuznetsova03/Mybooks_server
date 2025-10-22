@@ -7,7 +7,7 @@ import json
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from urllib import error, parse, request
 
 from django.conf import settings
@@ -103,6 +103,287 @@ def _extract_description(value: Any) -> Optional[str]:
         if "description" in value:
             return str(value["description"]).strip() or None
     return str(value).strip() or None
+
+
+# ----------------- format normalization helpers (ISBNdb binding/format -> RU) -----------------
+
+FORMAT_EN_RU: Dict[str, str] = {
+    # Печать
+    "Hardcover": "Твёрдый переплёт",
+    "Paperback": "Мягкая обложка",
+    "Trade Paperback": "Трейд-пейпербек",
+    "Mass Market Paperback": "Массовый пейпербек (карманный формат)",
+    "Library Binding": "Библиотечный переплёт",
+    "Spiral-bound": "На спирали",
+    "Wire-O": "На пружине (Wire-O)",
+    "Board Book": "Книга-картонка",
+    "Pamphlet": "Брошюра",
+    "Staple-bound": "Скрепки (скреплённая)",
+    "Loose Leaf": "Листы (нестёж.)",
+    "Boxed Set": "Подарочный набор / бокс-сет",
+    "Slipcased": "В суперобложке/футляре",
+    "Large Print": "Крупный шрифт",
+    "Illustrated": "Иллюстрированное издание",
+    "Annotated": "Аннотированное издание",
+    "Textbook Binding": "Учебный переплёт",
+    "Oversized": "Формат увеличенный",
+    "Pocket Book": "Карманный формат",
+
+    # Аудио
+    "Audio CD": "Аудио-CD",
+    "MP3 CD": "MP3-CD",
+    "Audio Cassette": "Аудиокассета",
+    "Audiobook": "Аудиокнига",
+    "Audible Audio": "Audible (аудио)",
+
+    # Электронные
+    "eBook": "Электронная книга",
+    "Kindle Edition": "Kindle-издание",
+    "EPUB": "EPUB",
+    "PDF": "PDF",
+    "MOBI": "MOBI",
+    "AZW": "AZW",
+    "DOC": "DOC",
+    "HTML": "HTML",
+    "Nook Book": "Nook-книга",
+    "Kobo eBook": "Kobo-книга",
+
+    # Прочее/неизвестно
+    "Calendar": "Календарь",
+    "Map": "Карта",
+    "Sheet Music": "Нотное издание",
+    "Cards": "Карточки",
+    "Poster": "Постер",
+    "Game": "Игра/набор",
+    "Unknown Binding": "Переплёт не указан",
+    "Unbound": "Без переплёта",
+}
+
+
+FORMAT_KIND: Dict[str, str] = {
+    # print
+    "Hardcover": "print",
+    "Paperback": "print",
+    "Trade Paperback": "print",
+    "Mass Market Paperback": "print",
+    "Library Binding": "print",
+    "Spiral-bound": "print",
+    "Wire-O": "print",
+    "Board Book": "print",
+    "Pamphlet": "print",
+    "Staple-bound": "print",
+    "Loose Leaf": "print",
+    "Boxed Set": "print",
+    "Slipcased": "print",
+    "Large Print": "print",
+    "Illustrated": "print",
+    "Annotated": "print",
+    "Textbook Binding": "print",
+    "Oversized": "print",
+    "Pocket Book": "print",
+    "Calendar": "print",
+    "Map": "print",
+    "Sheet Music": "print",
+    "Cards": "print",
+    "Poster": "print",
+    "Game": "print",
+    "Unbound": "print",
+
+    # audio
+    "Audio CD": "audio",
+    "MP3 CD": "audio",
+    "Audio Cassette": "audio",
+    "Audiobook": "audio",
+    "Audible Audio": "audio",
+
+    # ebook
+    "eBook": "ebook",
+    "Kindle Edition": "ebook",
+    "EPUB": "ebook",
+    "PDF": "ebook",
+    "MOBI": "ebook",
+    "AZW": "ebook",
+    "DOC": "ebook",
+    "HTML": "ebook",
+    "Nook Book": "ebook",
+    "Kobo eBook": "ebook",
+
+    # other
+    "Unknown Binding": "other",
+}
+
+
+FORMAT_ALIASES: Dict[str, str] = {
+    # базовые
+    "hard cover": "Hardcover",
+    "hard-cover": "Hardcover",
+    "hardback": "Hardcover",
+    "hb": "Hardcover",
+
+    "paperback": "Paperback",
+    "softcover": "Paperback",
+    "soft-cover": "Paperback",
+    "pb": "Paperback",
+
+    "trade pb": "Trade Paperback",
+    "trade paperback": "Trade Paperback",
+    "tpb": "Trade Paperback",
+
+    "mmpb": "Mass Market Paperback",
+    "mass market": "Mass Market Paperback",
+    "mass-market paperback": "Mass Market Paperback",
+
+    "library binding": "Library Binding",
+    "library edition": "Library Binding",
+
+    "spiral": "Spiral-bound",
+    "spiral bound": "Spiral-bound",
+    "spiral-bound": "Spiral-bound",
+    "wire-o": "Wire-O",
+    "wire o": "Wire-O",
+
+    "board book": "Board Book",
+    "boardbook": "Board Book",
+
+    "pamphlet": "Pamphlet",
+    "stapled": "Staple-bound",
+    "staple bound": "Staple-bound",
+    "loose leaf": "Loose Leaf",
+    "loose-leaf": "Loose Leaf",
+
+    "box set": "Boxed Set",
+    "boxed set": "Boxed Set",
+    "boxset": "Boxed Set",
+    "slipcased": "Slipcased",
+
+    "large print": "Large Print",
+    "illustrated": "Illustrated",
+    "annotated": "Annotated",
+    "textbook": "Textbook Binding",
+    "oversize": "Oversized",
+    "oversized": "Oversized",
+    "pocket": "Pocket Book",
+    "pocket book": "Pocket Book",
+
+    # аудио
+    "audio cd": "Audio CD",
+    "mp3 cd": "MP3 CD",
+    "cassette": "Audio Cassette",
+    "audio cassette": "Audio Cassette",
+    "audiobook": "Audiobook",
+    "audible": "Audible Audio",
+    "audible audio": "Audible Audio",
+
+    # электронные
+    "ebook": "eBook",
+    "e-book": "eBook",
+    "kindle": "Kindle Edition",
+    "kindle edition": "Kindle Edition",
+    "epub": "EPUB",
+    "pdf": "PDF",
+    "mobi": "MOBI",
+    "azw": "AZW",
+    "doc": "DOC",
+    "html": "HTML",
+    "nook": "Nook Book",
+    "nook book": "Nook Book",
+    "kobo": "Kobo eBook",
+    "kobo ebook": "Kobo eBook",
+
+    # прочее
+    "calendar": "Calendar",
+    "map": "Map",
+    "sheet music": "Sheet Music",
+    "cards": "Cards",
+    "poster": "Poster",
+    "game": "Game",
+    "unknown": "Unknown Binding",
+    "unknown binding": "Unknown Binding",
+    "unbound": "Unbound",
+}
+
+
+_NORM_RX = re.compile(r"[\s\-\_]+")
+
+
+def _canon_format_key(text: str) -> str:
+    """Упрощённая канонизация ключа для сопоставления алиасов."""
+
+    return _NORM_RX.sub(" ", text.strip().lower())
+
+
+def normalize_format(raw: Optional[str]) -> Tuple[str, str, str]:
+    """Нормализовать значение формата из ISBNdb.
+
+    Возвращает кортеж (canonical_en, ru_translation, kind). Если значение не
+    распознано, будет возвращён вариант для "Unknown Binding".
+    """
+
+    if not raw:
+        canon = "Unknown Binding"
+        return canon, FORMAT_EN_RU[canon], FORMAT_KIND[canon]
+
+    key = _canon_format_key(raw)
+
+    for en in FORMAT_EN_RU:
+        if key == _canon_format_key(en):
+            canon = en
+            return canon, FORMAT_EN_RU[canon], FORMAT_KIND.get(canon, "other")
+
+    if key in FORMAT_ALIASES:
+        canon = FORMAT_ALIASES[key]
+        return canon, FORMAT_EN_RU.get(canon, canon), FORMAT_KIND.get(canon, "other")
+
+    if "mass market" in key:
+        canon = "Mass Market Paperback"
+        return canon, FORMAT_EN_RU[canon], FORMAT_KIND[canon]
+    if "trade" in key and "paper" in key:
+        canon = "Trade Paperback"
+        return canon, FORMAT_EN_RU[canon], FORMAT_KIND[canon]
+    if "hard" in key and ("cover" in key or "back" in key):
+        canon = "Hardcover"
+        return canon, FORMAT_EN_RU[canon], FORMAT_KIND[canon]
+    if "paper" in key or "soft" in key:
+        canon = "Paperback"
+        return canon, FORMAT_EN_RU[canon], FORMAT_KIND[canon]
+    if "audiobook" in key or "audio book" in key:
+        canon = "Audiobook"
+        return canon, FORMAT_EN_RU[canon], FORMAT_KIND[canon]
+    if any(
+        ext in key
+        for ext in (
+            "epub",
+            "pdf",
+            "mobi",
+            "azw",
+            "ebook",
+            "e-book",
+            "kindle",
+            "nook",
+            "kobo",
+        )
+    ):
+        canon = (
+            "eBook"
+            if "ebook" in key or "e-book" in key
+            else "Kindle Edition"
+            if "kindle" in key
+            else "EPUB"
+            if "epub" in key
+            else "PDF"
+            if "pdf" in key
+            else "MOBI"
+            if "mobi" in key
+            else "AZW"
+            if "azw" in key
+            else "Nook Book"
+            if "nook" in key
+            else "Kobo eBook"
+        )
+        return canon, FORMAT_EN_RU.get(canon, canon), FORMAT_KIND.get(canon, "ebook")
+
+    canon = "Unknown Binding"
+    return canon, FORMAT_EN_RU[canon], FORMAT_KIND[canon]
 
 
 # ----------------- genre translation helpers (ISBNdb subjects -> RU) -----------------
@@ -399,6 +680,8 @@ class ExternalBookData:
     publish_date: Optional[str] = None
     number_of_pages: Optional[int] = None
     physical_format: Optional[str] = None
+    format_canonical: Optional[str] = None
+    format_kind: Optional[str] = None
     subjects: List[str] = field(default_factory=list)
     languages: List[str] = field(default_factory=list)
     isbn_10: List[str] = field(default_factory=list)
@@ -431,6 +714,8 @@ class ExternalBookData:
             "publish_date": self.publish_date,
             "number_of_pages": self.number_of_pages,
             "physical_format": self.physical_format,
+            "format_canonical": self.format_canonical,
+            "format_kind": self.format_kind,
             "subjects": self.subjects,
             "languages": self.languages,
             "description": self.description,
@@ -636,7 +921,25 @@ class ISBNDBClient:
         publishers = _deduplicate(_coerce_list(item.get("publisher")))
         publish_date = str(item.get("date_published") or "").strip() or None
         number_of_pages = _coerce_int(item.get("pages"))
-        physical_format = str(item.get("binding") or "").strip() or None
+        
+        raw_format_candidates: List[str] = []
+        for key in ("binding", "format", "physical_format"):
+            raw_format_candidates.extend(_coerce_list(item.get(key)))
+        physical_format_raw = next((value for value in raw_format_candidates if value), None)
+
+        format_canonical: Optional[str] = None
+        format_kind: Optional[str] = None
+        physical_format: Optional[str] = None
+        if physical_format_raw:
+            canon, ru_value, kind = normalize_format(physical_format_raw)
+            if canon == "Unknown Binding" and _canon_format_key(physical_format_raw) != _canon_format_key(
+                "Unknown Binding"
+            ):
+                physical_format = physical_format_raw
+            else:
+                physical_format = ru_value
+                format_canonical = canon
+                format_kind = kind
         subjects = _translate_subjects(_deduplicate(_coerce_list(item.get("subjects"))))
         language_value = str(item.get("language") or item.get("language_code") or "").strip()
         languages = self._normalize_language(language_value)
@@ -703,6 +1006,8 @@ class ISBNDBClient:
             publish_date=publish_date,
             number_of_pages=number_of_pages,
             physical_format=physical_format,
+            format_canonical=format_canonical,
+            format_kind=format_kind,
             subjects=subjects,
             languages=languages,
             isbn_10=isbn_10,

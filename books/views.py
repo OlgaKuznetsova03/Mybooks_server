@@ -200,6 +200,8 @@ def _serialize_external_item(item) -> dict[str, object]:
         "publish_date": item.publish_date,
         "number_of_pages": item.number_of_pages,
         "physical_format": item.physical_format,
+        "format_canonical": item.format_canonical,
+        "format_kind": item.format_kind,
         "subjects": item.subjects,
         "languages": item.languages,
         "description": item.description,

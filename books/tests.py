@@ -62,11 +62,34 @@ class ISBNDBClientTests(TestCase):
         self.assertEqual(result.subjects, ["Научная фантастика"])
         self.assertEqual(result.description, "Подробное описание книги")
         self.assertEqual(result.physical_format, "Твердый переплет")
+        self.assertIsNone(result.format_canonical)
+        self.assertIsNone(result.format_kind)
         self.assertEqual(result.cover_url, "https://example.com/cover-large.jpg")
         self.assertEqual(result.source_url, "https://isbndb.com/book/9781234567897")
         self.assertIn("1234567890", result.isbn_10)
         self.assertIn("9781234567897", result.isbn_13)
 
+    def test_parse_book_translates_known_physical_format(self):
+        client = ISBNDBClient()
+        isbn13 = make_isbn13(1)
+        payload = {
+            "title": "Sample",
+            "authors": ["Author"],
+            "publisher": "Publisher",
+            "binding": "Hardcover",
+            "language": "English",
+            "isbn": "1234567890",
+            "isbn13": isbn13,
+        }
+
+        result = client._parse_book(payload)
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertEqual(result.physical_format, "Твёрдый переплёт")
+        self.assertEqual(result.format_canonical, "Hardcover")
+        self.assertEqual(result.format_kind, "print")
+        
     def test_translate_subjects_to_russian(self):
         client = ISBNDBClient()
         payload = {
