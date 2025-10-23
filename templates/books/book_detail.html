@@ -249,70 +249,6 @@
       </div>
     </div>
 
-    {% if active_edition_details %}
-      <div class="card border-0 shadow-sm" aria-labelledby="current-edition-title">
-        <div class="card-body">
-          <h2 class="h6 mb-3" id="current-edition-title">Текущее издание</h2>
-          {% if active_edition_details.title and active_edition_details.title != book.title %}
-            <div class="fw-semibold">{{ active_edition_details.title }}</div>
-          {% endif %}
-          {% if active_edition_details.authors_display %}
-            <div class="text-muted small mt-1">{{ active_edition_details.authors_display }}</div>
-          {% endif %}
-          {% if active_edition_details.header_text %}
-            <div class="text-muted small mt-2">{{ active_edition_details.header_text }}</div>
-          {% endif %}
-          {% if active_edition_details.meta %}
-            <dl class="book-detail-meta">
-              {% for item in active_edition_details.meta %}
-                <div class="book-detail-meta__item">
-                  <dt>{{ item.label }}</dt>
-                  <dd>{{ item.value }}</dd>
-                </div>
-              {% endfor %}
-            </dl>
-          {% endif %}
-          {% if active_edition_details.subjects %}
-            <div class="mt-3 d-flex flex-wrap gap-2">
-              {% for subject in active_edition_details.subjects %}
-                <span class="badge text-bg-light">{{ subject }}</span>
-              {% endfor %}
-            </div>
-          {% endif %}
-        </div>
-      </div>
-    {% endif %}
-
-    {% if book_metadata %}
-      <div class="card border-0 shadow-sm" aria-labelledby="book-metadata-title">
-        <div class="card-body">
-          <h2 class="h6 mb-3" id="book-metadata-title">Дополнительные сведения</h2>
-          <dl class="book-detail-meta">
-            {% for item in book_metadata %}
-              <div class="book-detail-meta__item">
-                <dt>{{ item.label }}</dt>
-                <dd>{{ item.value }}</dd>
-              </div>
-            {% endfor %}
-          </dl>
-        </div>
-      </div>
-    {% endif %}
-
-    {% if genre_shelves %}
-      <section aria-labelledby="genre-shelf-heading">
-        <div class="d-flex align-items-baseline justify-content-between flex-wrap gap-2 mb-3">
-          <h2 class="h6 mb-0" id="genre-shelf-heading">Ещё книги в этих жанрах</h2>
-          <span class="text-muted small">Подборка в стиле «12 забытых книг»</span>
-        </div>
-        <div class="genre-shelf-collection">
-          {% for shelf in genre_shelves %}
-            {% include "books/includes/genre_shelf.html" with shelf=shelf variant=shelf.variant %}
-          {% endfor %}
-        </div>
-      </section>
-    {% endif %}
-    
     <!-- Кнопки действий -->
     {% if request.user.is_authenticated %}
       <div class="book-detail-actions d-flex flex-wrap gap-2" aria-label="Быстрые действия">
@@ -401,7 +337,6 @@
             </form>
           {% endif %}
         {% endif %}
-        <a class="btn btn-primary btn-sm" href="{% url 'shelves:add_book_to_event' book.id %}">Взять в марафон</a>
       </div>
 
     {% if home_library_form %}
@@ -452,6 +387,36 @@
       <a class="btn btn-outline-secondary" href="{% url 'login' %}?next={{ request.path }}">
         Войти, чтобы добавить в полку/марафон
       </a>
+    {% endif %}
+
+    {% if book_metadata %}
+      <div class="card border-0 shadow-sm" aria-labelledby="book-metadata-title">
+        <div class="card-body">
+          <h2 class="h6 mb-3" id="book-metadata-title">Дополнительные сведения</h2>
+          <dl class="book-detail-meta">
+            {% for item in book_metadata %}
+              <div class="book-detail-meta__item">
+                <dt>{{ item.label }}</dt>
+                <dd>{{ item.value }}</dd>
+              </div>
+            {% endfor %}
+          </dl>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if genre_shelves %}
+      <section aria-labelledby="genre-shelf-heading">
+        <div class="d-flex align-items-baseline justify-content-between flex-wrap gap-2 mb-3">
+          <h2 class="h6 mb-0" id="genre-shelf-heading">Ещё книги в этих жанрах</h2>
+          <span class="text-muted small">Подборка в стиле «12 забытых книг»</span>
+        </div>
+        <div class="genre-shelf-collection">
+          {% for shelf in genre_shelves %}
+            {% include "books/includes/genre_shelf.html" with shelf=shelf variant=shelf.variant %}
+          {% endfor %}
+        </div>
+      </section>
     {% endif %}
 
     {% with overall=rating_summary.score %}
@@ -755,7 +720,7 @@
       }
       toggleExtras();
     }
-    
+
     const coverContainer = document.querySelector('[data-role="book-cover-display"]');
     if (coverContainer) {
       const coverImage = coverContainer.querySelector('[data-role="book-cover-image"]');
