@@ -1,6 +1,8 @@
 from django.urls import path
 from . import views
 
+app_name = "shelves"
+
 urlpatterns = [
     path("<int:pk>/", views.event_detail, name="event_detail"),
     path("<int:pk>/join/", views.event_join, name="event_join"),
