@@ -181,9 +181,9 @@
   <section class="shelf-card">
     {% if request.user.is_authenticated and shelf.user_id == request.user.id %}
       {% if normalized_name == normalized_home %}
-        {% url 'home_library' as shelf_link %}
+        {% url 'shelves:home_library' as shelf_link %}
       {% elif normalized_name == normalized_default or normalized_name == normalized_progress %}
-        {% url 'reading_now' as shelf_link %}
+        {% url 'shelves:reading_now' as shelf_link %}
       {% endif %}
     {% endif %}
 
@@ -228,7 +228,7 @@
               {% for it in shelf_books %}
                 <div class="book-item">
                   <a class="book-cover"
-                     href="{% if normalized_name == normalized_default or normalized_name == normalized_progress %}{% url 'reading_track' it.book.pk %}{% else %}{% url 'book_detail' it.book.pk %}{% endif %}"
+                     href="{% if normalized_name == normalized_default or normalized_name == normalized_progress %}{% url 'shelves:reading_track' it.book.pk %}{% else %}{% url 'book_detail' it.book.pk %}{% endif %}"
                      title="{% if normalized_name == normalized_default or normalized_name == normalized_progress %}Открыть прогресс чтения{% else %}Открыть книгу{% endif %}">
                     {% with cover_url=it.book.get_cover_url %}
                       {% if cover_url %}
@@ -242,7 +242,7 @@
                   {% if allow_manage %}
                     <div class="book-remove">
                       <a class="btn btn-sm btn-danger"
-                         href="{% url 'remove_book_from_shelf' shelf.id it.book.id %}{% if return_path %}?next={{ return_path|urlencode }}{% endif %}"
+                         href="{% url 'shelves:remove_book_from_shelf' shelf.id it.book.id %}{% if return_path %}?next={{ return_path|urlencode }}{% endif %}"
                          aria-label="Удалить {{ it.book.title }} с полки {{ shelf.name }}"
                          title="Удалить с полки">
                         <i class="bi bi-trash"></i>
@@ -288,7 +288,7 @@
                             <div class="small text-muted fw-semibold">На полке «{{ status.label|default:default_reading_shelf_name|default:'Читаю' }}»</div>
                           </div>
                         {% elif allow_manage %}
-                          <form class="book-actions" method="post" action="{% url 'move_book_to_reading' it.book.pk %}">
+                          <form class="book-actions" method="post" action="{% url 'shelves:move_book_to_reading' it.book.pk %}">
                             {% csrf_token %}
                             {% if return_path %}<input type="hidden" name="next" value="{{ return_path }}">{% endif %}
                             <button type="submit" class="btn btn-sm btn-outline-primary book-actions__button"
@@ -314,7 +314,7 @@
                           <div class="small text-muted fw-semibold">На полке «{{ status.label|default:default_reading_shelf_name|default:'Читаю' }}»</div>
                         </div>
                       {% else %}
-                        <form class="book-actions" method="post" action="{% url 'move_book_to_reading' it.book.pk %}">
+                        <form class="book-actions" method="post" action="{% url 'shelves:move_book_to_reading' it.book.pk %}">
                           {% csrf_token %}
                           {% if return_path %}<input type="hidden" name="next" value="{{ return_path }}">{% endif %}
                           <button type="submit" class="btn btn-sm btn-outline-primary book-actions__button"

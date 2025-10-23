@@ -70,12 +70,12 @@ def event_detail(request, pk):
 def event_join(request, pk):
     event = get_object_or_404(Event, pk=pk)
     event.participants.add(request.user)
-    return redirect("event_detail", pk=pk)
+    return redirect("shelves:event_detail", pk=pk)
 
 def event_leave(request, pk):
     event = get_object_or_404(Event, pk=pk)
     event.participants.remove(request.user)
-    return redirect("event_detail", pk=pk)
+    return redirect("shelves:event_detail", pk=pk)
 
 
 # ---------- ПОЛКИ ----------
@@ -336,12 +336,12 @@ def home_library_edit(request, item_id):
         if form.is_valid():
             form.save()
             messages.success(request, "Данные обновлены.")
-            next_url = request.POST.get("next") or reverse("home_library")
+            next_url = request.POST.get("next") or reverse("shelves:home_library")
             return redirect(next_url)
     else:
         form = HomeLibraryEntryForm(instance=entry)
 
-    next_url = request.GET.get("next") or reverse("home_library")
+    next_url = request.GET.get("next") or reverse("shelves:home_library")
     return render(
         request,
         "shelves/home_library_edit.html",
@@ -477,7 +477,7 @@ def quick_add_default_shelf(request, book_id, code):
                 request,
                 "Уточните формат чтения и данные книги на странице прогресса.",
             )
-            return redirect("reading_track", book_id=book.pk)
+            return redirect("shelves:reading_track", book_id=book.pk)
         return _redirect_default()
 
     ShelfItem.objects.get_or_create(shelf=shelf, book=book)
@@ -488,7 +488,7 @@ def quick_add_default_shelf(request, book_id, code):
             request,
             "Уточните формат чтения и данные книги на странице прогресса.",
         )
-        return redirect("reading_track", book_id=book.pk)
+        return redirect("shelves:reading_track", book_id=book.pk)
     messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")
     return _redirect_default()
 
@@ -518,7 +518,7 @@ def move_book_to_reading(request, book_id):
         request,
         "Уточните формат чтения и данные книги на странице прогресса.",
     )
-    return redirect("reading_track", book_id=book.pk)
+    return redirect("shelves:reading_track", book_id=book.pk)
 
 
 @login_required
@@ -543,7 +543,7 @@ def add_book_to_event(request, book_id):
                 messages.success(request, f"Книга «{book.title}» добавлена в событие «{event.title}».")
             else:
                 messages.info(request, f"Книга уже есть в событии «{event.title}».")
-            return redirect("reading_track", book_id=book.pk)
+            return redirect("shelves:reading_track", book_id=book.pk)
     else:
         form = AddToEventForm(user=request.user)
 
@@ -801,7 +801,7 @@ def reading_add_character(request, progress_id):
         character.progress = progress
         character.save()
         messages.success(request, "Герой добавлен.")
-        return redirect("reading_track", book_id=progress.book_id)
+        return redirect("shelves:reading_track", book_id=progress.book_id)
 
     context = _build_reading_track_context(progress, progress.book, character_form=form)
     messages.error(request, "Не удалось добавить героя. Исправьте ошибки и попробуйте снова.")
@@ -821,7 +821,7 @@ def reading_update_character(request, progress_id, character_id):
     if form.is_valid():
         form.save()
         messages.success(request, "Герой обновлён.")
-        return redirect("reading_track", book_id=progress.book_id)
+        return redirect("shelves:reading_track", book_id=progress.book_id)
 
     context = _build_reading_track_context(
         progress,
@@ -843,7 +843,7 @@ def reading_add_quote(request, progress_id):
         quote.kind = ProgressAnnotation.KIND_QUOTE
         quote.save()
         messages.success(request, "Цитата сохранена.")
-        return redirect("reading_track", book_id=progress.book_id)
+        return redirect("shelves:reading_track", book_id=progress.book_id)
 
     context = _build_reading_track_context(
         progress,
@@ -872,7 +872,7 @@ def reading_update_quote(request, progress_id, quote_id):
     if form.is_valid():
         form.save()
         messages.success(request, "Цитата обновлена.")
-        return redirect("reading_track", book_id=progress.book_id)
+        return redirect("shelves:reading_track", book_id=progress.book_id)
 
     context = _build_reading_track_context(
         progress,
@@ -894,7 +894,7 @@ def reading_add_note_entry(request, progress_id):
         note.kind = ProgressAnnotation.KIND_NOTE
         note.save()
         messages.success(request, "Заметка сохранена.")
-        return redirect("reading_track", book_id=progress.book_id)
+        return redirect("shelves:reading_track", book_id=progress.book_id)
 
     context = _build_reading_track_context(
         progress,
@@ -923,7 +923,7 @@ def reading_update_note_entry(request, progress_id, note_id):
     if form.is_valid():
         form.save()
         messages.success(request, "Заметка обновлена.")
-        return redirect("reading_track", book_id=progress.book_id)
+        return redirect("shelves:reading_track", book_id=progress.book_id)
 
     context = _build_reading_track_context(
         progress,
@@ -944,7 +944,7 @@ def reading_update_notes(request, progress_id):
         messages.success(request, "Заметки сохранены.")
     else:
         messages.error(request, "Не удалось сохранить заметки. Проверьте введённые данные.")
-    return redirect("reading_track", book_id=progress.book_id)
+    return redirect("shelves:reading_track", book_id=progress.book_id)
 
 
 @login_required
@@ -957,11 +957,11 @@ def reading_set_page(request, progress_id):
     is_public = _parse_public_flag(request)
     if medium_code == BookProgress.FORMAT_AUDIO:
         messages.error(request, "Для аудиоформата используйте форму фиксации прослушивания.")
-        return redirect("reading_track", book_id=progress.book_id)
+        return redirect("shelves:reading_track", book_id=progress.book_id)
     medium = progress.get_medium(medium_code)
     if not medium:
         messages.error(request, "Сначала активируйте выбранный формат в настройках прогресса.")
-        return redirect("reading_track", book_id=progress.book_id)
+        return redirect("shelves:reading_track", book_id=progress.book_id)
     previous_page = medium.current_page or 0
     raw_percent = (request.POST.get("percent") or "").strip()
     page: Optional[int]
@@ -976,16 +976,16 @@ def reading_set_page(request, progress_id):
             percent_decimal = Decimal(raw_percent.replace(",", "."))
         except (InvalidOperation, ValueError):
             messages.error(request, "Укажите корректное значение процента.")
-            return redirect("reading_track", book_id=progress.book_id)
+            return redirect("shelves:reading_track", book_id=progress.book_id)
         if percent_decimal < 0 or percent_decimal > Decimal("100"):
             messages.error(request, "Процент прогресса должен быть от 0 до 100.")
-            return redirect("reading_track", book_id=progress.book_id)
+            return redirect("shelves:reading_track", book_id=progress.book_id)
         if not medium_total_override:
             messages.error(
                 request,
                 "Сначала укажите количество страниц для этого формата в настройках.",
             )
-            return redirect("reading_track", book_id=progress.book_id)
+            return redirect("shelves:reading_track", book_id=progress.book_id)
         page_decimal = (
             Decimal(medium_total_override)
             * percent_decimal
@@ -997,7 +997,7 @@ def reading_set_page(request, progress_id):
             page = int(request.POST.get("page", 0))
         except (TypeError, ValueError):
             messages.error(request, "Неверное значение страницы.")
-            return redirect("reading_track", book_id=progress.book_id)
+            return redirect("shelves:reading_track", book_id=progress.book_id)
 
     clamp_total = medium.total_pages_override or medium_total_override
     if clamp_total:
@@ -1068,7 +1068,7 @@ def reading_set_page(request, progress_id):
             is_public=is_public,
         )
     messages.success(request, "Текущая страница обновлена.")
-    return redirect("reading_track", book_id=progress.book_id)
+    return redirect("shelves:reading_track", book_id=progress.book_id)
 
 
 def _parse_audio_seconds(request):
@@ -1143,11 +1143,11 @@ def reading_increment(request, progress_id, delta):
         seconds = _parse_audio_seconds(request)
         if not seconds:
             messages.error(request, "Укажите, сколько времени вы прослушали.")
-            return redirect("reading_track", book_id=progress.book_id)
+            return redirect("shelves:reading_track", book_id=progress.book_id)
         medium = progress.get_medium(BookProgress.FORMAT_AUDIO)
         if not medium:
             messages.error(request, "Сначала активируйте аудиоформат в настройках.")
-            return redirect("reading_track", book_id=progress.book_id)
+            return redirect("shelves:reading_track", book_id=progress.book_id)
         previous_position = medium.audio_position or progress.audio_position or timedelta()
         previous_seconds = int(previous_position.total_seconds())
         playback_speed = progress.get_effective_playback_speed(medium)
@@ -1216,17 +1216,17 @@ def reading_increment(request, progress_id, delta):
                 is_public=is_public,
             )
         messages.success(request, "Аудиопрогресс обновлён.")
-        return redirect("reading_track", book_id=progress.book_id)
+        return redirect("shelves:reading_track", book_id=progress.book_id)
     
     try:
         step = int(delta)
     except (TypeError, ValueError):
         messages.error(request, "Неверное значение шага.")
-        return redirect("reading_track", book_id=progress.book_id)
+        return redirect("shelves:reading_track", book_id=progress.book_id)
     medium = progress.get_medium(medium_code)
     if not medium:
         messages.error(request, "Сначала активируйте выбранный формат в настройках прогресса.")
-        return redirect("reading_track", book_id=progress.book_id)
+        return redirect("shelves:reading_track", book_id=progress.book_id)
     cur = medium.current_page or 0
     medium_total_override = (
         medium.total_pages_override
@@ -1298,7 +1298,7 @@ def reading_increment(request, progress_id, delta):
             is_public=is_public,
         )
         messages.success(request, "Прогресс обновлён.")
-    return redirect("reading_track", book_id=progress.book_id)
+    return redirect("shelves:reading_track", book_id=progress.book_id)
 
 
 @login_required
@@ -1425,7 +1425,7 @@ def reading_mark_finished(request, progress_id):
             review_link,
         ),
     )
-    return redirect("reading_track", book_id=progress.book_id)
+    return redirect("shelves:reading_track", book_id=progress.book_id)
 
 
 @login_required
@@ -1437,7 +1437,7 @@ def reading_update_format(request, progress_id):
     if form.is_valid():
         form.save()
         messages.success(request, "Формат чтения обновлён.")
-        return redirect("reading_track", book_id=book.pk)
+        return redirect("shelves:reading_track", book_id=book.pk)
 
     context = _build_reading_track_context(progress, book, format_form=form)
     messages.error(request, "Не удалось сохранить формат чтения. Проверьте данные и попробуйте снова.")
@@ -1619,7 +1619,7 @@ def reading_feed_comment(request, entry_id):
         messages.success(request, "Комментарий опубликован.")
     else:
         messages.error(request, "Не удалось сохранить комментарий. Проверьте текст и попробуйте снова.")
-    return redirect("reading_feed")
+    return redirect("shelves:reading_feed")
 
 
 @login_required
@@ -1638,4 +1638,4 @@ def reading_feed_review_comment(request, review_id):
         messages.success(request, "Комментарий опубликован.")
     else:
         messages.error(request, "Не удалось сохранить комментарий. Проверьте текст и попробуйте снова.")
-    return redirect(f"{reverse('reading_feed')}#review-{rating.pk}")
+    return redirect(f"{reverse('shelves:reading_feed')}#review-{rating.pk}")

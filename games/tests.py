@@ -119,7 +119,7 @@ class ReadBeforeBuyGameTests(TestCase):
     def test_purchase_via_view_blocks_without_points(self):
         other_book = Book.objects.create(title="Недостаточно баллов", synopsis="")
         response = self.client.post(
-            reverse("add_book_to_shelf", args=[other_book.pk]),
+            reverse("shelves:add_book_to_shelf", args=[other_book.pk]),
             {"shelf": self.home_shelf.id},
         )
         self.assertRedirects(response, reverse("book_detail", args=[other_book.pk]))

@@ -11,12 +11,12 @@
       {{ form.event }}
     </div>
     <button class="btn btn-primary">Добавить</button>
-    <a class="btn btn-link" href="{% url 'event_list' %}">К событиям</a>
+    <a class="btn btn-link" href="{% url 'shelves:event_list' %}">К событиям</a>
   </form>
 {% else %}
   <div class="alert alert-light border">
     Вы пока не участвуете ни в одном событии. Сначала присоединитесь на странице
-    <a href="{% url 'event_list' %}">«Чтения и марафоны»</a>.
+    <a href="{% url 'shelves:event_list' %}">«Чтения и марафоны»</a>.
   </div>
 {% endif %}
 {% endblock %}

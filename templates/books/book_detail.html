@@ -325,16 +325,16 @@
             {% endif %}
           </div>
         {% else %}
-          <form method="post" action="{% url 'quick_add_shelf' book.id 'want' %}">
+          <form method="post" action="{% url 'shelves:quick_add_shelf' book.id 'want' %}">
             {% csrf_token %}
             <button class="btn btn-outline-primary btn-sm" type="submit">Хочу прочитать</button>
           </form>
-          <form method="post" action="{% url 'quick_add_shelf' book.id 'reading' %}">
+          <form method="post" action="{% url 'shelves:quick_add_shelf' book.id 'reading' %}">
             {% csrf_token %}
             <button class="btn btn-outline-primary btn-sm" type="submit">Читаю</button>
           </form>
         {% endif %}
-        <a class="btn btn-primary btn-sm" href="{% url 'add_book_to_event' book.id %}">Взять в марафон</a>
+        <a class="btn btn-primary btn-sm" href="{% url 'shelves:add_book_to_event' book.id %}">Взять в марафон</a>
       </div>
 
     {% if home_library_form %}

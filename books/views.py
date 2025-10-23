@@ -963,7 +963,7 @@ def book_detail(request, pk):
                 initial["purchase_date"] = home_library_entry.acquired_at
             home_library_form = HomeLibraryQuickAddForm(initial=initial)
         if home_library_item:
-            home_library_edit_url = reverse("home_library_edit", args=[home_library_item.pk])
+            home_library_edit_url = reverse("shelves:home_library_edit", args=[home_library_item.pk])
 
         default_shelf_items = (
             ShelfItem.objects

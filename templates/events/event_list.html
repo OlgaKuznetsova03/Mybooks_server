@@ -11,7 +11,7 @@
           <div class="card-body">
             <span class="badge text-bg-light mb-2">{{ e.get_kind_display }}</span>
             <h2 class="h5 mb-1">
-              <a class="text-decoration-none" href="{% url 'event_detail' e.pk %}">{{ e.title }}</a>
+              <a class="text-decoration-none" href="{% url 'shelves:event_detail' e.pk %}">{{ e.title }}</a>
             </h2>
             <div class="small text-muted">
               Организатор: @{{ e.creator.username }} · старт {{ e.start_at|date:"d.m.Y H:i" }}

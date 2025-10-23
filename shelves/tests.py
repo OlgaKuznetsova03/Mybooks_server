@@ -43,24 +43,24 @@ class ReadingTrackViewTests(TestCase):
         self.book.isbn.add(self.isbn)
 
     def _create_progress(self):
-        self.client.get(reverse("reading_track", args=[self.book.pk]))
+        self.client.get(reverse("shelves:reading_track", args=[self.book.pk]))
         return BookProgress.objects.get(user=self.user, book=self.book, event=None)
 
     def test_set_page_persists_progress(self):
         progress = self._create_progress()
 
         response = self.client.post(
-            reverse("reading_set_page", args=[progress.pk]),
+            reverse("shelves:reading_set_page", args=[progress.pk]),
             {"page": 50},
         )
 
-        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        self.assertRedirects(response, reverse("shelves:reading_track", args=[self.book.pk]))
 
         progress.refresh_from_db()
         self.assertEqual(progress.current_page, 50)
         self.assertEqual(progress.percent, Decimal("25"))
 
-        response = self.client.get(reverse("reading_track", args=[self.book.pk]))
+        response = self.client.get(reverse("shelves:reading_track", args=[self.book.pk]))
         self.assertEqual(response.context["progress"].current_page, 50)
 
     def test_increment_updates_current_page_and_creates_log(self):
@@ -69,10 +69,10 @@ class ReadingTrackViewTests(TestCase):
         progress.save(update_fields=["current_page"])
 
         response = self.client.post(
-            reverse("reading_increment", args=[progress.pk, 15])
+            reverse("shelves:reading_increment", args=[progress.pk, 15])
         )
 
-        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        self.assertRedirects(response, reverse("shelves:reading_track", args=[self.book.pk]))
         progress.refresh_from_db()
         self.assertEqual(progress.current_page, 25)
         self.assertEqual(progress.percent, Decimal("12.5"))
@@ -84,9 +84,9 @@ class ReadingTrackViewTests(TestCase):
     def test_mark_finished_sets_to_total_pages_and_logs_delta(self):
         progress = self._create_progress()
 
-        response = self.client.post(reverse("reading_mark_finished", args=[progress.pk]))
+        response = self.client.post(reverse("shelves:reading_mark_finished", args=[progress.pk]))
 
-        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        self.assertRedirects(response, reverse("shelves:reading_track", args=[self.book.pk]))
         progress.refresh_from_db()
         self.assertEqual(progress.current_page, 200)
         self.assertEqual(progress.percent, Decimal("100"))
@@ -105,7 +105,7 @@ class ReadingTrackViewTests(TestCase):
         ShelfItem.objects.get_or_create(shelf=reading_shelf, book=self.book)
         ShelfItem.objects.get_or_create(shelf=want_shelf, book=self.book)
 
-        self.client.post(reverse("reading_mark_finished", args=[progress.pk]))
+        self.client.post(reverse("shelves:reading_mark_finished", args=[progress.pk]))
 
         self.assertFalse(
             ShelfItem.objects.filter(shelf=reading_shelf, book=self.book).exists()
@@ -127,24 +127,24 @@ class ReadingTrackViewTests(TestCase):
         book_without_primary = Book.objects.create(title="No Primary", synopsis="")
         book_without_primary.isbn.add(isbn)
 
-        self.client.get(reverse("reading_track", args=[book_without_primary.pk]))
+        self.client.get(reverse("shelves:reading_track", args=[book_without_primary.pk]))
         progress = BookProgress.objects.get(user=self.user, book=book_without_primary, event=None)
 
         response = self.client.post(
-            reverse("reading_set_page", args=[progress.pk]),
+            reverse("shelves:reading_set_page", args=[progress.pk]),
             {"page": 60},
         )
 
 # Create your tests here.
-        self.assertRedirects(response, reverse("reading_track", args=[book_without_primary.pk]))
+        self.assertRedirects(response, reverse("shelves:reading_track", args=[book_without_primary.pk]))
         progress.refresh_from_db()
         self.assertEqual(progress.percent, Decimal("50"))
 
     def test_set_page_accumulates_daily_log(self):
         progress = self._create_progress()
 
-        self.client.post(reverse("reading_set_page", args=[progress.pk]), {"page": 30})
-        self.client.post(reverse("reading_set_page", args=[progress.pk]), {"page": 45})
+        self.client.post(reverse("shelves:reading_set_page", args=[progress.pk]), {"page": 30})
+        self.client.post(reverse("shelves:reading_set_page", args=[progress.pk]), {"page": 45})
 
         progress.refresh_from_db()
         log = progress.logs.get()
@@ -173,7 +173,7 @@ class ReadingTrackViewTests(TestCase):
         progress = self._create_progress()
         ReadingLog.objects.create(progress=progress, log_date=localdate(), pages_equivalent=Decimal("20"))
 
-        response = self.client.get(reverse("reading_track", args=[self.book.pk]))
+        response = self.client.get(reverse("shelves:reading_track", args=[self.book.pk]))
 
         self.assertIn("daily_logs", response.context)
         self.assertIn("average_pages_per_day", response.context)
@@ -206,7 +206,7 @@ class ReadingTrackViewTests(TestCase):
             pages_equivalent=Decimal("5"),
         )
 
-        response = self.client.get(reverse("reading_track", args=[self.book.pk]))
+        response = self.client.get(reverse("shelves:reading_track", args=[self.book.pk]))
 
         self.assertIn("chart_mediums", response.context)
         self.assertIn("chart_medium_pages", response.context)
@@ -233,11 +233,11 @@ class ReadingTrackViewTests(TestCase):
         progress = self._create_progress()
 
         response = self.client.post(
-            reverse("reading_set_page", args=[progress.pk]),
+            reverse("shelves:reading_set_page", args=[progress.pk]),
             {"page": 40, "reaction": "От книги не оторваться!", "is_public": "on"},
         )
 
-        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        self.assertRedirects(response, reverse("shelves:reading_track", args=[self.book.pk]))
         entry = ReadingFeedEntry.objects.get()
         self.assertEqual(entry.book, self.book)
         self.assertEqual(entry.reaction, "От книги не оторваться!")
@@ -246,7 +246,7 @@ class ReadingTrackViewTests(TestCase):
     def test_user_can_comment_on_feed_entry(self):
         progress = self._create_progress()
         self.client.post(
-            reverse("reading_set_page", args=[progress.pk]),
+            reverse("shelves:reading_set_page", args=[progress.pk]),
             {"page": 30, "is_public": "on"},
         )
         entry = ReadingFeedEntry.objects.get()
@@ -256,11 +256,11 @@ class ReadingTrackViewTests(TestCase):
         self.client.login(username="friend", password="secret-pass")
 
         response = self.client.post(
-            reverse("reading_feed_comment", args=[entry.pk]),
+            reverse("shelves:reading_feed_comment", args=[entry.pk]),
             {"body": "Отличное продвижение!"},
         )
 
-        self.assertRedirects(response, reverse("reading_feed"))
+        self.assertRedirects(response, reverse("shelves:reading_feed"))
         entry.refresh_from_db()
         self.assertEqual(entry.comments.count(), 1)
         self.assertEqual(entry.comments.first().body, "Отличное продвижение!")
@@ -272,11 +272,11 @@ class ReadingTrackViewTests(TestCase):
         }
 
         response = self.client.post(
-            reverse("reading_update_notes", args=[progress.pk]),
+            reverse("shelves:reading_update_notes", args=[progress.pk]),
             payload,
         )
 
-        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        self.assertRedirects(response, reverse("shelves:reading_track", args=[self.book.pk]))
 
         progress.refresh_from_db()
         self.assertEqual(progress.reading_notes, payload["reading_notes"])
@@ -285,11 +285,11 @@ class ReadingTrackViewTests(TestCase):
         progress = self._create_progress()
 
         response = self.client.post(
-            reverse("reading_add_character", args=[progress.pk]),
+            reverse("shelves:reading_add_character", args=[progress.pk]),
             {"name": "Гарри Поттер", "description": "Главный герой, волшебник"},
         )
 
-        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        self.assertRedirects(response, reverse("shelves:reading_track", args=[self.book.pk]))
         character = CharacterNote.objects.get(progress=progress)
         self.assertEqual(character.name, "Гарри Поттер")
         self.assertEqual(character.description, "Главный герой, волшебник")
@@ -303,14 +303,14 @@ class ReadingTrackViewTests(TestCase):
         )
 
         response = self.client.post(
-            reverse("reading_update_character", args=[progress.pk, character.pk]),
+            reverse("shelves:reading_update_character", args=[progress.pk, character.pk]),
             {
                 f"character-{character.pk}-name": "Гермиона Грейнджер",
                 f"character-{character.pk}-description": "Лучший друг и голос разума",
             },
         )
 
-        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        self.assertRedirects(response, reverse("shelves:reading_track", args=[self.book.pk]))
         character.refresh_from_db()
         self.assertEqual(character.name, "Гермиона Грейнджер")
         self.assertEqual(character.description, "Лучший друг и голос разума")
@@ -319,7 +319,7 @@ class ReadingTrackViewTests(TestCase):
         progress = self._create_progress()
 
         response = self.client.post(
-            reverse("reading_add_quote", args=[progress.pk]),
+            reverse("shelves:reading_add_quote", args=[progress.pk]),
             {
                 "location": "Стр. 42",
                 "body": "Счастье можно найти даже в самые тёмные времена...",
@@ -327,7 +327,7 @@ class ReadingTrackViewTests(TestCase):
             },
         )
 
-        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        self.assertRedirects(response, reverse("shelves:reading_track", args=[self.book.pk]))
         quote = ProgressAnnotation.objects.get(progress=progress)
         self.assertEqual(quote.kind, ProgressAnnotation.KIND_QUOTE)
         self.assertEqual(quote.location, "Стр. 42")
@@ -343,7 +343,7 @@ class ReadingTrackViewTests(TestCase):
         )
 
         response = self.client.post(
-            reverse("reading_update_quote", args=[progress.pk, quote.pk]),
+            reverse("shelves:reading_update_quote", args=[progress.pk, quote.pk]),
             {
                 f"quote-{quote.pk}-location": "Стр. 120",
                 f"quote-{quote.pk}-body": "Обновлённая цитата",
@@ -351,7 +351,7 @@ class ReadingTrackViewTests(TestCase):
             },
         )
 
-        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        self.assertRedirects(response, reverse("shelves:reading_track", args=[self.book.pk]))
         quote.refresh_from_db()
         self.assertEqual(quote.location, "Стр. 120")
         self.assertEqual(quote.body, "Обновлённая цитата")
@@ -361,7 +361,7 @@ class ReadingTrackViewTests(TestCase):
         progress = self._create_progress()
 
         response = self.client.post(
-            reverse("reading_add_note_entry", args=[progress.pk]),
+            reverse("shelves:reading_add_note_entry", args=[progress.pk]),
             {
                 "location": "Глава 3",
                 "body": "Автор раскрывает второстепенную линию",
@@ -369,7 +369,7 @@ class ReadingTrackViewTests(TestCase):
             },
         )
 
-        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        self.assertRedirects(response, reverse("shelves:reading_track", args=[self.book.pk]))
         note = ProgressAnnotation.objects.get(progress=progress)
         self.assertEqual(note.kind, ProgressAnnotation.KIND_NOTE)
         self.assertEqual(note.location, "Глава 3")
@@ -384,7 +384,7 @@ class ReadingTrackViewTests(TestCase):
         )
 
         response = self.client.post(
-            reverse("reading_update_note_entry", args=[progress.pk, note.pk]),
+            reverse("shelves:reading_update_note_entry", args=[progress.pk, note.pk]),
             {
                 f"note-{note.pk}-location": "Эпилог",
                 f"note-{note.pk}-body": "Финал удивил",
@@ -392,7 +392,7 @@ class ReadingTrackViewTests(TestCase):
             },
         )
 
-        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        self.assertRedirects(response, reverse("shelves:reading_track", args=[self.book.pk]))
         note.refresh_from_db()
         self.assertEqual(note.location, "Эпилог")
         self.assertEqual(note.body, "Финал удивил")
@@ -413,11 +413,11 @@ class ReadingTrackViewTests(TestCase):
         )
 
         response = self.client.post(
-            reverse("reading_increment", args=[progress.pk, 0]),
+            reverse("shelves:reading_increment", args=[progress.pk, 0]),
             {"medium": BookProgress.FORMAT_AUDIO, "minutes": 30},
         )
 
-        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        self.assertRedirects(response, reverse("shelves:reading_track", args=[self.book.pk]))
 
         progress.refresh_from_db()
         self.assertEqual(progress.current_page, 30)
@@ -451,11 +451,11 @@ class ReadingTrackViewTests(TestCase):
         )
 
         response = self.client.post(
-            reverse("reading_increment", args=[progress.pk, 0]),
+            reverse("shelves:reading_increment", args=[progress.pk, 0]),
             {"medium": BookProgress.FORMAT_AUDIO, "minutes": 15},
         )
 
-        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        self.assertRedirects(response, reverse("shelves:reading_track", args=[self.book.pk]))
 
         progress.refresh_from_db()
         audio_medium.refresh_from_db()
@@ -492,11 +492,11 @@ class ReadingTrackViewTests(TestCase):
         )
 
         response = self.client.post(
-            reverse("reading_increment", args=[progress.pk, 0]),
+            reverse("shelves:reading_increment", args=[progress.pk, 0]),
             {"medium": BookProgress.FORMAT_AUDIO, "minutes": 60},
         )
 
-        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        self.assertRedirects(response, reverse("shelves:reading_track", args=[self.book.pk]))
 
         progress.refresh_from_db()
         paper_medium.refresh_from_db()
@@ -524,11 +524,11 @@ class ReadingTrackViewTests(TestCase):
         )
 
         response = self.client.post(
-            reverse("reading_increment", args=[progress.pk, 20]),
+            reverse("shelves:reading_increment", args=[progress.pk, 20]),
             {"medium": BookProgress.FORMAT_PAPER},
         )
 
-        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        self.assertRedirects(response, reverse("shelves:reading_track", args=[self.book.pk]))
 
         audio_medium.refresh_from_db()
         progress.refresh_from_db()
@@ -548,7 +548,7 @@ class ReadingTrackViewTests(TestCase):
         progress = self._create_progress()
 
         response = self.client.post(
-            reverse("reading_add_character", args=[progress.pk]),
+            reverse("shelves:reading_add_character", args=[progress.pk]),
             {"name": "", "description": ""},
         )
 
@@ -569,9 +569,9 @@ class ShelfDefaultActionsTests(TestCase):
         reading_shelf = Shelf.objects.get(user=self.user, name="Читаю")
         ShelfItem.objects.create(shelf=want_shelf, book=self.book)
 
-        response = self.client.post(reverse("quick_add_shelf", args=[self.book.pk, "reading"]))
+        response = self.client.post(reverse("shelves:quick_add_shelf", args=[self.book.pk, "reading"]))
 
-        self.assertRedirects(response, reverse("reading_track", args=[self.book.pk]))
+        self.assertRedirects(response, reverse("shelves:reading_track", args=[self.book.pk]))
         self.assertTrue(
             ShelfItem.objects.filter(shelf=reading_shelf, book=self.book).exists()
         )
@@ -590,7 +590,7 @@ class ShelfDefaultActionsTests(TestCase):
         ShelfItem.objects.create(shelf=want_shelf, book=self.book)
         ShelfItem.objects.create(shelf=reading_shelf, book=self.book)
 
-        response = self.client.post(reverse("quick_add_shelf", args=[self.book.pk, "read"]))
+        response = self.client.post(reverse("shelves:quick_add_shelf", args=[self.book.pk, "read"]))
 
         self.assertRedirects(response, reverse("book_detail", args=[self.book.pk]))
         self.assertTrue(
@@ -609,7 +609,7 @@ class ShelfDefaultActionsTests(TestCase):
         ShelfItem.objects.create(shelf=want_shelf, book=self.book)
 
         response = self.client.post(
-            reverse("add_book_to_shelf", args=[self.book.pk]),
+            reverse("shelves:add_book_to_shelf", args=[self.book.pk]),
             {"shelf": reading_shelf.id},
         )
 
@@ -627,7 +627,7 @@ class ShelfDefaultActionsTests(TestCase):
         ShelfItem.objects.create(shelf=want_shelf, book=self.book)
 
         response = self.client.post(
-            reverse("move_book_to_reading", args=[self.book.pk]),
+            reverse("shelves:move_book_to_reading", args=[self.book.pk]),
             {"next": "/profile/owner/"},
         )
 
@@ -647,12 +647,12 @@ class ShelfDefaultActionsTests(TestCase):
         reading_shelf = Shelf.objects.get(user=self.user, name="Читаю")
 
         response = self.client.post(
-            reverse("move_book_to_reading", args=[self.book.pk])
+            reverse("shelves:move_book_to_reading", args=[self.book.pk])
         )
 
         self.assertRedirects(
             response,
-            reverse("reading_track", args=[self.book.pk]),
+            reverse("shelves:reading_track", args=[self.book.pk]),
         )
         self.assertTrue(
             ShelfItem.objects.filter(shelf=reading_shelf, book=self.book).exists()
@@ -792,7 +792,7 @@ class HomeLibraryEntryReadDateTests(TestCase):
         entry = HomeLibraryEntry.objects.create(shelf_item=shelf_item, read_at=read_date)
 
         self.client.force_login(self.user)
-        response = self.client.get(reverse("home_library"))
+        response = self.client.get(reverse("shelves:home_library"))
 
         self.assertEqual(response.status_code, 200)
         entries = response.context["entries"]

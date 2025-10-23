@@ -142,7 +142,7 @@
       <h1 class="reading-hero__title">Читаю сейчас</h1>
       <p class="reading-hero__subtitle">Ваши активные книги с прогрессом и форматом чтения.</p>
     </div>
-    <a class="btn btn-accent" href="{% url 'reading_feed' %}"><i class="bi bi-activity me-2"></i>Лента чтения</a>
+    <a class="btn btn-accent" href="{% url 'shelves:reading_feed' %}"><i class="bi bi-activity me-2"></i>Лента чтения</a>
   </div>
 </section>
 
@@ -211,7 +211,7 @@
                 {% endif %}
 
                 <div class="book-item__actions">
-                  <a class="btn btn-accent" href="{% url 'reading_track' it.book.id %}">Продолжить чтение</a>
+                  <a class="btn btn-accent" href="{% url 'shelves:reading_track' it.book.id %}">Продолжить чтение</a>
                 </div>
               </div>
             </article>

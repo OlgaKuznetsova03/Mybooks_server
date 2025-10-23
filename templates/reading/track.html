@@ -485,7 +485,7 @@
               </button>
               <div class="collapse" id="{{ collapse_id }}">
                 <div class="reading-progress-accordion__body">
-                  <form method="post" action="{% url 'reading_set_page' progress.id %}" class="row g-2 align-items-end mb-3">
+                  <form method="post" action="{% url 'shelves:reading_set_page' progress.id %}" class="row g-2 align-items-end mb-3">
                     {% csrf_token %}
                     <input type="hidden" name="medium" value="{{ medium.code }}">
                     <div class="col-12 col-sm-6 col-md-4 col-lg-3">
@@ -524,17 +524,17 @@
                     </div>
                   </form>
                   <div class="d-flex flex-wrap gap-2">
-                    <form method="post" action="{% url 'reading_increment' progress.id 5 %}">
+                    <form method="post" action="{% url 'shelves:reading_increment' progress.id 5 %}">
                       {% csrf_token %}
                       <input type="hidden" name="medium" value="{{ medium.code }}">
                       <button type="submit" class="btn btn-outline-secondary rounded-pill">+5 стр.</button>
                     </form>
-                    <form method="post" action="{% url 'reading_increment' progress.id 10 %}">
+                    <form method="post" action="{% url 'shelves:reading_increment' progress.id 10 %}">
                       {% csrf_token %}
                       <input type="hidden" name="medium" value="{{ medium.code }}">
                       <button type="submit" class="btn btn-outline-secondary rounded-pill">+10 стр.</button>
                     </form>
-                    <form method="post" action="{% url 'reading_increment' progress.id 25 %}">
+                    <form method="post" action="{% url 'shelves:reading_increment' progress.id 25 %}">
                       {% csrf_token %}
                       <input type="hidden" name="medium" value="{{ medium.code }}">
                       <button type="submit" class="btn btn-outline-secondary rounded-pill">+25 стр.</button>
@@ -551,7 +551,7 @@
               </button>
               <div class="collapse" id="{{ collapse_id }}">
                 <div class="reading-progress-accordion__body">
-                  <form method="post" action="{% url 'reading_increment' progress.id 0 %}" class="row g-3 align-items-end">
+                  <form method="post" action="{% url 'shelves:reading_increment' progress.id 0 %}" class="row g-3 align-items-end">
                     {% csrf_token %}
                     <input type="hidden" name="medium" value="{{ medium.code }}">
                     <div class="col-12 col-md-4">
@@ -574,7 +574,7 @@
       {% endfor %}
     </div>
     <div class="reading-finished-button mt-4">
-      <form method="post" action="{% url 'reading_mark_finished' progress.id %}">
+      <form method="post" action="{% url 'shelves:reading_mark_finished' progress.id %}">
         {% csrf_token %}
         <button type="submit" class="btn btn-success text-white fw-semibold">Отметить книгу завершённой</button>
       </form>
@@ -595,7 +595,7 @@
           </button>
           <div class="collapse{% if format_form.errors %} show{% endif %}" id="{{ format_collapse_id }}">
             <div class="reading-progress-accordion__body">
-              <form method="post" action="{% url 'reading_update_format' progress.id %}" class="row g-3">
+              <form method="post" action="{% url 'shelves:reading_update_format' progress.id %}" class="row g-3">
                 {% csrf_token %}
                 <div class="col-12">
                   <label class="form-label">{{ format_form.formats.label }}</label>
@@ -973,7 +973,7 @@
                 <td colspan="3">
                   <form
                     method="post"
-                    action="{% url 'reading_update_character' progress.id character.id %}"
+                    action="{% url 'shelves:reading_update_character' progress.id character.id %}"
                     class="row g-3"
                   >
                     {% csrf_token %}
@@ -1022,7 +1022,7 @@
 
     <div class="reading-subsection mt-3">
       <h3 class="h6 mb-3">Добавить героя</h3>
-      <form method="post" action="{% url 'reading_add_character' progress.id %}" class="row g-3">
+      <form method="post" action="{% url 'shelves:reading_add_character' progress.id %}" class="row g-3">
         {% csrf_token %}
         {% if character_form.non_field_errors %}
           <div class="col-12">
@@ -1093,7 +1093,7 @@
             <div class="collapse mt-3" id="quote-edit-{{ quote.id }}">
               <form
                 method="post"
-                action="{% url 'reading_update_quote' progress.id quote.id %}"
+                action="{% url 'shelves:reading_update_quote' progress.id quote.id %}"
                 class="row g-3"
               >
                 {% csrf_token %}
@@ -1139,7 +1139,7 @@
 
     <div class="reading-subsection mt-3">
       <h3 class="h6 mb-3">Добавить цитату</h3>
-      <form method="post" action="{% url 'reading_add_quote' progress.id %}" class="row g-3">
+      <form method="post" action="{% url 'shelves:reading_add_quote' progress.id %}" class="row g-3">
         {% csrf_token %}
         {% if quote_form.non_field_errors %}
           <div class="col-12">
@@ -1209,7 +1209,7 @@
             <div class="collapse mt-3" id="note-edit-{{ note.id }}">
               <form
                 method="post"
-                action="{% url 'reading_update_note_entry' progress.id note.id %}"
+                action="{% url 'shelves:reading_update_note_entry' progress.id note.id %}"
                 class="row g-3"
               >
                 {% csrf_token %}
@@ -1255,7 +1255,7 @@
 
     <div class="reading-subsection mt-3">
       <h3 class="h6 mb-3">Добавить заметку</h3>
-      <form method="post" action="{% url 'reading_add_note_entry' progress.id %}" class="row g-3">
+      <form method="post" action="{% url 'shelves:reading_add_note_entry' progress.id %}" class="row g-3">
         {% csrf_token %}
         {% if note_entry_form.non_field_errors %}
           <div class="col-12">
@@ -1293,7 +1293,7 @@
 
     <div class="reading-subsection mt-4">
       <h3 class="h6 mb-3">Общие заметки</h3>
-      <form method="post" action="{% url 'reading_update_notes' progress.id %}" class="row g-3">
+      <form method="post" action="{% url 'shelves:reading_update_notes' progress.id %}" class="row g-3">
         {% csrf_token %}
         {% if notes_form.non_field_errors %}
           <div class="col-12">

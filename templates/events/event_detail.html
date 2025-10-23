@@ -14,9 +14,9 @@
   <div class="mt-2 mt-md-0">
     {% if request.user.is_authenticated %}
       {% if is_member %}
-        <a class="btn btn-outline-secondary" href="{% url 'event_leave' event.pk %}">Покинуть</a>
+        <a class="btn btn-outline-secondary" href="{% url 'shelves:event_leave' event.pk %}">Покинуть</a>
       {% else %}
-        <a class="btn btn-primary" href="{% url 'event_join' event.pk %}">Присоединиться</a>
+        <a class="btn btn-primary" href="{% url 'shelves:event_join' event.pk %}">Присоединиться</a>
       {% endif %}
     {% else %}
       <a class="btn btn-outline-primary" href="{% url 'login' %}?next={{ request.path }}">Войти, чтобы присоединиться</a>

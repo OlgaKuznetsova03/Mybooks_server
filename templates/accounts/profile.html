@@ -333,7 +333,7 @@
         </a>
       </div>
       {% endif %}
-      
+
       <!-- Био и сайт -->
       <div class="mb-3">
         <p class="mb-1">{{ u.profile.bio|default:"Пока без описания." }}</p>
@@ -366,7 +366,7 @@
           <i class="bi bi-book"></i>
           {{ reading_pages_total|floatformat:-2 }} {{ reading_pages_total|ru_pluralize:"страница,страницы,страниц" }}
         </span>
-        <a class="btn btn-sm profile-rating-button" href="{% url 'reading_leaderboard' %}">
+        <a class="btn btn-sm profile-rating-button" href="{% url 'shelves:reading_leaderboard' %}">
           Рейтинг читателей
         </a>
       </div>
@@ -422,7 +422,7 @@
       <div class="shelf-page__header mt-4">
         <h2 class="h5 shelf-page__title mb-0">Книжные полки</h2>
         {% if request.user == u %}
-          <a class="btn btn-outline-primary btn-sm" href="{% url 'shelf_create' %}">
+          <a class="btn btn-outline-primary btn-sm" href="{% url 'shelves:shelf_create' %}">
             <i class="bi bi-plus-lg me-1"></i>Добавить полку
           </a>
         {% endif %}
@@ -615,7 +615,7 @@
                 <h3 class="h6 mb-1">Домашняя библиотека</h3>
                 <p class="text-muted mb-0">Отражает книги на полке «Моя домашняя библиотека».</p>
               </div>
-              <a class="btn btn-outline-primary btn-sm" href="{% url 'home_library' %}">
+              <a class="btn btn-outline-primary btn-sm" href="{% url 'shelves:home_library' %}">
                 <i class="bi bi-box-seam me-1"></i>Открыть полку
               </a>
             </div>

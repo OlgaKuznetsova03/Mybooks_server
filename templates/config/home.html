@@ -240,7 +240,7 @@
             <span class="pill"><i class="bi bi-controller"></i> Игры</span>
             <i class="bi bi-joystick" style="color:#ab7843"></i>
           </div>
-          <h3 class="h5 fw-semibold mb-2">Квиз и сторителлинг</h3>
+          <h3 class="h5 fw-semibold mb-2">Задания</h3>
           <p class="mb-0">Весёлые испытания и соревнования для друзей и клубов.</p>
         </div>
         <div class="hero-highlight__card">
@@ -248,8 +248,8 @@
             <span class="pill"><i class="bi bi-people"></i> Коллаборации</span>
             <i class="bi bi-heart-fill" style="color:#ab7843"></i>
           </div>
-          <h3 class="h5 fw-semibold mb-2">Находим единомышленников</h3>
-          <p class="mb-0">Авторские подборки, издательства и блогеры в одном месте.</p>
+          <h3 class="h5 fw-semibold mb-2">Находим </h3>
+          <p class="mb-0">Книги, авторы и блогеры в одном месте.</p>
         </div>
       </div>
     </div>
@@ -261,105 +261,6 @@
     <h2 class="section-heading__title h3">Подборки и полки недели</h2>
     <a class="btn btn-outline-dark btn-sm" href="{% url 'shelves:my_shelves' %}"><i class="bi bi-archive me-1"></i>Открыть все полки</a>
   </div>
-  <div class="featured-shelf mt-4">
-    <div class="row g-4">
-      <div class="col-md-4">
-        <div class="featured-book h-100">
-          <span class="pill mb-3"><i class="bi bi-magic"></i> Фэнтези</span>
-          <h3 class="h4 fw-semibold mb-2">«Вечерние туманы»</h3>
-          <p class="text-muted">Погружение в атмосферу уюта и магии. Встречаемся по вечерам, чтобы обсудить, как меняется наш взгляд на привычный мир.</p>
-          <div class="d-flex align-items-center gap-2 mt-3">
-            <i class="bi bi-calendar-week text-warning"></i>
-            <span>Следующая встреча — 14 мая, 20:00</span>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="featured-book h-100">
-          <span class="pill mb-3"><i class="bi bi-rocket"></i> Sci-Fi</span>
-          <h3 class="h4 fw-semibold mb-2">Орбитальный чит-клуб</h3>
-          <p class="text-muted">Каждую неделю новая планета: от космических одиссей до антиутопий. Трекинг прогресса и дружеские челленджи.</p>
-          <div class="d-flex align-items-center gap-2 mt-3">
-            <i class="bi bi-people text-warning"></i>
-            <span>78 участников · 12 обсуждений в этом месяце</span>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="featured-book h-100">
-          <span class="pill mb-3"><i class="bi bi-journal-richtext"></i> Нон-фикшн</span>
-          <h3 class="h4 fw-semibold mb-2">Голос экспертов</h3>
-          <p class="text-muted">Собираем практики из книг по саморазвитию, психологии и продуктивности. Короткие саммари и обсуждения с приглашёнными спикерами.</p>
-          <div class="d-flex align-items-center gap-2 mt-3">
-            <i class="bi bi-award text-warning"></i>
-            <span>Бейдж «Вдохновитель» для активных участников</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="home-section">
-  <div class="section-heading">
-    <h2 class="section-heading__title h3">Популярные и предстоящие события</h2>
-    <a class="btn btn-amber btn-sm" href="{% url 'reading_communities_overview' %}"><i class="bi bi-calendar-event me-1"></i>Полный календарь</a>
-  </div>
-  <div class="row g-4 mt-1">
-    <div class="col-lg-7">
-      <div class="timeline-card">
-        <div class="d-flex align-items-center justify-content-between">
-          <div>
-            <span class="pill mb-2"><i class="bi bi-fire"></i> Сегодня</span>
-            <h3 class="h5 fw-semibold mt-2">Не пропустите горячие обсуждения</h3>
-          </div>
-          <a class="btn btn-outline-dark btn-sm" href="{% url 'reading_feed' %}">Лента событий</a>
-        </div>
-        <div class="timeline-item">
-          <div class="timeline-item__time">19:00</div>
-          <div>
-            <h4 class="h6 mb-1">Квиз «Сюжет за минуту»</h4>
-            <p class="text-muted mb-0">Блиц-команда угадывает книги по загадочным описаниям.</p>
-          </div>
-        </div>
-        <div class="timeline-item">
-          <div class="timeline-item__time">20:30</div>
-          <div>
-            <h4 class="h6 mb-1">Совместное чтение «Город фонарей»</h4>
-            <p class="text-muted mb-0">Читаем главу 8, делимся иллюстрациями и любимыми цитатами.</p>
-          </div>
-        </div>
-        <div class="timeline-item">
-          <div class="timeline-item__time">22:00</div>
-          <div>
-            <h4 class="h6 mb-1">Ночной марафон «30 страниц»</h4>
-            <p class="text-muted mb-0">Мини-спринты и поощрения за завершённые главы.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-5">
-      <div class="timeline-card h-100">
-        <span class="pill"><i class="bi bi-lightbulb"></i> Скоро</span>
-        <h3 class="h5 fw-semibold">Запланируйте выходные</h3>
-        <ul class="list-unstyled mb-0 d-grid gap-3">
-          <li>
-            <div class="fw-semibold">18 мая · Марафон «Три жанра»</div>
-            <p class="text-muted mb-0">Смена жанров каждые 2 часа, соревнование клубов и трофеи.</p>
-          </li>
-          <li>
-            <div class="fw-semibold">21 мая · Книжный обмен</div>
-            <p class="text-muted mb-0">Создайте свою полку и обменяйтесь книгами с читателями из вашего города.</p>
-          </li>
-          <li>
-            <div class="fw-semibold">26 мая · Коллаборация с автором</div>
-            <p class="text-muted mb-0">Живой эфир с обсуждением свежего релиза и сессией вопросов.</p>
-          </li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
 
 <section class="home-section">
   <div class="cta-banner">
@@ -375,7 +276,7 @@
       <div class="col-lg-5">
         <div class="d-grid gap-3">
           <div class="d-flex align-items-center gap-3">
-            <div class="display-5 fw-bold">3 500+</div>
+            <div class="display-5 fw-bold">5+</div>
             <div>клубов активно читают прямо сейчас</div>
           </div>
           <div class="d-flex align-items-center gap-3">
@@ -384,7 +285,7 @@
           </div>
           <div class="d-flex align-items-center gap-3">
             <div class="display-5 fw-bold">24/7</div>
-            <div>живые беседы, марафоны и игры для всех вкусов</div>
+            <div>живые беседы, марафоны и игры на любой вкус</div>
           </div>
         </div>
       </div>

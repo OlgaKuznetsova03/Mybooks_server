@@ -426,7 +426,7 @@
           <i class="bi bi-plus-circle me-2"></i>
           Добавить книгу
         </a>
-        <a class="btn btn-outline-light home-hero__btn" href="{% url 'my_shelves' %}">
+        <a class="btn btn-outline-light home-hero__btn" href="{% url 'shelves:my_shelves' %}">
           <i class="bi bi-card-list me-2"></i>
           К полкам
         </a>
@@ -537,7 +537,7 @@
         <div class="col-12 d-flex flex-column flex-md-row gap-2 mt-2">
           <button class="btn btn-primary flex-fill" type="submit">Применить</button>
           {% if filters_applied %}
-            <a class="btn btn-outline-secondary flex-fill flex-md-grow-0" href="{% url 'home_library' %}">Сбросить</a>
+            <a class="btn btn-outline-secondary flex-fill flex-md-grow-0" href="{% url 'shelves:home_library' %}">Сбросить</a>
           {% endif %}
         </div>
       </form>
@@ -640,7 +640,7 @@
                       {% elif status and status.code == 'reading' %}
                         <div class="small text-muted fw-semibold">На полке «{{ status.label|default:default_reading_shelf_name|default:'Читаю' }}»</div>
                       {% else %}
-                        <form method="post" action="{% url 'move_book_to_reading' entry.book.pk %}">
+                        <form method="post" action="{% url 'shelves:move_book_to_reading' entry.book.pk %}">
                           {% csrf_token %}
                           <input type="hidden" name="next" value="{{ request.get_full_path }}">
                           <button type="submit" class="btn btn-sm btn-outline-primary mt-1">
@@ -694,10 +694,10 @@
                 <td data-label="Заметки" style="max-width: 240px; white-space: pre-wrap;">{{ entry.notes|default:"—" }}</td>
                 <td data-label="Действия" class="text-end">
                   <div class="btn-group btn-group-sm home-table-actions">
-                    <a class="btn btn-outline-secondary" href="{% url 'home_library_edit' entry.shelf_item_id %}?next={{ request.get_full_path|urlencode }}">
+                    <a class="btn btn-outline-secondary" href="{% url 'shelves:home_library_edit' entry.shelf_item_id %}?next={{ request.get_full_path|urlencode }}">
                       <i class="bi bi-pencil"></i>
                     </a>
-                    <a class="btn btn-outline-danger" href="{% url 'remove_book_from_shelf' shelf.id entry.book.id %}?next={{ request.get_full_path|urlencode }}" title="Удалить из полки" aria-label="Удалить книгу">
+                    <a class="btn btn-outline-danger" href="{% url 'shelves:remove_book_from_shelf' shelf.id entry.book.id %}?next={{ request.get_full_path|urlencode }}" title="Удалить из полки" aria-label="Удалить книгу">
                       <i class="bi bi-trash"></i>
                     </a>
                   </div>
@@ -752,10 +752,10 @@
                 <td data-label="Обновлено">{{ entry.updated_at|date:"d.m.Y H:i" }}</td>
                 <td data-label="Действия" class="text-end">
                   <div class="btn-group btn-group-sm home-table-actions">
-                    <a class="btn btn-outline-secondary" href="{% url 'home_library_edit' entry.shelf_item_id %}?next={{ request.get_full_path|urlencode }}">
+                    <a class="btn btn-outline-secondary" href="{% url 'shelves:home_library_edit' entry.shelf_item_id %}?next={{ request.get_full_path|urlencode }}">
                       <i class="bi bi-pencil"></i>
                     </a>
-                    <a class="btn btn-outline-danger" href="{% url 'remove_book_from_shelf' shelf.id entry.book.id %}?next={{ request.get_full_path|urlencode }}" title="Удалить из полки" aria-label="Удалить книгу">
+                    <a class="btn btn-outline-danger" href="{% url 'shelves:remove_book_from_shelf' shelf.id entry.book.id %}?next={{ request.get_full_path|urlencode }}" title="Удалить из полки" aria-label="Удалить книгу">
                       <i class="bi bi-trash"></i>
                     </a>
                   </div>

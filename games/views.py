@@ -348,7 +348,7 @@ def book_journey_map(request):
                     rating and str(getattr(rating, "review", "") or "").strip()
                 ),
                 "detail_url": reverse("book_detail", args=[assignment.book_id]),
-                "reading_url": reverse("reading_track", args=[assignment.book_id]),
+                "reading_url": reverse("shelves:reading_track", args=[assignment.book_id]),
                 "review_url": reverse("book_detail", args=[assignment.book_id]) + "#write-review",
                 "started_at": assignment.started_at,
                 "completed_at": assignment.completed_at,
