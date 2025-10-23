@@ -810,8 +810,13 @@
                       {% endif %}
                     </p>
                   {% endwith %}
-                  <div class="mt-auto">
+                  <div class="mt-auto d-flex flex-wrap gap-2">
                     <a class="btn btn-outline-primary btn-sm" href="{% url 'book_detail' book.pk %}">Подробнее</a>
+                    {% if can_manage_author_books %}
+                      <a class="btn btn-outline-secondary btn-sm" href="{% url 'book_edit' book.pk %}">
+                        <i class="bi bi-pencil me-1"></i>Редактировать
+                      </a>
+                    {% endif %}
                   </div>
                 </div>
               </div>
