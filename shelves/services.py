@@ -108,27 +108,26 @@ def move_book_to_read_shelf(user: User, book: Book, *, read_date: date | None = 
         ShelfItem.objects.get_or_create(shelf=read_shelf, book=book)
 
     home_shelf = get_home_library_shelf(user)
-    home_item, _ = ShelfItem.objects.get_or_create(shelf=home_shelf, book=book)
-    entry, _ = HomeLibraryEntry.objects.get_or_create(shelf_item=home_item)
-    target_date = read_date or timezone.localdate()
-    if entry.read_at != target_date:
-        entry.read_at = target_date
-    today = timezone.localdate()
-    if entry.read_at != today:
-        entry.read_at = today
-        entry.save(update_fields=["read_at"])
+    home_item = ShelfItem.objects.filter(shelf=home_shelf, book=book).select_related("home_entry").first()
+    if home_item:
+        entry, _ = HomeLibraryEntry.objects.get_or_create(shelf_item=home_item)
+        target_date = read_date or timezone.localdate()
+        if entry.read_at != target_date:
+            entry.read_at = target_date
+            entry.save(update_fields=["read_at", "updated_at"])
 
     try:
         from games.services.read_before_buy import ReadBeforeBuyGame
     except ImportError:
         return
 
-    ReadBeforeBuyGame.ensure_completion_awarded(
-        user,
-        home_shelf,
-        book,
-        occurred_at=timezone.now(),
-    )
+    if home_item:
+        ReadBeforeBuyGame.ensure_completion_awarded(
+            user,
+            home_shelf,
+            book,
+            occurred_at=timezone.now(),
+        )
 
 
 def move_book_to_reading_shelf(user: User, book: Book) -> None:

@@ -21,7 +21,7 @@ class BookDetailQuickAddShelfTests(TestCase):
             is_public=True,
         )
         # ensure the home library shelf exists for subsequent checks
-        Shelf.objects.get_or_create(
+        self.home_shelf, _ = Shelf.objects.get_or_create(
             user=self.user,
             name=DEFAULT_HOME_LIBRARY_SHELF,
             defaults={"is_default": True, "is_public": False},
@@ -48,11 +48,9 @@ class BookDetailQuickAddShelfTests(TestCase):
             ShelfItem.objects.filter(shelf=self.read_shelf, book=self.book).exists(),
         )
 
-        home_entry = HomeLibraryEntry.objects.get(
-            shelf_item__shelf__user=self.user,
-            shelf_item__book=self.book,
+        self.assertFalse(
+            ShelfItem.objects.filter(shelf=self.home_shelf, book=self.book).exists(),
         )
-        self.assertEqual(home_entry.read_at, target_date)
 
         progress = BookProgress.objects.get(user=self.user, book=self.book, event__isnull=True)
         annotations = list(progress.annotations.order_by("kind", "pk"))
@@ -68,4 +66,23 @@ class BookDetailQuickAddShelfTests(TestCase):
                 entry.kind == ProgressAnnotation.KIND_NOTE and entry.body == "Мысли после прочтения"
                 for entry in annotations
             )
+         )
+
+    def test_read_date_respected_for_existing_home_library_entry(self):
+        home_item = ShelfItem.objects.create(shelf=self.home_shelf, book=self.book)
+        entry = HomeLibraryEntry.objects.create(shelf_item=home_item)
+        target_date = localdate() - timedelta(days=14)
+
+        response = self.client.post(
+            reverse("book_detail", args=[self.book.pk]),
+            data={
+                "action": "quick-add-shelf",
+                "shelf": str(self.read_shelf.pk),
+                "read_at": target_date.strftime("%Y-%m-%d"),
+            },
         )
+
+        self.assertRedirects(response, reverse("book_detail", args=[self.book.pk]))
+
+        entry.refresh_from_db()
+        self.assertEqual(entry.read_at, target_date)
