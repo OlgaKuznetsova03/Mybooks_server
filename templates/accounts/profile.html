@@ -317,6 +317,23 @@
         {% endfor %}
       </div>
 
+      {% if active_premium %}
+      <div class="mb-3">
+        <span class="badge text-bg-warning text-dark">
+          <i class="bi bi-gem-fill me-1"></i>Премиум до {{ active_premium.end_at|date:"d.m.Y" }}
+        </span>
+        {% if premium_is_self %}
+          <a class="ms-2 small" href="{% url 'premium_overview' %}">Управлять подпиской</a>
+        {% endif %}
+      </div>
+      {% elif premium_is_self %}
+      <div class="mb-3">
+        <a class="btn btn-sm btn-primary" href="{% url 'premium_overview' %}">
+          <i class="bi bi-gem me-1"></i>Оформить премиум
+        </a>
+      </div>
+      {% endif %}
+      
       <!-- Био и сайт -->
       <div class="mb-3">
         <p class="mb-1">{{ u.profile.bio|default:"Пока без описания." }}</p>

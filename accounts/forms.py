@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import Group, User
 
-from .models import Profile
+from .models import Profile, PremiumPayment
 
 
 ROLE_CHOICES = [
@@ -46,12 +46,12 @@ class SignUpForm(UserCreationForm):
         if commit:
             user.groups.set(Group.objects.filter(name__in=selected))
         return user
-    
+
 
 class EmailAuthenticationForm(AuthenticationForm):
     username = forms.EmailField(label="Email", widget=forms.EmailInput(attrs={"autofocus": True}))
 
-    
+
 class ProfileForm(forms.ModelForm):
     class Meta:
         model = Profile
@@ -84,3 +84,39 @@ class RoleForm(forms.Form):
         for name, _ in self.fields["roles"].choices:
             Group.objects.get_or_create(name=name)
         self.user.groups.set(Group.objects.filter(name__in=selected))
+
+
+class PremiumPurchaseForm(forms.Form):
+    plan = forms.ChoiceField(label="Тариф", choices=[])
+    payment_method = forms.ChoiceField(
+        label="Способ оплаты",
+        choices=PremiumPayment.PaymentMethod.choices,
+        widget=forms.RadioSelect,
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        self.fields["plan"].choices = list(PremiumPayment.get_plan_choices_with_price())
+        self.fields["plan"].widget = forms.Select(attrs={"class": "form-select"})
+        self.fields["payment_method"].widget.attrs.update({"class": "form-check-input"})
+
+    def clean_plan(self):
+        plan_code = self.cleaned_data["plan"]
+        PremiumPayment.get_plan(plan_code)
+        return plan_code
+
+    def save(self):
+        if not self.user:
+            raise ValueError("PremiumPurchaseForm.save() requires a user instance")
+        plan_code = self.cleaned_data["plan"]
+        plan = PremiumPayment.get_plan(plan_code)
+        payment = PremiumPayment.objects.create(
+            user=self.user,
+            plan=plan_code,
+            method=self.cleaned_data["payment_method"],
+            status=PremiumPayment.Status.PENDING,
+            amount=plan.price,
+        )
+        return payment
+

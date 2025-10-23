@@ -5,10 +5,11 @@ import calendar
 from django.shortcuts import render, redirect, get_object_or_404
 
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from .forms import SignUpForm, ProfileForm, RoleForm
+from .forms import SignUpForm, ProfileForm, RoleForm, PremiumPurchaseForm
 from django.db.models import Count, Sum
 from django.urls import reverse
 from django.utils import timezone
@@ -24,6 +25,8 @@ from shelves.services import (
 )
 from books.models import Rating, Book
 from user_ratings.models import UserPointEvent
+
+from .forms import SignUpForm, ProfileForm, RoleForm, PremiumPurchaseForm
 
 MONTH_NAMES = [
     "",
@@ -557,6 +560,75 @@ def signup(request):
 
 
 @login_required
+def premium_overview(request):
+    profile = request.user.profile
+    active_subscription = profile.active_premium
+
+    if request.method == "POST":
+        form = PremiumPurchaseForm(request.POST, user=request.user)
+        if form.is_valid():
+            payment = form.save()
+            method_label = dict(PremiumPayment.PaymentMethod.choices)[payment.method]
+            messages.success(
+                request,
+                (
+                    f"Счёт №{payment.reference} создан. Оплатите {payment.amount} ₽ через «{method_label}» "
+                    "и сообщите нам об оплате — премиум активируется сразу после подтверждения."
+                ),
+            )
+            return redirect("premium_overview")
+    else:
+        form = PremiumPurchaseForm(user=request.user)
+
+    recent_payments = (
+        request.user.premium_payments.select_related("subscription").order_by("-created_at")[:10]
+    )
+    recent_subscriptions = (
+        request.user.premium_subscriptions.select_related("payment", "granted_by").order_by("-start_at")[:5]
+    )
+
+    payment_instructions = {
+        PremiumPayment.PaymentMethod.MIR: (
+            "Переведите сумму на карту «Мир». Реквизиты придут на вашу почту сразу после создания счёта. "
+            "После оплаты ответьте на письмо или напишите в поддержку, чтобы мы подтвердили перевод."
+        ),
+        PremiumPayment.PaymentMethod.SBP: (
+            "Используйте систему быстрых платежей (СБП) в вашем мобильном банке. Мы пришлём QR-код или ссылку "
+            "для оплаты, а вы сообщите нам, когда перевод будет выполнен."
+        ),
+        PremiumPayment.PaymentMethod.YOOMONEY: (
+            "Оплатите счёт из приложения или веб-версии ЮMoney. Сохраните чек и отправьте его в поддержку, чтобы мы "
+            "активировали подписку."
+        ),
+        PremiumPayment.PaymentMethod.QIWI: (
+            "Переведите сумму на наш QIWI-кошелёк. Реквизиты придут на почту. После оплаты приложите чек в ответном "
+            "письме или чате поддержки."
+        ),
+    }
+
+    method_labels = dict(PremiumPayment.PaymentMethod.choices)
+    payment_instruction_items = [
+        {
+            "code": code,
+            "label": method_labels.get(code, code),
+            "text": payment_instructions[code],
+        }
+        for code, _ in PremiumPayment.PaymentMethod.choices
+        if code in payment_instructions
+    ]
+
+    context = {
+        "profile": profile,
+        "active_subscription": active_subscription,
+        "premium_form": form,
+        "recent_payments": recent_payments,
+        "recent_subscriptions": recent_subscriptions,
+        "payment_instruction_items": payment_instruction_items,
+    }
+    return render(request, "accounts/premium.html", context)
+
+
+@login_required
 def profile(request, username=None):
     user_obj = get_object_or_404(
         User.objects.select_related("profile").prefetch_related("groups"),
@@ -603,13 +675,18 @@ def profile(request, username=None):
         or Decimal("0")
     )
 
+    active_premium = getattr(user_obj.profile, "active_premium", None)
+    premium_payments = (
+        user_obj.premium_payments.select_related("subscription").order_by("-created_at")[:5]
+        if request.user == user_obj
+        else []
+    )
+
     context = {
         "u": user_obj,
         "is_blogger": user_obj.groups.filter(name="blogger").exists(),
-        "is_author":  user_obj.groups.filter(name="author").exists(),
         "is_author": is_author,
         "is_reader": user_obj.groups.filter(name="reader").exists(),
-        "is_reader":  user_obj.groups.filter(name="reader").exists(),
         "stats": stats_payload["stats"],
         "stats_period": stats_payload["stats_period"],
         "active_tab": active_tab,
@@ -627,6 +704,9 @@ def profile(request, username=None):
             total=Sum("points")
         )["total"]
         or 0,
+        "active_premium": active_premium,
+        "premium_payments": premium_payments,
+        "premium_is_self": request.user == user_obj,
     }
     return render(request, "accounts/profile.html", context)
 

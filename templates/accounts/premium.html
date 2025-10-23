@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Премиум аккаунт{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h1 class="h3 mb-0">Премиум аккаунт</h1>
+      <span class="badge rounded-pill {% if active_subscription %}text-bg-success{% else %}text-bg-secondary{% endif %}">
+        {% if active_subscription %}Активен{% else %}Не активен{% endif %}
+      </span>
+    </div>
+
+    {% if active_subscription %}
+    <div class="alert alert-success">
+      <div class="fw-semibold">Поздравляем! У вас активирован премиум-доступ.</div>
+      <div>Действует до {{ active_subscription.end_at|date:"d E Y" }}.</div>
+      {% if active_subscription.source == "admin" %}
+      <div class="small text-muted mt-1">Подписка выдана администратором.</div>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+      <div class="fw-semibold">Премиум пока не подключён.</div>
+      <div class="mb-0">Оформите подписку, чтобы открыть доступ к закрытым разделам, авторским подборкам и премиум-статистике чтения.</div>
+    </div>
+    {% endif %}
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-body-tertiary">
+        <h2 class="h5 mb-0">Оформить подписку</h2>
+      </div>
+      <div class="card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {{ premium_form.non_field_errors }}
+          <div class="mb-3">
+            {{ premium_form.plan.label_tag }}
+            {{ premium_form.plan }}
+            {% if premium_form.plan.help_text %}<div class="form-text">{{ premium_form.plan.help_text }}</div>{% endif %}
+            {% for error in premium_form.plan.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="mb-3">
+            <div class="fw-semibold mb-2">{{ premium_form.payment_method.label }}</div>
+            {% for radio in premium_form.payment_method %}
+            <div class="form-check">
+              {{ radio.tag }}
+              <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+            </div>
+            {% endfor %}
+            {% for error in premium_form.payment_method.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+          </div>
+          <button class="btn btn-primary" type="submit">Создать счёт</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-body-tertiary">
+        <h2 class="h5 mb-0">Как оплатить</h2>
+      </div>
+      <div class="card-body">
+        <p class="text-muted">Сразу после создания счёта вы получите реквизиты и подробную инструкцию на e-mail {{ request.user.email }}.</p>
+        <div class="row g-3">
+          {% for item in payment_instruction_items %}
+          <div class="col-md-6">
+            <div class="border rounded-3 p-3 h-100">
+              <div class="fw-semibold mb-2">{{ item.label }}</div>
+              <div class="small text-muted">{{ item.text }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <p class="small text-muted mt-3">После оплаты ответьте на письмо или напишите в поддержку, указав номер счёта. Мы активируем премиум сразу после подтверждения перевода.</p>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-header bg-body-tertiary">
+        <h2 class="h5 mb-0">История счетов</h2>
+      </div>
+      <div class="card-body">
+        {% if recent_payments %}
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead>
+              <tr>
+                <th>Дата</th>
+                <th>Тариф</th>
+                <th>Сумма</th>
+                <th>Способ</th>
+                <th>Статус</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for payment in recent_payments %}
+              <tr>
+                <td>{{ payment.created_at|date:"d.m.Y H:i" }}</td>
+                <td>{{ payment.get_plan_display }}</td>
+                <td>{{ payment.amount }} {{ payment.currency }}</td>
+                <td>{{ payment.get_method_display }}</td>
+                <td>
+                  {% if payment.status == 'paid' %}
+                  <span class="badge text-bg-success">Оплачен</span>
+                  {% elif payment.status == 'pending' %}
+                  <span class="badge text-bg-warning">Ожидает оплаты</span>
+                  {% else %}
+                  <span class="badge text-bg-secondary">Отменён</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">У вас ещё не было счетов на оплату премиума.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-body-tertiary">
+        <h2 class="h6 mb-0">Преимущества премиума</h2>
+      </div>
+      <div class="card-body small">
+        <ul class="list-unstyled mb-0">
+          <li class="d-flex mb-2"><i class="bi bi-check-circle text-success me-2"></i>Расширенная статистика чтения</li>
+          <li class="d-flex mb-2"><i class="bi bi-check-circle text-success me-2"></i>Закрытые клубы и марафоны</li>
+          <li class="d-flex mb-2"><i class="bi bi-check-circle text-success me-2"></i>Эксклюзивные подборки книг</li>
+          <li class="d-flex"><i class="bi bi-check-circle text-success me-2"></i>Приоритетная поддержка</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-header bg-body-tertiary">
+        <h2 class="h6 mb-0">Последние подписки</h2>
+      </div>
+      <div class="card-body small">
+        {% if recent_subscriptions %}
+        <ul class="list-unstyled mb-0">
+          {% for subscription in recent_subscriptions %}
+          <li class="mb-2">
+            <div class="fw-semibold">{{ subscription.start_at|date:"d.m.Y" }} — {{ subscription.end_at|date:"d.m.Y" }}</div>
+            <div class="text-muted">
+              {{ subscription.get_source_display }}{% if subscription.granted_by %} · выдал {{ subscription.granted_by.username }}{% endif %}
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted mb-0">История подписок появится после первой активации.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
