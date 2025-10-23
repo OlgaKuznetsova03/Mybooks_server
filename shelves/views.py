@@ -347,6 +347,42 @@ def home_library(request):
             if any(g.name == genre_name for g in entry.custom_genres.all())
         ])
 
+    active_books = _prepare_books([
+        _entry_book_data(entry)
+        for entry in active_entries_list
+    ])
+
+    disposed_books = _prepare_books([
+        _entry_book_data(entry)
+        for entry in disposed_entries_list
+    ])
+
+    status_buckets = defaultdict(list)
+    for entry in all_entries_list:
+        status_name = (entry.status or "").strip()
+        if not status_name:
+            continue
+        book_data = _entry_book_data(entry)
+        if book_data:
+            status_buckets[status_name].append(book_data)
+    status_books_map = {
+        name: _prepare_books(items)
+        for name, items in status_buckets.items()
+    }
+
+    location_buckets = defaultdict(list)
+    for entry in active_entries_list:
+        location_name = (entry.location or "").strip()
+        if not location_name:
+            continue
+        book_data = _entry_book_data(entry)
+        if book_data:
+            location_buckets[location_name].append(book_data)
+    location_books_map = {
+        name: _prepare_books(items)
+        for name, items in location_buckets.items()
+    }
+
     def _period_bucket():
         return {
             "bought_count": 0,
@@ -453,10 +489,14 @@ def home_library(request):
         default_period_stats = _period_bucket()
 
     summary_data = {
+        "active": active_books,
+        "disposed": disposed_books,
         "classic": classic_books,
         "modern": modern_books,
         "series": series_books_map,
         "genres": genre_books_map,
+        "statuses": status_books_map,
+        "locations": location_books_map,
         "periods": {
             "year": year_periods,
             "month": month_periods,

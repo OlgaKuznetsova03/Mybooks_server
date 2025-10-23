@@ -130,6 +130,9 @@
     font-weight: 600;
     cursor: pointer;
     transition: color 0.2s ease;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
   }
 
   .home-stats-button:hover,
@@ -142,9 +145,36 @@
     outline-offset: 2px;
   }
 
+  .home-stats-button--block {
+    display: flex;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .home-stats-button--inline {
+    display: inline;
+    font-weight: inherit;
+  }
+
+  .home-stats-button--inline:hover,
+  .home-stats-button--inline:focus {
+    text-decoration: underline;
+  }
+
   .home-stats-button--compact {
     font-size: 0.95rem;
     font-weight: 700;
+  }
+
+  .home-glow-card .badge[data-summary-trigger] {
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .home-glow-card .badge[data-summary-trigger]:hover,
+  .home-glow-card .badge[data-summary-trigger]:focus {
+    background: rgba(194, 224, 239, 0.35) !important;
+    color: var(--home-accent-strong);
   }
 
   .home-progress-card {
@@ -571,7 +601,7 @@
 {% block content %}
 <section class="home-hero mb-5">
   <div class="row g-4 align-items-center">
-    <div class="col-12 col-lg-7 home-hero__content">
+    <div class="col-12 col-lg-8 col-xl-7 home-hero__content">
       <p class="home-section-title mb-2">Домашняя коллекция</p>
       <h1 class="home-hero__title display-5 mb-3">Моя домашняя библиотека</h1>
       <p class="home-hero__subtitle mb-4">Отслеживайте бумажные и электронные экземпляры, расставляйте их по полкам и возвращайтесь к любимым сериям с атмосферой ретро-игры.</p>
@@ -586,46 +616,53 @@
         </a>
       </div>
     </div>
-    <div class="col-12 col-lg-5 home-hero__actions">
-      <div class="home-glow-card h-100">
-        <h2 class="h6 text-uppercase text-muted mb-3">Быстрые действия</h2>
-        <div class="d-flex flex-wrap gap-3">
-          <div class="flex-fill">
-            <div class="small text-uppercase text-muted mb-1">Текущие книги</div>
-            <div class="home-stats-primary">{{ summary.total }}</div>
-          </div>
-          <div class="flex-fill">
-            <div class="small text-uppercase text-muted mb-1">Передано</div>
-            <div class="display-6 mb-0">{{ summary.disposed_total }}</div>
-          </div>
-        </div>
-        <p class="small text-muted mt-3 mb-0">Следите за движением коллекции, присваивайте статусы и делитесь историями прямо со смартфона.</p>
-      </div>
-    </div>
   </div>
 </section>
 
-{% if not entries %}
-  <div class="alert alert-light border">На полке пока нет книг. Найдите книгу в каталоге и добавьте её в полку «{{ shelf.name }}» на странице книги.</div>
-{% else %}
-  <div class="home-stats-grid mb-5">
+<div class="home-stats-grid mb-5">
+  <div class="home-glow-card home-quick-actions-card h-100">
+    <h2 class="h6 text-uppercase text-muted mb-3">Быстрые действия</h2>
+    <div class="d-flex flex-wrap gap-3">
+      <div class="flex-fill">
+        <div class="small text-uppercase text-muted mb-1">Текущие книги</div>
+        <button class="home-stats-button home-stats-button--block summary-trigger" type="button" data-summary-trigger data-summary-category="active" data-summary-title="Текущие книги">
+          <span class="home-stats-primary">{{ summary.total }}</span>
+        </button>
+      </div>
+      <div class="flex-fill">
+        <div class="small text-uppercase text-muted mb-1">Передано</div>
+        <button class="home-stats-button home-stats-button--block summary-trigger" type="button" data-summary-trigger data-summary-category="disposed" data-summary-title="Переданные книги">
+          <span class="display-6 mb-0">{{ summary.disposed_total }}</span>
+        </button>
+      </div>
+    </div>
+    <p class="small text-muted mt-3 mb-0">Следите за движением коллекции, присваивайте статусы и делитесь историями прямо со смартфона.</p>
+  </div>
+  {% if entries %}
     <div class="home-glow-card">
       <h2 class="h6 text-uppercase text-muted mb-3">Всего активных книг</h2>
-      <div class="home-stats-primary">{{ summary.total }}</div>
-      <p class="small text-muted mb-0">Передано: {{ summary.disposed_total }} {{ summary.disposed_total|ru_pluralize:"книга,книги,книг" }}</p>
+      <button class="home-stats-button home-stats-button--block summary-trigger" type="button" data-summary-trigger data-summary-category="active" data-summary-title="Текущие книги">
+        <span class="home-stats-primary">{{ summary.total }}</span>
+      </button>
+      <p class="small text-muted mb-0">
+        Передано:
+        <button class="home-stats-button home-stats-button--inline summary-trigger" type="button" data-summary-trigger data-summary-category="disposed" data-summary-title="Переданные книги">
+          {{ summary.disposed_total }} {{ summary.disposed_total|ru_pluralize:"книга,книги,книг" }}
+        </button>
+      </p>
     </div>
     <div class="home-glow-card">
       <h2 class="h6 text-uppercase text-muted mb-3">Классика против современности</h2>
       <div class="d-flex gap-4 align-items-end">
         <div>
           <div class="small text-uppercase text-muted">Классика</div>
-          <button class="home-stats-button display-6 mb-0 summary-trigger" type="button" data-summary-category="classic" data-summary-title="Классические книги">
+          <button class="home-stats-button display-6 mb-0 summary-trigger" type="button" data-summary-trigger data-summary-category="classic" data-summary-title="Классические книги">
             <span class="home-progress-number">{{ summary.classic_count }}</span>
           </button>
         </div>
         <div>
           <div class="small text-uppercase text-muted">Современные</div>
-          <button class="home-stats-button display-6 mb-0 text-info summary-trigger" type="button" data-summary-category="modern" data-summary-title="Современные книги">
+          <button class="home-stats-button display-6 mb-0 text-info summary-trigger" type="button" data-summary-trigger data-summary-category="modern" data-summary-title="Современные книги">
             <span class="home-progress-number">{{ summary.modern_count }}</span>
           </button>
         </div>
@@ -657,7 +694,7 @@
       <div class="home-progress-stats">
         <div class="home-progress-side">
           <div class="small text-uppercase text-muted">Куплено</div>
-          <button class="home-stats-button home-progress-value summary-trigger" type="button" data-summary-category="period" data-period-kind="bought" data-period-type="{{ default_period_type }}" data-period-value="{{ default_period_value }}" data-summary-title="Куплено">
+          <button class="home-stats-button home-progress-value summary-trigger" type="button" data-summary-trigger data-summary-category="period" data-period-kind="bought" data-period-type="{{ default_period_type }}" data-period-value="{{ default_period_value }}" data-summary-title="Куплено">
             <span class="home-progress-number" data-role="period-bought-count">{{ default_period_stats.bought_count }}</span>
           </button>
         </div>
@@ -667,7 +704,7 @@
         </div>
         <div class="home-progress-side text-end">
           <div class="small text-uppercase text-muted">Прочитано</div>
-          <button class="home-stats-button home-progress-value summary-trigger" type="button" data-summary-category="period" data-period-kind="read" data-period-type="{{ default_period_type }}" data-period-value="{{ default_period_value }}" data-summary-title="Прочитано">
+          <button class="home-stats-button home-progress-value summary-trigger" type="button" data-summary-trigger data-summary-category="period" data-period-kind="read" data-period-type="{{ default_period_type }}" data-period-value="{{ default_period_value }}" data-summary-title="Прочитано">
             <span class="home-progress-number" data-role="period-read-count">{{ default_period_stats.read_count }}</span>
           </button>
         </div>
@@ -680,7 +717,7 @@
           {% for series in summary.series_counts %}
             <li class="d-flex justify-content-between">
               <span>{{ series.series_name }}</span>
-              <button class="home-stats-button home-stats-button--compact summary-trigger" type="button" data-summary-category="series" data-summary-key="{{ series.series_name }}" data-summary-title="Серия «{{ series.series_name }}»">
+                <button class="home-stats-button home-stats-button--compact summary-trigger" type="button" data-summary-trigger data-summary-category="series" data-summary-key="{{ series.series_name }}" data-summary-title="Серия «{{ series.series_name }}»">
                 {{ series.total }}
               </button>
             </li>
@@ -697,7 +734,7 @@
           {% for genre in summary.genre_counts %}
             <li class="d-flex justify-content-between">
               <span>{{ genre.name }}</span>
-              <button class="home-stats-button home-stats-button--compact summary-trigger" type="button" data-summary-category="genres" data-summary-key="{{ genre.name }}" data-summary-title="Жанр «{{ genre.name }}»">
+              <button class="home-stats-button home-stats-button--compact summary-trigger" type="button" data-summary-trigger data-summary-category="genres" data-summary-key="{{ genre.name }}" data-summary-title="Жанр «{{ genre.name }}»">
                 {{ genre.total }}
               </button>
             </li>
@@ -707,8 +744,10 @@
         <p class="text-muted mb-0">Заполните жанры, чтобы увидеть статистику.</p>
       {% endif %}
     </div>
-  </div>
+  {% endif %}
+</div>
 
+{% if entries %}
   <div class="home-filters-card p-4 mb-5">
     <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
       <h2 class="h6 text-uppercase text-muted mb-0">Фильтры</h2>
@@ -783,7 +822,9 @@
           {% for status in summary.statuses %}
             <li class="d-flex justify-content-between align-items-center mb-2">
               <span>{{ status.status }}</span>
-              <span class="badge text-bg-light">{{ status.total }}</span>
+              <button class="badge text-bg-light border-0 summary-trigger" type="button" data-summary-trigger data-summary-category="statuses" data-summary-key="{{ status.status }}" data-summary-title="Статус «{{ status.status }}»">
+                {{ status.total }}
+              </button>
             </li>
           {% endfor %}
         </ul>
@@ -797,7 +838,9 @@
             {% for loc in summary.locations %}
               <li class="d-flex justify-content-between">
                 <span>{{ loc.location }}</span>
-                <span class="fw-semibold">{{ loc.total }}</span>
+                <button class="home-stats-button home-stats-button--compact fw-semibold summary-trigger" type="button" data-summary-trigger data-summary-category="locations" data-summary-key="{{ loc.location }}" data-summary-title="Место хранения «{{ loc.location }}»">
+                  {{ loc.total }}
+                </button>
               </li>
             {% endfor %}
           </ul>
@@ -971,6 +1014,8 @@
       </div>
     </div>
   {% endif %}
+  {% else %}
+  <div class="alert alert-light border">На полке пока нет книг. Найдите книгу в каталоге и добавьте её в полку «{{ shelf.name }}» на странице книги.</div>
 {% endif %}
 <div class="modal fade home-summary-modal" id="homeLibrarySummaryModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-scrollable">
@@ -1056,7 +1101,7 @@
         if (!category) {
           return [];
         }
-        if (category === 'classic' || category === 'modern') {
+        if (category === 'classic' || category === 'modern' || category === 'active' || category === 'disposed') {
           return summaryData[category] || [];
         }
         if (category === 'series' || category === 'genres' || category === 'locations' || category === 'statuses') {
