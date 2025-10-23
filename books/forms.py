@@ -194,6 +194,15 @@ class BookForm(forms.ModelForm):
                 self.instance.isbn.order_by("title").values_list("isbn", flat=True)
             )
 
+        if (
+            self._user_is_author
+            and self.instance.pk
+            and (confirm_field := self.fields.get("confirm_authorship")) is not None
+        ):
+            confirm_field.initial = self.instance.contributors.filter(
+                pk=getattr(self._form_user, "pk", None)
+            ).exists()
+            
         for field in self.fields.values():
             widget = field.widget
             if isinstance(widget, (forms.TextInput, forms.NumberInput, forms.URLInput, forms.Textarea, forms.ClearableFileInput)):

@@ -18,6 +18,7 @@ urlpatterns = [
     path("offers/", views.OfferListView.as_view(), name="offer_list"),
     path("offers/create/", views.OfferCreateView.as_view(), name="offer_create"),
     path("offers/<int:pk>/", views.OfferDetailView.as_view(), name="offer_detail"),
+    path("offers/<int:pk>/edit/", views.OfferUpdateView.as_view(), name="offer_edit"),
     path("offers/<int:pk>/respond/", views.OfferRespondView.as_view(), name="offer_respond"),
     path(
         "offers/responses/",

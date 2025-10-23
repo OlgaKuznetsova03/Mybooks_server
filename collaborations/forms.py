@@ -55,8 +55,13 @@ class AuthorOfferForm(BootstrapModelForm):
         queryset = Book.objects.none()
         if author is not None and getattr(author, "is_authenticated", False):
             queryset = Book.objects.filter(contributors=author)
+        current_book = None
+        if getattr(self.instance, "pk", None) and self.instance.book_id:
+            current_book = Book.objects.filter(pk=self.instance.book_id)
+        if current_book is not None:
+            queryset = queryset | current_book
         book_field.queryset = queryset.order_by("title").distinct()
-        
+
     class Meta:
         model = AuthorOffer
         fields = [

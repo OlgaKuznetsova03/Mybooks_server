@@ -96,7 +96,14 @@
       <h1 class="h3 mb-1">{{ offer.title }}</h1>
       <p class="text-muted mb-0">{% trans "Предложение автора" %}</p>
     </div>
-    <span class="badge text-bg-primary fs-6">{{ offer.get_offered_format_display }}</span>
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge text-bg-primary fs-6">{{ offer.get_offered_format_display }}</span>
+      {% if request.user.is_authenticated and request.user.pk == offer.author_id %}
+        <a href="{% url 'collaborations:offer_edit' offer.pk %}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-pencil-square me-1"></i>{% trans "Редактировать" %}
+        </a>
+      {% endif %}
+    </div>
   </div>
 
   <div class="row g-4">

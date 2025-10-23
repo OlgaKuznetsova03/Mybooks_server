@@ -245,7 +245,7 @@ class BookCreateViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         book = Book.objects.get(title="Книга без подтверждения")
         self.assertNotIn(user, book.contributors.all())
-        
+
     def test_adding_new_edition_preserves_existing_cover(self):
         user = User.objects.create_user(username="editor", password="pass12345")
         self.client.login(username="editor", password="pass12345")
@@ -303,6 +303,70 @@ class BookCreateViewTests(TestCase):
             existing_isbn.refresh_from_db()
             self.assertEqual(existing_isbn.image, "book_covers/original.jpg")
 
+
+class BookEditPermissionsTests(TestCase):
+    def setUp(self):
+        self.author_user = User.objects.create_user(
+            username="author", password="pass12345", email="author@example.com"
+        )
+        self.other_author = User.objects.create_user(
+            username="other_author", password="pass12345"
+        )
+        self.staff_user = User.objects.create_user(
+            username="staff", password="pass12345", is_staff=True, is_superuser=True
+        )
+
+        author_group, _ = Group.objects.get_or_create(name="author")
+        self.author_user.groups.add(author_group)
+        self.other_author.groups.add(author_group)
+
+        self.author = Author.objects.create(name="Автор теста")
+        self.genre = Genre.objects.create(name="Приключения")
+        self.publisher = Publisher.objects.create(name="Издательство Тест")
+
+        self.book = Book.objects.create(title="Тестовая книга", synopsis="Старое описание")
+        self.book.authors.add(self.author)
+        self.book.genres.add(self.genre)
+        self.book.publisher.add(self.publisher)
+        self.book.contributors.add(self.author_user)
+
+    def _valid_payload(self, **overrides):
+        data = {
+            "title": "Тестовая книга",
+            "authors": "Автор теста",
+            "genres": "Приключения",
+            "publisher": "Издательство Тест",
+            "synopsis": "Новое описание",
+            "confirm_authorship": "on",
+        }
+        data.update(overrides)
+        return data
+
+    def test_author_contributor_can_edit_book(self):
+        self.client.force_login(self.author_user)
+        response = self.client.post(
+            reverse("book_edit", args=[self.book.pk]), self._valid_payload(), follow=True
+        )
+        self.assertEqual(response.status_code, 200)
+        self.book.refresh_from_db()
+        self.assertEqual(self.book.synopsis, "Новое описание")
+        self.assertIn(self.author_user, self.book.contributors.all())
+
+    def test_author_not_listed_as_contributor_gets_forbidden(self):
+        self.client.force_login(self.other_author)
+        response = self.client.get(reverse("book_edit", args=[self.book.pk]))
+        self.assertEqual(response.status_code, 403)
+
+    def test_staff_with_permission_can_edit_without_contributor_status(self):
+        self.client.force_login(self.staff_user)
+        response = self.client.post(
+            reverse("book_edit", args=[self.book.pk]),
+            self._valid_payload(synopsis="Редакторское описание", confirm_authorship=""),
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.book.refresh_from_db()
+        self.assertEqual(self.book.synopsis, "Редакторское описание")
 
 class GenreDetailViewTests(TestCase):
     def setUp(self):

@@ -18,6 +18,7 @@ from django.db.models import (
     Count,
 )
 from typing import Iterable, Optional
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
@@ -1556,17 +1557,38 @@ def book_create(request):
     return render(request, "books/book_form.html", context)
 
 @login_required
-@permission_required("books.change_book", raise_exception=True)
 def book_edit(request, pk):
     book = get_object_or_404(Book, pk=pk)
+    user = request.user
+
+    has_model_permission = user.has_perm("books.change_book")
+    is_author_contributor = (
+        getattr(user, "is_authenticated", False)
+        and user.groups.filter(name="author").exists()
+        and book.contributors.filter(pk=user.pk).exists()
+    )
+
+    if not (has_model_permission or is_author_contributor):
+        raise PermissionDenied
+
     if request.method == "POST":
-        form = BookForm(request.POST, request.FILES, instance=book, user=request.user)
+        form = BookForm(request.POST, request.FILES, instance=book, user=user)
         if form.is_valid():
-            form.save()
+            book = form.save()
+            if user.groups.filter(name="author").exists():
+                if form.cleaned_data.get("confirm_authorship"):
+                    book.contributors.add(user)
+                else:
+                    book.contributors.remove(user)
+            messages.success(request, "Книга обновлена.")
             return redirect("book_detail", pk=book.pk)
     else:
-        form = BookForm(instance=book, user=request.user)
-    return render(request, "books/book_form.html", {"form": form})
+        form = BookForm(instance=book, user=user)
+    return render(
+        request,
+        "books/book_form.html",
+        {"form": form, "book": book},
+    )
 
 @login_required
 def rate_book(request, pk):

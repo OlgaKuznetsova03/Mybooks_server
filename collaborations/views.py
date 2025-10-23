@@ -11,7 +11,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views import View
 from django.views.generic import DetailView, ListView
-from django.views.generic.edit import CreateView, FormView
+from django.views.generic.edit import CreateView, FormView, UpdateView
 
 from .forms import (
     AuthorOfferForm,
@@ -390,6 +390,40 @@ class OfferCreateView(LoginRequiredMixin, CreateView):
         kwargs = super().get_form_kwargs()
         kwargs["author"] = self.request.user
         return kwargs
+    
+def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.setdefault("is_editing", False)
+        return context
+
+
+class OfferUpdateView(LoginRequiredMixin, UpdateView):
+    model = AuthorOffer
+    form_class = AuthorOfferForm
+    template_name = "collaborations/offer_form.html"
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.user.has_perm("collaborations.change_authoroffer"):
+            return queryset
+        return queryset.filter(author=self.request.user)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["author"] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        messages.success(self.request, _("Предложение обновлено."))
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse("collaborations:offer_detail", args=[self.object.pk])
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.setdefault("is_editing", True)
+        return context
     
     
 class OfferRespondView(LoginRequiredMixin, FormView):

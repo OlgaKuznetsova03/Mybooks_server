@@ -1,7 +1,13 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}{% trans "Новое предложение" %} · {{ block.super }}{% endblock %}
+{% block title %}
+  {% if is_editing %}
+    {% trans "Редактирование предложения" %} · {{ block.super }}
+  {% else %}
+    {% trans "Новое предложение" %} · {{ block.super }}
+  {% endif %}
+{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -84,7 +90,13 @@
 
 {% block content %}
 <div class="offer-create-theme">
-  <h1 class="h3 page-title">{% trans "Новое предложение" %}</h1>
+  <h1 class="h3 page-title">
+    {% if is_editing %}
+      {% trans "Редактирование предложения" %}
+    {% else %}
+      {% trans "Новое предложение" %}
+    {% endif %}
+  </h1>
 
   <form method="post" class="card shadow-sm">
     <div class="card-body">

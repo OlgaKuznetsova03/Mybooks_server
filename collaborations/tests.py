@@ -46,7 +46,70 @@ class OfferFormTests(TestCase):
         books = list(form.fields["book"].queryset)
         self.assertEqual(books, [])
 
+
+      class OfferUpdateViewTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        author_group, _ = Group.objects.get_or_create(name="author")
+
+        self.author = user_model.objects.create_user(
+            username="main_author", password="password123", email="main@example.com"
+        )
+        self.author.groups.add(author_group)
+
+        self.other_author = user_model.objects.create_user(
+            username="other_author", password="password123", email="other@example.com"
+        )
+        self.other_author.groups.add(author_group)
+
+        self.book = Book.objects.create(title="Книга автора")
+        self.book.contributors.add(self.author)
+
+        self.offer = AuthorOffer.objects.create(
+            author=self.author,
+            title="Первое предложение",
+            review_requirements="Опубликовать отзыв",
+            book=self.book,
+        )
+
+    def _payload(self, **extra):
+        data = {
+            "title": "Обновлённое предложение",
+            "book": self.book.pk,
+            "offered_format": AuthorOffer.BookFormat.ELECTRONIC,
+            "synopsis": "Новые детали",
+            "review_requirements": "Обновлённые требования",
+            "text_review_length": 0,
+            "expected_platforms": [],
+            "video_review_type": AuthorOffer.VideoReviewType.NONE,
+            "video_requires_unboxing": "",
+            "video_requires_aesthetics": "",
+            "video_requires_review": "on",
+            "considers_paid_collaboration": "",
+            "allow_regular_users": "",
+            "is_active": "on",
+        }
+        data.update(extra)
+        return data
+
+    def test_author_can_update_own_offer(self):
+        self.client.force_login(self.author)
+        response = self.client.post(
+            reverse("collaborations:offer_edit", args=[self.offer.pk]),
+            self._payload(synopsis="Свежие детали"),
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.offer.refresh_from_db()
+        self.assertEqual(self.offer.synopsis, "Свежие детали")
+        self.assertEqual(self.offer.title, "Обновлённое предложение")
+
+    def test_other_author_gets_404(self):
+        self.client.force_login(self.other_author)
+        response = self.client.get(reverse("collaborations:offer_edit", args=[self.offer.pk]))
+        self.assertEqual(response.status_code, 404)
         
+          
 class OfferResponseViewsTests(TestCase):
     def setUp(self):
         self.UserModel = get_user_model()
