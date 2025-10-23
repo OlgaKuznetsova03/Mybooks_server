@@ -1,6 +1,6 @@
 # shelves/views.py
 from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from datetime import date, timedelta
 from typing import Optional
 
@@ -195,12 +195,16 @@ def home_library(request):
         )
     ]
 
+    active_entries_list = list(active_entries_qs)
+    disposed_entries_list = list(disposed_entries_qs)
+    all_entries_list = [*active_entries_list, *disposed_entries_list]
+
     def _sort_key(entry: HomeLibraryEntry):
         acquired = entry.acquired_at or date.min
         added = entry.shelf_item.added_at.date() if entry.shelf_item.added_at else date.min
         return (acquired, added, entry.shelf_item_id)
 
-    recent_entries = sorted(active_entries_qs, key=_sort_key, reverse=True)[:5]
+    recent_entries = sorted(active_entries_list, key=_sort_key, reverse=True)[:5]
 
     series_values = list(
         active_entries_qs
@@ -246,7 +250,7 @@ def home_library(request):
     read_dates_map = {}
     try:
         filtered_book_ids = list(
-            filtered_entries_qs.values_list("shelf_item__book_id", flat=True)
+            entries_qs.values_list("shelf_item__book_id", flat=True).distinct()
         )
         if filtered_book_ids:
             read_items = (
@@ -293,6 +297,177 @@ def home_library(request):
         entry.date_read = entry.read_at or read_dates_map.get(bid)
         entry.is_read = bool(entry.date_read)
 
+    def _entry_book_data(entry: HomeLibraryEntry):
+        if not entry.shelf_item or not entry.shelf_item.book:
+            return None
+        book = entry.shelf_item.book
+        authors = ", ".join(author.name for author in book.authors.all())
+        return {
+            "id": book.pk,
+            "title": book.title,
+            "authors": authors or "Автор неизвестен",
+            "url": reverse("book_detail", args=[book.pk]),
+        }
+
+    def _prepare_books(items):
+        unique = OrderedDict()
+        for book in items:
+            if not book:
+                continue
+            unique[book["id"]] = book
+        return sorted(unique.values(), key=lambda b: (b.get("title") or "").lower())
+
+    classic_books = _prepare_books([
+        _entry_book_data(entry)
+        for entry in active_entries_list
+        if entry.is_classic
+    ])
+
+    modern_books = _prepare_books([
+        _entry_book_data(entry)
+        for entry in active_entries_list
+        if not entry.is_classic
+    ])
+
+    series_books_map = {}
+    for series in series_counts:
+        name = series["series_name"]
+        series_books_map[name] = _prepare_books([
+            _entry_book_data(entry)
+            for entry in active_entries_list
+            if entry.series_name == name
+        ])
+
+    genre_books_map = {}
+    for genre in genre_counts:
+        genre_name = genre["name"]
+        genre_books_map[genre_name] = _prepare_books([
+            _entry_book_data(entry)
+            for entry in active_entries_list
+            if any(g.name == genre_name for g in entry.custom_genres.all())
+        ])
+
+    def _period_bucket():
+        return {
+            "bought_count": 0,
+            "read_count": 0,
+            "bought_books": [],
+            "read_books": [],
+        }
+
+    year_period_data = defaultdict(_period_bucket)
+    month_period_data = defaultdict(_period_bucket)
+
+    for entry in all_entries_list:
+        book_data = _entry_book_data(entry)
+        if not book_data:
+            continue
+
+        if entry.acquired_at:
+            acquired = entry.acquired_at
+            year_key = str(acquired.year)
+            month_key = f"{acquired.year:04d}-{acquired.month:02d}"
+            year_bucket = year_period_data[year_key]
+            month_bucket = month_period_data[month_key]
+            year_bucket["bought_count"] += 1
+            month_bucket["bought_count"] += 1
+            year_bucket["bought_books"].append(book_data)
+            month_bucket["bought_books"].append(book_data)
+
+        book_id = entry.shelf_item.book_id if entry.shelf_item else None
+        read_date = entry.read_at or (read_dates_map.get(book_id) if book_id else None)
+        if read_date:
+            year_key = str(read_date.year)
+            month_key = f"{read_date.year:04d}-{read_date.month:02d}"
+            year_bucket = year_period_data[year_key]
+            month_bucket = month_period_data[month_key]
+            year_bucket["read_count"] += 1
+            month_bucket["read_count"] += 1
+            year_bucket["read_books"].append(book_data)
+            month_bucket["read_books"].append(book_data)
+
+    def _finalise_periods(source):
+        final = {}
+        for key, bucket in source.items():
+            final[key] = {
+                "bought_count": bucket["bought_count"],
+                "read_count": bucket["read_count"],
+                "bought_books": _prepare_books(bucket["bought_books"]),
+                "read_books": _prepare_books(bucket["read_books"]),
+            }
+        return final
+
+    year_periods = _finalise_periods(year_period_data)
+    month_periods = _finalise_periods(month_period_data)
+
+    MONTH_NAMES_RU = [
+        "Январь",
+        "Февраль",
+        "Март",
+        "Апрель",
+        "Май",
+        "Июнь",
+        "Июль",
+        "Август",
+        "Сентябрь",
+        "Октябрь",
+        "Ноябрь",
+        "Декабрь",
+    ]
+
+    def _month_label(key: str) -> str:
+        try:
+            year_str, month_str = key.split("-")
+            month_index = int(month_str) - 1
+        except (ValueError, TypeError):
+            return key
+        month_name = MONTH_NAMES_RU[month_index] if 0 <= month_index < 12 else month_str
+        return f"{month_name} {year_str}"
+
+    year_options = sorted(year_periods.keys(), reverse=True)
+    month_options = sorted(month_periods.keys(), reverse=True)
+
+    period_options = {
+        "year": [
+            {"value": value, "label": value}
+            for value in year_options
+        ],
+        "month": [
+            {"value": value, "label": _month_label(value)}
+            for value in month_options
+        ],
+    }
+
+    default_period_type = "year" if year_options else "month"
+    default_period_value = ""
+    if default_period_type == "year" and year_options:
+        default_period_value = year_options[0]
+    elif default_period_type == "month" and month_options:
+        default_period_value = month_options[0]
+
+    if default_period_type == "year":
+        default_period_stats = year_periods.get(default_period_value)
+    else:
+        default_period_stats = month_periods.get(default_period_value)
+    if not default_period_stats:
+        default_period_stats = _period_bucket()
+
+    summary_data = {
+        "classic": classic_books,
+        "modern": modern_books,
+        "series": series_books_map,
+        "genres": genre_books_map,
+        "periods": {
+            "year": year_periods,
+            "month": month_periods,
+        },
+        "periodOptions": period_options,
+        "defaultPeriod": {
+            "type": default_period_type,
+            "value": default_period_value,
+        },
+    }
+
     summary = {
         "total": total_active,
         "disposed_total": disposed_total,
@@ -310,10 +485,16 @@ def home_library(request):
         "entries": entries,
         "disposed_entries": disposed_entries,
         "summary": summary,
+        "summary_data": summary_data,
         "filter_form": filter_form,
         "filters_applied": filters_applied,
         "default_reading_shelf_name": DEFAULT_READING_SHELF,
         "default_read_shelf_name": DEFAULT_READ_SHELF,
+        "default_period_type": default_period_type,
+        "default_period_value": default_period_value,
+        "default_period_stats": default_period_stats,
+        "period_options": period_options,
+        "initial_period_options": period_options.get(default_period_type, []),
     }
     return render(request, "shelves/home_library.html", context)
 

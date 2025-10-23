@@ -121,6 +121,138 @@
     overflow: hidden;
   }
 
+  .home-stats-button {
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.2s ease;
+  }
+
+  .home-stats-button:hover,
+  .home-stats-button:focus {
+    color: var(--home-accent-strong);
+  }
+
+  .home-stats-button:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.45);
+    outline-offset: 2px;
+  }
+
+  .home-stats-button--compact {
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+
+  .home-progress-card {
+    --home-progress-bought: #38bdf8;
+    --home-progress-read: #f97316;
+  }
+
+  .home-progress-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .home-progress-controls .form-select,
+  .home-progress-controls .form-label {
+    font-size: 0.85rem;
+  }
+
+  .home-progress-stats {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .home-progress-side {
+    min-width: 120px;
+  }
+
+  .home-progress-value {
+    font-size: 2.25rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .home-progress-value .home-progress-number {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .home-progress-line {
+    position: relative;
+    flex: 1;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    overflow: hidden;
+  }
+
+  .home-progress-fill {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      var(--home-progress-bought) 0%,
+      var(--home-progress-bought) var(--home-progress-split, 50%),
+      var(--home-progress-read) var(--home-progress-split, 50%),
+      var(--home-progress-read) 100%
+    );
+    transition: background 0.3s ease;
+  }
+
+  .home-progress-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #0f172a;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  }
+
+  .home-summary-modal .modal-content {
+    border-radius: 18px;
+    border: none;
+  }
+
+  .home-summary-modal .modal-header {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+  }
+
+  .home-summary-modal .modal-body {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  .home-summary-item {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.7);
+  }
+
+  .home-summary-item:last-child {
+    border-bottom: none;
+  }
+
+  .home-summary-item a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .home-summary-item a:hover,
+  .home-summary-item a:focus {
+    text-decoration: underline;
+  }
+
   .home-glow-card::after {
     content: "";
     position: absolute;
@@ -319,6 +451,28 @@
       grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
     }
 
+    .home-progress-stats {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.75rem;
+    }
+
+    .home-progress-side {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      text-align: left;
+    }
+
+    .home-progress-side.text-end {
+      text-align: left !important;
+    }
+
+    .home-progress-value {
+      font-size: 1.875rem;
+    }
+
     .home-library-table .table thead {
       display: none;
     }
@@ -465,11 +619,57 @@
       <div class="d-flex gap-4 align-items-end">
         <div>
           <div class="small text-uppercase text-muted">Классика</div>
-          <div class="display-6 mb-0">{{ summary.classic_count }}</div>
+          <button class="home-stats-button display-6 mb-0 summary-trigger" type="button" data-summary-category="classic" data-summary-title="Классические книги">
+            <span class="home-progress-number">{{ summary.classic_count }}</span>
+          </button>
         </div>
-      <div>
+        <div>
           <div class="small text-uppercase text-muted">Современные</div>
-          <div class="display-6 mb-0 text-info">{{ summary.modern_count }}</div>
+          <button class="home-stats-button display-6 mb-0 text-info summary-trigger" type="button" data-summary-category="modern" data-summary-title="Современные книги">
+            <span class="home-progress-number">{{ summary.modern_count }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="home-glow-card home-progress-card">
+      <h2 class="h6 text-uppercase text-muted mb-3">Куплено против прочитано</h2>
+      <div class="home-progress-controls mb-3">
+        <div class="flex-grow-1">
+          <label class="form-label text-uppercase text-muted small" for="homePeriodType">Тип периода</label>
+          <select class="form-select form-select-sm" id="homePeriodType" data-role="period-type">
+            <option value="year" {% if default_period_type == "year" %}selected{% endif %}>Год</option>
+            <option value="month" {% if default_period_type == "month" %}selected{% endif %}>Месяц</option>
+          </select>
+        </div>
+        <div class="flex-grow-1">
+          <label class="form-label text-uppercase text-muted small" for="homePeriodValue">Период</label>
+          <select class="form-select form-select-sm" id="homePeriodValue" data-role="period-value">
+            {% if initial_period_options %}
+              {% for option in initial_period_options %}
+                <option value="{{ option.value }}" {% if option.value == default_period_value %}selected{% endif %}>{{ option.label }}</option>
+              {% endfor %}
+            {% else %}
+              <option value="" selected>Нет данных</option>
+            {% endif %}
+          </select>
+        </div>
+      </div>
+      <div class="home-progress-stats">
+        <div class="home-progress-side">
+          <div class="small text-uppercase text-muted">Куплено</div>
+          <button class="home-stats-button home-progress-value summary-trigger" type="button" data-summary-category="period" data-period-kind="bought" data-period-type="{{ default_period_type }}" data-period-value="{{ default_period_value }}" data-summary-title="Куплено">
+            <span class="home-progress-number" data-role="period-bought-count">{{ default_period_stats.bought_count }}</span>
+          </button>
+        </div>
+        <div class="home-progress-line">
+          <div class="home-progress-fill" data-role="period-progress-fill"></div>
+          <div class="home-progress-label" data-role="period-progress-label">0%</div>
+        </div>
+        <div class="home-progress-side text-end">
+          <div class="small text-uppercase text-muted">Прочитано</div>
+          <button class="home-stats-button home-progress-value summary-trigger" type="button" data-summary-category="period" data-period-kind="read" data-period-type="{{ default_period_type }}" data-period-value="{{ default_period_value }}" data-summary-title="Прочитано">
+            <span class="home-progress-number" data-role="period-read-count">{{ default_period_stats.read_count }}</span>
+          </button>
         </div>
       </div>
     </div>
@@ -480,7 +680,9 @@
           {% for series in summary.series_counts %}
             <li class="d-flex justify-content-between">
               <span>{{ series.series_name }}</span>
-              <span class="fw-semibold">{{ series.total }}</span>
+              <button class="home-stats-button home-stats-button--compact summary-trigger" type="button" data-summary-category="series" data-summary-key="{{ series.series_name }}" data-summary-title="Серия «{{ series.series_name }}»">
+                {{ series.total }}
+              </button>
             </li>
           {% endfor %}
         </ul>
@@ -495,7 +697,9 @@
           {% for genre in summary.genre_counts %}
             <li class="d-flex justify-content-between">
               <span>{{ genre.name }}</span>
-              <span class="fw-semibold">{{ genre.total }}</span>
+              <button class="home-stats-button home-stats-button--compact summary-trigger" type="button" data-summary-category="genres" data-summary-key="{{ genre.name }}" data-summary-title="Жанр «{{ genre.name }}»">
+                {{ genre.total }}
+              </button>
             </li>
           {% endfor %}
         </ul>
@@ -764,8 +968,260 @@
             {% endfor %}
             </tbody>
           </table>
-        </div>
       </div>
+    </div>
   {% endif %}
 {% endif %}
+<div class="modal fade home-summary-modal" id="homeLibrarySummaryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" data-role="summary-title">Список книг</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted mb-0" data-role="summary-empty">Для этого раздела пока нет книг.</p>
+          <div data-role="summary-list" class="list-group list-group-flush d-none"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+  {{ summary_data|json_script:"homeLibrarySummaryData" }}
+  <script>
+    (function () {
+      const dataElement = document.getElementById('homeLibrarySummaryData');
+      if (!dataElement) {
+        return;
+      }
+      const summaryData = JSON.parse(dataElement.textContent || '{}');
+      const modalEl = document.getElementById('homeLibrarySummaryModal');
+      if (!modalEl) {
+        return;
+      }
+
+      const titleEl = modalEl.querySelector('[data-role="summary-title"]');
+      const listWrapper = modalEl.querySelector('[data-role="summary-list"]');
+      const emptyEl = modalEl.querySelector('[data-role="summary-empty"]');
+      let modalInstance = null;
+
+      function ensureModal() {
+        if (!modalInstance && window.bootstrap && window.bootstrap.Modal) {
+          modalInstance = new window.bootstrap.Modal(modalEl);
+        }
+        return modalInstance;
+      }
+
+      function renderBooks(items) {
+        if (!Array.isArray(items) || !items.length) {
+          listWrapper.innerHTML = '';
+          listWrapper.classList.add('d-none');
+          emptyEl.classList.remove('d-none');
+          emptyEl.textContent = 'Для этого раздела пока нет книг.';
+          return;
+        }
+        const fragment = document.createDocumentFragment();
+        items.forEach((book) => {
+          const item = document.createElement('div');
+          item.className = 'list-group-item home-summary-item';
+          const link = document.createElement('a');
+          link.href = book.url;
+          link.textContent = book.title;
+          const subtitle = document.createElement('div');
+          subtitle.className = 'text-muted small mt-1';
+          subtitle.textContent = book.authors || 'Автор неизвестен';
+          item.appendChild(link);
+          item.appendChild(subtitle);
+          fragment.appendChild(item);
+        });
+        listWrapper.innerHTML = '';
+        listWrapper.appendChild(fragment);
+        emptyEl.classList.add('d-none');
+        listWrapper.classList.remove('d-none');
+      }
+
+      function openModal(title, items) {
+        titleEl.textContent = title || 'Список книг';
+        renderBooks(items);
+        const modal = ensureModal();
+        if (modal) {
+          modal.show();
+        }
+      }
+
+      function getSummaryItems(trigger) {
+        const category = trigger.dataset.summaryCategory;
+        if (!category) {
+          return [];
+        }
+        if (category === 'classic' || category === 'modern') {
+          return summaryData[category] || [];
+        }
+        if (category === 'series' || category === 'genres' || category === 'locations' || category === 'statuses') {
+          const key = trigger.dataset.summaryKey;
+          const bucket = summaryData[category] || {};
+          return key ? bucket[key] || [] : [];
+        }
+        if (category === 'period') {
+          const kind = trigger.dataset.periodKind;
+          const type = trigger.dataset.periodType;
+          const value = trigger.dataset.periodValue;
+          if (!kind || !type) {
+            return [];
+          }
+          const periods = summaryData.periods || {};
+          const typeBucket = periods[type] || {};
+          const stats = typeBucket[value] || {};
+          if (kind === 'bought') {
+            return stats.bought_books || [];
+          }
+          if (kind === 'read') {
+            return stats.read_books || [];
+          }
+          return [];
+        }
+        return [];
+      }
+
+      function getPeriodOptions(type) {
+        const options = summaryData.periodOptions || {};
+        return options[type] || [];
+      }
+
+      function getPeriodLabel(type, value) {
+        const options = getPeriodOptions(type);
+        const found = options.find((option) => option.value === value);
+        return found ? found.label : '';
+      }
+
+      const triggers = document.querySelectorAll('[data-summary-trigger]');
+      triggers.forEach((trigger) => {
+        trigger.addEventListener('click', () => {
+          const title = trigger.dataset.summaryTitle || trigger.textContent.trim();
+          const items = getSummaryItems(trigger);
+          openModal(title, items);
+        });
+      });
+
+      const periodTypeSelect = document.querySelector('[data-role="period-type"]');
+      const periodValueSelect = document.querySelector('[data-role="period-value"]');
+      const boughtCountEl = document.querySelector('[data-role="period-bought-count"]');
+      const readCountEl = document.querySelector('[data-role="period-read-count"]');
+      const progressFillEl = document.querySelector('[data-role="period-progress-fill"]');
+      const progressLabelEl = document.querySelector('[data-role="period-progress-label"]');
+
+      function updatePeriodTriggers(type, value, label) {
+        document.querySelectorAll('[data-summary-category="period"]').forEach((trigger) => {
+          trigger.dataset.periodType = type;
+          trigger.dataset.periodValue = value || '';
+          const kind = trigger.dataset.periodKind;
+          if (label && kind) {
+            const prefix = kind === 'bought' ? 'Куплено — ' : 'Прочитано — ';
+            trigger.dataset.summaryTitle = prefix + label;
+          } else if (kind) {
+            trigger.dataset.summaryTitle = kind === 'bought' ? 'Куплено' : 'Прочитано';
+          }
+        });
+      }
+
+      function updatePeriodCard() {
+        if (!periodTypeSelect || !periodValueSelect || !boughtCountEl || !readCountEl) {
+          return;
+        }
+        const type = periodTypeSelect.value || 'year';
+        const options = getPeriodOptions(type);
+        if (!options.length) {
+          periodValueSelect.innerHTML = '<option value="">Нет данных</option>';
+          periodValueSelect.disabled = true;
+          boughtCountEl.textContent = '0';
+          readCountEl.textContent = '0';
+          if (progressFillEl) {
+            progressFillEl.style.setProperty('--home-progress-split', '50%');
+          }
+          if (progressLabelEl) {
+            progressLabelEl.textContent = '0% / 0%';
+          }
+          updatePeriodTriggers(type, '', '');
+          return;
+        }
+        periodValueSelect.disabled = false;
+        const currentValue = periodValueSelect.value;
+        if (!options.some((option) => option.value === currentValue)) {
+          periodValueSelect.value = options[0].value;
+        }
+        const value = periodValueSelect.value || options[0].value;
+        if (value !== periodValueSelect.value) {
+          periodValueSelect.value = value;
+        }
+        const periods = summaryData.periods || {};
+        const stats = (periods[type] && periods[type][value]) || {};
+        const boughtCount = stats.bought_count || 0;
+        const readCount = stats.read_count || 0;
+        boughtCountEl.textContent = boughtCount;
+        readCountEl.textContent = readCount;
+        const total = boughtCount + readCount;
+        const boughtPercent = total ? Math.round((boughtCount / total) * 100) : 0;
+        const readPercent = total ? 100 - boughtPercent : 0;
+        if (progressFillEl) {
+          progressFillEl.style.setProperty('--home-progress-split', `${boughtPercent}%`);
+        }
+        if (progressLabelEl) {
+          progressLabelEl.textContent = `${boughtPercent}% / ${readPercent}%`;
+        }
+        const label = getPeriodLabel(type, value);
+        updatePeriodTriggers(type, value, label);
+      }
+
+      function populatePeriodOptions(type) {
+        if (!periodValueSelect) {
+          return;
+        }
+        const options = getPeriodOptions(type);
+        periodValueSelect.innerHTML = '';
+        if (!options.length) {
+          const optionEl = document.createElement('option');
+          optionEl.value = '';
+          optionEl.textContent = 'Нет данных';
+          optionEl.selected = true;
+          periodValueSelect.appendChild(optionEl);
+          periodValueSelect.disabled = true;
+          updatePeriodCard();
+          return;
+        }
+        let hasSelected = false;
+        options.forEach((option) => {
+          const optionEl = document.createElement('option');
+          optionEl.value = option.value;
+          optionEl.textContent = option.label;
+          if (summaryData.defaultPeriod && summaryData.defaultPeriod.type === type && summaryData.defaultPeriod.value === option.value) {
+            optionEl.selected = true;
+            hasSelected = true;
+          }
+          periodValueSelect.appendChild(optionEl);
+        });
+        if (!hasSelected && periodValueSelect.options.length) {
+          periodValueSelect.options[0].selected = true;
+        }
+        periodValueSelect.disabled = false;
+      }
+
+      if (periodTypeSelect) {
+        periodTypeSelect.addEventListener('change', () => {
+          populatePeriodOptions(periodTypeSelect.value || 'year');
+          updatePeriodCard();
+        });
+      }
+
+      if (periodValueSelect) {
+        periodValueSelect.addEventListener('change', updatePeriodCard);
+      }
+
+      if (periodTypeSelect) {
+        populatePeriodOptions(periodTypeSelect.value || 'year');
+      }
+      updatePeriodCard();
+    })();
+  </script>
 {% endblock %}
