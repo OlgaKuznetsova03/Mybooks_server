@@ -5,273 +5,116 @@
 
 {% block extra_css %}
 <style>
-  .reading-leaderboard-wrapper {
-    max-width: 980px;
+  .reading-leaderboard-wrapper{max-width:980px}
+  .reading-leaderboard-hero{
+    background:linear-gradient(145deg,rgba(70,112,126,.18) 0,rgba(70,112,126,.05) 100%);
+    border-radius:28px;padding:2.5rem 2rem;color:#23404a;box-shadow:0 24px 40px rgba(25,53,63,.08);
+    display:flex;flex-direction:column;gap:1.25rem
   }
-
-  .reading-leaderboard-hero {
-    background: linear-gradient(145deg, rgba(70, 112, 126, 0.18) 0%, rgba(70, 112, 126, 0.05) 100%);
-    border-radius: 28px;
-    padding: 2.5rem 2rem;
-    color: #23404a;
-    box-shadow: 0 24px 40px rgba(25, 53, 63, 0.08);
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-
-  .reading-leaderboard-hero h1 {
-    font-weight: 700;
-    margin-bottom: 0.75rem;
-  }
-
-  .reading-leaderboard-hero p {
-    margin: 0;
-    font-size: 1rem;
-    max-width: 620px;
-  }
-
-  .reading-leaderboard-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-  }
-
-  .reading-leaderboard-actions .reading-btn-primary {
-    background-color: #46707e;
-    border-color: #46707e;
-    border-radius: 999px;
-    padding-inline: 1.5rem;
-    font-weight: 600;
-    color: #ffffff;
-  }
-
-  .reading-leaderboard-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 1.75rem;
-    }
-
-  .leaderboard-section {
-    display: flex;
-    flex-direction: column;
-    gap: 1.75rem;
-    margin-top: 2.5rem;
-  }
-
-  .leaderboard-section:first-of-type {
-    margin-top: 0;
-  }
-
-  .leaderboard-section__header h2 {
-    margin: 0;
-    font-weight: 700;
-    color: #1e3b45;
-  }
-
-  .leaderboard-section__header p {
-    margin: 0.5rem 0 0;
-    color: rgba(30, 59, 69, 0.7);
-    max-width: 640px;
-  }
-
-  .leaderboard-card {
-    background: #ffffff;
-    border-radius: 24px;
-    padding: 1.75rem 1.5rem;
-    box-shadow: 0 18px 36px rgba(25, 53, 63, 0.08);
-    border: 1px solid rgba(70, 112, 126, 0.12);
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-  }
-
-  .leaderboard-card__header h3 {
-    margin: 0;
-    font-weight: 700;
-    color: #1e3b45;
-  }
-
-  .leaderboard-card__header span {
-    display: block;
-    margin-top: 0.25rem;
-    color: rgba(30, 59, 69, 0.65);
-    font-size: 0.9rem;
-  }
-
-  .leaderboard-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .leaderboard-entry {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    border-radius: 18px;
-    background: rgba(70, 112, 126, 0.08);
-    border: 1px solid rgba(70, 112, 126, 0.12);
-  }
-
-  .leaderboard-entry--first {
-    background: rgba(255, 215, 141, 0.25);
-    border-color: rgba(230, 180, 60, 0.4);
-  }
-
-  .leaderboard-entry--second {
-    background: rgba(202, 214, 255, 0.25);
-    border-color: rgba(120, 150, 240, 0.35);
-  }
-
-  .leaderboard-entry--third {
-    background: rgba(255, 191, 191, 0.25);
-    border-color: rgba(230, 120, 120, 0.35);
-  }
-
-  .leaderboard-entry__position {
-    font-weight: 700;
-    font-size: 1.35rem;
-    color: #1e3b45;
-    min-width: 2.5rem;
-    text-align: center;
-  }
-
-  .leaderboard-entry__avatar {
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    overflow: hidden;
-    background: rgba(70, 112, 126, 0.18);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    color: #1e3b45;
-    text-transform: uppercase;
-    flex-shrink: 0;
-  }
-
-  .leaderboard-entry__avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-
-  .leaderboard-entry__avatar--placeholder {
-    border: 2px solid rgba(70, 112, 126, 0.24);
-    background: rgba(70, 112, 126, 0.08);
-  }
-
-  .leaderboard-entry__details {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-  }
-
-  .leaderboard-entry__name {
-    font-weight: 600;
-    color: #1e3b45;
-  }
-
-  .leaderboard-entry__value {
-    font-size: 0.95rem;
-    color: #2d4b55;
-  }
-
-  .leaderboard-empty {
-    margin: 0;
-    padding: 1rem 1.25rem;
-    border-radius: 18px;
-    background: rgba(70, 112, 126, 0.08);
-    color: #2a4751;
-    font-size: 0.95rem;
-  }
-
-  @media (max-width: 768px) {
-    .reading-leaderboard-hero {
-      padding: 2rem 1.5rem;
-    }
-
-    .leaderboard-card {
-      padding: 1.5rem;
-    }
-  }
+  .switcher{display:flex;flex-wrap:wrap;gap:.5rem}
+  .switcher .btn{border-radius:999px}
+  .leaderboard-card{background:#fff;border-radius:24px;padding:1.75rem 1.5rem;box-shadow:0 18px 36px rgba(25,53,63,.08);border:1px solid rgba(70,112,126,.12)}
+  .leaderboard-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1rem}
+  .leaderboard-entry{display:flex;align-items:center;gap:1rem;padding:.75rem 1rem;border-radius:18px;background:rgba(70,112,126,.08);border:1px solid rgba(70,112,126,.12)}
+  .leaderboard-entry--first{background:rgba(255,215,141,.25);border-color:rgba(230,180,60,.4)}
+  .leaderboard-entry--second{background:rgba(202,214,255,.25);border-color:rgba(120,150,240,.35)}
+  .leaderboard-entry--third{background:rgba(255,191,191,.25);border-color:rgba(230,120,120,.35)}
+  .leaderboard-entry__position{font-weight:700;font-size:1.35rem;color:#1e3b45;min-width:2.5rem;text-align:center}
+  .leaderboard-entry__avatar{width:52px;height:52px;border-radius:50%;overflow:hidden;background:rgba(70,112,126,.18);display:flex;align-items:center;justify-content:center;font-weight:700;color:#1e3b45;text-transform:uppercase;flex-shrink:0}
+  .leaderboard-entry__avatar--placeholder{border:2px solid rgba(70,112,126,.24);background:rgba(70,112,126,.08)}
+  .leaderboard-entry__name{font-weight:600;color:#1e3b45}
+  .leaderboard-entry__value{font-size:.95rem;color:#2d4b55}
+  .leaderboard-empty{margin:0;padding:1rem 1.25rem;border-radius:18px;background:rgba(70,112,126,.08);color:#2a4751;font-size:.95rem}
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container py-4 reading-leaderboard-wrapper">
+  
+  <!-- Шапка -->
   <section class="reading-leaderboard-hero mb-4">
     <div>
-      <h1>Рейтинг читателей</h1>
-      <p>Следите за лидерами сообщества: мы показываем и тех, кто прочитал больше всего страниц, и тех, кто заработал наибольшее количество баллов за активность за выбранный период.</p>
+      <h1 class="h3 mb-2">Рейтинг читателей</h1>
+      <p class="mb-0">Выберите метрику и период — покажем топ-участников за указанный промежуток.</p>
     </div>
-    <div class="reading-leaderboard-actions">
-      <a class="btn reading-btn-primary" href="{% url 'shelves:reading_feed' %}">Перейти к ленте чтения</a>
+    
+    <!-- Переключатели -->
+    <div class="d-flex flex-column gap-2">
+      <!-- Метрика -->
+      <div class="switcher" role="tablist" aria-label="Переключатель метрики">
+        <a class="btn btn-outline-primary {% if selected_metric == 'pages' %}active{% endif %}"
+           href="{% url view_url_name %}?metric=pages&period={{ selected_period }}">По страницам</a>
+        <a class="btn btn-outline-primary {% if selected_metric == 'points' %}active{% endif %}"
+           href="{% url view_url_name %}?metric=points&period={{ selected_period }}">По баллам</a>
+      </div>
+
+      <!-- Период -->
+      <div class="switcher" role="tablist" aria-label="Переключатель периода">
+        <a class="btn btn-outline-secondary {% if selected_period == 'today' %}active{% endif %}"
+           href="{% url view_url_name %}?metric={{ selected_metric }}&period=today">Сегодня</a>
+        <a class="btn btn-outline-secondary {% if selected_period == 'week' %}active{% endif %}"
+           href="{% url view_url_name %}?metric={{ selected_metric }}&period=week">Текущая неделя</a>
+        <a class="btn btn-outline-secondary {% if selected_period == 'month' %}active{% endif %}"
+           href="{% url view_url_name %}?metric={{ selected_metric }}&period=month">Этот месяц</a>
+        <a class="btn btn-outline-secondary {% if selected_period == 'year' %}active{% endif %}"
+           href="{% url view_url_name %}?metric={{ selected_metric }}&period=year">За год</a>
+      </div>
     </div>
   </section>
 
-  {% for group in leaderboard_groups %}
-    <section class="leaderboard-section">
-      <div class="leaderboard-section__header">
-        <h2>{{ group.title }}</h2>
-        <p>{{ group.description }}</p>
-      </div>
-      <div class="reading-leaderboard-grid">
-        {% for board in group.boards %}
-          <section class="leaderboard-card" aria-labelledby="leaderboard-{{ board.key }}-title">
-            <header class="leaderboard-card__header">
-              <h3 id="leaderboard-{{ board.key }}-title">{{ board.label }}</h3>
-              {% if board.start == board.end %}
-                <span>{{ board.start|date:"d E Y" }}</span>
-              {% else %}
-                <span>Период: {{ board.start|date:"d E" }} — {{ board.end|date:"d E Y" }}</span>
-              {% endif %}
-            </header>
+  <!-- ОДНА карточка рейтинга -->
+  <section class="leaderboard-card" aria-labelledby="leaderboard-{{ board.key }}-title">
+    <header class="mb-3">
+      <h2 id="leaderboard-{{ board.key }}-title" class="h4 mb-1">{{ board.label }}</h2>
+      {% if board.start == board.end %}
+        <div class="text-muted small">{{ board.start|date:"d E Y" }}</div>
+      {% else %}
+        <div class="text-muted small">Период: {{ board.start|date:"d E" }} — {{ board.end|date:"d E Y" }}</div>
+      {% endif %}
+    </header>
 
-            {% if board.entries %}
-              <ol class="leaderboard-list">
-                {% for item in board.entries %}
-                  {% with display_name=item.user.get_full_name|default:item.user.username %}
-                    <li class="leaderboard-entry {% if item.position == 1 %}leaderboard-entry--first{% elif item.position == 2 %}leaderboard-entry--second{% elif item.position == 3 %}leaderboard-entry--third{% endif %}">
-                      <span class="leaderboard-entry__position">{{ item.position }}</span>
-                      <div class="leaderboard-entry__avatar{% if not item.user.profile.avatar %} leaderboard-entry__avatar--placeholder{% endif %}">
-                        {% if item.user.profile.avatar %}
-                          <img src="{{ item.user.profile.avatar.url }}" alt="Аватар {{ display_name }}">
-                        {% else %}
-                          <span>{{ display_name|slice:":1" }}</span>
-                        {% endif %}
-                      </div>
-                      <div class="leaderboard-entry__details">
-                        <span class="leaderboard-entry__name">{{ display_name }}</span>
-                        {% if group.metric == 'pages' %}
-                          <span class="leaderboard-entry__value">{{ item.total_pages|floatformat:-2 }} {{ item.total_pages|ru_pluralize:"страница,страницы,страниц" }}</span>
-                        {% else %}
-                          <span class="leaderboard-entry__value">{{ item.total_points }} {{ item.total_points|ru_pluralize:"балл,балла,баллов" }}</span>
-                        {% endif %}
-                      </div>
-                    </li>
-                  {% endwith %}
-                {% endfor %}
-              </ol>
-            {% else %}
-              {% if group.metric == 'pages' %}
-                <p class="leaderboard-empty">Пока нет данных за этот период — отметьте прочитанные страницы, чтобы открыть рейтинг.</p>
+    {% if board.entries %}
+      <ol class="leaderboard-list">
+        {% for item in board.entries %}
+          {% with display_name=item.user.get_full_name|default:item.user.username %}
+          <li class="leaderboard-entry {% if item.position == 1 %}leaderboard-entry--first{% elif item.position == 2 %}leaderboard-entry--second{% elif item.position == 3 %}leaderboard-entry--third{% endif %}">
+            <span class="leaderboard-entry__position">{{ item.position }}</span>
+            <div class="leaderboard-entry__avatar{% if not item.user.profile.avatar %} leaderboard-entry__avatar--placeholder{% endif %}">
+              {% if item.user.profile.avatar %}
+                <img src="{{ item.user.profile.avatar.url }}" alt="Аватар {{ display_name }}">
               {% else %}
-                <p class="leaderboard-empty">Пока нет данных за этот период — участвуйте в активности, чтобы заработать первые баллы.</p>
+                <span>{{ display_name|slice:":1" }}</span>
               {% endif %}
-            {% endif %}
-          </section>
+            </div>
+            <div class="flex-grow-1">
+              <div class="leaderboard-entry__name">{{ display_name }}</div>
+              {% if selected_metric == 'pages' %}
+                <div class="leaderboard-entry__value">
+                  {{ item.total_pages|floatformat:-2 }} {{ item.total_pages|ru_pluralize:"страница,страницы,страниц" }}
+                </div>
+              {% else %}
+                <div class="leaderboard-entry__value">
+                  {{ item.total_points }} {{ item.total_points|ru_pluralize:"балл,балла,баллов" }}
+                </div>
+              {% endif %}
+            </div>
+          </li>
+          {% endwith %}
         {% endfor %}
-      </div>
-    </section>
-  {% endfor %}
+      </ol>
+    {% else %}
+      {% if selected_metric == 'pages' %}
+        <p class="leaderboard-empty">Пока нет данных — отметьте прочитанные страницы, чтобы открыть рейтинг.</p>
+      {% else %}
+        <p class="leaderboard-empty">Пока нет данных — участвуйте в активности, чтобы заработать первые баллы.</p>
+      {% endif %}
+    {% endif %}
+  </section>
+
+  <div class="mt-4">
+    <a class="btn btn-outline-dark" href="{% url 'shelves:reading_feed' %}">
+      Перейти к ленте чтения
+    </a>
+  </div>
 </div>
 {% endblock %}

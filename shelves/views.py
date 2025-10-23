@@ -1483,36 +1483,42 @@ def reading_feed(request):
 
 def reading_leaderboard(request):
     today = timezone.localdate()
-    timeframes = [
-        (
-            "day",
-            "Сегодня",
-            today,
-        ),
-        (
-            "week",
-            "Текущая неделя",
-            today - timedelta(days=today.weekday()),
-        ),
-        (
-            "month",
-            "Этот месяц",
-            today.replace(day=1),
-        ),
-        (
-            "year",
-            "Этот год",
-            date(today.year, 1, 1),
-        ),
-    ]
+    timeframes = {
+        "today": {
+            "label": "Сегодня",
+            "start": today,
+        },
+        "week": {
+            "label": "Текущая неделя",
+            "start": today - timedelta(days=today.weekday()),
+        },
+        "month": {
+            "label": "Этот месяц",
+            "start": today.replace(day=1),
+        },
+        "year": {
+            "label": "За год",
+            "start": date(today.year, 1, 1),
+        },
+    }
 
-    user_model = get_user_model()
+    selected_period = request.GET.get("period", "week")
+    if selected_period not in timeframes:
+        selected_period = "week"
 
-    page_leaderboards = []
-    for key, label, start_date in timeframes:
-        if start_date > today:
-            leaderboard_rows = []
-        else:
+    selected_metric = request.GET.get("metric", "pages")
+    if selected_metric not in {"pages", "points"}:
+        selected_metric = "pages"
+
+    timeframe = timeframes[selected_period]
+    start_date = timeframe["start"]
+    end_date = today
+    label = timeframe["label"]
+
+    entries = []
+    if selected_metric == "pages":
+        if start_date <= today:
+            user_model = get_user_model()
             aggregates = (
                 ReadingLog.objects.filter(
                     log_date__gte=start_date,
@@ -1525,12 +1531,9 @@ def reading_leaderboard(request):
             )
             top_rows = list(aggregates[:10])
             user_ids = [row["progress__user"] for row in top_rows]
-            users = (
-                user_model.objects.filter(id__in=user_ids)
-                .select_related("profile")
-            )
+            users = user_model.objects.filter(id__in=user_ids).select_related("profile")
             user_map = {user.id: user for user in users}
-            leaderboard_rows = [
+            entries = [
                 {
                     "position": index,
                     "user": user_map.get(row["progress__user"]),
@@ -1539,69 +1542,41 @@ def reading_leaderboard(request):
                 for index, row in enumerate(top_rows, start=1)
                 if user_map.get(row["progress__user"])
             ]
-
-        page_leaderboards.append(
-            {
-                "key": f"pages-{key}",
-                "label": label,
-                "start": start_date,
-                "end": today,
-                "entries": leaderboard_rows,
-            }
-        )
-
-    period_map = {
-        "day": LeaderboardPeriod.DAY,
-        "week": LeaderboardPeriod.WEEK,
-        "month": LeaderboardPeriod.MONTH,
-        "year": LeaderboardPeriod.YEAR,
-    }
-    points_leaderboards = []
-    for key, label, _ in timeframes:
-        period = period_map.get(key)
-        if not period:
-            continue
-        rows = UserPointEvent.get_leaderboard(period, limit=10)
+    else:
+        period_map = {
+            "today": LeaderboardPeriod.DAY,
+            "week": LeaderboardPeriod.WEEK,
+            "month": LeaderboardPeriod.MONTH,
+            "year": LeaderboardPeriod.YEAR,
+        }
+        period = period_map[selected_period]
+        leaderboard_rows = UserPointEvent.get_leaderboard(period, limit=10)
         entries = [
             {
                 "position": index,
                 "user": row.get("user"),
                 "total_points": row.get("points", 0),
             }
-            for index, row in enumerate(rows, start=1)
+            for index, row in enumerate(leaderboard_rows, start=1)
             if row.get("user")
         ]
-        period_start = timezone.localdate(period.period_start())
-        points_leaderboards.append(
-            {
-                "key": f"points-{key}",
-                "label": label,
-                "start": period_start,
-                "end": today,
-                "entries": entries,
-            }
-        )
+        start_date = timezone.localdate(period.period_start())
 
-    leaderboard_groups = [
-        {
-            "metric": "pages",
-            "title": "Рейтинг по страницам",
-            "description": "Суммируем страницы, записанные в дневник чтения, и показываем лидеров за выбранный период.",
-            "boards": page_leaderboards,
-        },
-        {
-            "metric": "points",
-            "title": "Рейтинг по баллам",
-            "description": "Считаем игровые баллы, которые читатели заработали за активность на платформе за тот же период.",
-            "boards": points_leaderboards,
-        },
-    ]
-
+    board = {
+        "key": f"{selected_metric}-{selected_period}",
+        "label": label,
+        "start": start_date,
+        "end": end_date,
+        "entries": entries,
+    }
     return render(
         request,
         "reading/leaderboard.html",
         {
-            "leaderboard_groups": leaderboard_groups,
+            "board": board,
+            "selected_metric": selected_metric,
+            "selected_period": selected_period,
+            "view_url_name": "shelves:reading_leaderboard",
         },
     )
 
