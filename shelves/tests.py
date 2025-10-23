@@ -752,6 +752,15 @@ class HomeLibraryEntryReadDateTests(TestCase):
         entry = HomeLibraryEntry.objects.get(shelf_item__shelf=home_shelf, shelf_item__book=self.book)
         self.assertEqual(entry.read_at, localdate())
 
+    def test_move_to_read_respects_custom_read_date(self):
+        target_date = localdate() - timedelta(days=10)
+
+        move_book_to_read_shelf(self.user, self.book, read_date=target_date)
+
+        home_shelf = Shelf.objects.get(user=self.user, name=DEFAULT_HOME_LIBRARY_SHELF)
+        entry = HomeLibraryEntry.objects.get(shelf_item__shelf=home_shelf, shelf_item__book=self.book)
+        self.assertEqual(entry.read_at, target_date)
+        
     def test_template_tag_handles_shelf_items(self):
         read_shelf = Shelf.objects.filter(
             user=self.user,

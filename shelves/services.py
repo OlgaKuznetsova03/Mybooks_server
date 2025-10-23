@@ -90,7 +90,7 @@ def remove_book_from_want_shelf(user: User, book: Book) -> None:
     _remove_book_from_named_shelf(user, book, DEFAULT_WANT_SHELF)
 
 
-def move_book_to_read_shelf(user: User, book: Book) -> None:
+def move_book_to_read_shelf(user: User, book: Book, *, read_date: date | None = None) -> None:
     """Move the book from the "Читаю" shelf to "Прочитал" for the user."""
     if not user.is_authenticated:
         return
@@ -110,6 +110,9 @@ def move_book_to_read_shelf(user: User, book: Book) -> None:
     home_shelf = get_home_library_shelf(user)
     home_item, _ = ShelfItem.objects.get_or_create(shelf=home_shelf, book=book)
     entry, _ = HomeLibraryEntry.objects.get_or_create(shelf_item=home_item)
+    target_date = read_date or timezone.localdate()
+    if entry.read_at != target_date:
+        entry.read_at = target_date
     today = timezone.localdate()
     if entry.read_at != today:
         entry.read_at = today

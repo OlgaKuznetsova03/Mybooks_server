@@ -30,7 +30,7 @@ from django.utils import timezone
 from django.utils.html import mark_safe
 from django.utils.text import slugify
 from django.views.decorators.http import require_GET, require_POST
-from shelves.forms import HomeLibraryQuickAddForm
+from shelves.forms import HomeLibraryQuickAddForm, QuickAddShelfForm
 from shelves.models import BookProgress, ShelfItem, HomeLibraryEntry, ProgressAnnotation
 from shelves.services import (
     DEFAULT_READ_SHELF,
@@ -40,6 +40,7 @@ from shelves.services import (
     get_home_library_shelf,
     get_default_shelf_status_map,
     move_book_to_read_shelf,
+    remove_book_from_want_shelf,
 )
 from games.services.read_before_buy import ReadBeforeBuyGame
 from user_ratings.services import award_for_review
@@ -914,6 +915,9 @@ def book_detail(request, pk):
     home_library_entry: HomeLibraryEntry | None = None
     home_library_edit_url: str | None = None
     default_shelf_status: dict[str, object] | None = None
+    quick_add_form: QuickAddShelfForm | None = None
+    read_shelf_ids: list[int] = []
+    read_shelf_ids_str: list[str] = []
 
     if request.user.is_authenticated:
         home_library_shelf = get_home_library_shelf(request.user)
@@ -927,6 +931,75 @@ def book_detail(request, pk):
         if home_library_item and home_library_entry is None:
             home_library_entry = HomeLibraryEntry.objects.filter(shelf_item=home_library_item).first()
 
+        is_quick_add_action = request.method == "POST" and request.POST.get("action") == "quick-add-shelf"
+        if is_quick_add_action:
+            quick_add_form = QuickAddShelfForm(request.POST, user=request.user)
+            if quick_add_form.is_valid():
+                shelf = quick_add_form.cleaned_data["shelf"]
+                read_at = quick_add_form.cleaned_data.get("read_at")
+                quote_text = (quick_add_form.cleaned_data.get("quote") or "").strip()
+                note_text = (quick_add_form.cleaned_data.get("note") or "").strip()
+
+                if shelf.user_id != request.user.id:
+                    messages.error(request, "Нельзя добавлять книги в чужую полку.")
+                    return redirect("book_detail", pk=book.pk)
+
+                if shelf.name in ALL_DEFAULT_READ_SHELF_NAMES:
+                    move_book_to_read_shelf(request.user, book, read_date=read_at)
+                    if quote_text or note_text:
+                        progress, _ = BookProgress.objects.get_or_create(
+                            user=request.user,
+                            book=book,
+                            event__isnull=True,
+                            defaults={"percent": 100},
+                        )
+                        if quote_text:
+                            ProgressAnnotation.objects.create(
+                                progress=progress,
+                                kind=ProgressAnnotation.KIND_QUOTE,
+                                body=quote_text,
+                                location="",
+                                comment="",
+                            )
+                        if note_text:
+                            ProgressAnnotation.objects.create(
+                                progress=progress,
+                                kind=ProgressAnnotation.KIND_NOTE,
+                                body=note_text,
+                                location="",
+                                comment="",
+                            )
+                    messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")
+                    return redirect("book_detail", pk=book.pk)
+
+                if ReadBeforeBuyGame.is_game_shelf(shelf):
+                    success, message_text, level = ReadBeforeBuyGame.add_book_to_shelf(
+                        request.user, shelf, book
+                    )
+                    message_handler = getattr(messages, level, messages.info)
+                    message_handler(request, message_text)
+                    if success and shelf.name == DEFAULT_READING_SHELF:
+                        remove_book_from_want_shelf(request.user, book)
+                        messages.info(
+                            request,
+                            "Уточните формат чтения и данные книги на странице прогресса.",
+                        )
+                        return redirect("shelves:reading_track", book_id=book.pk)
+                    return redirect("book_detail", pk=book.pk)
+
+                ShelfItem.objects.get_or_create(shelf=shelf, book=book)
+                if shelf.name == DEFAULT_READING_SHELF:
+                    remove_book_from_want_shelf(request.user, book)
+                    messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")
+                    messages.info(
+                        request,
+                        "Уточните формат чтения и данные книги на странице прогресса.",
+                    )
+                    return redirect("shelves:reading_track", book_id=book.pk)
+
+                messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")
+                return redirect("book_detail", pk=book.pk)
+            
         is_home_library_action = request.method == "POST" and request.POST.get("action") == "home-library-add"
         if is_home_library_action:
             home_library_form = HomeLibraryQuickAddForm(request.POST)
@@ -964,6 +1037,13 @@ def book_detail(request, pk):
             home_library_form = HomeLibraryQuickAddForm(initial=initial)
         if home_library_item:
             home_library_edit_url = reverse("shelves:home_library_edit", args=[home_library_item.pk])
+
+        read_shelf_ids = list(
+            request.user.shelves
+            .filter(name__in=ALL_DEFAULT_READ_SHELF_NAMES)
+            .values_list("id", flat=True)
+        )
+        read_shelf_ids_str = [str(pk) for pk in read_shelf_ids]
 
         default_shelf_items = (
             ShelfItem.objects
@@ -1010,6 +1090,9 @@ def book_detail(request, pk):
                 "label": DEFAULT_WANT_SHELF,
                 "added_at": item.added_at,
             }
+
+        if quick_add_form is None:
+            quick_add_form = QuickAddShelfForm(user=request.user)
 
     form = RatingForm(
         user=request.user if request.user.is_authenticated else None,
@@ -1431,6 +1514,9 @@ def book_detail(request, pk):
         "home_library_entry": home_library_entry,
         "home_library_edit_url": home_library_edit_url,
         "default_shelf_status": default_shelf_status,
+        "quick_add_form": quick_add_form,
+        "read_shelf_ids": read_shelf_ids,
+        "read_shelf_ids_str": read_shelf_ids_str,
         "genre_shelves": genre_shelves,
         "reading_clubs_by_status": reading_clubs_by_status,
     })

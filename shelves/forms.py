@@ -4,6 +4,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from django import forms
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 from books.models import Book, Genre
 from .models import (
@@ -36,6 +37,52 @@ class AddToShelfForm(forms.Form):
         # показываем только полки текущего пользователя
         self.fields["shelf"].queryset = Shelf.objects.filter(user=user).order_by("-is_default", "name")
 
+
+class QuickAddShelfForm(AddToShelfForm):
+    read_at = forms.DateField(
+        required=False,
+        label="Дата прочтения",
+        widget=forms.DateInput(
+            attrs={
+                "type": "date",
+                "class": "form-control form-control-sm",
+            }
+        ),
+    )
+    quote = forms.CharField(
+        required=False,
+        label="Цитаты",
+        widget=forms.Textarea(
+            attrs={
+                "rows": 3,
+                "class": "form-control form-control-sm",
+                "placeholder": "Запишите любимые цитаты (необязательно)",
+            }
+        ),
+    )
+    note = forms.CharField(
+        required=False,
+        label="Заметки",
+        widget=forms.Textarea(
+            attrs={
+                "rows": 3,
+                "class": "form-control form-control-sm",
+                "placeholder": "Добавьте впечатления или мысли (необязательно)",
+            }
+        ),
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, user=user, **kwargs)
+        self.fields["shelf"].widget.attrs.setdefault("class", "form-select form-select-sm")
+        self.fields["shelf"].widget.attrs.setdefault("data-role", "shelf-select")
+
+    def clean_read_at(self):
+        read_at = self.cleaned_data.get("read_at")
+        if read_at and read_at > timezone.localdate():
+            raise ValidationError("Дата прочтения не может быть в будущем.")
+        return read_at
+    
 class AddToEventForm(forms.Form):
     event = forms.ModelChoiceField(
         queryset=Event.objects.none(),
