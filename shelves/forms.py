@@ -109,6 +109,49 @@ class HomeLibraryQuickAddForm(forms.Form):
             }
         ),
     )
+    mark_as_read = forms.BooleanField(
+        required=False,
+        label="Книга прочитана",
+        widget=forms.CheckboxInput(
+            attrs={
+                "class": "form-check-input",
+                "data-role": "home-library-mark-read",
+            }
+        ),
+    )
+    read_date = forms.DateField(
+        required=False,
+        label="Дата прочтения",
+        help_text="Оставьте пустым, чтобы использовать сегодняшнюю дату",
+        widget=forms.DateInput(
+            attrs={
+                "type": "date",
+                "class": "form-control form-control-sm",
+                "data-role": "home-library-read-date",
+            }
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        today = timezone.localdate()
+        self.fields["purchase_date"].widget.attrs.setdefault("max", today.isoformat())
+        self.fields["read_date"].widget.attrs.setdefault("max", today.isoformat())
+
+    def clean_read_date(self):
+        read_date = self.cleaned_data.get("read_date")
+        if read_date and read_date > timezone.localdate():
+            raise ValidationError("Дата прочтения не может быть в будущем.")
+        return read_date
+
+    def clean(self):
+        cleaned_data = super().clean()
+        mark_as_read = cleaned_data.get("mark_as_read")
+        read_date = cleaned_data.get("read_date")
+        if read_date and not mark_as_read:
+            self.add_error("mark_as_read", "Отметьте, что книга прочитана, чтобы указать дату.")
+        return cleaned_data
+    
 class BookProgressNotesForm(forms.ModelForm):
     class Meta:
         model = BookProgress

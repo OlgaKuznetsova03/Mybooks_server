@@ -1005,36 +1005,66 @@ def book_detail(request, pk):
             home_library_form = HomeLibraryQuickAddForm(request.POST)
             if home_library_form.is_valid():
                 purchase_date = home_library_form.cleaned_data.get("purchase_date")
+                mark_as_read = home_library_form.cleaned_data.get("mark_as_read")
+                read_date = home_library_form.cleaned_data.get("read_date")
                 home_library_item, created = ShelfItem.objects.get_or_create(
                     shelf=home_library_shelf,
                     book=book,
                 )
                 entry, entry_created = HomeLibraryEntry.objects.get_or_create(shelf_item=home_library_item)
                 home_library_entry = entry
-                updated = False
+                fields_to_update: list[str] = []
+                purchase_updated = False
+                read_updated = False
+                read_cleared = False
+
                 if purchase_date and entry.acquired_at != purchase_date:
                     entry.acquired_at = purchase_date
-                    entry.save(update_fields=["acquired_at", "updated_at"])
-                    updated = True
+                    fields_to_update.append("acquired_at")
+                    purchase_updated = True
+
+                if mark_as_read:
+                    effective_read_date = read_date or timezone.localdate()
+                    if entry.read_at != effective_read_date:
+                        entry.read_at = effective_read_date
+                        if "read_at" not in fields_to_update:
+                            fields_to_update.append("read_at")
+                        read_updated = True
+                elif entry.read_at is not None:
+                    entry.read_at = None
+                    if "read_at" not in fields_to_update:
+                        fields_to_update.append("read_at")
+                    read_cleared = True
+
+                if fields_to_update:
+                    entry.save(update_fields=[*fields_to_update, "updated_at"])
 
                 if created or entry_created:
                     messages.success(
                         request,
                         f"«{book.title}» добавлена в полку «{home_library_shelf.name}».",
                     )
-                elif updated:
+                elif purchase_updated:
                     messages.success(request, "Дата покупки обновлена для этой книги.")
                 else:
                     messages.info(
                         request,
                         f"«{book.title}» уже находится на полке «{home_library_shelf.name}».",
                     )
+
+                if read_updated:
+                    messages.success(request, "Книга отмечена как прочитанная в домашней библиотеке.")
+                elif read_cleared:
+                    messages.success(request, "Отметка о прочтении удалена для этой книги.")
                 return redirect("book_detail", pk=book.pk)
         if home_library_form is None:
             initial: dict[str, object] = {}
             if home_library_entry and home_library_entry.acquired_at:
                 initial["purchase_date"] = home_library_entry.acquired_at
             home_library_form = HomeLibraryQuickAddForm(initial=initial)
+            if home_library_entry and home_library_entry.read_at:
+                initial["mark_as_read"] = True
+                initial["read_date"] = home_library_entry.read_at
         if home_library_item:
             home_library_edit_url = reverse("shelves:home_library_edit", args=[home_library_item.pk])
 

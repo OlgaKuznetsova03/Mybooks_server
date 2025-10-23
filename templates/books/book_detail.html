@@ -346,7 +346,7 @@
             <form method="post" action="{% url 'book_detail' book.pk %}" class="row g-2 align-items-end">
               {% csrf_token %}
               <input type="hidden" name="action" value="home-library-add">
-              <div class="col-sm-6 col-md-5 col-lg-4">
+              <div class="col-sm-6 col-md-4 col-lg-4">
                 <label class="form-label small mb-1" for="{{ home_library_form.purchase_date.id_for_label }}">
                   {{ home_library_form.purchase_date.label }}
                 </label>
@@ -357,6 +357,32 @@
                   </div>
                 {% elif home_library_form.purchase_date.help_text %}
                   <div class="form-text">{{ home_library_form.purchase_date.help_text }}</div>
+                {% endif %}
+              </div>
+              <div class="col-sm-6 col-md-4 col-lg-3">
+                <div class="form-check mt-3 mt-sm-4">
+                  {{ home_library_form.mark_as_read }}
+                  <label class="form-check-label small" for="{{ home_library_form.mark_as_read.id_for_label }}">
+                    {{ home_library_form.mark_as_read.label }}
+                  </label>
+                </div>
+                {% if home_library_form.mark_as_read.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {{ home_library_form.mark_as_read.errors|join:", " }}
+                  </div>
+                {% endif %}
+              </div>
+              <div class="col-sm-6 col-md-4 col-lg-4">
+                <label class="form-label small mb-1" for="{{ home_library_form.read_date.id_for_label }}">
+                  {{ home_library_form.read_date.label }}
+                </label>
+                {{ home_library_form.read_date }}
+                {% if home_library_form.read_date.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {{ home_library_form.read_date.errors|join:", " }}
+                  </div>
+                {% elif home_library_form.read_date.help_text %}
+                  <div class="form-text">{{ home_library_form.read_date.help_text }}</div>
                 {% endif %}
               </div>
               <div class="col-sm-auto">
@@ -374,6 +400,11 @@
                 Книга уже находится в полке «{{ home_library_item.shelf.name }}».
                 {% if home_library_entry and home_library_entry.acquired_at %}
                   <br>Дата покупки: {{ home_library_entry.acquired_at|date:"d.m.Y" }}
+                {% endif %}
+                {% if home_library_entry and home_library_entry.read_at %}
+                  <br>Дата прочтения: {{ home_library_entry.read_at|date:"d.m.Y" }}
+                {% else %}
+                  <br>Книга ещё не отмечена как прочитанная.
                 {% endif %}
                 {% if home_library_edit_url %}
                   <br><a class="link-primary" href="{{ home_library_edit_url }}">Редактировать сведения</a>
@@ -579,6 +610,18 @@
 {% block extra_js %}
 <script>
   document.addEventListener('DOMContentLoaded', () => {
+    const homeLibraryMarkRead = document.querySelector('[data-role="home-library-mark-read"]');
+    const homeLibraryReadDate = document.querySelector('[data-role="home-library-read-date"]');
+
+    if (homeLibraryMarkRead && homeLibraryReadDate) {
+      const toggleReadDate = () => {
+        const shouldEnable = homeLibraryMarkRead.checked;
+        homeLibraryReadDate.disabled = !shouldEnable;
+      };
+
+      toggleReadDate();
+      homeLibraryMarkRead.addEventListener('change', toggleReadDate);
+    }
     const ratingFields = document.querySelectorAll('[data-rating-field]');
     ratingFields.forEach((field) => {
       const input = field.querySelector('input[type="hidden"], input[data-role="rating-value"]');
