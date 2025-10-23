@@ -27,6 +27,7 @@ from .forms import (
     BloggerRequestResponseCommentForm,
     BloggerRequestResponseForm,
     CollaborationReviewForm,
+    CollaborationMessageForm,
 )
 from .models import (
     AuthorOffer,
@@ -39,6 +40,7 @@ from .models import (
     CommunityBookClub,
     Collaboration,
     CollaborationStatusUpdate,
+    CollaborationMessage,
 )
 
 User = get_user_model()
@@ -425,7 +427,7 @@ class OfferUpdateView(LoginRequiredMixin, UpdateView):
         context.setdefault("is_editing", True)
         return context
     
-    
+
 class OfferRespondView(LoginRequiredMixin, FormView):
     form_class = AuthorOfferResponseForm
 
@@ -1115,6 +1117,71 @@ class CollaborationListView(LoginRequiredMixin, ListView):
             .select_related("author", "partner", "offer", "request")
             .order_by("-created_at")
         )
+
+
+class CollaborationDetailView(LoginRequiredMixin, View):
+    template_name = "collaborations/collaboration_detail.html"
+
+    def get_object(self, pk: int) -> Collaboration:
+        return get_object_or_404(
+            Collaboration.objects.select_related("author", "partner", "offer", "request")
+            .prefetch_related("messages__author"),
+            pk=pk,
+        )
+
+    def _ensure_participant(self, request, collaboration: Collaboration):
+        if collaboration.is_participant(request.user):
+            return True
+        messages.error(
+            request,
+            _("Переписка доступна только участникам сотрудничества."),
+        )
+        return False
+
+    def _get_context(self, collaboration: Collaboration, form: CollaborationMessageForm):
+        return {
+            "collaboration": collaboration,
+            "conversation_messages": collaboration.messages.select_related("author"),
+            "form": form,
+            "can_post": collaboration.allows_discussion(),
+            "deadline_passed": collaboration.deadline < timezone.now().date(),
+        }
+
+    def get(self, request, pk: int):
+        collaboration = self.get_object(pk)
+        if not self._ensure_participant(request, collaboration):
+            return redirect("collaborations:collaboration_list")
+        form = CollaborationMessageForm()
+        return render(
+            request,
+            self.template_name,
+            self._get_context(collaboration, form),
+        )
+
+    def post(self, request, pk: int):
+        collaboration = self.get_object(pk)
+        if not self._ensure_participant(request, collaboration):
+            return redirect("collaborations:collaboration_list")
+
+        form = CollaborationMessageForm(request.POST)
+        if not collaboration.allows_discussion():
+            messages.error(
+                request,
+                _("Переписка недоступна: сотрудничество завершено или отменено."),
+            )
+            return redirect("collaborations:collaboration_detail", pk=collaboration.pk)
+
+        if form.is_valid():
+            CollaborationMessage.objects.create(
+                collaboration=collaboration,
+                author=request.user,
+                text=form.cleaned_data["text"],
+            )
+            messages.success(request, _("Сообщение отправлено."))
+            return redirect("collaborations:collaboration_detail", pk=collaboration.pk)
+
+        context = self._get_context(collaboration, form)
+        return render(request, self.template_name, context, status=400)
 
 
 class CollaborationReviewUpdateView(LoginRequiredMixin, View):

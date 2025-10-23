@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Сотрудничество" %} · {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-lg-5">
+  <div class="mb-3">
+    <a href="{% url 'collaborations:collaboration_list' %}" class="btn btn-link ps-0 text-decoration-none">
+      <i class="bi bi-arrow-left"></i> {% trans "К списку сотрудничеств" %}
+    </a>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-4">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <h1 class="h5 mb-3">{% trans "Детали сотрудничества" %}</h1>
+          <dl class="row small mb-0">
+            <dt class="col-5 text-muted">{% trans "Автор" %}</dt>
+            <dd class="col-7">
+              {{ collaboration.author.get_full_name|default:collaboration.author.username }}
+            </dd>
+            <dt class="col-5 text-muted">{% trans "Партнёр" %}</dt>
+            <dd class="col-7">
+              {{ collaboration.partner.get_full_name|default:collaboration.partner.username }}
+            </dd>
+            <dt class="col-5 text-muted">{% trans "Статус" %}</dt>
+            <dd class="col-7">
+              <span class="badge text-bg-secondary">{{ collaboration.get_status_display }}</span>
+            </dd>
+            <dt class="col-5 text-muted">{% trans "Дедлайн" %}</dt>
+            <dd class="col-7">
+              {{ collaboration.deadline|date:"j E Y" }}
+              {% if deadline_passed and collaboration.status == collaboration.Status.ACTIVE %}
+                <div class="text-warning small">{% trans "Дедлайн уже прошёл" %}</div>
+              {% endif %}
+            </dd>
+            <dt class="col-5 text-muted">{% trans "Создано" %}</dt>
+            <dd class="col-7">{{ collaboration.created_at|date:"j E Y, H:i" }}</dd>
+            {% if collaboration.offer %}
+              <dt class="col-5 text-muted">{% trans "Предложение" %}</dt>
+              <dd class="col-7">
+                <a href="{% url 'collaborations:offer_detail' collaboration.offer.pk %}" class="text-decoration-none">
+                  {{ collaboration.offer.title }}
+                </a>
+              </dd>
+            {% elif collaboration.request %}
+              <dt class="col-5 text-muted">{% trans "Заявка" %}</dt>
+              <dd class="col-7">
+                <a href="{% url 'collaborations:blogger_request_detail' collaboration.request.pk %}" class="text-decoration-none">
+                  {{ collaboration.request.title }}
+                </a>
+              </dd>
+            {% endif %}
+          </dl>
+        </div>
+        <div class="card-footer bg-light small text-muted">
+          {% if can_post %}
+            {% trans "После подтверждения сотрудничества вы можете обсуждать детали прямо здесь." %}
+          {% else %}
+            {% trans "Переписка закрыта: сотрудничество завершено, отменено или просрочено." %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <div class="card shadow-sm h-100">
+        <div class="card-body d-flex flex-column">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <h2 class="h5 mb-0">{% trans "Переписка" %}</h2>
+            {% if conversation_messages %}
+              <span class="badge text-bg-light text-muted">{{ conversation_messages|length }}</span>
+            {% endif %}
+          </div>
+
+          <div class="flex-grow-1 d-flex flex-column gap-3 mb-4">
+            {% if conversation_messages %}
+              {% for message in conversation_messages %}
+                <div class="border rounded p-3">
+                  <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                    <div>
+                      <strong>{{ message.author.get_full_name|default:message.author.username }}</strong>
+                      {% if message.author_id == collaboration.author_id %}
+                        <span class="badge text-bg-secondary ms-2">{% trans "Автор" %}</span>
+                      {% else %}
+                        <span class="badge text-bg-primary ms-2">{% trans "Партнёр" %}</span>
+                      {% endif %}
+                    </div>
+                    <span class="text-muted small">{{ message.created_at|date:"j E Y, H:i" }}</span>
+                  </div>
+                  <p class="mb-0">{{ message.text|linebreaks }}</p>
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="text-muted small">{% trans "Пока нет сообщений. Начните общение, чтобы согласовать детали." %}</div>
+            {% endif %}
+          </div>
+
+          {% if can_post %}
+            <form method="post" class="mt-auto">
+              {% csrf_token %}
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.text.id_for_label }}">{{ form.text.label }}</label>
+                {{ form.text }}
+                {% for error in form.text.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-send me-1"></i>{% trans "Отправить" %}
+              </button>
+            </form>
+          {% else %}
+            <div class="alert alert-info mb-0" role="alert">
+              {% trans "Новые сообщения недоступны." %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

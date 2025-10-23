@@ -66,6 +66,11 @@ urlpatterns = [
     ),
     path("collaborations/", views.CollaborationListView.as_view(), name="collaboration_list"),
     path(
+        "collaborations/<int:pk>/",
+        views.CollaborationDetailView.as_view(),
+        name="collaboration_detail",
+    ),
+    path(
         "collaborations/<int:pk>/reviews/",
         views.CollaborationReviewUpdateView.as_view(),
         name="collaboration_review",

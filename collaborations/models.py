@@ -705,6 +705,16 @@ class Collaboration(models.Model):
         today = today or date.today()
         return self.status == self.Status.ACTIVE and self.deadline < today
 
+    def allows_discussion(self) -> bool:
+        return self.status in {
+            self.Status.NEGOTIATION,
+            self.Status.ACTIVE,
+        }
+
+    def is_participant(self, user: User) -> bool:
+        user_id = getattr(user, "id", None)
+        return user_id in {self.author_id, self.partner_id}
+    
     @property
     def partner_rating(self) -> Optional[int]:
         try:
@@ -712,6 +722,36 @@ class Collaboration(models.Model):
         except BloggerRating.DoesNotExist:  # type: ignore[attr-defined]
             return None
         return rating.score
+
+
+class CollaborationMessage(models.Model):
+    """Сообщение в рамках согласованного сотрудничества."""
+
+    collaboration = models.ForeignKey(
+        Collaboration,
+        on_delete=models.CASCADE,
+        related_name="messages",
+        verbose_name=_("Сотрудничество"),
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="collaboration_messages",
+        verbose_name=_("Автор сообщения"),
+    )
+    text = models.TextField(
+        verbose_name=_("Сообщение"),
+        validators=[MaxLengthValidator(2000)],
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("created_at",)
+        verbose_name = _("Сообщение сотрудничества")
+        verbose_name_plural = _("Сообщения сотрудничества")
+
+    def __str__(self) -> str:
+        return f"{self.author} → {self.collaboration}"  # pragma: no cover - удобство отображения
 
 
 class BloggerRating(models.Model):

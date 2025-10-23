@@ -20,6 +20,7 @@ from .models import (
     BloggerRequestResponse,
     BloggerRequestResponseComment,
     Collaboration,
+    CollaborationMessage,
 )
 
 
@@ -219,6 +220,24 @@ class BloggerRequestResponseForm(BootstrapModelForm):
         model = BloggerRequestResponse
         fields = ["message", "book"]
         widgets = {"message": forms.Textarea(attrs={"rows": 4})}
+
+
+class CollaborationMessageForm(BootstrapModelForm):
+    class Meta:
+        model = CollaborationMessage
+        fields = ["text"]
+        widgets = {
+            "text": forms.Textarea(
+                attrs={
+                    "rows": 3,
+                    "maxlength": 2000,
+                    "placeholder": _(
+                        "Обсудите рабочие моменты, уточните детали доставки или контента."
+                    ),
+                }
+            )
+        }
+        labels = {"text": _("Сообщение")}
 
 
 class BloggerInvitationForm(BootstrapModelForm):
