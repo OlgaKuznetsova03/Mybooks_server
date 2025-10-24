@@ -111,7 +111,8 @@ class _WebViewPageState extends State<WebViewPage> {
     }
 
     final result = await FilePicker.platform.pickFiles(
-      allowMultiple: params.allowMultiple,allowMultiple: _shouldAllowMultiple(params), type: type,
+      allowMultiple: _shouldAllowMultiple(params),
+      type: type,
       allowedExtensions: customExt,
       withData: true, // если path == null — сохраним bytes во временный файл
     );
