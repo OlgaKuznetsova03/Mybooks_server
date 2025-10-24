@@ -600,25 +600,89 @@
 {% endblock %}
 {% block content %}
 <section class="home-hero mb-5">
-  <div class="row g-4 align-items-center">
-    <div class="col-12 col-lg-8 col-xl-7 home-hero__content">
+  <div class="row g-4 align-items-stretch">
+    <!-- Левый столбец: заголовок, подзаголовок, кнопки -->
+    <div class="col-12 col-lg-7 home-hero__content">
       <p class="home-section-title mb-2">Домашняя коллекция</p>
       <h1 class="home-hero__title display-5 mb-3">Моя домашняя библиотека</h1>
-      <p class="home-hero__subtitle mb-4">Отслеживайте бумажные и электронные экземпляры, расставляйте их по полкам и возвращайтесь к любимым сериям с атмосферой ретро-игры.</p>
-      <div class="home-hero__actions">
+      <p class="home-hero__subtitle mb-4">
+        Отслеживайте бумажные и электронные экземпляры, расставляйте их по полкам и возвращайтесь к любимым сериям с атмосферой ретро-игры.
+      </p>
+      <div class="home-hero__actions mb-3">
         <a class="btn btn-light home-hero__btn" href="{% url 'book_list' %}">
-          <i class="bi bi-plus-circle me-2"></i>
-          Добавить книгу
+          <i class="bi bi-plus-circle me-2"></i> Добавить книгу
         </a>
         <a class="btn btn-outline-light home-hero__btn" href="{% url 'shelves:my_shelves' %}">
-          <i class="bi bi-card-list me-2"></i>
-          К полкам
+          <i class="bi bi-card-list me-2"></i> К полкам
         </a>
+      </div>
+    </div>
+
+    <!-- Правый столбец: карточка со статистикой периода -->
+    <div class="col-12 col-lg-5 d-flex">
+      <div class="home-glow-card home-progress-card w-100 h-100">
+        <h2 class="h6 text-uppercase text-muted mb-3">Куплено против прочитано</h2>
+
+        <div class="home-progress-controls mb-3">
+          <div class="flex-grow-1">
+            <label class="form-label text-uppercase text-muted small" for="homePeriodType">Тип периода</label>
+            <select class="form-select form-select-sm" id="homePeriodType" data-role="period-type">
+              <option value="year" {% if default_period_type == "year" %}selected{% endif %}>Год</option>
+              <option value="month" {% if default_period_type == "month" %}selected{% endif %}>Месяц</option>
+            </select>
+          </div>
+          <div class="flex-grow-1">
+            <label class="form-label text-uppercase text-muted small" for="homePeriodValue">Период</label>
+            <select class="form-select form-select-sm" id="homePeriodValue" data-role="period-value">
+              {% if initial_period_options %}
+                {% for option in initial_period_options %}
+                  <option value="{{ option.value }}" {% if option.value == default_period_value %}selected{% endif %}>{{ option.label }}</option>
+                {% endfor %}
+              {% else %}
+                <option value="" selected>Нет данных</option>
+              {% endif %}
+            </select>
+          </div>
+        </div>
+
+        <div class="home-progress-stats">
+          <div class="home-progress-side">
+            <div class="small text-uppercase text-muted">Куплено</div>
+            <button class="home-stats-button home-progress-value summary-trigger"
+                    type="button"
+                    data-summary-trigger
+                    data-summary-category="period"
+                    data-period-kind="bought"
+                    data-period-type="{{ default_period_type }}"
+                    data-period-value="{{ default_period_value }}"
+                    data-summary-title="Куплено">
+              <span class="home-progress-number" data-role="period-bought-count">{{ default_period_stats.bought_count }}</span>
+            </button>
+          </div>
+
+          <div class="home-progress-line">
+            <div class="home-progress-fill" data-role="period-progress-fill"></div>
+            <div class="home-progress-label" data-role="period-progress-label">0%</div>
+          </div>
+
+          <div class="home-progress-side text-end">
+            <div class="small text-uppercase text-muted">Прочитано</div>
+            <button class="home-stats-button home-progress-value summary-trigger"
+                    type="button"
+                    data-summary-trigger
+                    data-summary-category="period"
+                    data-period-kind="read"
+                    data-period-type="{{ default_period_type }}"
+                    data-period-value="{{ default_period_value }}"
+                    data-summary-title="Прочитано">
+              <span class="home-progress-number" data-role="period-read-count">{{ default_period_stats.read_count }}</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </section>
-
 <div class="home-stats-grid mb-5">
   <div class="home-glow-card home-quick-actions-card h-100">
     <h2 class="h6 text-uppercase text-muted mb-3">Быстрые действия</h2>
@@ -639,48 +703,6 @@
     <p class="small text-muted mt-3 mb-0">Следите за движением коллекции, присваивайте статусы и делитесь историями прямо со смартфона.</p>
   </div>
   {% if entries %}
-    <div class="home-glow-card home-progress-card">
-      <h2 class="h6 text-uppercase text-muted mb-3">Куплено против прочитано</h2>
-      <div class="home-progress-controls mb-3">
-        <div class="flex-grow-1">
-          <label class="form-label text-uppercase text-muted small" for="homePeriodType">Тип периода</label>
-          <select class="form-select form-select-sm" id="homePeriodType" data-role="period-type">
-            <option value="year" {% if default_period_type == "year" %}selected{% endif %}>Год</option>
-            <option value="month" {% if default_period_type == "month" %}selected{% endif %}>Месяц</option>
-          </select>
-        </div>
-        <div class="flex-grow-1">
-          <label class="form-label text-uppercase text-muted small" for="homePeriodValue">Период</label>
-          <select class="form-select form-select-sm" id="homePeriodValue" data-role="period-value">
-            {% if initial_period_options %}
-              {% for option in initial_period_options %}
-                <option value="{{ option.value }}" {% if option.value == default_period_value %}selected{% endif %}>{{ option.label }}</option>
-              {% endfor %}
-            {% else %}
-              <option value="" selected>Нет данных</option>
-            {% endif %}
-          </select>
-        </div>
-      </div>
-      <div class="home-progress-stats">
-        <div class="home-progress-side">
-          <div class="small text-uppercase text-muted">Куплено</div>
-          <button class="home-stats-button home-progress-value summary-trigger" type="button" data-summary-trigger data-summary-category="period" data-period-kind="bought" data-period-type="{{ default_period_type }}" data-period-value="{{ default_period_value }}" data-summary-title="Куплено">
-            <span class="home-progress-number" data-role="period-bought-count">{{ default_period_stats.bought_count }}</span>
-          </button>
-        </div>
-        <div class="home-progress-line">
-          <div class="home-progress-fill" data-role="period-progress-fill"></div>
-          <div class="home-progress-label" data-role="period-progress-label">0%</div>
-        </div>
-        <div class="home-progress-side text-end">
-          <div class="small text-uppercase text-muted">Прочитано</div>
-          <button class="home-stats-button home-progress-value summary-trigger" type="button" data-summary-trigger data-summary-category="period" data-period-kind="read" data-period-type="{{ default_period_type }}" data-period-value="{{ default_period_value }}" data-summary-title="Прочитано">
-            <span class="home-progress-number" data-role="period-read-count">{{ default_period_stats.read_count }}</span>
-          </button>
-        </div>
-      </div>
-    </div>
     <div class="home-glow-card">
       <h2 class="h6 text-uppercase text-muted mb-3">Всего активных книг</h2>
       <button class="home-stats-button home-stats-button--block summary-trigger" type="button" data-summary-trigger data-summary-category="active" data-summary-title="Текущие книги">
