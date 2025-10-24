@@ -639,35 +639,6 @@
     <p class="small text-muted mt-3 mb-0">Следите за движением коллекции, присваивайте статусы и делитесь историями прямо со смартфона.</p>
   </div>
   {% if entries %}
-    <div class="home-glow-card">
-      <h2 class="h6 text-uppercase text-muted mb-3">Всего активных книг</h2>
-      <button class="home-stats-button home-stats-button--block summary-trigger" type="button" data-summary-trigger data-summary-category="active" data-summary-title="Текущие книги">
-        <span class="home-stats-primary">{{ summary.total }}</span>
-      </button>
-      <p class="small text-muted mb-0">
-        Передано:
-        <button class="home-stats-button home-stats-button--inline summary-trigger" type="button" data-summary-trigger data-summary-category="disposed" data-summary-title="Переданные книги">
-          {{ summary.disposed_total }} {{ summary.disposed_total|ru_pluralize:"книга,книги,книг" }}
-        </button>
-      </p>
-    </div>
-    <div class="home-glow-card">
-      <h2 class="h6 text-uppercase text-muted mb-3">Классика против современности</h2>
-      <div class="d-flex gap-4 align-items-end">
-        <div>
-          <div class="small text-uppercase text-muted">Классика</div>
-          <button class="home-stats-button display-6 mb-0 summary-trigger" type="button" data-summary-trigger data-summary-category="classic" data-summary-title="Классические книги">
-            <span class="home-progress-number">{{ summary.classic_count }}</span>
-          </button>
-        </div>
-        <div>
-          <div class="small text-uppercase text-muted">Современные</div>
-          <button class="home-stats-button display-6 mb-0 text-info summary-trigger" type="button" data-summary-trigger data-summary-category="modern" data-summary-title="Современные книги">
-            <span class="home-progress-number">{{ summary.modern_count }}</span>
-          </button>
-        </div>
-      </div>
-    </div>
     <div class="home-glow-card home-progress-card">
       <h2 class="h6 text-uppercase text-muted mb-3">Куплено против прочитано</h2>
       <div class="home-progress-controls mb-3">
@@ -706,6 +677,35 @@
           <div class="small text-uppercase text-muted">Прочитано</div>
           <button class="home-stats-button home-progress-value summary-trigger" type="button" data-summary-trigger data-summary-category="period" data-period-kind="read" data-period-type="{{ default_period_type }}" data-period-value="{{ default_period_value }}" data-summary-title="Прочитано">
             <span class="home-progress-number" data-role="period-read-count">{{ default_period_stats.read_count }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="home-glow-card">
+      <h2 class="h6 text-uppercase text-muted mb-3">Всего активных книг</h2>
+      <button class="home-stats-button home-stats-button--block summary-trigger" type="button" data-summary-trigger data-summary-category="active" data-summary-title="Текущие книги">
+        <span class="home-stats-primary">{{ summary.total }}</span>
+      </button>
+      <p class="small text-muted mb-0">
+        Передано:
+        <button class="home-stats-button home-stats-button--inline summary-trigger" type="button" data-summary-trigger data-summary-category="disposed" data-summary-title="Переданные книги">
+          {{ summary.disposed_total }} {{ summary.disposed_total|ru_pluralize:"книга,книги,книг" }}
+        </button>
+      </p>
+    </div>
+    <div class="home-glow-card">
+      <h2 class="h6 text-uppercase text-muted mb-3">Классика против современности</h2>
+      <div class="d-flex gap-4 align-items-end">
+        <div>
+          <div class="small text-uppercase text-muted">Классика</div>
+          <button class="home-stats-button display-6 mb-0 summary-trigger" type="button" data-summary-trigger data-summary-category="classic" data-summary-title="Классические книги">
+            <span class="home-progress-number">{{ summary.classic_count }}</span>
+          </button>
+        </div>
+        <div>
+          <div class="small text-uppercase text-muted">Современные</div>
+          <button class="home-stats-button display-6 mb-0 text-info summary-trigger" type="button" data-summary-trigger data-summary-category="modern" data-summary-title="Современные книги">
+            <span class="home-progress-number">{{ summary.modern_count }}</span>
           </button>
         </div>
       </div>
