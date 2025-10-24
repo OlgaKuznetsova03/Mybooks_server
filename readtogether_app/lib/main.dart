@@ -47,7 +47,7 @@ class _WebViewPageState extends State<WebViewPage> {
     // Параметры платформенного контроллера
     final PlatformWebViewControllerCreationParams params;
     if (WebViewPlatform.instance is WebKitWebViewPlatform) {
-      params = const WebKitWebViewControllerCreationParams(
+      params = WebKitWebViewControllerCreationParams(
         allowsInlineMediaPlayback: true,
         // mediaTypesRequiringUserAction — опустим, не обязателен
       );
@@ -111,8 +111,7 @@ class _WebViewPageState extends State<WebViewPage> {
     }
 
     final result = await FilePicker.platform.pickFiles(
-      allowMultiple: params.allowMultiple,
-      type: type,
+      allowMultiple: params.allowMultiple,allowMultiple: _shouldAllowMultiple(params), type: type,
       allowedExtensions: customExt,
       withData: true, // если path == null — сохраним bytes во временный файл
     );
@@ -131,6 +130,34 @@ class _WebViewPageState extends State<WebViewPage> {
       }
     }
     return paths;
+  }
+
+
+  bool _shouldAllowMultiple(FileSelectorParams params) {
+    final dynamic dynamicParams = params;
+
+    try {
+      final value = dynamicParams.allowMultiple;
+      if (value is bool) {
+        return value;
+      }
+    } catch (_) {
+      // Property not available on this plugin version.
+    }
+
+    try {
+      final mode = dynamicParams.mode;
+      if (mode != null) {
+        final modeString = mode.toString().toLowerCase();
+        if (modeString.contains('multiple')) {
+          return true;
+        }
+      }
+    } catch (_) {
+      // Property not available on this plugin version.
+    }
+
+    return false;
   }
 
   Future<bool> _handleBack() async {
