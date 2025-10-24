@@ -1063,18 +1063,25 @@
       if (!dataElement) {
         return;
       }
-      const summaryData = JSON.parse(dataElement.textContent || '{}');
-      const modalEl = document.getElementById('homeLibrarySummaryModal');
-      if (!modalEl) {
-        return;
+      
+      let summaryData = {};
+      try {
+        summaryData = JSON.parse(dataElement.textContent || '{}');
+      } catch (error) {
+        console.error('Failed to parse home library summary data', error);
+        summaryData = {};
       }
 
-      const titleEl = modalEl.querySelector('[data-role="summary-title"]');
-      const listWrapper = modalEl.querySelector('[data-role="summary-list"]');
-      const emptyEl = modalEl.querySelector('[data-role="summary-empty"]');
+      const modalEl = document.getElementById('homeLibrarySummaryModal');
+      const titleEl = modalEl ? modalEl.querySelector('[data-role="summary-title"]') : null;
+      const listWrapper = modalEl ? modalEl.querySelector('[data-role="summary-list"]') : null;
+      const emptyEl = modalEl ? modalEl.querySelector('[data-role="summary-empty"]') : null;
       let modalInstance = null;
 
       function ensureModal() {
+        if (!modalEl) {
+          return null;
+        }
         if (!modalInstance && window.bootstrap && window.bootstrap.Modal) {
           modalInstance = new window.bootstrap.Modal(modalEl);
         }
@@ -1082,6 +1089,9 @@
       }
 
       function renderBooks(items) {
+        if (!listWrapper || !emptyEl) {
+          return;
+        }
         if (!Array.isArray(items) || !items.length) {
           listWrapper.innerHTML = '';
           listWrapper.classList.add('d-none');
@@ -1110,7 +1120,9 @@
       }
 
       function openModal(title, items) {
-        titleEl.textContent = title || 'Список книг';
+        if (titleEl) {
+          titleEl.textContent = title || 'Список книг';
+        }
         renderBooks(items);
         const modal = ensureModal();
         if (modal) {
