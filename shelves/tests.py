@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from django.template import Context
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.timezone import localdate
 
 from books.models import Book, ISBNModel
@@ -760,6 +761,21 @@ class HomeLibraryEntryReadDateTests(TestCase):
         home_shelf = Shelf.objects.get(user=self.user, name=DEFAULT_HOME_LIBRARY_SHELF)
         entry = HomeLibraryEntry.objects.get(shelf_item__shelf=home_shelf, shelf_item__book=self.book)
         self.assertEqual(entry.read_at, target_date)
+        
+    def test_move_to_read_sets_shelf_item_added_at_date(self):
+        target_date = localdate() - timedelta(days=7)
+
+        move_book_to_read_shelf(self.user, self.book, read_date=target_date)
+
+        read_shelf = Shelf.objects.filter(
+            user=self.user,
+            name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+        ).first()
+        self.assertIsNotNone(read_shelf)
+
+        shelf_item = ShelfItem.objects.get(shelf=read_shelf, book=self.book)
+        added_at_local = timezone.localtime(shelf_item.added_at)
+        self.assertEqual(added_at_local.date(), target_date)
         
     def test_template_tag_handles_shelf_items(self):
         read_shelf = Shelf.objects.filter(

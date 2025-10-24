@@ -95,6 +95,8 @@ def move_book_to_read_shelf(user: User, book: Book, *, read_date: date | None = 
     if not user.is_authenticated:
         return
 
+    shelf_item: ShelfItem | None = None
+
     with transaction.atomic():
         _remove_book_from_named_shelf(user, book, DEFAULT_READING_SHELF)
         _remove_book_from_named_shelf(user, book, ALL_DEFAULT_READ_SHELF_NAMES)
@@ -105,7 +107,28 @@ def move_book_to_read_shelf(user: User, book: Book, *, read_date: date | None = 
             DEFAULT_READ_SHELF,
             aliases=DEFAULT_READ_SHELF_ALIASES,
         )
-        ShelfItem.objects.get_or_create(shelf=read_shelf, book=book)
+        shelf_item, _ = ShelfItem.objects.get_or_create(shelf=read_shelf, book=book)
+
+    if read_date and shelf_item:
+        target_added_at = datetime.combine(read_date, datetime.min.time())
+        if timezone.is_naive(target_added_at):
+            target_added_at = timezone.make_aware(
+                target_added_at,
+                timezone.get_current_timezone(),
+            )
+
+        current_added_at = shelf_item.added_at
+        if current_added_at:
+            if timezone.is_aware(current_added_at):
+                current_added_date = timezone.localtime(current_added_at).date()
+            else:
+                current_added_date = current_added_at.date()
+        else:
+            current_added_date = None
+
+        if current_added_date != read_date:
+            shelf_item.added_at = target_added_at
+            shelf_item.save(update_fields=["added_at"])
 
     home_shelf = get_home_library_shelf(user)
     home_item = ShelfItem.objects.filter(shelf=home_shelf, book=book).select_related("home_entry").first()
