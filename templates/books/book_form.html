@@ -151,6 +151,24 @@
     </div>
   </div>
 </div>
+
+<div class="modal fade" id="external-cover-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Обложка книги</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img src="" alt="Обложка книги" class="img-fluid rounded shadow-sm" data-role="external-cover-image">
+      </div>
+      <div class="modal-footer justify-content-between flex-wrap">
+        <a href="#" class="btn btn-outline-secondary" target="_blank" rel="noopener" data-role="external-cover-original">Открыть в браузере</a>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -185,6 +203,25 @@
       const synopsisField = document.getElementById('id_synopsis');
       const isbnField = document.getElementById('id_isbn');
       const metadataField = document.getElementById('id_isbn_metadata');
+      const userAgent = navigator.userAgent || '';
+      const isAndroidWebView = /Android/i.test(userAgent) && /\bwv\b/i.test(userAgent);
+      const externalCoverModalElement = document.getElementById('external-cover-modal');
+      const externalCoverModalImage = externalCoverModalElement?.querySelector('[data-role="external-cover-image"]');
+      const externalCoverModalLink = externalCoverModalElement?.querySelector('[data-role="external-cover-original"]');
+      const externalCoverModal = externalCoverModalElement && window.bootstrap?.Modal
+        ? bootstrap.Modal.getOrCreateInstance(externalCoverModalElement)
+        : null;
+
+      if (externalCoverModalElement) {
+        externalCoverModalElement.addEventListener('hidden.bs.modal', () => {
+          if (externalCoverModalImage) {
+            externalCoverModalImage.removeAttribute('src');
+          }
+          if (externalCoverModalLink) {
+            externalCoverModalLink.removeAttribute('href');
+          }
+        });
+      }
 
 
       function setLoading(isLoading) {
@@ -215,6 +252,41 @@
           externalSuggestion.hidden = true;
         }
         showCoverPreview('');
+      }
+
+      function openExternalCoverPreview(url) {
+        if (!url) {
+          return;
+        }
+
+        if (!isAndroidWebView) {
+          let openedWindow = null;
+          try {
+            openedWindow = window.open(url, '_blank');
+          } catch (err) {
+            openedWindow = null;
+          }
+
+          if (openedWindow && typeof openedWindow === 'object') {
+            try {
+              openedWindow.opener = null;
+            } catch (err) {
+              // ignore if not allowed by the browser
+            }
+            return;
+          }
+        }
+
+        if (externalCoverModal && externalCoverModalImage) {
+          externalCoverModalImage.src = url;
+          if (externalCoverModalLink) {
+            externalCoverModalLink.href = url;
+          }
+          externalCoverModal.show();
+          return;
+        }
+
+        window.location.href = url;
       }
 
       function renderLocal(results) {
@@ -477,6 +549,10 @@
             coverLink.rel = 'noopener';
             coverLink.className = 'btn btn-outline-secondary btn-sm';
             coverLink.textContent = 'Открыть обложку';
+            coverLink.addEventListener('click', (event) => {
+              event.preventDefault();
+              openExternalCoverPreview(item.cover_url);
+            });
             actions.appendChild(coverLink);
           }
 
