@@ -524,7 +524,7 @@
             externalSuggestion.hidden = !!options.forceExternal;
           }
 
-          if (options.forceExternal || (data.external_results && data.external_results.length)) {
+          if (options.forceExternal || data.external_error || (data.external_results && data.external_results.length)) {
             if (externalSuggestion) {
               externalSuggestion.hidden = true;
             }

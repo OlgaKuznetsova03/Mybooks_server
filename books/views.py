@@ -54,6 +54,8 @@ from .utils import normalize_isbn
 
 logger = logging.getLogger(__name__)
 
+ISBNDB_MISSING_KEY_ERROR = "Поиск через ISBNdb временно недоступен: API-ключ не настроен."
+
 
 def _isbn_query(value: Optional[str]) -> str:
     return normalize_isbn(value)
@@ -286,22 +288,25 @@ def _perform_book_lookup(
 
     external_results = []
     external_error = None
+    can_use_isbndb = bool(getattr(isbndb_client, "api_key", ""))
     if force_external or not local_results:
-        try:
-            search_results = isbndb_client.search(
-                title=normalized_title or None,
-                author=normalized_author or None,
-                isbn=isbn or None,
-                limit=max(1, external_limit),
-            )
-        except Exception as exc:  # pragma: no cover - defensive logging
-            logger.exception("ISBNdb lookup failed: %s", exc)
-            search_results = []
-            external_error = "Не удалось получить данные от ISBNdb. Попробуйте позже."
-
-        for item in search_results:
-            external_results.append(_serialize_external_item(item))
-
+        if not can_use_isbndb:
+            external_error = ISBNDB_MISSING_KEY_ERROR
+        else:
+            try:
+                search_results = isbndb_client.search(
+                    title=normalized_title or None,
+                    author=normalized_author or None,
+                    isbn=isbn or None,
+                    limit=max(1, external_limit),
+                )
+            except Exception as exc:  # pragma: no cover - defensive logging
+                logger.exception("ISBNdb lookup failed: %s", exc)
+                search_results = []
+                external_error = "Не удалось получить данные от ISBNdb. Попробуйте позже."
+            else:
+                for item in search_results:
+                    external_results.append(_serialize_external_item(item))
     return {
         "query": {
             "title": normalized_title,
@@ -483,6 +488,7 @@ def book_list(request):
     external_suggestions: list[dict[str, object]] = []
     external_error = None
     show_external_results = False
+    can_use_isbndb = bool(getattr(isbndb_client, "api_key", ""))
     isbndb_lookup_active = (request.GET.get("external") or "").lower() == "isbndb"
     isbndb_lookup_url = None
     isbndb_reset_url = None
@@ -543,8 +549,16 @@ def book_list(request):
                 }
             )
 
+
         if q and page_obj:
-            should_fetch_external = page_obj.paginator.count == 0 or isbndb_lookup_active
+            isbn_candidate = normalize_isbn(q)
+            has_valid_isbn = len(isbn_candidate) in (10, 13)
+            should_fetch_external = (
+                page_obj.paginator.count == 0
+                or isbndb_lookup_active
+                or has_valid_isbn
+            )
+
             if should_fetch_external:
                 normalized_query = q.casefold()
                 matched_author = False
@@ -557,22 +571,24 @@ def book_list(request):
                         if matched_author:
                             break
 
-                isbn_candidate = normalize_isbn(q)
-                has_valid_isbn = len(isbn_candidate) in (10, 13)
                 title_query = q if not has_valid_isbn else ""
                 author_query = q if matched_author else ""
 
-                try:
-                    results = isbndb_client.search(
-                        title=title_query or None,
-                        author=author_query or None,
-                        isbn=isbn_candidate or None,
-                        limit=6,
-                    )
-                except Exception as exc:  # pragma: no cover - defensive logging
-                    logger.exception("ISBNdb search for list failed: %s", exc)
+                if not can_use_isbndb:
                     results = []
-                    external_error = "Не удалось получить данные из ISBNdb. Попробуйте позже."
+                    external_error = ISBNDB_MISSING_KEY_ERROR
+                else:
+                    try:
+                        results = isbndb_client.search(
+                            title=title_query or None,
+                            author=author_query or None,
+                            isbn=isbn_candidate or None,
+                            limit=6,
+                        )
+                    except Exception as exc:  # pragma: no cover - defensive logging
+                        logger.exception("ISBNdb search for list failed: %s", exc)
+                        results = []
+                        external_error = "Не удалось получить данные из ISBNdb. Попробуйте позже."
 
                 for item in results:
                     serialized = _serialize_external_item(item)
