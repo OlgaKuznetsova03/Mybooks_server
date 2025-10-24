@@ -488,7 +488,6 @@ def book_list(request):
     external_suggestions: list[dict[str, object]] = []
     external_error = None
     show_external_results = False
-    can_use_isbndb = bool(getattr(isbndb_client, "api_key", ""))
     isbndb_lookup_active = (request.GET.get("external") or "").lower() == "isbndb"
     isbndb_lookup_url = None
     isbndb_reset_url = None
@@ -574,24 +573,23 @@ def book_list(request):
                 title_query = q if not has_valid_isbn else ""
                 author_query = q if matched_author else ""
 
-                if not can_use_isbndb:
-                    results = []
-                    external_error = ISBNDB_MISSING_KEY_ERROR
-                else:
-                    try:
-                        results = isbndb_client.search(
-                            title=title_query or None,
-                            author=author_query or None,
-                            isbn=isbn_candidate or None,
-                            limit=6,
-                        )
-                    except Exception as exc:  # pragma: no cover - defensive logging
-                        logger.exception("ISBNdb search for list failed: %s", exc)
-                        results = []
-                        external_error = "Не удалось получить данные из ISBNdb. Попробуйте позже."
+                try:
+                    lookup_payload = _perform_book_lookup(
+                        title=title_query,
+                        author=author_query,
+                        isbn_raw=isbn_candidate,
+                        force_external=True,
+                        local_limit=0,
+                        external_limit=6,
+                    )
+                except BookLookupQueryError as exc:
+                    lookup_payload = {
+                        "external_results": [],
+                        "external_error": str(exc),
+                    }
 
-                for item in results:
-                    serialized = _serialize_external_item(item)
+                external_error = lookup_payload.get("external_error")
+                for serialized in lookup_payload.get("external_results", []):
                     payload = {
                         "query": {
                             "title": title_query,
