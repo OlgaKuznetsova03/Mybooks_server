@@ -123,8 +123,8 @@ class _WebViewPageState extends State<WebViewPage> {
     final tempDir = await getTemporaryDirectory();
     for (final f in result.files) {
       if (f.path != null && f.path!.isNotEmpty) {
-        paths.add(f.path!);
-      continue;
+        paths.add(_normalizeForWebView(f.path!));
+        continue;
       }
 
       final targetFile =
@@ -132,7 +132,7 @@ class _WebViewPageState extends State<WebViewPage> {
 
       if (f.bytes != null) {
         await targetFile.writeAsBytes(f.bytes!, flush: true);
-        paths.add(targetFile.path);
+        paths.add(_normalizeForWebView(targetFile.path));
         continue;
       }
 
@@ -142,12 +142,27 @@ class _WebViewPageState extends State<WebViewPage> {
         await stream.pipe(sink);
         await sink.flush();
         await sink.close();
-        paths.add(targetFile.path);
+        paths.add(_normalizeForWebView(targetFile.path));
       }
     }
     return paths;
   }
 
+  String _normalizeForWebView(String rawPath) {
+    final trimmed = rawPath.trim();
+    if (trimmed.isEmpty) {
+      return trimmed;
+    }
+
+    // Если платформенный плагин уже вернул URI (например, content://),
+    // то WebView сможет обработать его без преобразований.
+    if (trimmed.contains('://')) {
+      return trimmed;
+    }
+
+    return Uri.file(trimmed).toString();
+  }
+  
   Future<File> _createTempFile(
     String dirPath,
     String? originalName,
