@@ -120,19 +120,71 @@ class _WebViewPageState extends State<WebViewPage> {
     if (result == null) return <String>[]; // пользователь отменил
 
     final List<String> paths = [];
+    final tempDir = await getTemporaryDirectory();
     for (final f in result.files) {
-      if (f.path != null) {
+      if (f.path != null && f.path!.isNotEmpty) {
         paths.add(f.path!);
-      } else if (f.bytes != null) {
-        final dir = await getTemporaryDirectory();
-        final file = File('${dir.path}/${f.name}');
-        await file.writeAsBytes(f.bytes!, flush: true);
-        paths.add(file.path);
+      continue;
+      }
+
+      final targetFile =
+          await _createTempFile(tempDir.path, f.name, f.extension);
+
+      if (f.bytes != null) {
+        await targetFile.writeAsBytes(f.bytes!, flush: true);
+        paths.add(targetFile.path);
+        continue;
+      }
+
+      final stream = f.readStream;
+      if (stream != null) {
+        final sink = targetFile.openWrite();
+        await stream.pipe(sink);
+        await sink.flush();
+        await sink.close();
+        paths.add(targetFile.path);
       }
     }
     return paths;
   }
 
+  Future<File> _createTempFile(
+    String dirPath,
+    String? originalName,
+    String? fallbackExtension,
+  ) async {
+    final sanitizedName = _sanitizeFileName(originalName);
+    final generatedName = sanitizedName ??
+        _buildFallbackName(fallbackExtension: fallbackExtension);
+    final uniqueName =
+        '${DateTime.now().microsecondsSinceEpoch}_${generatedName}';
+    final file = File('$dirPath/$uniqueName');
+    if (!await file.exists()) {
+      await file.create(recursive: true);
+    }
+    return file;
+  }
+
+  String? _sanitizeFileName(String? original) {
+    final trimmed = original?.trim() ?? '';
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    final sanitized = trimmed.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+    return sanitized.isEmpty ? null : sanitized;
+  }
+
+  String _buildFallbackName({String? fallbackExtension}) {
+    final ext = fallbackExtension?.trim();
+    if (ext == null || ext.isEmpty) {
+      return 'upload';
+    }
+    final sanitizedExt = ext.replaceAll(RegExp(r'[^A-Za-z0-9]'), '');
+    if (sanitizedExt.isEmpty) {
+      return 'upload';
+    }
+    return 'upload.$sanitizedExt';
+  }
 
   bool _shouldAllowMultiple(FileSelectorParams params) {
     final dynamic dynamicParams = params;
