@@ -448,6 +448,8 @@ class OfferRespondView(LoginRequiredMixin, FormView):
                 messages.error(request, _("Только блогеры могут откликаться на это предложение."))
             else:
                 messages.error(request, _("Вы не можете откликнуться на это предложение."))
+            return redirect("collaborations:offer_detail", pk=self.offer.pk)
+        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
         response, created = AuthorOfferResponse.objects.get_or_create(

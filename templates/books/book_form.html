@@ -1,17 +1,51 @@
 {% extends "base.html" %}
 {% load static %}
+
 {% block title %}Новая книга · ReadTogether{% endblock %}
+
+{% block extra_css %}
+  {{ block.super }}
+  <style>
+    .rt-highlight {
+      position: relative;
+      border: 1px solid rgba(64,83,92,.25);
+      background: linear-gradient(145deg, rgba(64,83,92,.06), rgba(64,83,92,.02));
+      border-left: .5rem solid var(--rt-primary, #40535c);
+      border-radius: 1rem;
+      box-shadow: 0 18px 40px rgba(25, 35, 45, .08);
+      padding: 1.25rem;
+    }
+    .rt-highlight-badge{
+      position:absolute; top:-.75rem; left:.75rem;
+      background: var(--rt-primary,#40535c); color:#fff;
+      font-size:.75rem; line-height:1; padding:.4rem .6rem;
+      border-radius:.5rem; box-shadow:0 6px 16px rgba(25,35,45,.15);
+    }
+    @keyframes rt-pulse {
+      0%   { box-shadow:0 0 0 0 rgba(64,83,92,.35); }
+      70%  { box-shadow:0 0 0 14px rgba(64,83,92,0); }
+      100% { box-shadow:0 0 0 0 rgba(64,83,92,0); }
+    }
+    .rt-pulse-once { animation: rt-pulse 1.8s ease-out 1; }
+  </style>
+{% endblock %}
+
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-lg-8 col-xl-7">
-    <div class="d-flex align-items-center justify-content-between mb-4">
+
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
       <h1 class="h4 mb-0">Добавление книги</h1>
-      <a class="btn btn-outline-secondary" href="{% url 'book_list' %}"><i class="bi bi-arrow-left"></i> Ко всем книгам</a>
+      <div class="d-flex gap-2">
+        <a class="btn btn-outline-primary btn-sm" href="#book-lookup"><i class="bi bi-search"></i> К поиску</a>
+        <a class="btn btn-outline-secondary" href="{% url 'book_list' %}"><i class="bi bi-arrow-left"></i> Ко всем книгам</a>
+      </div>
     </div>
 
     <div class="card shadow-sm border-0">
       <div class="card-body">
         <p class="text-muted small">Заполните форму ниже, чтобы поделиться книгой с сообществом. Поля со звёздочкой обязательны.</p>
+
         <form method="post" enctype="multipart/form-data" autocomplete="off" novalidate>
           {% csrf_token %}
           {{ form.media }}
@@ -25,7 +59,9 @@
             </div>
           {% endif %}
 
-          <div id="book-lookup" class="mb-4 book-lookup-highlight" data-lookup-url="{% url 'book_lookup' %}">
+          <!-- ПОИСК КНИГИ -->
+          <div id="book-lookup" class="mb-4 rt-highlight rt-pulse-once" data-lookup-url="{% url 'book_lookup' %}">
+            <span class="rt-highlight-badge">Шаг 1</span>
             <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
               <h2 class="h5 mb-0">Поиск книги</h2>
               <span class="text-muted small">Сначала ищем на сайте, затем при необходимости через ISBNdb.</span>
@@ -50,7 +86,10 @@
                 </button>
               </div>
             </div>
-            <div id="book-lookup-feedback" class="form-text mt-2 text-muted">Введите данные и нажмите поиск, чтобы убедиться, что книги ещё нет на сайте.</div>
+
+            <div id="book-lookup-feedback" class="form-text mt-2 text-muted">
+              Введите данные и нажмите поиск, чтобы убедиться, что книги ещё нет на сайте.
+            </div>
 
             <div id="book-lookup-cover-preview" class="mt-3" hidden>
               <p class="text-muted small mb-2">Обложка найденного издания:</p>
@@ -64,10 +103,12 @@
                 <h3 class="h6">Результаты на сайте</h3>
                 <div class="vstack gap-3" data-role="local-results"></div>
               </div>
+
               <div id="book-lookup-external-suggestion" class="alert alert-warning d-flex justify-content-between align-items-center" hidden>
                 <span>Не нашли нужное издание? Попробуйте поискать через ISBNdb.</span>
                 <button type="button" class="btn btn-sm btn-outline-primary" id="book-lookup-load-external">Искать в ISBNdb</button>
               </div>
+
               <div class="mb-3" data-role="external-section" hidden>
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <h3 class="h6 mb-0">Найдено через ISBNdb</h3>
@@ -77,8 +118,9 @@
               </div>
             </div>
           </div>
+          <!-- /ПОИСК КНИГИ -->
 
-           {% if duplicate_candidates %}
+          {% if duplicate_candidates %}
             <div class="alert alert-warning">
               <h2 class="h5 mb-3">Мы нашли похожие книги</h2>
               <p class="mb-3">На сайте уже есть книги с таким же названием и авторами. Выберите, что сделать с новым изданием.</p>
@@ -97,15 +139,11 @@
                       {% with same_value='same:'|add:candidate.pk|stringformat:"s" edition_value='edition:'|add:candidate.pk|stringformat:"s" %}
                         <div class="form-check">
                           <input class="form-check-input" type="radio" name="duplicate_resolution" id="duplicate-same-{{ candidate.pk }}" value="same:{{ candidate.pk }}" {% if duplicate_resolution == same_value %}checked{% endif %}>
-                          <label class="form-check-label" for="duplicate-same-{{ candidate.pk }}">
-                            Это та же книга и то же издание. Перейти к существующей записи.
-                          </label>
+                          <label class="form-check-label" for="duplicate-same-{{ candidate.pk }}">Это та же книга и то же издание. Перейти к существующей записи.</label>
                         </div>
                         <div class="form-check mt-2">
                           <input class="form-check-input" type="radio" name="duplicate_resolution" id="duplicate-edition-{{ candidate.pk }}" value="edition:{{ candidate.pk }}" {% if duplicate_resolution == edition_value %}checked{% endif %}>
-                          <label class="form-check-label" for="duplicate-edition-{{ candidate.pk }}">
-                            Это та же книга, но другое издание. Добавить как дополнительное издание.
-                          </label>
+                          <label class="form-check-label" for="duplicate-edition-{{ candidate.pk }}">Это та же книга, но другое издание. Добавить как дополнительное издание.</label>
                         </div>
                       {% endwith %}
                     </div>
@@ -114,9 +152,7 @@
                 <div class="border rounded p-3">
                   <div class="form-check">
                     <input class="form-check-input" type="radio" name="duplicate_resolution" id="duplicate-new" value="new" {% if duplicate_resolution == 'new' %}checked{% endif %}>
-                    <label class="form-check-label" for="duplicate-new">
-                      Это другая книга. Создать новую запись.
-                    </label>
+                    <label class="form-check-label" for="duplicate-new">Это другая книга. Создать новую запись.</label>
                   </div>
                 </div>
               </div>
@@ -127,21 +163,17 @@
             {{ hidden_field }}
           {% endfor %}
 
+          {# ПОЛЯ ФОРМЫ. Чекбокс "Я автор" подсвечиваем отдельно #}
           {% for field in form.visible_fields %}
-            {% if field.name == "confirm_authorship" %}
-              <div class="mb-3 book-confirm-highlight">
-                <div class="form-check">
-                  {{ field }}
-                  <label class="form-check-label fw-semibold ms-2" for="id_{{ field.name }}">
-                    {{ field.label }}
-                  </label>
-                </div>
-                {% if field.help_text %}
-                  <div class="form-text">{{ field.help_text }}</div>
-                {% endif %}
-                {% for error in field.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
+            {% if field.name == "is_author" %}
+              <div class="mb-3 rt-highlight" id="author-confirm">
+                <span class="rt-highlight-badge">Важно</span>
+                <label class="form-label" id="id_{{ field.name }}_label" for="id_{{ field.name }}">
+                  {{ field.label }}{% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+                </label>
+                {{ field }}
+                {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
               </div>
             {% else %}
               <div class="mb-3">
@@ -149,15 +181,10 @@
                   {{ field.label }}{% if field.field.required %}<span class="text-danger">*</span>{% endif %}
                 </label>
                 {{ field }}
-                {% if field.help_text %}
-                  <div class="form-text">{{ field.help_text }}</div>
-                {% endif %}
-                {% for error in field.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
+                {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
               </div>
             {% endif %}
-            </div>
           {% endfor %}
 
           <div class="d-flex gap-2">
@@ -170,6 +197,7 @@
   </div>
 </div>
 
+<!-- Модалка для показа обложки из внешнего источника -->
 <div class="modal fade" id="external-cover-modal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
@@ -194,9 +222,7 @@
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const lookupRoot = document.getElementById('book-lookup');
-      if (!lookupRoot) {
-        return;
-      }
+      if (!lookupRoot) return;
 
       const lookupUrl = lookupRoot.dataset.lookupUrl;
       const titleInput = document.getElementById('book-lookup-title');
@@ -213,6 +239,7 @@
       const externalSuggestion = document.getElementById('book-lookup-external-suggestion');
       const coverPreview = document.getElementById('book-lookup-cover-preview');
       const coverPreviewImage = coverPreview?.querySelector('[data-role="preview-image"]');
+
       const titleField = document.getElementById('id_title');
       const authorsField = document.getElementById('id_authors');
       const genresField = document.getElementById('id_genres');
@@ -221,6 +248,7 @@
       const synopsisField = document.getElementById('id_synopsis');
       const isbnField = document.getElementById('id_isbn');
       const metadataField = document.getElementById('id_isbn_metadata');
+
       const userAgent = navigator.userAgent || '';
       const isAndroidWebView = /Android/i.test(userAgent) && /\bwv\b/i.test(userAgent);
       const externalCoverModalElement = document.getElementById('external-cover-modal');
@@ -232,89 +260,52 @@
 
       if (externalCoverModalElement) {
         externalCoverModalElement.addEventListener('hidden.bs.modal', () => {
-          if (externalCoverModalImage) {
-            externalCoverModalImage.removeAttribute('src');
-          }
-          if (externalCoverModalLink) {
-            externalCoverModalLink.removeAttribute('href');
-          }
+          if (externalCoverModalImage) externalCoverModalImage.removeAttribute('src');
+          if (externalCoverModalLink) externalCoverModalLink.removeAttribute('href');
         });
       }
 
-
       function setLoading(isLoading) {
-        if (!submitButton) {
-          return;
-        }
+        if (!submitButton) return;
         submitButton.disabled = isLoading;
-        submitButton.innerHTML = isLoading ? '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>' : '<i class="bi bi-search"></i><span class="visually-hidden">Искать</span>';
+        submitButton.innerHTML = isLoading
+          ? '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>'
+          : '<i class="bi bi-search"></i><span class="visually-hidden">Искать</span>';
       }
 
       function clearResults() {
-        if (localResults) {
-          localResults.innerHTML = '';
-        }
-        if (externalResults) {
-          externalResults.innerHTML = '';
-        }
-        if (localSection) {
-          localSection.hidden = true;
-        }
-        if (externalSection) {
-          externalSection.hidden = true;
-        }
-        if (resultsRoot) {
-          resultsRoot.hidden = true;
-        }
-        if (externalSuggestion) {
-          externalSuggestion.hidden = true;
-        }
+        if (localResults) localResults.innerHTML = '';
+        if (externalResults) externalResults.innerHTML = '';
+        if (localSection) localSection.hidden = true;
+        if (externalSection) externalSection.hidden = true;
+        if (resultsRoot) resultsRoot.hidden = true;
+        if (externalSuggestion) externalSuggestion.hidden = true;
         showCoverPreview('');
       }
 
       function openExternalCoverPreview(url) {
-        if (!url) {
-          return;
-        }
+        if (!url) return;
 
         if (!isAndroidWebView) {
           let openedWindow = null;
-          try {
-            openedWindow = window.open(url, '_blank');
-          } catch (err) {
-            openedWindow = null;
-          }
-
+          try { openedWindow = window.open(url, '_blank'); } catch (err) { openedWindow = null; }
           if (openedWindow && typeof openedWindow === 'object') {
-            try {
-              openedWindow.opener = null;
-            } catch (err) {
-              // ignore if not allowed by the browser
-            }
+            try { openedWindow.opener = null; } catch (err) {}
             return;
           }
         }
-
         if (externalCoverModal && externalCoverModalImage) {
           externalCoverModalImage.src = url;
-          if (externalCoverModalLink) {
-            externalCoverModalLink.href = url;
-          }
+          if (externalCoverModalLink) externalCoverModalLink.href = url;
           externalCoverModal.show();
           return;
         }
-
         window.location.href = url;
       }
 
       function renderLocal(results) {
-        if (!localSection || !localResults) {
-          return;
-        }
-        if (!results.length) {
-          localSection.hidden = true;
-          return;
-        }
+        if (!localSection || !localResults) return;
+        if (!results.length) { localSection.hidden = true; return; }
         localSection.hidden = false;
         localResults.innerHTML = '';
         results.forEach((item) => {
@@ -338,19 +329,19 @@
           title.className = 'h6 mb-1';
           title.textContent = item.title;
           body.appendChild(title);
+
           const authors = document.createElement('p');
           authors.className = 'text-muted small mb-2';
           authors.textContent = item.authors.length ? `Авторы: ${item.authors.join(', ')}` : 'Авторы не указаны';
           body.appendChild(authors);
+
           const editions = document.createElement('p');
           editions.className = 'text-muted small mb-2';
           editions.textContent = `Изданий на сайте: ${item.edition_count}`;
           body.appendChild(editions);
 
           const link = document.createElement('a');
-          link.href = item.detail_url;
-          link.target = '_blank';
-          link.rel = 'noopener';
+          link.href = item.detail_url; link.target = '_blank'; link.rel = 'noopener';
           link.className = 'btn btn-sm btn-outline-secondary';
           link.textContent = 'Открыть страницу';
 
@@ -361,55 +352,30 @@
       }
 
       function applyMetadata(metadata) {
-        if (!metadataField) {
-          return;
-        }
-        try {
-          metadataField.value = JSON.stringify(metadata || {});
-        } catch (err) {
-          console.warn('Не удалось сохранить данные из API', err);
-        }
+        if (!metadataField) return;
+        try { metadataField.value = JSON.stringify(metadata || {}); }
+        catch (err) { console.warn('Не удалось сохранить данные из API', err); }
       }
 
       function showCoverPreview(url) {
-        if (!coverPreview) {
-          return;
-        }
+        if (!coverPreview) return;
         if (!url) {
           coverPreview.hidden = true;
-          if (coverPreviewImage) {
-            coverPreviewImage.src = '';
-          }
+          if (coverPreviewImage) coverPreviewImage.src = '';
           return;
         }
         coverPreview.hidden = false;
-        if (coverPreviewImage) {
-          coverPreviewImage.src = url;
-        }
+        if (coverPreviewImage) coverPreviewImage.src = url;
       }
 
       function applyExternalResult(item) {
-        if (titleField && item.title) {
-          titleField.value = item.title;
-        }
-        if (authorsField && item.authors?.length) {
-          authorsField.value = item.authors.join(', ');
-        }
-        if (genresField && item.subjects?.length) {
-          genresField.value = item.subjects.join(', ');
-        }
-        if (publisherField && item.publishers?.length) {
-          publisherField.value = item.publishers.join(', ');
-        }
-        if (languageField && item.languages?.length) {
-          languageField.value = item.languages.join(', ');
-        }
-        if (synopsisField && item.description && !synopsisField.value) {
-          synopsisField.value = item.description;
-        }
-        if (isbnField && item.isbn_list?.length) {
-          isbnField.value = item.isbn_list.join(', ');
-        }
+        if (titleField && item.title) titleField.value = item.title;
+        if (authorsField && item.authors?.length) authorsField.value = item.authors.join(', ');
+        if (genresField && item.subjects?.length) genresField.value = item.subjects.join(', ');
+        if (publisherField && item.publishers?.length) publisherField.value = item.publishers.join(', ');
+        if (languageField && item.languages?.length) languageField.value = item.languages.join(', ');
+        if (synopsisField && item.description && !synopsisField.value) synopsisField.value = item.description;
+        if (isbnField && item.isbn_list?.length) isbnField.value = item.isbn_list.join(', ');
         applyMetadata(item.metadata || {});
         showCoverPreview(item.cover_url || '');
 
@@ -420,9 +386,7 @@
       }
 
       function renderExternal(results, errorMessage) {
-        if (!externalSection || !externalResults) {
-          return;
-        }
+        if (!externalSection || !externalResults) return;
         externalResults.innerHTML = '';
         if (errorMessage) {
           externalSection.hidden = false;
@@ -499,7 +463,6 @@
             textContainer.appendChild(isbnText);
           }
 
-          
           if (item.matching_editions?.length) {
             const alert = document.createElement('div');
             alert.className = 'alert alert-warning small mb-2';
@@ -580,9 +543,7 @@
       }
 
       async function performSearch(options = { forceExternal: false }) {
-        if (!lookupUrl) {
-          return;
-        }
+        if (!lookupUrl) return;
         const params = new URLSearchParams();
         const title = titleInput?.value.trim();
         const author = authorInput?.value.trim();
@@ -609,24 +570,16 @@
           }
 
           const data = await response.json();
-          if (resultsRoot) {
-            resultsRoot.hidden = false;
-          }
+          if (resultsRoot) resultsRoot.hidden = false;
           renderLocal(data.local_results || []);
 
-          if (externalSuggestion) {
-            externalSuggestion.hidden = !!options.forceExternal;
-          }
+          if (externalSuggestion) externalSuggestion.hidden = !!options.forceExternal;
 
           if (options.forceExternal || data.external_error || (data.external_results && data.external_results.length)) {
-            if (externalSuggestion) {
-              externalSuggestion.hidden = true;
-            }
+            if (externalSuggestion) externalSuggestion.hidden = true;
             renderExternal(data.external_results || [], data.external_error);
           } else if (!data.local_results?.length) {
-            if (externalSuggestion) {
-              externalSuggestion.hidden = false;
-            }
+            if (externalSuggestion) externalSuggestion.hidden = false;
           }
 
           if (feedback && data.local_results?.length) {
@@ -647,35 +600,23 @@
         }
       }
 
-      submitButton?.addEventListener('click', () => {
-        performSearch({ forceExternal: false });
-      });
-
-      externalButton?.addEventListener('click', () => {
-        performSearch({ forceExternal: true });
-      });
+      submitButton?.addEventListener('click', () => performSearch({ forceExternal: false }));
+      externalButton?.addEventListener('click', () => performSearch({ forceExternal: true }));
 
       const prefillNode = document.getElementById('book-prefill-data');
       if (prefillNode) {
         try {
           const payload = JSON.parse(prefillNode.textContent || '{}');
           const query = payload.query || {};
-          if (titleInput && query.title) {
-            titleInput.value = query.title;
-          }
-          if (authorInput && query.author) {
-            authorInput.value = query.author;
-          }
-          if (isbnInput && query.isbn) {
-            isbnInput.value = query.isbn;
-          }
+          if (titleInput && query.title) titleInput.value = query.title;
+          if (authorInput && query.author) authorInput.value = query.author;
+          if (isbnInput && query.isbn) isbnInput.value = query.isbn;
+
           if (payload.external_result) {
             renderExternal([payload.external_result], null);
             if (resultsRoot) {
               resultsRoot.hidden = false;
-              if (externalSuggestion) {
-                externalSuggestion.hidden = true;
-              }
+              if (externalSuggestion) externalSuggestion.hidden = true;
             }
             applyExternalResult(payload.external_result);
           }
