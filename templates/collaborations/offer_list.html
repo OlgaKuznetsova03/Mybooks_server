@@ -57,7 +57,20 @@
   box-shadow:0 12px 28px rgba(0,0,0,.06);
 }
 .collab-hero h1{ margin-bottom:.25rem }
-.collab-hero__actions{ gap:.5rem }
+.collab-hero__actions{ gap:.75rem }
+.collab-hero__toggle,
+.collab-hero__cta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.5rem;
+  justify-content:flex-end;
+}
+.collab-hero__toggle .btn,
+.collab-hero__cta .btn{
+  flex:1 1 0;
+  text-align:center;
+}
+.collab-hero__actions .btn{ min-width:0 }
 
 /* Форма фильтра — фокус под акцент */
 .collab-theme .form-control:focus,
@@ -75,6 +88,8 @@
   transform:translateY(-1px);
   box-shadow:0 16px 32px rgba(0,0,0,.10);
 }
+.collab-card__title{ row-gap:.25rem; }
+.collab-card__title .badge{ white-space:nowrap; }
 .collab-card .badge.text-bg-primary{
   background:var(--collab-accent) !important;
   color:#2b1906 !important;
@@ -96,10 +111,25 @@
 }
 
 /* Мобильные поправки */
-@media (max-width: 575.98px){
+@media (max-width: 767.98px){
   .collab-hero{ padding:1rem; }
-  .collab-hero__actions .btn-group,
-  .collab-hero__actions .btn{ width:100%; }
+  .collab-hero__actions{ width:100%; align-items:stretch !important; text-align:left; }
+  .collab-hero__toggle,
+  .collab-hero__cta{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  .collab-hero__toggle .btn,
+  .collab-hero__cta .btn{
+    flex:1 1 auto;
+    width:100%;
+  }
+}
+@media (min-width: 768px){
+  .collab-hero__toggle .btn,
+  .collab-hero__cta .btn{
+    flex:0 0 auto;
+  }
 }
 </style>
 {% endblock %}
@@ -115,8 +145,8 @@
         <p class="text-muted mb-0">{% trans "Найдите книги для обзора и договоритесь с автором или блогером." %}</p>
       </div>
 
-      <div class="collab-hero__actions d-flex flex-column align-items-end">
-        <div class="btn-group" role="group" aria-label="{% trans 'Варианты предложений' %}">
+      <div class="collab-hero__actions d-flex flex-column align-items-stretch align-items-md-end w-100 w-md-auto text-md-end">
+        <div class="collab-hero__toggle" role="group" aria-label="{% trans 'Варианты предложений' %}">
           <span class="btn btn-primary active disabled">
             <i class="bi bi-journal-bookmark me-1"></i>{% trans "Предложения авторов" %}
           </span>
@@ -126,7 +156,7 @@
         </div>
 
         {% if request.user.is_authenticated %}
-          <div class="btn-group mt-2">
+          <div class="collab-hero__cta mt-2 mt-md-3">
             <a href="{% url 'collaborations:offer_create' %}" class="btn btn-primary">
               <i class="bi bi-plus-lg me-1"></i> {% trans "Добавить предложение" %}
             </a>
@@ -156,12 +186,12 @@
 
   <!-- Фильтры -->
   <form method="get" class="row g-3 align-items-end mb-4">
-    <div class="col-md-6 col-lg-4">
+    <div class="col-12 col-md-6 col-lg-4">
       <label for="search" class="form-label">{% trans "Поиск" %}</label>
       <input id="search" type="search" name="q" value="{{ request.GET.q }}" class="form-control"
              placeholder="{% trans 'Название или описание' %}">
     </div>
-    <div class="col-md-6 col-lg-4">
+    <div class="col-12 col-md-6 col-lg-4">
       <label for="audience" class="form-label">{% trans "Доступность" %}</label>
       <select id="audience" name="audience" class="form-select">
         {% for option in audience_filter_options %}
@@ -171,7 +201,7 @@
         {% endfor %}
       </select>
     </div>
-    <div class="col-md-3 col-lg-2">
+    <div class="col-12 col-md-3 col-lg-2">
       <button type="submit" class="btn btn-outline-primary w-100">
         <i class="bi bi-search me-1"></i>{% trans "Найти" %}
       </button>
@@ -184,17 +214,17 @@
         <div class="col-12 col-lg-6">
           <div class="card collab-card h-100 shadow-sm">
             <div class="card-body d-flex flex-column">
-              <div class="d-flex gap-3 mb-3">
+              <div class="d-flex flex-column flex-sm-row gap-3 mb-3">
                 {% with cover_url=offer.get_attached_book_cover_url %}
                   {% if offer.book and cover_url %}
-                    <a href="{% url 'book_detail' offer.book.pk %}" class="flex-shrink-0 d-block">
+                    <a href="{% url 'book_detail' offer.book.pk %}" class="flex-shrink-0 d-block mx-auto mx-sm-0">
                       <img src="{{ cover_url }}" alt="{{ offer.book.title }}" class="rounded shadow-sm"
                            style="width: 96px; height: auto;">
                     </a>
                   {% endif %}
                 {% endwith %}
                 <div class="flex-grow-1">
-                  <div class="d-flex justify-content-between align-items-center mb-2">
+                  <div class="collab-card__title d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                     <h2 class="h5 mb-0">
                       <a href="{% url 'collaborations:offer_detail' offer.pk %}" class="text-decoration-none">
                         {{ offer.title }}
