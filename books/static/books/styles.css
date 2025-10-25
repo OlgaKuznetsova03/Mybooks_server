@@ -126,6 +126,75 @@
   font-weight:600;
   padding:0.5rem 0.75rem;
 }
+.book-lookup-highlight{
+  padding:1.5rem;
+  border-radius:1rem;
+  background:rgba(var(--bs-primary-rgb),.08);
+  border:1px solid rgba(var(--bs-primary-rgb),.25);
+  box-shadow:0 1rem 2.5rem rgba(0,0,0,.08);
+  transition:background-color .2s ease,box-shadow .2s ease,border-color .2s ease;
+}
+.book-lookup-highlight .form-label{
+  font-weight:600;
+  color:var(--bs-body-color);
+}
+.book-lookup-highlight #book-lookup-feedback{
+  color:rgba(var(--bs-primary-rgb),.85);
+  font-weight:500;
+}
+[data-bs-theme="dark"] .book-lookup-highlight{
+  background:rgba(var(--bs-primary-rgb),.16);
+  border-color:rgba(var(--bs-primary-rgb),.35);
+  box-shadow:0 1rem 2.5rem rgba(0,0,0,.55);
+}
+.book-confirm-highlight{
+  padding:1.25rem 1.5rem;
+  border-radius:0.85rem;
+  background:rgba(var(--bs-warning-rgb,255,193,7),.18);
+  border:1px solid rgba(var(--bs-warning-rgb,255,193,7),.35);
+  box-shadow:0 0.75rem 1.75rem rgba(0,0,0,.08);
+}
+.book-confirm-highlight .form-check{
+  display:flex;
+  align-items:flex-start;
+  gap:0.75rem;
+  padding-left:0;
+}
+.book-confirm-highlight .form-check-input{
+  margin-left:0;
+  margin-top:0.25rem;
+  width:1.25rem;
+  height:1.25rem;
+  border-width:0.15rem;
+  box-shadow:0 0.35rem 0.85rem rgba(0,0,0,.08);
+}
+.book-confirm-highlight .form-check-input:focus{
+  box-shadow:0 0 0 .25rem rgba(var(--bs-warning-rgb,255,193,7),.35);
+}
+[data-bs-theme="dark"] .book-confirm-highlight .form-check-input{
+  box-shadow:0 0.35rem 0.85rem rgba(0,0,0,.55);
+}
+[data-bs-theme="dark"] .book-confirm-highlight .form-check-input:focus{
+  box-shadow:0 0 0 .25rem rgba(var(--bs-warning-rgb,255,193,7),.45);
+}
+.book-confirm-highlight .form-check-label{
+  font-size:1rem;
+  line-height:1.4;
+  color:var(--bs-body-color);
+}
+.book-confirm-highlight .form-text{
+  margin-left:calc(1.75rem + 0.75rem);
+  font-weight:500;
+  color:rgba(var(--bs-warning-rgb,255,193,7),.9);
+}
+[data-bs-theme="dark"] .book-confirm-highlight{
+  background:rgba(var(--bs-warning-rgb,255,193,7),.24);
+  border-color:rgba(var(--bs-warning-rgb,255,193,7),.45);
+  box-shadow:0 0.75rem 1.75rem rgba(0,0,0,.55);
+}
+[data-bs-theme="dark"] .book-confirm-highlight .form-text{
+  color:rgba(var(--bs-warning-rgb,255,193,7),.85);
+}
 @media (min-width: 576px){
   .book-gallery{
     grid-template-columns:repeat(2,minmax(0,var(--book-card-width,210px)));
