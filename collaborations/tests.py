@@ -12,7 +12,10 @@ from .models import (
     AuthorOffer,
     AuthorOfferResponse,
     AuthorOfferResponseComment,
+    BloggerPlatformPresence,
+    BloggerRequest,
     Collaboration,
+    ReviewPlatform,
 )
 
 
@@ -109,8 +112,97 @@ class OfferUpdateViewTests(TestCase):
         self.client.force_login(self.other_author)
         response = self.client.get(reverse("collaborations:offer_edit", args=[self.offer.pk]))
         self.assertEqual(response.status_code, 404)
-        
-          
+
+
+class BloggerRequestUpdateViewTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        blogger_group, _ = Group.objects.get_or_create(name="blogger")
+
+        self.blogger = user_model.objects.create_user(
+            username="blogger_main",
+            password="password123",
+            email="blogger@example.com",
+        )
+        self.blogger.groups.add(blogger_group)
+
+        self.other_blogger = user_model.objects.create_user(
+            username="blogger_other",
+            password="password123",
+            email="other_blogger@example.com",
+        )
+        self.other_blogger.groups.add(blogger_group)
+
+        self.platform = ReviewPlatform.objects.create(name="Телеграм")
+
+        self.request_obj = BloggerRequest.objects.create(
+            blogger=self.blogger,
+            title="Ищу новинки",
+            review_platform_links="https://t.me/old",
+        )
+        self.request_obj.review_formats.add(self.platform)
+        self.platform_presence = BloggerPlatformPresence.objects.create(
+            request=self.request_obj,
+            platform=self.platform,
+            followers_count=1200,
+        )
+
+    def _form_payload(self, **extra):
+        data = {
+            "title": "Обновлённая заявка",
+            "preferred_genres": [],
+            "accepts_paper": "on",
+            "accepts_electronic": "on",
+            "review_formats": [str(self.platform.pk)],
+            "review_platform_links": "https://t.me/new",
+            "additional_info": "Новые условия сотрудничества",
+            "collaboration_type": BloggerRequest.CollaborationType.BARTER_OR_PAID,
+            "collaboration_terms": "Свяжитесь для обсуждения",
+            "is_active": "on",
+            "bloggerplatformpresence_set-TOTAL_FORMS": "1",
+            "bloggerplatformpresence_set-INITIAL_FORMS": "1",
+            "bloggerplatformpresence_set-MIN_NUM_FORMS": "0",
+            "bloggerplatformpresence_set-MAX_NUM_FORMS": "1000",
+            "bloggerplatformpresence_set-0-id": str(self.platform_presence.pk),
+            "bloggerplatformpresence_set-0-platform": str(self.platform.pk),
+            "bloggerplatformpresence_set-0-custom_platform_name": "",
+            "bloggerplatformpresence_set-0-followers_count": "2000",
+            "bloggerplatformpresence_set-0-DELETE": "",
+        }
+        data.update(extra)
+        return data
+
+    def test_blogger_can_update_own_request(self):
+        self.client.force_login(self.blogger)
+        url = reverse("collaborations:blogger_request_edit", args=[self.request_obj.pk])
+        response = self.client.post(
+            url,
+            self._form_payload(additional_info="Актуальные условия"),
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+
+        self.request_obj.refresh_from_db()
+        self.platform_presence.refresh_from_db()
+
+        self.assertEqual(self.request_obj.title, "Обновлённая заявка")
+        self.assertEqual(
+            self.request_obj.review_platform_links,
+            "https://t.me/new",
+        )
+        self.assertEqual(self.platform_presence.followers_count, 2000)
+        self.assertEqual(
+            self.request_obj.additional_info,
+            "Актуальные условия",
+        )
+
+    def test_other_blogger_receives_404(self):
+        self.client.force_login(self.other_blogger)
+        url = reverse("collaborations:blogger_request_edit", args=[self.request_obj.pk])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+
 class OfferResponseViewsTests(TestCase):
     def setUp(self):
         self.UserModel = get_user_model()

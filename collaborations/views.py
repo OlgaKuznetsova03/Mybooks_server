@@ -1033,6 +1033,12 @@ class BloggerRequestDetailView(DetailView):
 
 class BloggerRequestCreateView(LoginRequiredMixin, View):
     template_name = "collaborations/blogger_request_form.html"
+    page_title = _("Новая заявка блогера")
+    intro_text = _(
+        "Заполните информацию о себе и площадках, чтобы авторы могли предложить сотрудничество."
+    )
+    submit_label = _("Опубликовать")
+    is_edit = False
 
     def dispatch(self, request, *args, **kwargs):
         if not _user_is_blogger(request.user):
@@ -1040,13 +1046,25 @@ class BloggerRequestCreateView(LoginRequiredMixin, View):
             return redirect("collaborations:blogger_request_list")
         return super().dispatch(request, *args, **kwargs)
 
+    def get_context_data(self, form, formset):
+        return {
+            "form": form,
+            "formset": formset,
+            "page_title": self.page_title,
+            "intro_text": self.intro_text,
+            "submit_label": self.submit_label,
+            "is_edit": self.is_edit,
+            "cancel_url": reverse("collaborations:blogger_request_list"),
+        }
+    
     def get(self, request):
         form = BloggerRequestForm()
         formset = BloggerPlatformPresenceFormSet()
-        return render(request, self.template_name, {"form": form, "formset": formset})
+        return render(request, self.template_name, self.get_context_data(form, formset))
 
     def post(self, request):
         form = BloggerRequestForm(request.POST)
+        formset = BloggerPlatformPresenceFormSet(request.POST)
         if form.is_valid():
             blogger_request = form.save(commit=False)
             blogger_request.blogger = request.user
@@ -1057,10 +1075,62 @@ class BloggerRequestCreateView(LoginRequiredMixin, View):
                 formset.save()
                 messages.success(request, _("Заявка блогера опубликована."))
                 return redirect("collaborations:blogger_request_list")
-        else:
-            formset = BloggerPlatformPresenceFormSet(request.POST)
-        return render(request, self.template_name, {"form": form, "formset": formset})
+        return render(request, self.template_name, self.get_context_data(form, formset))
 
+
+class BloggerRequestUpdateView(LoginRequiredMixin, View):
+    template_name = "collaborations/blogger_request_form.html"
+    page_title = _("Редактирование заявки блогера")
+    intro_text = _(
+        "Обновите описание и площадки, чтобы авторы видели актуальную информацию."
+    )
+    submit_label = _("Сохранить изменения")
+    is_edit = True
+
+    def dispatch(self, request, *args, **kwargs):
+        if not _user_is_blogger(request.user):
+            messages.error(request, _("Только блогеры могут редактировать свои заявки."))
+            return redirect("collaborations:blogger_request_list")
+        self.request_obj = get_object_or_404(
+            BloggerRequest, pk=kwargs["pk"], blogger=request.user
+        )
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, form, formset):
+        return {
+            "form": form,
+            "formset": formset,
+            "page_title": self.page_title,
+            "intro_text": self.intro_text,
+            "submit_label": self.submit_label,
+            "is_edit": self.is_edit,
+            "request_obj": self.request_obj,
+            "cancel_url": reverse(
+                "collaborations:blogger_request_detail", args=[self.request_obj.pk]
+            ),
+        }
+
+    def get(self, request, pk):
+        form = BloggerRequestForm(instance=self.request_obj)
+        formset = BloggerPlatformPresenceFormSet(instance=self.request_obj)
+        return render(request, self.template_name, self.get_context_data(form, formset))
+
+    def post(self, request, pk):
+        form = BloggerRequestForm(request.POST, instance=self.request_obj)
+        formset = BloggerPlatformPresenceFormSet(
+            request.POST, instance=self.request_obj
+        )
+        if form.is_valid() and formset.is_valid():
+            blogger_request = form.save(commit=False)
+            blogger_request.blogger = request.user
+            blogger_request.save()
+            form.save_m2m()
+            formset.save()
+            messages.success(request, _("Заявка блогера обновлена."))
+            return redirect(
+                "collaborations:blogger_request_detail", pk=self.request_obj.pk
+            )
+        return render(request, self.template_name, self.get_context_data(form, formset))
 
 class BloggerRequestRespondView(LoginRequiredMixin, FormView):
     form_class = BloggerRequestResponseForm

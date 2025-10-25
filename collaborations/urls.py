@@ -43,6 +43,11 @@ urlpatterns = [
     path("bloggers/", views.BloggerRequestListView.as_view(), name="blogger_request_list"),
     path("bloggers/create/", views.BloggerRequestCreateView.as_view(), name="blogger_request_create"),
     path("bloggers/<int:pk>/", views.BloggerRequestDetailView.as_view(), name="blogger_request_detail"),
+    path(
+        "bloggers/<int:pk>/edit/",
+        views.BloggerRequestUpdateView.as_view(),
+        name="blogger_request_edit",
+    ),
     path("bloggers/<int:pk>/respond/", views.BloggerRequestRespondView.as_view(), name="blogger_request_respond"),
     path(
         "bloggers/responses/",

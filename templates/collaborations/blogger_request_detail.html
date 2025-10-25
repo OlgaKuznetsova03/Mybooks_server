@@ -90,7 +90,14 @@
       <h1 class="h3 mb-1">{{ request_obj.title }}</h1>
       <p class="text-muted mb-0">{% trans "Заявка блогера" %}</p>
     </div>
-    <span class="badge text-bg-info fs-6">{{ request_obj.blogger.get_full_name|default:request_obj.blogger.username }}</span>
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge text-bg-info fs-6">{{ request_obj.blogger.get_full_name|default:request_obj.blogger.username }}</span>
+      {% if user.is_authenticated and user.id == request_obj.blogger_id %}
+        <a href="{% url 'collaborations:blogger_request_edit' request_obj.pk %}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-pencil-square me-1"></i>{% trans "Редактировать" %}
+        </a>
+      {% endif %}
+    </div>
   </div>
 
   <div class="row g-4">
