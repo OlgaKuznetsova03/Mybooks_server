@@ -1,232 +1,175 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}{{ request_obj.title }} · {{ block.super }}{% endblock %}
+{% block title %}{% trans "Новая заявка блогера" %} · {{ block.super }}{% endblock %}
 
 {% block extra_css %}
 <style>
-/* ===== Тема страницы (совпадает с остальными страницами сотрудничества) ===== */
-.collab-theme{
-  --clb-accent:#d9a365;                /* основные кнопки */
-  --clb-accent-dark:#c68845;           /* hover / active */
-  --clb-soft:#fbe7b5;                  /* фон для шапок/выделений */
-  --clb-soft-12:rgba(251,231,181,.12);
-  --clb-soft-24:rgba(251,231,181,.24);
+.blogger-request-form-theme {
+  --br-accent: #d9a365;
+  --br-accent-dark: #c48847;
+  --br-soft: #fbe7b5;
+  --br-soft-16: rgba(251, 231, 181, .16);
+  --br-soft-32: rgba(251, 231, 181, .32);
 }
 
-/* Кнопки под бренд */
-.collab-theme .btn-primary{
-  background-color:var(--clb-accent) !important;
-  border-color:var(--clb-accent) !important;
-  color:#2a1a09 !important;
-  font-weight:600;
-}
-.collab-theme .btn-primary:hover,
-.collab-theme .btn-primary:focus{
-  background-color:var(--clb-accent-dark) !important;
-  border-color:var(--clb-accent-dark) !important;
-  color:#2a1a09 !important;
+.blogger-request-form-theme .page-title {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .4rem .75rem;
+  border-radius: .75rem;
+  background: var(--br-soft);
+  border: 1px solid var(--br-soft-16);
+  margin-bottom: .5rem;
 }
 
-.collab-theme .btn-outline-primary{
-  color:var(--clb-accent) !important;
-  border-color:var(--clb-accent) !important;
-  font-weight:600;
-}
-.collab-theme .btn-outline-primary:hover,
-.collab-theme .btn-outline-primary:focus{
-  background-color:var(--clb-accent) !important;
-  border-color:var(--clb-accent) !important;
-  color:#2a1a09 !important;
+.blogger-request-form-theme .card {
+  border-color: var(--br-soft-16);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, .08);
 }
 
-/* Фокус инпутов формы отклика */
-.collab-theme .form-control:focus,
-.collab-theme .form-select:focus,
-.collab-theme textarea:focus{
-  border-color:var(--clb-accent);
-  box-shadow:0 0 0 .25rem rgba(217,163,101,.25);
+.blogger-request-form-theme .card-body {
+  background-image: radial-gradient(120% 120% at 100% 0%, var(--br-soft-16), transparent 60%);
 }
 
-/* Карточки и шапки */
-.collab-theme .card{
-  border:1px solid var(--clb-soft-12);
-}
-.collab-theme .card-header{
-  background:var(--clb-soft);
-  border-bottom:1px solid var(--clb-soft-24);
-  font-weight:600;
+.blogger-request-form-theme .form-label,
+.blogger-request-form-theme .form-check-label {
+  font-weight: 600;
 }
 
-/* Бейджи-«пилюли» для списков предпочтений */
-.collab-theme .badge.text-bg-light{
-  background:#fff9ea !important;
-  border:1px solid var(--clb-soft-24) !important;
-  color:#5b442c !important;
-  border-radius:999px;
-  padding:.35rem .6rem;
+.blogger-request-form-theme .form-control,
+.blogger-request-form-theme .form-select {
+  border-color: var(--br-soft-32);
 }
 
-/* Мелкие улучшения */
-.collab-theme .alert-warning{
-  background:#fff2d7;
-  border-color:#ffe3ab;
+.blogger-request-form-theme .form-control:focus,
+.blogger-request-form-theme .form-select:focus {
+  border-color: var(--br-accent);
+  box-shadow: 0 0 0 .2rem rgba(217, 163, 101, .25);
 }
-.collab-theme .card.shadow-sm{
-  transition:transform .15s ease, box-shadow .15s ease;
+
+.blogger-request-form-theme .btn-primary {
+  background-color: var(--br-accent) !important;
+  border-color: var(--br-accent) !important;
+  color: #2a1a09 !important;
+  font-weight: 600;
 }
-.collab-theme .card.shadow-sm:hover{
-  transform:translateY(-1px);
-  box-shadow:0 16px 32px rgba(0,0,0,.10);
+
+.blogger-request-form-theme .btn-primary:hover,
+.blogger-request-form-theme .btn-primary:focus {
+  background-color: var(--br-accent-dark) !important;
+  border-color: var(--br-accent-dark) !important;
+  color: #2a1a09 !important;
+}
+
+.blogger-request-form-theme .platform-form {
+  background: rgba(255, 255, 255, .75);
+  border: 1px solid var(--br-soft-16);
+  border-radius: .75rem;
+  padding: 1rem;
+}
+
+.blogger-request-form-theme .platform-form + .platform-form {
+  margin-top: 1rem;
+}
+
+.blogger-request-form-theme .delete-checkbox {
+  margin-top: 1.75rem;
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="collab-theme">
+<div class="blogger-request-form-theme">
+  <div class="row justify-content-center">
+    <div class="col-lg-10 col-xl-8">
+      <h1 class="h3 page-title">
+        <i class="bi bi-stars text-warning"></i>
+        {% trans "Новая заявка блогера" %}
+      </h1>
+      <p class="text-muted mb-4">
+        {% trans "Заполните информацию о себе и площадках, чтобы авторы могли предложить сотрудничество." %}
+      </p>
 
-  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
-    <div>
-      <h1 class="h3 mb-1">{{ request_obj.title }}</h1>
-      <p class="text-muted mb-0">{% trans "Заявка блогера" %}</p>
-    </div>
-    <span class="badge text-bg-info fs-6">{{ request_obj.blogger.get_full_name|default:request_obj.blogger.username }}</span>
-  </div>
-
-  <div class="row g-4">
-    <div class="col-lg-8">
-      <div class="card shadow-sm">
+      <form method="post" class="card">
         <div class="card-body">
-          {% if request_obj.additional_info %}
-            <h2 class="h5">{% trans "О себе" %}</h2>
-            <p>{{ request_obj.additional_info|linebreaks }}</p>
-            <hr>
-          {% endif %}
+          {% csrf_token %}
+          {{ form.non_field_errors }}
 
-          <h2 class="h5">{% trans "Предпочтения" %}</h2>
-          <dl class="row small text-muted">
-            <dt class="col-sm-5">{% trans "Жанры" %}</dt>
-            <dd class="col-sm-7">
-              {% for genre in request_obj.preferred_genres.all %}
-                <span class="badge text-bg-light border me-1">{{ genre.name }}</span>
-              {% empty %}
-                {% trans "Не указано" %}
+          {% for field in form %}
+            <div class="mb-3">
+              {% if field.field.widget.input_type == "checkbox" %}
+                <div class="form-check">
+                  {{ field }}
+                  <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                </div>
+              {% else %}
+                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+              {% endif %}
+              {% if field.help_text %}
+                <div class="form-text">{{ field.help_text }}</div>
+              {% endif %}
+              {% for error in field.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
               {% endfor %}
-            </dd>
-
-            <dt class="col-sm-5">{% trans "Форматы" %}</dt>
-            <dd class="col-sm-7">
-              {% for item in request_obj.get_format_display_list %}
-                <span class="badge text-bg-light border me-1">{{ item }}</span>
-              {% empty %}
-                {% trans "Любые" %}
-              {% endfor %}
-            </dd>
-
-            <dt class="col-sm-5">{% trans "Платформы" %}</dt>
-            <dd class="col-sm-7">
-              {% for platform in request_obj.review_formats.all %}
-                <span class="badge text-bg-light border me-1">{{ platform.name }}</span>
-              {% empty %}
-                {% trans "Не указаны" %}
-              {% endfor %}
-            </dd>
-
-            <dt class="col-sm-5">{% trans "Условия" %}</dt>
-            <dd class="col-sm-7">{{ request_obj.get_collaboration_type_display }}</dd>
-          </dl>
-
-          {% if request_obj.collaboration_terms %}
-            <div class="mt-4">
-              <h2 class="h6">{% trans "Детали сотрудничества" %}</h2>
-              <p class="mb-0">{{ request_obj.collaboration_terms|linebreaks }}</p>
             </div>
-          {% endif %}
+          {% endfor %}
 
-          {% if request_obj.review_platform_links %}
-            <div class="mt-4">
-              <h2 class="h6">{% trans "Ссылки на площадки" %}</h2>
-              <ul class="list-unstyled small mb-0">
-                {% for link in request_obj.review_platform_links.splitlines %}
-                  {% if link %}
-                    <li><a href="{{ link }}" target="_blank" rel="noopener">{{ link }}</a></li>
+            <hr class="my-4">
+
+          <h2 class="h5 mb-3">{% trans "Площадки и охват" %}</h2>
+          <p class="text-muted small mb-3">
+            {% trans "Расскажите, где вы публикуете отзывы, и укажите ориентировочное количество подписчиков." %}
+          </p>
+
+          {{ formset.management_form }}
+          {{ formset.non_form_errors }}
+
+    {% for platform_form in formset %}
+            <div class="platform-form">
+              {% for hidden in platform_form.hidden_fields %}
+                {{ hidden }}
+              {% endfor %}
+              {{ platform_form.non_field_errors }}
+              <div class="row g-3">
+                {% for field in platform_form.visible_fields %}
+                  {% if field.name == "DELETE" %}
+                    <div class="col-md-2 delete-checkbox">
+                      <div class="form-check">
+                        {{ field }}
+                        <label class="form-check-label" for="{{ field.id_for_label }}">{% trans "Удалить" %}</label>
+                      </div>
+                    </div>
+                  {% else %}
+                    {% if field.name == "followers_count" %}
+                      <div class="col-md-4 col-lg-3">
+                    {% else %}
+                      <div class="col-md-6">
+                    {% endif %}
+                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                          <div class="form-text">{{ field.help_text }}</div>
+                        {% endif %}
+                        {% for error in field.errors %}
+                          <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                      </div>
                   {% endif %}
                 {% endfor %}
-              </ul>
+              </div>
             </div>
-          {% endif %}
-
-          {% if request_obj.paid_collaboration_disclaimer %}
-            <div class="alert alert-warning mt-4" role="alert">
-              <i class="bi bi-exclamation-triangle me-1"></i>{{ request_obj.paid_collaboration_disclaimer }}
-            </div>
-          {% endif %}
+          {% endfor %}
         </div>
-      </div>
-    </div>
-
-    <div class="col-lg-4">
-      <div class="card shadow-sm">
-        <div class="card-header">{% trans "Охват" %}</div>
-        <div class="card-body">
-          {% with platforms=request_obj.platforms.all %}
-            {% if platforms %}
-              <ul class="list-unstyled mb-0">
-                {% for platform in platforms %}
-                  <li class="mb-3">
-                    <div class="fw-semibold">
-                      {% if platform.display_name %}
-                        {{ platform.display_name }}
-                      {% else %}
-                        {% trans "Платформа" %}
-                      {% endif %}
-                    </div>
-                    <div class="text-muted small">
-                      <i class="bi bi-people-fill me-1"></i>{{ platform.followers_count|default:0 }}
-                      {% if platform.platform and platform.platform.url %}
-                        · <a href="{{ platform.platform.url }}" class="text-muted" target="_blank" rel="noopener">{% trans "профиль" %}</a>
-                      {% endif %}
-                    </div>
-                  </li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p class="text-muted mb-0">{% trans "Блогер не добавил информацию о подписчиках." %}</p>
-            {% endif %}
-          {% endwith %}
+      <div class="card-footer text-end">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check2-circle me-1"></i>{% trans "Опубликовать" %}
+          </button>
         </div>
-      </div>
-
-      {% if user.is_authenticated %}
-        <div class="card shadow-sm mt-4">
-          <div class="card-header">{% trans "Откликнуться" %}</div>
-          <div class="card-body">
-            {% if can_respond %}
-              {% if existing_response %}
-                <p class="text-muted small mb-3">{% trans "Вы уже откликались на заявку. Можно обновить сообщение." %}</p>
-              {% endif %}
-              {% if response_conversation_url %}
-                <a href="{{ response_conversation_url }}" class="btn btn-outline-primary btn-sm mb-3 w-100">
-                  <i class="bi bi-chat-dots me-1"></i>{% trans "Открыть обсуждение" %}
-                </a>
-              {% endif %}
-              <form method="post" action="{% url 'collaborations:blogger_request_respond' request_obj.pk %}">
-                {% csrf_token %}
-                {{ response_form.as_p }}
-                <button type="submit" class="btn btn-primary w-100">
-                  <i class="bi bi-send me-1"></i>{% trans "Отправить предложение" %}
-                </button>
-              </form>
-            {% else %}
-              <p class="text-muted small mb-0">{% trans "На заявку могут откликаться только авторы." %}</p>
-            {% endif %}
-          </div>
-        </div>
-      {% else %}
-        <div class="alert alert-info mt-4" role="alert">{% trans "Войдите, чтобы связаться с блогером." %}</div>
-      {% endif %}
+      </form>
     </div>
   </div>
-
 </div>
 {% endblock %}
