@@ -909,6 +909,50 @@ def _build_reading_track_context(
         code: [float(data["mediums"][code]) for data in aggregated.values()]
         for code in tracked_mediums
     }
+    format_totals = {
+        code: Decimal("0")
+        for code, _ in BookProgress.FORMAT_CHOICES
+    }
+    for entry in (
+        progress.logs
+        .values("medium")
+        .annotate(total_pages=Sum("pages_equivalent"))
+    ):
+        medium_code = entry.get("medium")
+        if medium_code not in format_totals:
+            continue
+        total_value = entry.get("total_pages") or Decimal("0")
+        if not isinstance(total_value, Decimal):
+            total_value = Decimal(str(total_value))
+        format_totals[medium_code] += total_value
+    total_equivalent = sum(format_totals.values(), Decimal("0"))
+    format_palette_map = {
+        BookProgress.FORMAT_PAPER: "#f59f00",
+        BookProgress.FORMAT_EBOOK: "#4c6ef5",
+        BookProgress.FORMAT_AUDIO: "#be4bdb",
+    }
+    format_chart_labels = []
+    format_chart_values = []
+    format_chart_palette = []
+    if total_equivalent > 0:
+        for medium_code in (
+            BookProgress.FORMAT_PAPER,
+            BookProgress.FORMAT_EBOOK,
+            BookProgress.FORMAT_AUDIO,
+        ):
+            value = format_totals.get(medium_code) or Decimal("0")
+            if value <= 0:
+                continue
+            percent = (
+                value
+                / total_equivalent
+                * Decimal("100")
+            ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            format_chart_labels.append(choices.get(medium_code, medium_code))
+            format_chart_values.append(float(percent))
+            format_chart_palette.append(
+                format_palette_map.get(medium_code, "#4dabf7")
+            )
     max_pages_for_chart = max(chart_pages) if chart_pages else 0
     if max_pages_for_chart:
         max_chart_height = 160  # px
@@ -982,6 +1026,9 @@ def _build_reading_track_context(
             for code in tracked_mediums
         ],
         "chart_medium_pages": chart_medium_pages,
+        "format_chart_labels": format_chart_labels,
+        "format_chart_values": format_chart_values,
+        "format_chart_palette": format_chart_palette,
         "chart_scale": chart_scale,
         "format_form": format_form,
         "media_details": media_details,

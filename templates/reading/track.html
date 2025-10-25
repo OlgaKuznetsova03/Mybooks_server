@@ -694,210 +694,294 @@
       <h2 class="reading-section__title">История чтения</h2>
       <p class="reading-section__note">Сколько вы прочитали по дням и в каком формате.</p>
     </div>
-    {% if chart_labels %}
-      <div class="reading-chart-card mb-3" role="img" aria-label="Диаграмма прочитанных страниц по дням">
-        <div class="reading-chart-card__canvas">
-          <canvas id="readingHistoryChart" aria-label="Прочитанные страницы по дням"></canvas>
-        </div>
+    {% if chart_labels or format_chart_labels %}
+      <div class="row g-3 mb-3">
+        {% if chart_labels %}
+          <div class="col-12{% if format_chart_labels %} col-lg-8{% endif %}">
+            <div class="reading-chart-card" role="img" aria-label="Диаграмма прочитанных страниц по дням">
+              <div class="reading-chart-card__canvas">
+                <canvas id="readingHistoryChart" aria-label="Прочитанные страницы по дням"></canvas>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        {% if format_chart_labels %}
+          <div class="col-12 col-lg-4">
+            <div class="reading-chart-card" role="img" aria-label="Диаграмма форматов чтения">
+              <div class="reading-chart-card__canvas">
+                <canvas id="readingFormatChart" aria-label="Распределение форматов чтения"></canvas>
+              </div>
+            </div>
+          </div>
+        {% endif %}
       </div>
 
-      {{ chart_labels|json_script:"reading-chart-labels" }}
-      {{ chart_pages|json_script:"reading-chart-pages" }}
-      {{ chart_mediums|json_script:"reading-chart-mediums" }}
-      {{ chart_medium_pages|json_script:"reading-chart-medium-pages" }}
+      {% if chart_labels %}
+        {{ chart_labels|json_script:"reading-chart-labels" }}
+        {{ chart_pages|json_script:"reading-chart-pages" }}
+        {{ chart_mediums|json_script:"reading-chart-mediums" }}
+        {{ chart_medium_pages|json_script:"reading-chart-medium-pages" }}
+      {% endif %}
+      {% if format_chart_labels %}
+        {{ format_chart_labels|json_script:"reading-format-chart-labels" }}
+        {{ format_chart_values|json_script:"reading-format-chart-values" }}
+        {{ format_chart_palette|json_script:"reading-format-chart-colors" }}
+      {% endif %}
 
       <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" crossorigin="anonymous"></script>
       <script>
       (function () {
-        const labelsEl = document.getElementById('reading-chart-labels');
-        const pagesEl = document.getElementById('reading-chart-pages');
-        const mediumsEl = document.getElementById('reading-chart-mediums');
-        const mediumPagesEl = document.getElementById('reading-chart-medium-pages');
-        const canvas = document.getElementById('readingHistoryChart');
-        if (!labelsEl || !pagesEl || !mediumsEl || !mediumPagesEl || !canvas || typeof Chart === 'undefined') {
+        if (typeof Chart === 'undefined') {
           return;
         }
 
-        const labels = JSON.parse(labelsEl.textContent);
-        const pages = JSON.parse(pagesEl.textContent);
-        const mediums = JSON.parse(mediumsEl.textContent);
-        const mediumPages = JSON.parse(mediumPagesEl.textContent);
+        const historyLabelsEl = document.getElementById('reading-chart-labels');
+        const historyPagesEl = document.getElementById('reading-chart-pages');
+        const historyMediumsEl = document.getElementById('reading-chart-mediums');
+        const historyMediumPagesEl = document.getElementById('reading-chart-medium-pages');
+        const historyCanvas = document.getElementById('readingHistoryChart');
 
-        const getPalette = () => {
-          const root = getComputedStyle(document.documentElement);
-          const parseCssColor = (value, fallbackRgb) => {
-            const trimmed = (value || '').trim();
-            if (trimmed.startsWith('#')) {
-              let hex = trimmed.slice(1);
-              if (hex.length === 3) {
-                hex = hex.split('').map((char) => char + char).join('');
-              }
-              if (hex.length === 6) {
-                const intValue = parseInt(hex, 16);
-                if (!Number.isNaN(intValue)) {
-                  return [
-                    (intValue >> 16) & 255,
-                    (intValue >> 8) & 255,
-                    intValue & 255,
-                  ];
+        if (historyLabelsEl && historyPagesEl && historyMediumsEl && historyMediumPagesEl && historyCanvas) {
+          const labels = JSON.parse(historyLabelsEl.textContent);
+          const pages = JSON.parse(historyPagesEl.textContent);
+          const mediums = JSON.parse(historyMediumsEl.textContent);
+          const mediumPages = JSON.parse(historyMediumPagesEl.textContent);
+
+          const getPalette = () => {
+            const root = getComputedStyle(document.documentElement);
+            const parseCssColor = (value, fallbackRgb) => {
+              const trimmed = (value || '').trim();
+              if (trimmed.startsWith('#')) {
+                let hex = trimmed.slice(1);
+                if (hex.length === 3) {
+                  hex = hex.split('').map((char) => char + char).join('');
+                }
+                if (hex.length === 6) {
+                  const intValue = parseInt(hex, 16);
+                  if (!Number.isNaN(intValue)) {
+                    return [
+                      (intValue >> 16) & 255,
+                      (intValue >> 8) & 255,
+                      intValue & 255,
+                    ];
+                  }
                 }
               }
-            }
             const rgbMatch = trimmed.match(/rgba?\(([^)]+)\)/i);
-            if (rgbMatch) {
-              const parts = rgbMatch[1].split(',').map((part) => Number.parseFloat(part.trim()));
-              if (parts.length >= 3 && parts.slice(0, 3).every((num) => !Number.isNaN(num))) {
-                return parts.slice(0, 3);
+              if (rgbMatch) {
+                const parts = rgbMatch[1].split(',').map((part) => Number.parseFloat(part.trim()));
+                if (parts.length >= 3 && parts.slice(0, 3).every((num) => !Number.isNaN(num))) {
+                  return parts.slice(0, 3);
+                }
               }
-            }
-            return fallbackRgb;
-          };
+              return fallbackRgb;
+            };
 
           const buildScheme = (rgb, { backgroundAlpha = 0.35, hoverAlpha = 0.45, borderAlpha = 0.9 } = {}) => {
-            const [r, g, b] = rgb;
-            return {
-              borderColor: `rgba(${r}, ${g}, ${b}, ${borderAlpha})`,
-              backgroundColor: `rgba(${r}, ${g}, ${b}, ${backgroundAlpha})`,
-              hoverBackgroundColor: `rgba(${r}, ${g}, ${b}, ${hoverAlpha})`,
+              const [r, g, b] = rgb;
+              return {
+                borderColor: `rgba(${r}, ${g}, ${b}, ${borderAlpha})`,
+                backgroundColor: `rgba(${r}, ${g}, ${b}, ${backgroundAlpha})`,
+                hoverBackgroundColor: `rgba(${r}, ${g}, ${b}, ${hoverAlpha})`,
+              };
             };
-          };
 
           const primaryRgbRaw = (root.getPropertyValue('--bs-primary-rgb') || '108,92,231').trim();
-          const primaryRgb = primaryRgbRaw.split(',').map((num) => Number.parseFloat(num.trim()));
-          const defaultRgb = primaryRgb.length === 3 && primaryRgb.every((num) => !Number.isNaN(num))
-            ? primaryRgb
-            : [108, 92, 231];
+            const primaryRgb = primaryRgbRaw.split(',').map((num) => Number.parseFloat(num.trim()));
+            const defaultRgb = primaryRgb.length === 3 && primaryRgb.every((num) => !Number.isNaN(num))
+              ? primaryRgb
+              : [108, 92, 231];
 
-          const palette = {
-            bodyColor: (root.getPropertyValue('--bs-body-color') || '#212529').trim(),
-            border: (root.getPropertyValue('--bs-border-color') || 'rgba(0,0,0,0.1)').trim(),
-            defaultBar: buildScheme(defaultRgb, { backgroundAlpha: 0.25, hoverAlpha: 0.35, borderAlpha: 0.85 }),
-            mediums: {},
+            const palette = {
+              bodyColor: (root.getPropertyValue('--bs-body-color') || '#212529').trim(),
+              border: (root.getPropertyValue('--bs-border-color') || 'rgba(0,0,0,0.1)').trim(),
+              defaultBar: buildScheme(defaultRgb, { backgroundAlpha: 0.25, hoverAlpha: 0.35, borderAlpha: 0.85 }),
+              mediums: {},
+            };
+
+            palette.mediums.paper = buildScheme(
+              parseCssColor(root.getPropertyValue('--journey-fern'), [123, 119, 82])
+            );
+            palette.mediums.ebook = buildScheme(
+              parseCssColor(root.getPropertyValue('--journey-gold'), [188, 184, 147])
+            );
+
+            return palette;
           };
 
-          palette.mediums.paper = buildScheme(
-            parseCssColor(root.getPropertyValue('--journey-fern'), [123, 119, 82])
-          );
-          palette.mediums.ebook = buildScheme(
-            parseCssColor(root.getPropertyValue('--journey-gold'), [188, 184, 147])
-          );
+          let chartInstance;
 
-          return palette;
-        };
-
-        let chartInstance;
-
-        const renderChart = () => {
-          const palette = getPalette();
-          if (chartInstance) {
-            chartInstance.destroy();
-          }
-          const mediumsWithData = Array.isArray(mediums)
-            ? mediums.filter((medium) => {
-                const data = mediumPages?.[medium.code];
-                return Array.isArray(data) && data.some((value) => Number(value) > 0);
-              })
-            : [];
-          const hasMediumData = mediumsWithData.length > 0;
-          const datasets = hasMediumData
-            ? mediumsWithData.map((medium) => {
-                const scheme = palette.mediums?.[medium.code] || palette.defaultBar;
-                const data = Array.isArray(mediumPages?.[medium.code])
-                  ? mediumPages[medium.code]
-                  : new Array(labels.length).fill(0);
-                return {
-                  label: medium.label,
-                  data,
+          const renderChart = () => {
+            const palette = getPalette();
+            if (chartInstance) {
+              chartInstance.destroy();
+            }
+            const mediumsWithData = Array.isArray(mediums)
+              ? mediums.filter((medium) => {
+                  const data = mediumPages?.[medium.code];
+                  return Array.isArray(data) && data.some((value) => Number(value) > 0);
+                })
+              : [];
+            const hasMediumData = mediumsWithData.length > 0;
+            const datasets = hasMediumData
+              ? mediumsWithData.map((medium) => {
+                  const scheme = palette.mediums?.[medium.code] || palette.defaultBar;
+                  const data = Array.isArray(mediumPages?.[medium.code])
+                    ? mediumPages[medium.code]
+                    : new Array(labels.length).fill(0);
+                  return {
+                    label: medium.label,
+                    data,
+                    borderWidth: 1.5,
+                    borderRadius: 10,
+                    borderColor: scheme.borderColor,
+                    backgroundColor: scheme.backgroundColor,
+                    hoverBackgroundColor: scheme.hoverBackgroundColor,
+                    maxBarThickness: 48,
+                  };
+                })
+              : [{
+                  data: pages,
                   borderWidth: 1.5,
                   borderRadius: 10,
-                  borderColor: scheme.borderColor,
-                  backgroundColor: scheme.backgroundColor,
-                  hoverBackgroundColor: scheme.hoverBackgroundColor,
+                  borderColor: palette.defaultBar.borderColor,
+                  backgroundColor: palette.defaultBar.backgroundColor,
+                  hoverBackgroundColor: palette.defaultBar.hoverBackgroundColor,
                   maxBarThickness: 48,
-                };
-              })
-            : [{
-                data: pages,
-                borderWidth: 1.5,
-                borderRadius: 10,
-                borderColor: palette.defaultBar.borderColor,
-                backgroundColor: palette.defaultBar.backgroundColor,
-                hoverBackgroundColor: palette.defaultBar.hoverBackgroundColor,
-                maxBarThickness: 48,
-              }];
-          chartInstance = new Chart(canvas.getContext('2d'), {
-            type: 'bar',
-            data: {
-              labels,
-              datasets,
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: {
-                  display: hasMediumData,
-                  labels: {
-                    color: palette.bodyColor,
-                    usePointStyle: true,
-                  },
-                },
-                tooltip: {
-                  callbacks: {
-                    title: (context) => context[0]?.label ?? '',
-                    label: (context) => {
-                      const value = context.parsed.y ?? 0;
-                      if (context.dataset?.label) {
-                        return `${context.dataset.label}: ${value} стр.`;
-                      }
-                      return `${value} стр.`;
+                }];
+            chartInstance = new Chart(historyCanvas.getContext('2d'), {
+              type: 'bar',
+              data: {
+                labels,
+                datasets,
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    display: hasMediumData,
+                    labels: {
+                      color: palette.bodyColor,
+                      usePointStyle: true,
                     },
-                    footer: (items) => {
-                      if (!items?.length) {
-                        return '';
-                      }
-                      const total = items.reduce((sum, item) => sum + (item.parsed.y ?? 0), 0);
-                      return `Итого: ${total} стр.`;
+                  },
+                  tooltip: {
+                    callbacks: {
+                      title: (context) => context[0]?.label ?? '',
+                      label: (context) => {
+                        const value = context.parsed.y ?? 0;
+                        if (context.dataset?.label) {
+                          return `${context.dataset.label}: ${value} стр.`;
+                        }
+                        return `${value} стр.`;
+                      },
+                      footer: (items) => {
+                        if (!items?.length) {
+                          return '';
+                        }
+                        const total = items.reduce((sum, item) => sum + (item.parsed.y ?? 0), 0);
+                        return `Итого: ${total} стр.`;
+                      },
                     },
                   },
                 },
-              },
-              layout: {
-                padding: { top: 12, right: 12, bottom: 0, left: 12 },
-              },
-              scales: {
-                x: {
-                  stacked: false,
-                  grid: { display: false },
-                  ticks: {
-                    color: palette.bodyColor,
-                    autoSkip: true,
-                    maxRotation: 0,
-                    minRotation: 0,
+                layout: {
+                  padding: { top: 12, right: 12, bottom: 0, left: 12 },
+                },
+                scales: {
+                  x: {
+                    stacked: false,
+                    grid: { display: false },
+                    ticks: {
+                      color: palette.bodyColor,
+                      autoSkip: true,
+                      maxRotation: 0,
+                      minRotation: 0,
+                    },
+                    },
+                  y: {
+                    stacked: false,
+                    beginAtZero: true,
+                    grid: {
+                      color: palette.border,
+                      drawBorder: false,
+                    },
+                    ticks: {
+                      color: palette.bodyColor,
+                      precision: 0,
+                      callback: (value) => `${value} стр.`,
+                    },
                   },
                 },
-                y: {
-                  stacked: false,
-                  beginAtZero: true,
-                  grid: {
-                    color: palette.border,
-                    drawBorder: false,
-                  },
-                  ticks: {
-                    color: palette.bodyColor,
-                    precision: 0,
-                    callback: (value) => `${value} стр.`,
-                  },
-                },
               },
-            },
-          });
-        };
+              });
+          };
 
-        renderChart();
-        document.getElementById('themeToggle')?.addEventListener('click', () => {
-          requestAnimationFrame(renderChart);
-        });
+          renderChart();
+          document.getElementById('themeToggle')?.addEventListener('click', () => {
+            requestAnimationFrame(renderChart);
+          });
+        }
+
+        const formatLabelsEl = document.getElementById('reading-format-chart-labels');
+        const formatValuesEl = document.getElementById('reading-format-chart-values');
+        const formatColorsEl = document.getElementById('reading-format-chart-colors');
+        const formatCanvas = document.getElementById('readingFormatChart');
+
+        if (formatLabelsEl && formatValuesEl && formatColorsEl && formatCanvas) {
+          const labels = JSON.parse(formatLabelsEl.textContent);
+          const values = JSON.parse(formatValuesEl.textContent);
+          const colors = JSON.parse(formatColorsEl.textContent);
+          let formatChartInstance;
+
+          const renderFormatChart = () => {
+            const root = getComputedStyle(document.documentElement);
+            const bodyColor = (root.getPropertyValue('--bs-body-color') || '#212529').trim();
+            if (formatChartInstance) {
+              formatChartInstance.destroy();
+            }
+            formatChartInstance = new Chart(formatCanvas.getContext('2d'), {
+              type: 'doughnut',
+              data: {
+                labels,
+                datasets: [
+                  {
+                    data: values,
+                    backgroundColor: colors,
+                    borderColor: '#fff',
+                    borderWidth: 2,
+                  },
+                ],
+              },
+              options: {
+                responsive: true,
+                plugins: {
+                  legend: {
+                    position: 'bottom',
+                    labels: {
+                      color: bodyColor,
+                    },
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: (context) => {
+                        const label = context.label ?? '';
+                        const value = context.parsed ?? 0;
+                        return `${label}: ${value}%`;
+                      },
+                    },
+                  },
+                },
+              },
+            });
+          };
+
+          renderFormatChart();
+          document.getElementById('themeToggle')?.addEventListener('click', () => {
+            requestAnimationFrame(renderFormatChart);
+          });
+        }
       })();
     </script>
     {% endif %}
