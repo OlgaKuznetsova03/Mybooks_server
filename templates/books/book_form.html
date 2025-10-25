@@ -131,7 +131,7 @@
             {% if field.name == "confirm_authorship" %}
               <div class="mb-3 book-confirm-highlight">
                 <div class="form-check">
-                  {{ field.as_widget(attrs={"class": "form-check-input"}) }}
+                  {{ field.as_widget(attrs={'class': 'form-check-input'}) }}
                   <label class="form-check-label fw-semibold" for="id_{{ field.name }}">
                     {{ field.label }}
                   </label>
