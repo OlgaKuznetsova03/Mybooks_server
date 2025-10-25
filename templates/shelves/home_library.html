@@ -41,7 +41,7 @@
     height: 360px;
     top: -120px;
     right: -140px;
-    bbackground: rgba(216, 232, 242, 0.45);
+    background: rgba(216, 232, 242, 0.45);
   }
 
   .home-hero::after {
@@ -342,7 +342,7 @@
   .home-filters-toggle {
     border-radius: 14px;
     border: 1px solid rgba(255, 255, 255, 0.28);
-    bbackground: rgba(61, 81, 96, 0.8);
+    background: rgba(61, 81, 96, 0.8);
     color: #f8f9ff;
     font-weight: 600;
     letter-spacing: 0.05em;
@@ -596,6 +596,41 @@
       visibility: visible !important;
     }
   }
+
+  /* Карточка со светящимся бордером */
+.home-glow-card {
+  background: var(--home-card-bg);
+  border: 1px solid var(--home-card-border);
+  border-radius: 20px;
+  box-shadow: var(--home-card-shadow);
+  color: #f8faff;
+  padding: 1.5rem;
+  position: relative;   /* важно: формируем контекст наложения */
+  overflow: hidden;
+  z-index: 0;           /* ниже, чем содержимое */
+}
+
+/* Декор-оверлей — не должен ловить клики */
+.home-glow-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(194,224,239,.35), rgba(246,200,162,.18));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+
+  pointer-events: none; /* <-- решает блокировку кликов */
+  z-index: 0;           /* декор под контентом */
+}
+
+/* Сам контент поверх декора (если нужно) */
+.home-glow-card > * {
+  position: relative;
+  z-index: 1;
+}
 </style>
 {% endblock %}
 {% block content %}
@@ -1190,6 +1225,83 @@
       const readCountEl = document.querySelector('[data-role="period-read-count"]');
       const progressFillEl = document.querySelector('[data-role="period-progress-fill"]');
       const progressLabelEl = document.querySelector('[data-role="period-progress-label"]');
+      const PERIOD_STORAGE_KEY = 'homeLibraryPeriodSelection';
+
+      function getStorage() {
+        try {
+          return window.localStorage;
+        } catch (error) {
+          return null;
+        }
+      }
+
+      function loadSavedPeriod() {
+        const storage = getStorage();
+        if (!storage) {
+          return null;
+        }
+        try {
+          const stored = storage.getItem(PERIOD_STORAGE_KEY);
+          if (!stored) {
+            return null;
+          }
+          const parsed = JSON.parse(stored);
+          if (!parsed || typeof parsed !== 'object') {
+            return null;
+          }
+          const storedType = parsed.type;
+          const rawValues = parsed.values && typeof parsed.values === 'object' ? parsed.values : {};
+          const values = {};
+          if (typeof rawValues.year === 'string' && rawValues.year) {
+            values.year = rawValues.year;
+          }
+          if (typeof rawValues.month === 'string' && rawValues.month) {
+            values.month = rawValues.month;
+          }
+          const type = storedType === 'year' || storedType === 'month' ? storedType : null;
+          const valueFromType = type && values[type] ? values[type] : null;
+          const fallbackValue = typeof parsed.value === 'string' ? parsed.value : '';
+          return {
+            type,
+            value: valueFromType || fallbackValue || '',
+            values,
+          };
+        } catch (error) {
+          console.warn('Failed to read saved home library period', error);
+          return null;
+        }
+      }
+
+      function savePeriodSelection(type, value) {
+        const storage = getStorage();
+        if (!storage) {
+          return;
+        }
+        try {
+          const existing = loadSavedPeriod();
+          const values = existing && existing.values ? { ...existing.values } : {};
+          if (type === 'year' || type === 'month') {
+            if (value) {
+              values[type] = value;
+            } else {
+              delete values[type];
+            }
+          }
+          if (!type || !value) {
+            if (type && Object.keys(values).length) {
+              const payload = JSON.stringify({ type, value: value || '', values });
+              storage.setItem(PERIOD_STORAGE_KEY, payload);
+            } else {
+              storage.removeItem(PERIOD_STORAGE_KEY);
+            }
+            return;
+          }
+          const payload = JSON.stringify({ type, value, values });
+          storage.setItem(PERIOD_STORAGE_KEY, payload);
+        } catch (error) {
+          console.warn('Failed to save home library period', error);
+        }
+      }
 
       function updatePeriodTriggers(type, value, label) {
         document.querySelectorAll('[data-summary-category="period"]').forEach((trigger) => {
@@ -1223,6 +1335,7 @@
             progressLabelEl.textContent = '0% / 0%';
           }
           updatePeriodTriggers(type, '', '');
+          savePeriodSelection(type, '');
           return;
         }
         periodValueSelect.disabled = false;
@@ -1251,9 +1364,10 @@
         }
         const label = getPeriodLabel(type, value);
         updatePeriodTriggers(type, value, label);
+        savePeriodSelection(type, value);
       }
 
-      function populatePeriodOptions(type) {
+      function populatePeriodOptions(type, preferredValue) {
         if (!periodValueSelect) {
           return;
         }
@@ -1274,7 +1388,10 @@
           const optionEl = document.createElement('option');
           optionEl.value = option.value;
           optionEl.textContent = option.label;
-          if (summaryData.defaultPeriod && summaryData.defaultPeriod.type === type && summaryData.defaultPeriod.value === option.value) {
+          if (!hasSelected && preferredValue && option.value === preferredValue) {
+            optionEl.selected = true;
+            hasSelected = true;
+          } else if (!hasSelected && summaryData.defaultPeriod && summaryData.defaultPeriod.type === type && summaryData.defaultPeriod.value === option.value) {
             optionEl.selected = true;
             hasSelected = true;
           }
@@ -1288,7 +1405,10 @@
 
       if (periodTypeSelect) {
         periodTypeSelect.addEventListener('change', () => {
-          populatePeriodOptions(periodTypeSelect.value || 'year');
+          const type = periodTypeSelect.value || 'year';
+          const saved = loadSavedPeriod();
+          const preferredValue = saved && saved.values ? saved.values[type] : undefined;
+          populatePeriodOptions(type, preferredValue);
           updatePeriodCard();
         });
       }
@@ -1297,9 +1417,25 @@
         periodValueSelect.addEventListener('change', updatePeriodCard);
       }
 
-      if (periodTypeSelect) {
-        populatePeriodOptions(periodTypeSelect.value || 'year');
+      let initialType = periodTypeSelect ? periodTypeSelect.value || 'year' : 'year';
+      let initialValue;
+      const savedPeriod = loadSavedPeriod();
+      if (savedPeriod) {
+        const savedType = savedPeriod.type;
+        if (savedType && getPeriodOptions(savedType).length) {
+          initialType = savedType;
+          if (periodTypeSelect) {
+            periodTypeSelect.value = savedType;
+          }
+        }
+        if (savedPeriod.values && savedPeriod.values[initialType]) {
+          initialValue = savedPeriod.values[initialType];
+        } else if (savedPeriod.value) {
+          initialValue = savedPeriod.value;
+        }
       }
+
+      populatePeriodOptions(initialType, initialValue);
       updatePeriodCard();
     })();
   </script>
