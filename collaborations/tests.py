@@ -47,7 +47,8 @@ class OfferFormTests(TestCase):
         self.assertEqual(books, [])
 
 
-      class OfferUpdateViewTests(TestCase):
+
+class OfferUpdateViewTests(TestCase):
     def setUp(self):
         user_model = get_user_model()
         author_group, _ = Group.objects.get_or_create(name="author")
@@ -122,6 +123,11 @@ class OfferResponseViewsTests(TestCase):
             username="blogger",
             password="password123",
             email="blogger@example.com",
+        )
+        self.reader = self.UserModel.objects.create_user(
+            username="reader",
+            password="password123",
+            email="reader@example.com",
         )
 
         author_group, _ = Group.objects.get_or_create(name="author")
@@ -237,3 +243,23 @@ class OfferResponseViewsTests(TestCase):
         url = reverse("collaborations:offer_response_detail", args=[self.response.pk])
         response = self.client.get(url)
         self.assertRedirects(response, reverse("collaborations:offer_list"))
+
+    def test_reader_can_respond_when_offer_allows(self):
+        self.offer.allow_regular_users = True
+        self.offer.save(update_fields=["allow_regular_users"])
+
+        self.client.force_login(self.reader)
+        response = self.client.post(
+            reverse("collaborations:offer_respond", args=[self.offer.pk]),
+            {"platform_links": "", "message": "Готов поделиться впечатлениями"},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("collaborations:offer_detail", args=[self.offer.pk]),
+        )
+        exists = AuthorOfferResponse.objects.filter(
+            offer=self.offer,
+            respondent=self.reader,
+        ).exists()
+        self.assertTrue(exists)

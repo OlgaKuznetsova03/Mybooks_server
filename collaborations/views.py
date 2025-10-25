@@ -66,6 +66,16 @@ def _user_is_author(user: User) -> bool:
     return user.groups.filter(name="author").exists()
 
 
+def _user_can_respond_to_offer(offer: AuthorOffer, user: User) -> bool:
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if offer.author_id == getattr(user, "id", None):
+        return False
+    if offer.allow_regular_users:
+        return True
+    return _user_is_blogger(user)
+
+
 def _get_offer_response_context(
     offer: AuthorOffer, user: User, form: AuthorOfferResponseForm | None = None
 ) -> dict:
@@ -77,10 +87,7 @@ def _get_offer_response_context(
         respondent=user,
     ).first()
     response_form = form or AuthorOfferResponseForm(instance=existing_response)
-    can_respond = (
-        offer.author_id != user.id
-        and (offer.allow_regular_users or _user_is_blogger(user))
-    )
+    can_respond = _user_can_respond_to_offer(offer, user)
     conversation_url = None
     if existing_response:
         conversation_url = reverse(
@@ -436,10 +443,11 @@ class OfferRespondView(LoginRequiredMixin, FormView):
         if self.offer.author_id == request.user.id:
             messages.error(request, _("Вы не можете откликнуться на собственное предложение."))
             return redirect("collaborations:offer_detail", pk=self.offer.pk)
-        if not self.offer.allow_regular_users and not _user_is_blogger(request.user):
-            messages.error(request, _("Только блогеры могут откликаться на это предложение."))
-            return redirect("collaborations:offer_detail", pk=self.offer.pk)
-        return super().dispatch(request, *args, **kwargs)
+        if not _user_can_respond_to_offer(self.offer, request.user):
+            if not self.offer.allow_regular_users and not _user_is_blogger(request.user):
+                messages.error(request, _("Только блогеры могут откликаться на это предложение."))
+            else:
+                messages.error(request, _("Вы не можете откликнуться на это предложение."))
 
     def form_valid(self, form):
         response, created = AuthorOfferResponse.objects.get_or_create(
