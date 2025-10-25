@@ -13,9 +13,10 @@
   {% endfor %}
 
   <h5>Роли</h5>
-  {% for f in role_form %}
+  {% for checkbox in role_form.roles %}
     <div class="form-check">
-      {{ f.tag }} <label class="form-check-label">{{ f.choice_label }}</label>
+      {{ checkbox.tag }}
+      <label class="form-check-label" for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
     </div>
   {% endfor %}
 
