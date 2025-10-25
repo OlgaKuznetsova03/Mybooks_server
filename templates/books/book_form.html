@@ -61,7 +61,6 @@
 
           <!-- ПОИСК КНИГИ -->
           <div id="book-lookup" class="mb-4 rt-highlight rt-pulse-once" data-lookup-url="{% url 'book_lookup' %}">
-            <span class="rt-highlight-badge">Шаг 1</span>
             <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
               <h2 class="h5 mb-0">Поиск книги</h2>
               <span class="text-muted small">Сначала ищем на сайте, затем при необходимости через ISBNdb.</span>
@@ -172,6 +171,17 @@
                   {{ field.label }}{% if field.field.required %}<span class="text-danger">*</span>{% endif %}
                 </label>
                 {{ field }}
+                {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+              </div>
+              {% elif field.name == "confirm_authorship" %}
+              <div class="mb-4 rt-highlight rt-pulse-once" id="confirm-authorship">
+                <div class="form-check mb-2">
+                  {{ field }}
+                  <label class="form-check-label fw-semibold" for="id_{{ field.name }}">
+                    {{ field.label }}{% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+                  </label>
+                </div>
                 {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
                 {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
               </div>
