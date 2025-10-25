@@ -638,7 +638,7 @@ class OfferResponseAcceptView(LoginRequiredMixin, FormView):
     def form_valid(self, form):
         deadline = form.cleaned_data["deadline"]
         response = self.response
-        collaboration, _ = Collaboration.objects.get_or_create(
+        collaboration, _created = Collaboration.objects.get_or_create(
             offer=response.offer,
             partner=response.respondent,
             defaults={
@@ -883,7 +883,7 @@ class BloggerRequestResponseAcceptView(LoginRequiredMixin, FormView):
     def form_valid(self, form):
         deadline = form.cleaned_data["deadline"]
         response = self.response
-        collaboration, _ = Collaboration.objects.get_or_create(
+        collaboration, _created = Collaboration.objects.get_or_create(
             request=response.request,
             author=response.author,
             defaults={
