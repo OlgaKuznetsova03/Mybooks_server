@@ -981,7 +981,7 @@ class BloggerRequestListView(ListView):
         queryset = (
             super()
             .get_queryset()
-            .select_related("blogger")
+            .select_related("blogger", "blogger__profile")
             .prefetch_related("preferred_genres", "review_formats", "platforms")
         )
         q = self.request.GET.get("q")

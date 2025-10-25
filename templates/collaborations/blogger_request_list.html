@@ -23,7 +23,9 @@
   box-shadow:0 12px 28px rgba(0,0,0,.06);
 }
 .collab-hero h1{ margin-bottom:.25rem }
-.collab-hero__actions{ gap:.5rem }
+.collab-hero__actions{ gap:.75rem }
+.collab-hero__actions .btn-group{display:flex;flex-wrap:wrap;gap:.5rem}
+.collab-hero__actions .btn-group .btn{flex:1 1 auto}
 
 /* Кнопки под акцент */
 .collab-theme .btn-primary{
@@ -80,10 +82,38 @@
   border-top:1px solid var(--collab-accent-12);
 }
 
+.collab-card__header{display:flex;align-items:flex-start;gap:1rem;margin-bottom:1rem}
+.collab-card__header-content{flex:1 1 auto;min-width:0}
+.collab-card__title{word-break:break-word}
+.collab-avatar{width:64px;height:64px;border-radius:50%;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(217,163,101,.22);color:#8a5a1d;font-weight:600;font-size:1.25rem;text-transform:uppercase;box-shadow:0 6px 18px rgba(217,163,101,.24)}
+.collab-avatar img{width:100%;height:100%;object-fit:cover}
+.collab-avatar--placeholder{border:2px dashed rgba(217,163,101,.45);background:rgba(255,255,255,.6)}
+.collab-card__meta{gap:.5rem}
+
+.collab-filter .form-label{font-weight:600;color:#7a5c30}
+.collab-filter .form-control{border-radius:12px}
+.collab-filter .btn{border-radius:12px}
+
 /* Мобильные правки */
 @media (max-width: 575.98px){
   .collab-hero{ padding:1rem; }
-  .collab-hero__actions .btn{ width:100%; }
+  .collab-hero__actions{width:100%;align-items:stretch}
+  .collab-hero__actions .btn-group{width:100%}
+  .collab-hero__actions .btn-group .btn{flex:1 1 100%;min-width:0}
+  .collab-hero__actions .btn-group .btn + .btn{margin-left:0}
+  .collab-hero__actions .btn-group + .btn-group{width:100%}
+  .collab-filter .col-md-6,
+  .collab-filter .col-md-3{width:100%}
+  .collab-card__header{gap:.75rem}
+  .collab-avatar{width:56px;height:56px}
+}
+
+@media (max-width: 767.98px){
+  .collab-hero__actions{width:100%;align-items:stretch}
+  .collab-hero__actions .btn-group{justify-content:stretch}
+  .collab-hero__actions .btn-group .btn{flex:1 1 45%;min-width:140px}
+  .collab-card.card{height:100%}
+  .collab-card .card-footer{flex-direction:column;align-items:flex-start;gap:.5rem}
 }
 </style>
 {% endblock %}
@@ -139,7 +169,7 @@
   </div>
 
   <!-- ФИЛЬТР -->
-  <form method="get" class="row g-3 align-items-end mb-4">
+  <form method="get" class="row g-3 align-items-end mb-4 collab-filter">
     <div class="col-md-6 col-lg-4">
       <label for="search" class="form-label">{% trans "Поиск" %}</label>
       <input id="search" type="search" name="q" value="{{ request.GET.q }}" class="form-control" placeholder="{% trans 'Жанр или описание' %}">
@@ -157,20 +187,32 @@
         <div class="col-12 col-lg-6">
           <div class="card collab-card h-100 shadow-sm">
             <div class="card-body d-flex flex-column">
-              <div class="d-flex justify-content-between align-items-center mb-2">
-                <h2 class="h5 mb-0">
-                  <a href="{% url 'collaborations:blogger_request_detail' request_obj.pk %}" class="text-decoration-none">
-                    {{ request_obj.title }}
-                  </a>
-                </h2>
-                <span class="badge text-bg-info">
-                  {{ request_obj.blogger.get_full_name|default:request_obj.blogger.username }}
-                </span>
+              {% with display_name=request_obj.blogger.get_full_name|default:request_obj.blogger.username %}
+              <div class="collab-card__header">
+                <div class="collab-avatar{% if not request_obj.blogger.profile.avatar %} collab-avatar--placeholder{% endif %}">
+                  {% if request_obj.blogger.profile.avatar %}
+                    <img src="{{ request_obj.blogger.profile.avatar.url }}" alt="{% blocktrans trimmed with name=display_name %}Аватар {{ name }}{% endblocktrans %}">
+                  {% else %}
+                    <span>{{ display_name|slice:":1"|upper }}</span>
+                  {% endif %}
+                </div>
+                <div class="collab-card__header-content">
+                  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2 collab-card__meta">
+                    <h2 class="h5 mb-0 collab-card__title">
+                      <a href="{% url 'collaborations:blogger_request_detail' request_obj.pk %}" class="text-decoration-none">
+                        {{ request_obj.title }}
+                      </a>
+                    </h2>
+                    <span class="badge text-bg-info">
+                      {{ display_name }}
+                    </span>
+                  </div>
+                  {% if request_obj.additional_info %}
+                    <p class="text-muted small mb-0">{{ request_obj.additional_info|truncatechars:160 }}</p>
+                  {% endif %}
+                </div>
               </div>
-
-              {% if request_obj.additional_info %}
-                <p class="text-muted small mb-3">{{ request_obj.additional_info|truncatechars:160 }}</p>
-              {% endif %}
+              {% endwith %}
 
               {% if request_obj.collaboration_terms %}
                 <div class="mb-3">
