@@ -140,6 +140,7 @@ class BookForm(forms.ModelForm):
         label="Я подтверждаю, что являюсь автором этой книги",
         required=False,
         help_text="Отметьте, чтобы книга появилась в разделе «Мои книги» вашего профиля.",
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
     )
 
     class Meta:
