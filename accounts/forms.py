@@ -1,3 +1,5 @@
+from typing import Optional, Set
+
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import Group, User
@@ -22,6 +24,10 @@ class SignUpForm(UserCreationForm):
         label="Роли",
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._pending_role_names: Optional[Set[str]] = None
+
     class Meta:
         model = User
         fields = ("username", "email", "password1", "password2")
@@ -34,20 +40,37 @@ class SignUpForm(UserCreationForm):
             )
         return email
 
+    def _ensure_role_groups(self):
+        for name, _ in ROLE_CHOICES:
+            Group.objects.get_or_create(name=name)
+
+    def _assign_roles(self, user, selected: Set[str]):
+        user.groups.set(Group.objects.filter(name__in=selected))
+
     def save(self, commit=True):
         user = super().save(commit=False)
         user.username = self.cleaned_data["username"]
         user.email = self.cleaned_data["email"]
         if commit:
             user.save()
+
         selected = set(self.cleaned_data.get("roles", []))
-        for name, _ in ROLE_CHOICES:
-            Group.objects.get_or_create(name=name)
+        self._ensure_role_groups()
         if commit:
-            user.groups.set(Group.objects.filter(name__in=selected))
+            self._assign_roles(user, selected)
+            self._pending_role_names = None
+        else:
+            self._pending_role_names = selected
         return user
 
+    def save_m2m(self):
+        super().save_m2m()
+        if self._pending_role_names is not None:
+            self._ensure_role_groups()
+            self._assign_roles(self.instance, self._pending_role_names)
+            self._pending_role_names = None
 
+            
 class EmailAuthenticationForm(AuthenticationForm):
     username = forms.EmailField(label="Email", widget=forms.EmailInput(attrs={"autofocus": True}))
 

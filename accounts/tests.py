@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
+from accounts.forms import SignUpForm
 from books.models import Author, Book
 
 class PasswordResetFlowTests(TestCase):
@@ -82,3 +83,41 @@ class AuthorProfileBooksTests(TestCase):
         self.assertContains(response, "Авторская коллекция")
         self.assertContains(response, "Автор Тестовый")
         self.assertContains(response, "Добавить книгу")
+
+
+class SignUpRoleAssignmentTests(TestCase):
+    def test_signup_assigns_selected_roles(self):
+        form = SignUpForm(
+            data={
+                "username": "multiuser",
+                "email": "multi@example.com",
+                "password1": "ComplexPass123!",
+                "password2": "ComplexPass123!",
+                "roles": ["reader", "author", "blogger"],
+            }
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        user = form.save()
+        self.assertSetEqual(
+            set(user.groups.values_list("name", flat=True)),
+            {"reader", "author", "blogger"},
+        )
+
+    def test_roles_preserved_when_saving_without_commit(self):
+        form = SignUpForm(
+            data={
+                "username": "pendinguser",
+                "email": "pending@example.com",
+                "password1": "ComplexPass123!",
+                "password2": "ComplexPass123!",
+                "roles": ["reader", "author"],
+            }
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        user = form.save(commit=False)
+        user.save()
+        form.save_m2m()
+        self.assertSetEqual(
+            set(user.groups.values_list("name", flat=True)),
+            {"reader", "author"},
+        )
