@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import mimetypes
 import os
+import re
 import secrets
 from typing import Iterable
 from urllib.error import URLError
@@ -25,6 +26,40 @@ def build_edition_group_key(title: str | None, authors: Iterable[str]) -> str:
     normalized_title = normalize_title(title).casefold()
     normalized_authors = sorted(normalize_title(author).casefold() for author in authors if author)
     return "::".join([normalized_title, *normalized_authors]) if normalized_title or normalized_authors else ""
+
+
+_MULTISPACE_RE = re.compile(r"\s+")
+
+
+_GENRE_SYNONYMS: dict[str, str] = {
+    "детектив": "Детектив",
+    "детективы": "Детектив",
+    "современная литература": "Современная литература",
+    "современная проза": "Современная литература",
+}
+
+
+def normalize_genre_name(name: str | None) -> str:
+    """Return a cleaned up genre name that can be safely used as a key."""
+
+    if not name:
+        return ""
+
+    normalized = str(name).strip(" \t\r\n.,;:!?\'\"«»()[]{}")
+    if not normalized:
+        return ""
+
+    normalized = _MULTISPACE_RE.sub(" ", normalized)
+    key = normalized.casefold()
+
+    synonym = _GENRE_SYNONYMS.get(key)
+    if synonym:
+        return synonym
+
+    if normalized.islower() or normalized.isupper():
+        normalized = normalized.title()
+
+    return normalized
 
 
 def store_additional_cover(book: "Book", uploaded_file: UploadedFile) -> str:

@@ -1,16 +1,17 @@
 import tempfile
 from unittest import mock
+
 from django.contrib.auth.models import Group, User
-from django.test import TestCase
-from django.urls import reverse
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import override_settings
+from django.db import IntegrityError
+from django.test import TestCase, override_settings
+from django.urls import reverse
 
 from shelves.models import Shelf, ShelfItem
 from shelves.services import ALL_DEFAULT_READ_SHELF_NAMES
 
-from .models import Author, Genre, Publisher, Book, ISBNModel
+from .models import Author, Book, Genre, ISBNModel, Publisher
 from .services import register_book_edition
 from .api_clients import ExternalBookData, ISBNDBClient
 
@@ -132,6 +133,16 @@ class GenreModelTests(TestCase):
         self.assertTrue(variant.slug.startswith("fentezi"))
         self.assertNotEqual(base.slug, variant.slug)
 
+    def test_name_is_normalized_before_saving(self):
+        genre = Genre.objects.create(name="  детективы  ")
+        self.assertEqual(genre.name, "Детектив")
+        self.assertEqual(genre.slug, "detektiv")
+
+    def test_synonyms_are_collapsed(self):
+        Genre.objects.create(name="Современная литература")
+        with self.assertRaises(IntegrityError):
+            Genre.objects.create(name="современная проза")
+            
 
 class ISBNModelGetImageURLTests(TestCase):
     def _create_isbn(self, suffix: int, image: str = "book_covers/sample.jpg") -> ISBNModel:

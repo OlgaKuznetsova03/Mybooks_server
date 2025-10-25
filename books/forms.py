@@ -8,7 +8,7 @@ from .models import (
     Author, Publisher, Genre, ISBNModel,
     AudioBook, Book, Rating, RatingComment
 )
-from .utils import normalize_isbn
+from .utils import normalize_genre_name, normalize_isbn
 from .api_clients import transliterate_to_cyrillic
 
 
@@ -254,10 +254,10 @@ class BookForm(forms.ModelForm):
         seen: set[str] = set()
 
         def _push(name: str) -> None:
-            normalized = name.strip()
+            normalized = normalize_genre_name(name)
             if not normalized:
                 return
-            lowered = normalized.lower()
+            lowered = normalized.casefold()
             if lowered in seen:
                 return
             seen.add(lowered)
@@ -297,8 +297,13 @@ class BookForm(forms.ModelForm):
             raise ValidationError("Укажите хотя бы один жанр.")
         genres = []
         for name in names:
-            genre, _ = Genre.objects.get_or_create(name=name)
+            normalized = normalize_genre_name(name)
+            if not normalized:
+                continue
+            genre, _ = Genre.objects.get_or_create(name=normalized)
             genres.append(genre)
+        if not genres:
+            raise ValidationError("Укажите хотя бы один жанр.")
         return genres
 
     def clean_publisher(self):

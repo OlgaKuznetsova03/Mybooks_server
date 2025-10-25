@@ -11,7 +11,7 @@ from django.db.models import Sum, F, Avg, Count
 from django.db.models.signals import m2m_changed
 from django.dispatch import receiver
 
-from .utils import build_edition_group_key
+from .utils import build_edition_group_key, normalize_genre_name
 
 
 class Author(models.Model):
@@ -91,6 +91,8 @@ class Genre(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
+        self.name = normalize_genre_name(self.name)
+
         if not self.slug and self.name:
             base_slug = _build_genre_slug_base(self.name)
             slug_candidate = base_slug
