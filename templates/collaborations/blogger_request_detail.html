@@ -79,6 +79,49 @@
   transform:translateY(-1px);
   box-shadow:0 16px 32px rgba(0,0,0,.10);
 }
+
+.collab-detail-layout{
+  display:grid;
+  grid-template-columns:minmax(0,2fr) minmax(0,1fr);
+  gap:1.5rem;
+}
+
+.collab-detail-sidebar{
+  display:flex;
+  flex-direction:column;
+  gap:1.5rem;
+}
+
+@media (max-width: 991.98px){
+  .collab-detail-layout{
+    grid-template-columns:1fr;
+  }
+
+  .collab-header-actions{
+    width:100%;
+    justify-content:space-between;
+  }
+}
+
+@media (max-width: 575.98px){
+  .collab-theme h1{
+    font-size:1.5rem;
+  }
+
+  .collab-header-actions{
+    flex-direction:column;
+    align-items:stretch !important;
+    gap:.75rem;
+  }
+
+  .collab-header-actions .btn{
+    width:100%;
+  }
+
+  .collab-detail-layout{
+    gap:1rem;
+  }
+}
 </style>
 {% endblock %}
 
@@ -86,11 +129,16 @@
 <div class="collab-theme">
 
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
-    <div>
-      <h1 class="h3 mb-1">{{ request_obj.title }}</h1>
-      <p class="text-muted mb-0">{% trans "Заявка блогера" %}</p>
+    <div class="d-flex align-items-center flex-wrap gap-2">
+      <a href="{% url 'collaborations:blogger_request_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> {% trans "Назад к заявкам" %}
+      </a>
+      <div>
+        <h1 class="h3 mb-1">{{ request_obj.title }}</h1>
+        <p class="text-muted mb-0">{% trans "Заявка блогера" %}</p>
+      </div>
     </div>
-    <div class="d-flex align-items-center gap-2">
+    <div class="d-flex align-items-center gap-2 collab-header-actions">
       <span class="badge text-bg-info fs-6">{{ request_obj.blogger.get_full_name|default:request_obj.blogger.username }}</span>
       {% if user.is_authenticated and user.id == request_obj.blogger_id %}
         <a href="{% url 'collaborations:blogger_request_edit' request_obj.pk %}" class="btn btn-outline-primary btn-sm">
@@ -100,8 +148,8 @@
     </div>
   </div>
 
-  <div class="row g-4">
-    <div class="col-lg-8">
+  <div class="collab-detail-layout">
+    <div>
       <div class="card shadow-sm">
         <div class="card-body">
           {% if request_obj.additional_info %}
@@ -172,7 +220,7 @@
       </div>
     </div>
 
-    <div class="col-lg-4">
+    <div class="collab-detail-sidebar">
       <div class="card shadow-sm">
         <div class="card-header">{% trans "Охват" %}</div>
         <div class="card-body">
@@ -205,7 +253,7 @@
       </div>
 
       {% if user.is_authenticated %}
-        <div class="card shadow-sm mt-4">
+        <div class="card shadow-sm">
           <div class="card-header">{% trans "Откликнуться" %}</div>
           <div class="card-body">
             {% if can_respond %}
@@ -230,7 +278,7 @@
           </div>
         </div>
       {% else %}
-        <div class="alert alert-info mt-4" role="alert">{% trans "Войдите, чтобы связаться с блогером." %}</div>
+        <div class="alert alert-info" role="alert">{% trans "Войдите, чтобы связаться с блогером." %}</div>
       {% endif %}
     </div>
   </div>
