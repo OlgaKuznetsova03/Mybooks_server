@@ -7,7 +7,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from books.models import Book, ISBNModel, Rating
+from books.models import Book, Genre, ISBNModel, Rating
 from shelves.models import BookProgress, Shelf, ShelfItem
 from shelves.services import (
     DEFAULT_READ_SHELF,
@@ -16,6 +16,9 @@ from shelves.services import (
 )
 
 from .models import (
+    BookExchangeAcceptedBook,
+    BookExchangeChallenge,
+    BookExchangeOffer,
     BookJourneyAssignment,
     ForgottenBookEntry,
     GameShelfBook,
@@ -23,6 +26,7 @@ from .models import (
     GameShelfState,
 )
 from .forms import BookJourneyAssignForm
+from .services.book_exchange import BookExchangeGame
 from .services.book_journey import BookJourneyMap
 from .services.forgotten_books import ForgottenBooksGame
 from .services.read_before_buy import ReadBeforeBuyGame
@@ -406,4 +410,106 @@ class ForgottenBooksGameTests(TestCase):
         response = self.client.get(reverse("games:forgotten_books"))
         self.assertEqual(response.status_code, 200)
         game = ForgottenBooksGame.get_game()
+        self.assertContains(response, game.title)
+
+class BookExchangeChallengeTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="trader", password="secret123")
+        self.other = User.objects.create_user(username="helper", password="secret123")
+        self.genre = Genre.objects.create(name="Фэнтези")
+        self.book = Book.objects.create(title="Драконья тропа", synopsis="Путь героя и дракона.")
+        self.book.genres.add(self.genre)
+        self.second_book = Book.objects.create(title="Город среди звёзд", synopsis="Покорение космоса")
+        self.second_book.genres.add(self.genre)
+        self.third_book = Book.objects.create(title="Тайна архива", synopsis="Старинные рукописи и тайны")
+        self.third_book.genres.add(self.genre)
+
+        self.read_shelf = Shelf.objects.create(
+            user=self.other,
+            name=DEFAULT_READ_SHELF,
+            is_default=True,
+        )
+        ShelfItem.objects.create(shelf=self.read_shelf, book=self.book)
+        ShelfItem.objects.create(shelf=self.read_shelf, book=self.second_book)
+        ShelfItem.objects.create(shelf=self.read_shelf, book=self.third_book)
+
+    def test_start_new_challenge_creates_public_shelf(self):
+        challenge = BookExchangeGame.start_new_challenge(
+            self.user,
+            target_books=3,
+            genres=[self.genre],
+        )
+        self.assertEqual(challenge.round_number, 1)
+        self.assertTrue(challenge.shelf.is_public)
+        self.assertEqual(challenge.genres.count(), 1)
+        self.assertTrue(BookExchangeGame.has_active_challenge(self.user))
+
+    def test_decline_limit_enforced(self):
+        challenge = BookExchangeGame.start_new_challenge(
+            self.user, target_books=3, genres=[self.genre]
+        )
+        BookExchangeGame.offer_book(challenge, offered_by=self.other, book=self.book)
+        BookExchangeGame.offer_book(challenge, offered_by=self.other, book=self.second_book)
+        BookExchangeGame.offer_book(challenge, offered_by=self.other, book=self.third_book)
+
+        offers = list(
+            BookExchangeOffer.objects.filter(challenge=challenge)
+            .order_by("created_at")
+        )
+        success, _, level = BookExchangeGame.decline_offer(
+            offers[0], acting_user=self.user
+        )
+        self.assertTrue(success)
+        self.assertEqual(level, "info")
+        success, message, level = BookExchangeGame.decline_offer(
+            offers[1], acting_user=self.user
+        )
+        self.assertFalse(success)
+        self.assertEqual(level, "warning")
+        self.assertIn("Нельзя отклонить", message)
+
+    def test_accept_offer_sets_deadline_and_creates_entry(self):
+        challenge = BookExchangeGame.start_new_challenge(
+            self.user, target_books=1, genres=[self.genre]
+        )
+        BookExchangeGame.offer_book(challenge, offered_by=self.other, book=self.book)
+        offer = BookExchangeOffer.objects.get(challenge=challenge, book=self.book)
+        success, _, level = BookExchangeGame.accept_offer(offer, acting_user=self.user)
+        self.assertTrue(success)
+        self.assertEqual(level, "success")
+        challenge.refresh_from_db()
+        self.assertIsNotNone(challenge.deadline_at)
+        entry = BookExchangeAcceptedBook.objects.get(challenge=challenge, book=self.book)
+        self.assertIsNotNone(entry)
+        self.assertTrue(
+            ShelfItem.objects.filter(shelf=challenge.shelf, book=self.book).exists()
+        )
+
+    def test_completion_requires_review_and_progress(self):
+        challenge = BookExchangeGame.start_new_challenge(
+            self.user, target_books=1, genres=[self.genre]
+        )
+        BookExchangeGame.offer_book(challenge, offered_by=self.other, book=self.book)
+        offer = BookExchangeOffer.objects.get(challenge=challenge, book=self.book)
+        BookExchangeGame.accept_offer(offer, acting_user=self.user)
+        entry = BookExchangeAcceptedBook.objects.get(challenge=challenge, book=self.book)
+
+        BookProgress.objects.create(user=self.user, book=self.book, percent=Decimal("100"))
+        BookExchangeAcceptedBook.sync_for_user_book(self.user, self.book)
+        entry.refresh_from_db()
+        self.assertIsNotNone(entry.finished_at)
+        self.assertFalse(entry.is_completed)
+
+        Rating.objects.create(user=self.user, book=self.book, review="Прочитано")
+        BookExchangeAcceptedBook.sync_for_user_book(self.user, self.book)
+        entry.refresh_from_db()
+        challenge.refresh_from_db()
+        self.assertTrue(entry.is_completed)
+        self.assertEqual(challenge.status, BookExchangeChallenge.Status.COMPLETED)
+
+    def test_dashboard_view_renders(self):
+        self.client.login(username="trader", password="secret123")
+        response = self.client.get(reverse("games:book_exchange"))
+        self.assertEqual(response.status_code, 200)
+        game = BookExchangeGame.get_game()
         self.assertContains(response, game.title)

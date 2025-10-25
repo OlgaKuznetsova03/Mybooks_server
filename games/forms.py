@@ -2,7 +2,7 @@ from django import forms
 
 from django.core.exceptions import ValidationError
 
-from books.models import Book
+from books.models import Book, Genre
 from shelves.models import Shelf, ShelfItem
 from shelves.services import (
     DEFAULT_HOME_LIBRARY_SHELF,
@@ -12,7 +12,12 @@ from shelves.services import (
     get_home_library_shelf,
 )
 
-from .models import BookJourneyAssignment, ForgottenBookEntry
+from .models import (
+    BookJourneyAssignment,
+    BookExchangeOffer,
+    ForgottenBookEntry,
+)
+from .services.book_exchange import BookExchangeGame
 from .services.book_journey import BookJourneyMap
 from .services.forgotten_books import ForgottenBooksGame
 from .services.read_before_buy import ReadBeforeBuyGame
@@ -190,3 +195,131 @@ class ForgottenBooksRemoveForm(forms.Form):
             raise ValidationError("Нельзя удалить выбранную книгу.")
         self.cleaned_data["entry"] = entry
         return entry_id
+
+
+class BookExchangeStartForm(forms.Form):
+    target_books = forms.IntegerField(
+        min_value=1,
+        max_value=50,
+        label="Сколько книг готовы принять",
+        widget=forms.NumberInput(attrs={"class": "form-control"}),
+    )
+    genres = forms.ModelMultipleChoiceField(
+        queryset=Genre.objects.none(),
+        label="Предпочтительные жанры",
+        widget=forms.SelectMultiple(attrs={"class": "form-select"}),
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+        self.fields["genres"].queryset = Genre.objects.all().order_by("name")
+
+    def clean(self):
+        cleaned = super().clean()
+        user = self.user
+        if not user:
+            raise ValidationError("Авторизуйтесь, чтобы начать игру.")
+        if BookExchangeGame.has_active_challenge(user):
+            raise ValidationError("Сначала завершите текущий раунд.")
+        genres = cleaned.get("genres")
+        if not genres:
+            raise ValidationError("Выберите хотя бы один жанр.")
+        return cleaned
+
+
+class BookExchangeOfferForm(forms.Form):
+    book = forms.ModelChoiceField(
+        queryset=Book.objects.none(),
+        label="Книга из вашей полки «Прочитал»",
+        empty_label="Выберите книгу",
+    )
+
+    def __init__(self, *args, user=None, challenge=None, **kwargs):
+        self.user = user
+        self.challenge = challenge
+        super().__init__(*args, **kwargs)
+        field = self.fields["book"]
+        field.widget.attrs.setdefault("class", "form-select")
+        if not user or not challenge:
+            field.queryset = Book.objects.none()
+            return
+        read_items = ShelfItem.objects.filter(
+            shelf__user=user,
+            shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+        )
+        genre_ids = list(challenge.genres.values_list("id", flat=True))
+        if genre_ids:
+            read_items = read_items.filter(book__genres__id__in=genre_ids)
+        book_ids = read_items.values_list("book_id", flat=True).distinct()
+        field.queryset = Book.objects.filter(id__in=book_ids).order_by("title")
+
+    def clean(self):
+        cleaned = super().clean()
+        user = self.user
+        challenge = self.challenge
+        if not user or not challenge:
+            raise ValidationError("Не удалось определить игру для предложения.")
+        book = cleaned.get("book")
+        if not book:
+            return cleaned
+        if user == challenge.user:
+            raise ValidationError("Нельзя предлагать книги самому себе.")
+        if not ShelfItem.objects.filter(
+            shelf__user=user,
+            shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+            book=book,
+        ).exists():
+            raise ValidationError("Добавьте книгу в полку «Прочитал», прежде чем предлагать.")
+        if BookExchangeOffer.objects.filter(
+            challenge=challenge,
+            offered_by=user,
+            book=book,
+        ).exists():
+            raise ValidationError("Вы уже предлагали эту книгу.")
+        genre_ids = list(challenge.genres.values_list("id", flat=True))
+        if genre_ids and not book.genres.filter(id__in=genre_ids).exists():
+            raise ValidationError("Книга не подходит по жанрам игрока.")
+        return cleaned
+
+
+class BookExchangeRespondForm(forms.Form):
+    DECISIONS = (
+        ("accept", "Принять"),
+        ("decline", "Отклонить"),
+    )
+
+    offer_id = forms.IntegerField(widget=forms.HiddenInput)
+    decision = forms.ChoiceField(choices=DECISIONS, widget=forms.HiddenInput)
+
+    def __init__(self, *args, user=None, challenge=None, **kwargs):
+        self.user = user
+        self.challenge = challenge
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned = super().clean()
+        user = self.user
+        challenge = self.challenge
+        if not user or not challenge:
+            raise ValidationError("Не удалось определить раунд игры.")
+        if user != challenge.user:
+            raise ValidationError("Только владелец раунда может управлять предложениями.")
+        offer_id = cleaned.get("offer_id")
+        decision = cleaned.get("decision")
+        try:
+            offer = BookExchangeOffer.objects.select_related("challenge", "book", "offered_by").get(
+                pk=offer_id,
+                challenge=challenge,
+            )
+        except BookExchangeOffer.DoesNotExist as exc:
+            raise ValidationError("Предложение не найдено.") from exc
+        if offer.status != BookExchangeOffer.Status.PENDING:
+            raise ValidationError("Это предложение уже обработано.")
+        if decision == "decline" and not BookExchangeGame.can_decline_offer(
+            challenge, additional_decline=1
+        ):
+            raise ValidationError("Нельзя отклонить более половины предложенных книг.")
+        cleaned["offer"] = offer
+        cleaned["decision"] = decision
+        return cleaned

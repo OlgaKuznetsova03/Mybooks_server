@@ -7,6 +7,7 @@ from typing import Iterable, List, Sequence
 
 from django.urls import reverse
 
+from .services.book_exchange import BookExchangeGame
 from .services.book_journey import BookJourneyMap
 from .services.forgotten_books import ForgottenBooksGame
 from .services.read_before_buy import ReadBeforeBuyGame
@@ -35,6 +36,7 @@ def get_game_cards() -> List[GameCard]:
 
     read_before_buy = ReadBeforeBuyGame.get_game()
     forgotten_books = ForgottenBooksGame.get_game()
+    book_exchange = BookExchangeGame.get_game()
     available: List[GameCard] = [
         GameCard(
             slug=ReadBeforeBuyGame.SLUG,
@@ -46,6 +48,18 @@ def get_game_cards() -> List[GameCard]:
                 "Баллы за прочитанные страницы",
                 "Бонусы за большие книги",
                 "Коллекционирование покупок",
+            ),
+        ),
+        GameCard(
+            slug=BookExchangeGame.SLUG,
+            title=book_exchange.title,
+            description=book_exchange.description,
+            url_name="games:book_exchange",
+            icon="🤝",
+            highlights=(
+                "Вы сами задаёте цель",
+                "Книги только из любимых жанров",
+                "Год на прочтение и отзыв",
             ),
         ),
         GameCard(

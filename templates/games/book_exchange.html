@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ game.title }} — ReadTogether{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body d-flex flex-column flex-lg-row justify-content-between gap-4 align-items-lg-center">
+        <div>
+          <h1 class="h2 mb-2">{{ game.title }}</h1>
+          <p class="mb-0 text-muted">{{ game.description }}</p>
+        </div>
+        {% if challenge_data and challenge_data.challenge %}
+        <div class="text-lg-end">
+          <div class="fw-semibold">Раунд № {{ challenge_data.challenge.round_number }}</div>
+          <div class="small text-muted">Игрок: {{ challenge_data.challenge.user.username }}</div>
+          {% if challenge_data.deadline %}
+          <div class="small">Дедлайн: {{ challenge_data.deadline|date:"d E Y" }}{% if challenge_data.days_left is not None %} (осталось {{ challenge_data.days_left }} дн.){% endif %}</div>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if start_form %}
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <h2 class="h4">Начать новый раунд</h2>
+        <p class="text-muted">Выберите цель и жанры — другие игроки будут предлагать подходящие книги.</p>
+        <form method="post" class="row g-3">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="start">
+          <div class="col-md-4">
+            {{ start_form.target_books.label_tag }}
+            {{ start_form.target_books }}
+            {% if start_form.target_books.errors %}
+            <div class="invalid-feedback d-block">{{ start_form.target_books.errors|join:" " }}</div>
+            {% endif %}
+          </div>
+          <div class="col-md-8">
+            {{ start_form.genres.label_tag }}
+            {{ start_form.genres }}
+            {% if start_form.genres.errors %}
+            <div class="invalid-feedback d-block">{{ start_form.genres.errors|join:" " }}</div>
+            {% endif %}
+          </div>
+          {% if start_form.non_field_errors %}
+          <div class="col-12">
+            <div class="alert alert-danger mb-0">{{ start_form.non_field_errors|join:" " }}</div>
+          </div>
+          {% endif %}
+          <div class="col-12 d-flex justify-content-end">
+            <button type="submit" class="btn btn-primary">Запустить раунд</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if challenge_data %}
+  <div class="col-12 col-xl-8">
+    <section class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex flex-column flex-md-row justify-content-between gap-3 align-items-md-center mb-4">
+          <div>
+            <h2 class="h4 mb-1">Игровая полка</h2>
+            <div class="text-muted">Принято книг: {{ challenge_data.accepted_count }} из {{ challenge_data.challenge.target_books }}</div>
+          </div>
+          <div class="text-md-end small text-muted">
+            {% if challenge_data.remaining_slots > 0 %}
+              Осталось принять: {{ challenge_data.remaining_slots }}
+            {% else %}
+              Цель достигнута — читайте книги и делитесь отзывами!
+            {% endif %}
+          </div>
+        </div>
+
+        {% if challenge_data.genres %}
+        <div class="mb-4">
+          <span class="fw-semibold">Предпочтительные жанры:</span>
+          <span class="badge bg-light text-dark ms-2">{{ challenge_data.genres|join:", " }}</span>
+        </div>
+        {% endif %}
+
+        {% if challenge_data.accepted %}
+        <div class="row g-3">
+          {% for item in challenge_data.accepted %}
+          <div class="col-12 col-md-6">
+            <article class="card h-100 border-0 shadow-sm">
+              <div class="row g-0 h-100">
+                <div class="col-4">
+                  {% if item.book.cover_url %}
+                  <img src="{{ item.book.cover_url }}" alt="Обложка {{ item.book.title }}" class="img-fluid rounded-start h-100 object-fit-cover">
+                  {% else %}
+                  <div class="bg-light h-100 d-flex align-items-center justify-content-center text-muted small">Без обложки</div>
+                  {% endif %}
+                </div>
+                <div class="col-8">
+                  <div class="card-body d-flex flex-column h-100">
+                    <h3 class="h6 mb-1"><a href="{{ item.book.detail_url }}">{{ item.book.title }}</a></h3>
+                    <div class="small text-muted mb-2">{{ item.book.authors }}</div>
+                    <p class="small flex-grow-1">{{ item.book.synopsis }}</p>
+                    <dl class="small mb-0">
+                      <dt class="text-muted">Предложил</dt>
+                      <dd>{{ item.offered_by.username }}</dd>
+                      {% if item.finished_at %}
+                      <dt class="text-muted">Прочитана</dt>
+                      <dd>{{ item.finished_at|date:"d.m.Y" }}</dd>
+                      {% endif %}
+                      {% if item.review_submitted_at %}
+                      <dt class="text-muted">Отзыв</dt>
+                      <dd>{{ item.review_submitted_at|date:"d.m.Y" }}</dd>
+                      {% endif %}
+                      {% if item.is_completed %}
+                      <dt class="text-success">Статус</dt>
+                      <dd class="text-success">Выполнено</dd>
+                      {% endif %}
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">Игровая полка пока пустует. Подождите предложений от друзей.</p>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  <div class="col-12 col-xl-4">
+    <section class="card border-0 shadow-sm mb-4">
+      <div class="card-body">
+        <h2 class="h5 mb-3">Предложения</h2>
+        {% if challenge_data.pending %}
+        <ul class="list-unstyled mb-0">
+          {% for item in challenge_data.pending %}
+          <li class="mb-3 pb-3 border-bottom">
+            <div class="d-flex flex-column gap-1">
+              <div>
+                <strong>{{ item.book.title }}</strong>
+                <span class="text-muted small">— {{ item.book.authors }}</span>
+              </div>
+              <div class="small text-muted">Предложил: {{ item.offered_by.username }} · {{ item.created_at|date:"d.m.Y" }}</div>
+              <p class="small mb-0">{{ item.book.synopsis }}</p>
+              {% if respond_form and challenge_data.is_owner %}
+              <div class="d-flex gap-2 mt-2">
+                <form method="post" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="respond">
+                  <input type="hidden" name="offer_id" value="{{ item.offer.id }}">
+                  <input type="hidden" name="decision" value="accept">
+                  <button type="submit" class="btn btn-sm btn-success">Принять</button>
+                </form>
+                <form method="post" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="respond">
+                  <input type="hidden" name="offer_id" value="{{ item.offer.id }}">
+                  <input type="hidden" name="decision" value="decline">
+                  <button type="submit" class="btn btn-sm btn-outline-secondary"{% if challenge_data.remaining_declines == 0 %} disabled{% endif %}>Отклонить</button>
+                </form>
+              </div>
+              {% endif %}
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted mb-0">Новых предложений пока нет.</p>
+        {% endif %}
+        {% if challenge_data.is_owner %}
+        <p class="small text-muted mt-3 mb-0">Можно отклонить ещё {{ challenge_data.remaining_declines }} из {{ challenge_data.total_offers }} предложений.</p>
+        {% endif %}
+      </div>
+    </section>
+
+    {% if offer_form %}
+    <section class="card border-0 shadow-sm">
+      <div class="card-body">
+        <h2 class="h5">Предложить книгу</h2>
+        <p class="text-muted">Выберите историю из своей полки «Прочитал», которая подходит по жанрам.</p>
+        <form method="post" class="d-flex flex-column gap-3">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="offer">
+          {{ offer_form.book.label_tag }}
+          {{ offer_form.book }}
+          {% if offer_form.book.errors %}
+          <div class="invalid-feedback d-block">{{ offer_form.book.errors|join:" " }}</div>
+          {% endif %}
+          {% if offer_form.non_field_errors %}
+          <div class="alert alert-danger mb-0">{{ offer_form.non_field_errors|join:" " }}</div>
+          {% endif %}
+          <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-primary">Предложить книгу</button>
+          </div>
+        </form>
+      </div>
+    </section>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if challenge_data and challenge_data.declined %}
+  <div class="col-12">
+    <section class="card border-0 shadow-sm">
+      <div class="card-body">
+        <h2 class="h5 mb-3">Отклонённые предложения</h2>
+        <div class="row g-3">
+          {% for item in challenge_data.declined %}
+          <div class="col-12 col-md-6 col-xl-4">
+            <article class="card h-100 border-0 bg-light">
+              <div class="card-body">
+                <h3 class="h6 mb-1">{{ item.book.title }}</h3>
+                <div class="small text-muted mb-2">{{ item.book.authors }}</div>
+                <p class="small">{{ item.book.synopsis }}</p>
+                <div class="small text-muted">Предложил {{ item.offered_by.username }} · {{ item.responded_at|date:"d.m.Y" }}</div>
+              </div>
+            </article>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+  </div>
+  {% endif %}
+
+  {% if completed_challenges %}
+  <div class="col-12">
+    <section class="card border-0 shadow-sm">
+      <div class="card-body">
+        <h2 class="h5 mb-3">Завершённые раунды</h2>
+        <ul class="list-group list-group-flush">
+          {% for finished in completed_challenges %}
+          <li class="list-group-item d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+            <div>
+              <strong>Раунд № {{ finished.round_number }}</strong>
+              <span class="text-muted small">завершён {{ finished.completed_at|date:"d.m.Y" }}</span>
+            </div>
+            <a class="btn btn-sm btn-outline-primary mt-2 mt-md-0" href="{{ finished.get_absolute_url }}">Посмотреть полку</a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
+  </div>
+  {% endif %}
+
+  {% if other_challenges %}
+  <div class="col-12">
+    <section class="card border-0 shadow-sm">
+      <div class="card-body">
+        <h2 class="h5 mb-3">Активные полки других игроков</h2>
+        <div class="row g-3">
+          {% for foreign in other_challenges %}
+          <div class="col-12 col-md-6 col-xl-4">
+            <article class="card h-100 border-0">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <h3 class="h6 mb-1">{{ foreign.challenge.user.username }}</h3>
+                    <div class="small text-muted">Раунд № {{ foreign.challenge.round_number }}</div>
+                  </div>
+                  <span class="badge bg-light text-dark">Цель: {{ foreign.challenge.target_books }}</span>
+                </div>
+                <p class="small text-muted mb-3">Принято книг: {{ foreign.accepted_count }}</p>
+                <a class="btn btn-sm btn-outline-primary" href="{{ foreign.challenge.get_absolute_url }}">Открыть полку</a>
+              </div>
+            </article>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+  </div>
+  {% endif %}
+
+  {% if not challenge_data and not start_form %}
+  <div class="col-12">
+    <div class="alert alert-info mb-0">Игровая полка пока не создана. Вернитесь позже!</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

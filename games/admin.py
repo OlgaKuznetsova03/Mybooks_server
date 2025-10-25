@@ -1,6 +1,14 @@
 from django.contrib import admin
 
-from .models import Game, GameShelfBook, GameShelfPurchase, GameShelfState
+from .models import (
+    BookExchangeAcceptedBook,
+    BookExchangeChallenge,
+    BookExchangeOffer,
+    Game,
+    GameShelfBook,
+    GameShelfPurchase,
+    GameShelfState,
+)
 
 
 @admin.register(Game)
@@ -36,3 +44,44 @@ class GameShelfPurchaseAdmin(admin.ModelAdmin):
     list_display = ("state", "book", "points_spent", "created_at")
     list_filter = ("state__game",)
     search_fields = ("book__title", "state__shelf__name")
+
+
+@admin.register(BookExchangeChallenge)
+class BookExchangeChallengeAdmin(admin.ModelAdmin):
+    list_display = (
+        "user",
+        "round_number",
+        "target_books",
+        "status",
+        "started_at",
+        "completed_at",
+    )
+    list_filter = ("status", "started_at")
+    search_fields = ("user__username",)
+    autocomplete_fields = ("user", "shelf", "genres")
+
+
+@admin.register(BookExchangeOffer)
+class BookExchangeOfferAdmin(admin.ModelAdmin):
+    list_display = (
+        "challenge",
+        "book",
+        "offered_by",
+        "status",
+        "created_at",
+    )
+    list_filter = ("status",)
+    search_fields = ("book__title", "offered_by__username", "challenge__user__username")
+    autocomplete_fields = ("challenge", "book", "offered_by")
+
+
+@admin.register(BookExchangeAcceptedBook)
+class BookExchangeAcceptedBookAdmin(admin.ModelAdmin):
+    list_display = (
+        "challenge",
+        "book",
+        "accepted_at",
+        "completed_at",
+    )
+    search_fields = ("book__title", "challenge__user__username")
+    autocomplete_fields = ("challenge", "offer", "book")

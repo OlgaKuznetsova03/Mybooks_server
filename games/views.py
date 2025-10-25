@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET
 
@@ -13,16 +13,118 @@ from shelves.services import move_book_to_reading_shelf
 
 from .catalog import get_game_cards
 from .forms import (
+    BookExchangeOfferForm,
+    BookExchangeRespondForm,
+    BookExchangeStartForm,
     BookJourneyAssignForm,
     ForgottenBooksAddForm,
     ForgottenBooksRemoveForm,
     BookJourneyReleaseForm,
     ReadBeforeBuyEnrollForm,
 )
-from .models import BookJourneyAssignment
+from .models import BookExchangeChallenge, BookJourneyAssignment
+from .services.book_exchange import BookExchangeGame
 from .services.forgotten_books import ForgottenBooksGame
 from .services.book_journey import BookJourneyMap
 from .services.read_before_buy import ReadBeforeBuyGame
+
+
+def _truncate_text(value: str, limit: int = 200) -> str:
+    if not value:
+        return ""
+    text = str(value).strip()
+    if len(text) <= limit:
+        return text
+    truncated = text[:limit].rsplit(" ", 1)[0]
+    if not truncated:
+        truncated = text[:limit]
+    return truncated.rstrip(" .,;:") + "…"
+
+
+def _build_book_exchange_payload(challenge, *, request_user):
+    bundle = BookExchangeGame.get_offer_bundle(challenge)
+    accepted_cards = []
+    pending_cards = []
+    declined_cards = []
+
+    def serialize_book(book):
+        authors = ", ".join(book.authors.all().values_list("name", flat=True))
+        return {
+            "id": book.id,
+            "title": book.title,
+            "cover_url": book.get_cover_url(),
+            "authors": authors,
+            "synopsis": _truncate_text(book.synopsis, 220),
+            "detail_url": reverse("book_detail", args=[book.pk]),
+        }
+
+    for offer in bundle.accepted:
+        entry = getattr(offer, "accepted_entry", None)
+        accepted_cards.append(
+            {
+                "offer": offer,
+                "entry": entry,
+                "book": serialize_book(offer.book),
+                "offered_by": offer.offered_by,
+                "accepted_at": getattr(entry, "accepted_at", offer.responded_at),
+                "finished_at": getattr(entry, "finished_at", None),
+                "review_submitted_at": getattr(entry, "review_submitted_at", None),
+                "completed_at": getattr(entry, "completed_at", None),
+                "is_completed": bool(entry and entry.is_completed),
+            }
+        )
+
+    for offer in bundle.pending:
+        pending_cards.append(
+            {
+                "offer": offer,
+                "book": serialize_book(offer.book),
+                "offered_by": offer.offered_by,
+                "created_at": offer.created_at,
+            }
+        )
+
+    for offer in bundle.declined:
+        declined_cards.append(
+            {
+                "offer": offer,
+                "book": serialize_book(offer.book),
+                "offered_by": offer.offered_by,
+                "responded_at": offer.responded_at,
+            }
+        )
+
+    total_offers = len(bundle.pending) + len(bundle.accepted) + len(bundle.declined)
+    declined_count = len(bundle.declined)
+    allowed_declines = total_offers // 2
+    remaining_declines = max(0, allowed_declines - declined_count)
+
+    deadline = None
+    days_left = None
+    if challenge.deadline_at:
+        deadline = timezone.localtime(challenge.deadline_at)
+        delta_days = (deadline.date() - timezone.localdate()).days
+        days_left = max(delta_days, 0)
+
+    genres = list(challenge.genres.values_list("name", flat=True))
+    is_owner = request_user.is_authenticated and challenge.user_id == request_user.id
+
+    return {
+        "challenge": challenge,
+        "accepted": accepted_cards,
+        "pending": pending_cards,
+        "declined": declined_cards,
+        "genres": genres,
+        "remaining_slots": max(challenge.target_books - len(accepted_cards), 0),
+        "deadline": deadline,
+        "days_left": days_left,
+        "is_owner": is_owner,
+        "total_offers": total_offers,
+        "declined_count": declined_count,
+        "remaining_declines": remaining_declines,
+        "can_accept_more": challenge.can_accept_more(),
+        "accepted_count": len(accepted_cards),
+    }
 
 
 @require_GET
@@ -38,6 +140,170 @@ def game_list(request):
         "upcoming_games": upcoming_games,
     }
     return render(request, "games/index.html", context)
+
+
+@login_required
+def book_exchange_dashboard(request):
+    """Manage the personal book exchange challenge."""
+
+    game = BookExchangeGame.get_game()
+    challenge = BookExchangeGame.get_active_challenge(request.user)
+    completed_challenges = list(BookExchangeGame.get_completed_challenges(request.user))
+    other_challenges_qs = list(
+        BookExchangeGame.get_public_active_challenges(exclude_user=request.user)
+    )
+    other_challenges = [
+        {
+            "challenge": item,
+            "accepted_count": item.accepted_books.count(),
+        }
+        for item in other_challenges_qs
+    ]
+
+    start_form = BookExchangeStartForm(user=request.user)
+    respond_form = None
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "start":
+            start_form = BookExchangeStartForm(request.POST, user=request.user)
+            if start_form.is_valid():
+                target_books = start_form.cleaned_data["target_books"]
+                genres = start_form.cleaned_data["genres"]
+                challenge = BookExchangeGame.start_new_challenge(
+                    request.user,
+                    target_books=target_books,
+                    genres=genres,
+                )
+                messages.success(
+                    request,
+                    f"Стартовал раунд #{challenge.round_number}. Пора принимать книги!",
+                )
+                return redirect("games:book_exchange")
+            messages.error(request, "Не удалось запустить раунд. Проверьте форму.")
+        elif action == "respond" and challenge:
+            respond_form = BookExchangeRespondForm(
+                request.POST, user=request.user, challenge=challenge
+            )
+            if respond_form.is_valid():
+                offer = respond_form.cleaned_data["offer"]
+                decision = respond_form.cleaned_data["decision"]
+                if decision == "accept":
+                    success, message_text, level = BookExchangeGame.accept_offer(
+                        offer, acting_user=request.user
+                    )
+                else:
+                    success, message_text, level = BookExchangeGame.decline_offer(
+                        offer, acting_user=request.user
+                    )
+                message_handler = getattr(messages, level, messages.info)
+                message_handler(request, message_text)
+                if success:
+                    return redirect("games:book_exchange")
+            else:
+                messages.error(request, "Не удалось обработать предложение.")
+
+    challenge_payload = None
+    if challenge:
+        challenge_payload = _build_book_exchange_payload(
+            challenge, request_user=request.user
+        )
+        respond_form = respond_form or BookExchangeRespondForm(
+            user=request.user, challenge=challenge
+        )
+
+    context = {
+        "game": game,
+        "start_form": start_form,
+        "challenge_data": challenge_payload,
+        "respond_form": respond_form,
+        "completed_challenges": completed_challenges,
+        "other_challenges": other_challenges,
+    }
+    return render(request, "games/book_exchange.html", context)
+
+
+def book_exchange_detail(request, username, round_number):
+    """Public view of a specific book exchange round."""
+
+    challenge = get_object_or_404(
+        BookExchangeChallenge,
+        user__username=username,
+        round_number=round_number,
+    )
+    challenge = (
+        BookExchangeGame.get_challenge_for_view(username, round_number)
+        or challenge  # fallback to ensure prefetch
+    )
+    is_owner = request.user.is_authenticated and request.user == challenge.user
+
+    offer_form = None
+    respond_form = None
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "offer":
+            if not request.user.is_authenticated:
+                messages.error(request, "Авторизуйтесь, чтобы предлагать книги.")
+                return redirect("login")
+            offer_form = BookExchangeOfferForm(
+                request.POST, user=request.user, challenge=challenge
+            )
+            if offer_form.is_valid():
+                book = offer_form.cleaned_data["book"]
+                success, message_text, level = BookExchangeGame.offer_book(
+                    challenge, offered_by=request.user, book=book
+                )
+                message_handler = getattr(messages, level, messages.info)
+                message_handler(request, message_text)
+                if success:
+                    return redirect(challenge.get_absolute_url())
+            else:
+                messages.error(request, "Не удалось предложить книгу. Проверьте форму.")
+        elif action == "respond" and is_owner:
+            respond_form = BookExchangeRespondForm(
+                request.POST, user=request.user, challenge=challenge
+            )
+            if respond_form.is_valid():
+                offer = respond_form.cleaned_data["offer"]
+                decision = respond_form.cleaned_data["decision"]
+                if decision == "accept":
+                    success, message_text, level = BookExchangeGame.accept_offer(
+                        offer, acting_user=request.user
+                    )
+                else:
+                    success, message_text, level = BookExchangeGame.decline_offer(
+                        offer, acting_user=request.user
+                    )
+                message_handler = getattr(messages, level, messages.info)
+                message_handler(request, message_text)
+                if success:
+                    return redirect(challenge.get_absolute_url())
+            else:
+                messages.error(request, "Не удалось обработать предложение.")
+
+    challenge_payload = _build_book_exchange_payload(
+        challenge, request_user=request.user
+    )
+
+    if request.user.is_authenticated and not is_owner and challenge.status == challenge.Status.ACTIVE:
+        offer_form = offer_form or BookExchangeOfferForm(
+            user=request.user, challenge=challenge
+        )
+    if is_owner:
+        respond_form = respond_form or BookExchangeRespondForm(
+            user=request.user, challenge=challenge
+        )
+
+    context = {
+        "game": BookExchangeGame.get_game(),
+        "challenge_data": challenge_payload,
+        "respond_form": respond_form,
+        "offer_form": offer_form,
+        "view_challenge": challenge,
+        "is_owner": is_owner,
+    }
+    return render(request, "games/book_exchange.html", context)
 
 
 @login_required

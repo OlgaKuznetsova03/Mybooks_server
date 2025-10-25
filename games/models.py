@@ -1,8 +1,10 @@
 from decimal import Decimal
+from datetime import timedelta
 
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from django.urls import reverse
 
 from user_ratings.services import award_for_game_stage_completion
 
@@ -320,3 +322,261 @@ class BookJourneyAssignment(models.Model):
 
         for assignment in assignments:
             assignment.apply_completion_state(finished=finished, has_review=has_review)
+
+
+class BookExchangeChallenge(models.Model):
+    """Индивидуальный раунд игры обмена книгами."""
+
+    class Status(models.TextChoices):
+        ACTIVE = "active", "Активный"
+        COMPLETED = "completed", "Завершён"
+
+    game = models.ForeignKey(
+        Game,
+        on_delete=models.CASCADE,
+        related_name="book_exchange_challenges",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="book_exchange_challenges",
+    )
+    round_number = models.PositiveIntegerField()
+    target_books = models.PositiveIntegerField()
+    shelf = models.ForeignKey(
+        "shelves.Shelf",
+        on_delete=models.CASCADE,
+        related_name="book_exchange_challenges",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.ACTIVE,
+    )
+    locked_at = models.DateTimeField(null=True, blank=True)
+    deadline_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    started_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    genres = models.ManyToManyField(
+        "books.Genre",
+        related_name="book_exchange_challenges",
+        blank=True,
+    )
+
+    class Meta:
+        unique_together = ("user", "round_number")
+        ordering = ["-started_at"]
+
+    def __str__(self) -> str:  # pragma: no cover - simple representation
+        return f"Раунд {self.round_number} — {self.user.username}"
+
+    def get_absolute_url(self) -> str:
+        return reverse(
+            "games:book_exchange_detail",
+            args=[self.user.username, self.round_number],
+        )
+
+    @property
+    def accepted_count(self) -> int:
+        return self.accepted_books.count()
+
+    @property
+    def declined_count(self) -> int:
+        return self.offers.filter(status=BookExchangeOffer.Status.DECLINED).count()
+
+    @property
+    def pending_offers_count(self) -> int:
+        return self.offers.filter(status=BookExchangeOffer.Status.PENDING).count()
+
+    def can_accept_more(self) -> bool:
+        return self.status == self.Status.ACTIVE and self.accepted_count < self.target_books
+
+    def ensure_deadline(self) -> None:
+        """Зафиксировать срок чтения после набора целевого количества книг."""
+
+        if self.locked_at or self.accepted_count < self.target_books:
+            return
+        now = timezone.now()
+        deadline = now + timedelta(days=365)
+        self.locked_at = now
+        self.deadline_at = deadline
+        self.save(update_fields=["locked_at", "deadline_at", "updated_at"])
+
+    def mark_completed(self) -> None:
+        if self.status == self.Status.COMPLETED:
+            return
+        self.status = self.Status.COMPLETED
+        self.completed_at = timezone.now()
+        self.save(update_fields=["status", "completed_at", "updated_at"])
+
+    def refresh_completion_status(self) -> None:
+        """Пересчитать статус завершения раунда."""
+
+        if self.status == self.Status.COMPLETED:
+            return
+        accepted = list(self.accepted_books.all())
+        if len(accepted) < self.target_books:
+            return
+        if not all(entry.is_completed for entry in accepted):
+            return
+        self.mark_completed()
+
+
+class BookExchangeOffer(models.Model):
+    """Предложение книги в рамках игры."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Ожидает решения"
+        ACCEPTED = "accepted", "Принято"
+        DECLINED = "declined", "Отклонено"
+
+    challenge = models.ForeignKey(
+        BookExchangeChallenge,
+        on_delete=models.CASCADE,
+        related_name="offers",
+    )
+    offered_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="book_exchange_offers",
+    )
+    book = models.ForeignKey(
+        "books.Book",
+        on_delete=models.CASCADE,
+        related_name="book_exchange_offers",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
+    note = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    responded_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        unique_together = ("challenge", "book", "offered_by")
+
+    def __str__(self) -> str:  # pragma: no cover - simple representation
+        return f"{self.book.title} → {self.challenge.user.username}"
+
+
+class BookExchangeAcceptedBook(models.Model):
+    """Книга, принятая в рамках игрового вызова."""
+
+    challenge = models.ForeignKey(
+        BookExchangeChallenge,
+        on_delete=models.CASCADE,
+        related_name="accepted_books",
+    )
+    offer = models.OneToOneField(
+        BookExchangeOffer,
+        on_delete=models.CASCADE,
+        related_name="accepted_entry",
+    )
+    book = models.ForeignKey(
+        "books.Book",
+        on_delete=models.CASCADE,
+        related_name="book_exchange_acceptances",
+    )
+    accepted_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    review_submitted_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("challenge", "book")
+        ordering = ["accepted_at"]
+
+    def __str__(self) -> str:  # pragma: no cover - simple representation
+        return f"{self.book.title} — {self.challenge}"
+
+    @property
+    def is_completed(self) -> bool:
+        return self.completed_at is not None
+
+    def apply_status_updates(
+        self,
+        *,
+        finished_at,
+        review_at,
+        timestamp,
+    ) -> None:
+        updates = {}
+        if self.finished_at != finished_at:
+            updates["finished_at"] = finished_at
+        if self.review_submitted_at != review_at:
+            updates["review_submitted_at"] = review_at
+        completed = None
+        if finished_at and review_at:
+            completed = max(finished_at, review_at)
+        if self.completed_at != completed:
+            updates["completed_at"] = completed
+        if updates:
+            updates["updated_at"] = timestamp
+            for field, value in updates.items():
+                setattr(self, field, value)
+            self.save(update_fields=list(updates.keys()))
+
+    @classmethod
+    def sync_for_user_book(cls, user, book) -> None:
+        """Обновить статусы чтения для принятой книги."""
+
+        entries = list(
+            cls.objects.filter(challenge__user=user, book=book)
+            .select_related("challenge")
+            .all()
+        )
+        if not entries:
+            return
+
+        from shelves.models import BookProgress
+        from books.models import Rating
+
+        progress = (
+            BookProgress.objects.filter(user=user, book=book)
+            .order_by("-updated_at")
+            .first()
+        )
+        finished_at = None
+        if progress and progress.percent is not None:
+            try:
+                finished = Decimal(progress.percent) >= Decimal("99.99")
+            except Exception:  # pragma: no cover - defensive for invalid data
+                finished = False
+            if finished:
+                finished_at = getattr(progress, "updated_at", None) or timezone.now()
+
+        review = (
+            Rating.objects.filter(user=user, book=book)
+            .order_by("-created_at")
+            .first()
+        )
+        review_at = getattr(review, "created_at", None)
+        timestamp = timezone.now()
+
+        for entry in entries:
+            entry.apply_status_updates(
+                finished_at=finished_at,
+                review_at=review_at,
+                timestamp=timestamp,
+            )
+            entry.challenge.refresh_completion_status()
+
+
+__all__ = [
+    "ForgottenBookEntry",
+    "Game",
+    "GameShelfState",
+    "GameShelfBook",
+    "GameShelfPurchase",
+    "BookJourneyAssignment",
+    "BookExchangeChallenge",
+    "BookExchangeOffer",
+    "BookExchangeAcceptedBook",
+]
