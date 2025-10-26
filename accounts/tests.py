@@ -10,6 +10,33 @@ from django.utils.http import urlsafe_base64_encode
 from accounts.forms import SignUpForm
 from books.models import Author, Book
 
+
+class SignUpPageTests(TestCase):
+    def test_signup_page_renders(self):
+        response = self.client.get(reverse("signup"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Создать аккаунт")
+        self.assertContains(
+            response,
+            "Пароль должен состоять минимум из 8 символов, хотя бы одну букву и один символ.",
+        )
+
+    def test_signup_creates_user(self):
+        payload = {
+            "username": "newbie",
+            "email": "newbie@example.com",
+            "password1": "StrongPass123!",
+            "password2": "StrongPass123!",
+        }
+
+        response = self.client.post(reverse("signup"), payload, follow=True)
+
+        self.assertRedirects(response, reverse("book_list"))
+        user = get_user_model().objects.get(username="newbie")
+        self.assertEqual(user.email, "newbie@example.com")
+        self.assertTrue(response.context["user"].is_authenticated)
+
+
 class PasswordResetFlowTests(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(

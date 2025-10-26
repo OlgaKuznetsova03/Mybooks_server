@@ -3,6 +3,7 @@ from typing import Optional, Set
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import Group, User
+from django.utils.translation import gettext_lazy as _
 
 from .models import Profile, PremiumPayment
 
@@ -28,6 +29,9 @@ class SignUpForm(UserCreationForm):
         super().__init__(*args, **kwargs)
         self._pending_role_names: Optional[Set[str]] = None
         self._apply_widget_styles()
+        self.fields["password1"].help_text = _(
+            "Пароль должен состоять минимум из 8 знаков, содержать хотя бы одну букву и один символ."
+        )
 
     class Meta:
         model = User
