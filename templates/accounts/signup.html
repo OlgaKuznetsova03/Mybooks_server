@@ -87,22 +87,8 @@
           {% elif field.name == 'password1' or field.name == 'password2' %}
             <div class="mb-3">
               <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-              <div class="input-group">
-                {% if field.errors %}
-                  {{ field.as_widget(attrs={
-                    'class':'form-control is-invalid',
-                    'autocomplete':'new-password',
-                    'placeholder': field.label,
-                    'id': field.id_for_label
-                  }) }}
-                {% else %}
-                  {{ field.as_widget(attrs={
-                    'class':'form-control',
-                    'autocomplete':'new-password',
-                    'placeholder': field.label,
-                    'id': field.id_for_label
-                  }) }}
-                {% endif %}
+                <div class="input-group">
+                {{ field }}
                 <button class="btn btn-outline-secondary" type="button" data-toggle-password="{{ field.id_for_label }}" aria-label="{% trans 'Показать пароль' %}">
                   <i class="bi bi-eye"></i>
                 </button>
@@ -117,23 +103,7 @@
           {% elif field.name == 'email' %}
             <div class="mb-3">
               <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-              {% if field.errors %}
-                {{ field.as_widget(attrs={
-                  'class':'form-control is-invalid',
-                  'autocomplete':'email',
-                  'inputmode':'email',
-                  'placeholder': field.label,
-                  'id': field.id_for_label
-                }) }}
-              {% else %}
-                {{ field.as_widget(attrs={
-                  'class':'form-control',
-                  'autocomplete':'email',
-                  'inputmode':'email',
-                  'placeholder': field.label,
-                  'id': field.id_for_label
-                }) }}
-              {% endif %}
+              {{ field }}
               {% if field.help_text %}
                 <div class="form-text">{{ field.help_text|safe }}</div>
               {% endif %}

@@ -54,26 +54,10 @@
           <label class="form-label" for="{{ form.username.id_for_label }}">
             {{ form.username.label|default:_("Email") }}
           </label>
-          {% if form.username.errors %}
-            {{ form.username.as_widget(attrs={
-              'class':'form-control is-invalid',
-              'autocomplete':'username',
-              'inputmode':'email',
-              'autofocus':'autofocus',
-              'placeholder': form.username.label|default:_("Email")
-            }) }}
-            {% for err in form.username.errors %}
-              <div class="invalid-feedback d-block">{{ err }}</div>
-            {% endfor %}
-          {% else %}
-            {{ form.username.as_widget(attrs={
-              'class':'form-control',
-              'autocomplete':'username',
-              'inputmode':'email',
-              'autofocus':'autofocus',
-              'placeholder': form.username.label|default:_("Email")
-            }) }}
-          {% endif %}
+          {{ form.username }}
+          {% for err in form.username.errors %}
+            <div class="invalid-feedback d-block">{{ err }}</div>
+          {% endfor %}
         </div>
 
         <div class="mb-3">
@@ -82,21 +66,7 @@
           </label>
 
           <div class="input-group">
-            {% if form.password.errors %}
-              {{ form.password.as_widget(attrs={
-                'class':'form-control is-invalid',
-                'autocomplete':'current-password',
-                'placeholder': form.password.label|default:_("Пароль"),
-                'id': form.password.id_for_label
-              }) }}
-            {% else %}
-              {{ form.password.as_widget(attrs={
-                'class':'form-control',
-                'autocomplete':'current-password',
-                'placeholder': form.password.label|default:_("Пароль"),
-                'id': form.password.id_for_label
-              }) }}
-            {% endif %}
+            {{ form.password }}
             <button class="btn btn-outline-secondary" type="button" id="togglePassword" aria-label="{% trans 'Показать пароль' %}">
               <i class="bi bi-eye"></i>
             </button>

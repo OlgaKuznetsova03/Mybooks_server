@@ -27,10 +27,55 @@ class SignUpForm(UserCreationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._pending_role_names: Optional[Set[str]] = None
+        self._apply_widget_styles()
 
     class Meta:
         model = User
         fields = ("username", "email", "password1", "password2")
+
+    def _apply_widget_styles(self):
+        styled_fields = {
+            "username": {
+                "class": "form-control",
+                "autocomplete": "nickname",
+                "placeholder": self.fields["username"].label,
+            },
+            "email": {
+                "class": "form-control",
+                "autocomplete": "email",
+                "inputmode": "email",
+                "placeholder": self.fields["email"].label,
+            },
+            "password1": {
+                "class": "form-control",
+                "autocomplete": "new-password",
+                "placeholder": self.fields["password1"].label,
+            },
+            "password2": {
+                "class": "form-control",
+                "autocomplete": "new-password",
+                "placeholder": self.fields["password2"].label,
+            },
+        }
+
+        for name, attrs in styled_fields.items():
+            widget = self.fields[name].widget
+            widget.attrs.update(attrs)
+
+        self.fields["roles"].widget.attrs.update({"class": "form-check-input"})
+
+    def full_clean(self):
+        super().full_clean()
+        for name, field in self.fields.items():
+            widget = field.widget
+            base_classes = widget.attrs.get("class", "")
+            classes = base_classes.split()
+            if name in self.errors:
+                if "is-invalid" not in classes:
+                    classes.append("is-invalid")
+            else:
+                classes = [cls for cls in classes if cls != "is-invalid"]
+            widget.attrs["class"] = " ".join(classes).strip()
 
     def clean_email(self):
         email = self.cleaned_data["email"].lower()
@@ -70,9 +115,41 @@ class SignUpForm(UserCreationForm):
             self._assign_roles(self.instance, self._pending_role_names)
             self._pending_role_names = None
 
-            
+
 class EmailAuthenticationForm(AuthenticationForm):
     username = forms.EmailField(label="Email", widget=forms.EmailInput(attrs={"autofocus": True}))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["username"].widget.attrs.update(
+            {
+                "class": "form-control",
+                "autocomplete": "username",
+                "inputmode": "email",
+                "autofocus": "autofocus",
+                "placeholder": self.fields["username"].label,
+            }
+        )
+        self.fields["password"].widget.attrs.update(
+            {
+                "class": "form-control",
+                "autocomplete": "current-password",
+                "placeholder": self.fields["password"].label,
+            }
+        )
+
+    def full_clean(self):
+        super().full_clean()
+        for name, field in self.fields.items():
+            widget = field.widget
+            base_classes = widget.attrs.get("class", "")
+            classes = base_classes.split()
+            if name in self.errors:
+                if "is-invalid" not in classes:
+                    classes.append("is-invalid")
+            else:
+                classes = [cls for cls in classes if cls != "is-invalid"]
+            widget.attrs["class"] = " ".join(classes).strip()
 
 
 class ProfileForm(forms.ModelForm):
