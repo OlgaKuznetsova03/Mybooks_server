@@ -1,17 +1,236 @@
 {% extends "base.html" %}
-{% block title %}Регистрация{% endblock %}
+{% load i18n %}
+
+{% block title %}{% trans "Регистрация" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .auth-wrap{
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  .auth-card{
+    max-width: 560px;
+    margin-top: 1.25rem;
+    margin-bottom: 2.5rem;
+    border: 1px solid rgba(0,0,0,.06);
+    border-radius: 20px;
+    box-shadow: 0 24px 56px rgba(0,0,0,.08);
+    background: #fff;
+  }
+  .auth-card__header{
+    padding: 1.35rem 1.35rem 0.85rem;
+    border-bottom: 1px solid rgba(0,0,0,.06);
+    background: linear-gradient(135deg, rgba(64,83,92,.07), rgba(64,83,92,.03));
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+  }
+  .auth-card__body{ padding: 1.5rem 1.35rem; }
+  .form-label{ font-weight: 600; margin-bottom: .35rem; }
+  .invalid-feedback.d-block{ margin-top: .35rem; }
+  .btn-pill{ border-radius: 999px; padding-left: 1.25rem; padding-right: 1.25rem; }
+  .roles-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: .5rem .75rem;
+  }
+  .roles-grid .form-check{
+    border: 1px solid rgba(0,0,0,.08);
+    border-radius: 14px;
+    padding: .65rem .85rem;
+    background: rgba(255,255,255,.7);
+    transition: border-color .2s ease, box-shadow .2s ease;
+  }
+  .roles-grid .form-check input[type="checkbox"]{ margin-right: .5rem; }
+  .roles-grid .form-check input[type="checkbox"]:focus{ box-shadow: none; }
+  .roles-grid .form-check:hover{ border-color: rgba(64,83,92,.35); box-shadow: 0 6px 18px rgba(0,0,0,.08); }
+  .roles-grid .form-check-label{ font-weight: 600; }
+  .auth-note{ color: rgba(37,50,58,.75); }
+</style>
+{% endblock %}
 {% block content %}
-<h1 class="h4 mb-3">Создать аккаунт</h1>
-<form method="post" class="card p-3" style="max-width:520px">
-  {% csrf_token %}
-  {{ form.non_field_errors }}
-  {% for f in form %}
-    <div class="mb-3">
-      <label class="form-label">{{ f.label }}</label>
-      {{ f }}
-      {% if f.errors %}<div class="text-danger small">{{ f.errors|striptags }}</div>{% endif %}
+<div class="auth-wrap">
+  <div class="auth-card mx-auto">
+    <div class="auth-card__header">
+      <h1 class="h4 mb-1">{% trans "Создать аккаунт" %}</h1>
+      <p class="auth-note mb-0 small">{% trans "Присоединяйтесь к сообществу читателей и авторов ReadTogether." %}</p>
     </div>
-  {% endfor %}
-  <button class="btn btn-primary">Зарегистрироваться</button>
-</form>
+
+    <div class="auth-card__body">
+      <form method="post" novalidate class="needs-validation" {% if form.is_multipart %}enctype="multipart/form-data"{% endif %}>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger mb-3" role="alert">
+            {% for e in form.non_field_errors %}{{ e }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+          </div>
+        {% endif %}
+
+        {% for field in form.visible_fields %}
+          {% if field.name == 'roles' %}
+            <div class="mb-3">
+              <span class="form-label d-block">{{ field.label }}</span>
+              <div class="roles-grid">
+                {% for checkbox in field %}
+                  <div class="form-check">
+                    {{ checkbox.tag }}
+                    <label class="form-check-label" for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+                  </div>
+                {% endfor %}
+              </div>
+              {% if field.errors %}
+                {% for err in field.errors %}
+                  <div class="invalid-feedback d-block">{{ err }}</div>
+                {% endfor %}
+              {% endif %}
+            </div>
+          {% elif field.name == 'password1' or field.name == 'password2' %}
+            <div class="mb-3">
+              <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              <div class="input-group">
+                {% if field.errors %}
+                  {{ field.as_widget(attrs={
+                    'class':'form-control is-invalid',
+                    'autocomplete':'new-password',
+                    'placeholder': field.label,
+                    'id': field.id_for_label
+                  }) }}
+                {% else %}
+                  {{ field.as_widget(attrs={
+                    'class':'form-control',
+                    'autocomplete':'new-password',
+                    'placeholder': field.label,
+                    'id': field.id_for_label
+                  }) }}
+                {% endif %}
+                <button class="btn btn-outline-secondary" type="button" data-toggle-password="{{ field.id_for_label }}" aria-label="{% trans 'Показать пароль' %}">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+              {% if field.help_text %}
+                <div class="form-text">{{ field.help_text|safe }}</div>
+              {% endif %}
+              {% for err in field.errors %}
+                <div class="invalid-feedback d-block">{{ err }}</div>
+              {% endfor %}
+            </div>
+          {% elif field.name == 'email' %}
+            <div class="mb-3">
+              <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {% if field.errors %}
+                {{ field.as_widget(attrs={
+                  'class':'form-control is-invalid',
+                  'autocomplete':'email',
+                  'inputmode':'email',
+                  'placeholder': field.label,
+                  'id': field.id_for_label
+                }) }}
+              {% else %}
+                {{ field.as_widget(attrs={
+                  'class':'form-control',
+                  'autocomplete':'email',
+                  'inputmode':'email',
+                  'placeholder': field.label,
+                  'id': field.id_for_label
+                }) }}
+              {% endif %}
+              {% if field.help_text %}
+                <div class="form-text">{{ field.help_text|safe }}</div>
+              {% endif %}
+              {% for err in field.errors %}
+                <div class="invalid-feedback d-block">{{ err }}</div>
+              {% endfor %}
+            </div>
+          {% elif field.name == 'username' %}
+            <div class="mb-3">
+              <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {% if field.errors %}
+                {{ field.as_widget(attrs={
+                  'class':'form-control is-invalid',
+                  'autocomplete':'nickname',
+                  'placeholder': field.label,
+                  'id': field.id_for_label
+                }) }}
+              {% else %}
+                {{ field.as_widget(attrs={
+                  'class':'form-control',
+                  'autocomplete':'nickname',
+                  'placeholder': field.label,
+                  'id': field.id_for_label
+                }) }}
+              {% endif %}
+              {% if field.help_text %}
+                <div class="form-text">{{ field.help_text|safe }}</div>
+              {% endif %}
+              {% for err in field.errors %}
+                <div class="invalid-feedback d-block">{{ err }}</div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="mb-3">
+              <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {% if field.errors %}
+                {{ field.as_widget(attrs={
+                  'class':'form-control is-invalid',
+                  'placeholder': field.label,
+                  'id': field.id_for_label
+                }) }}
+              {% else %}
+                {{ field.as_widget(attrs={
+                  'class':'form-control',
+                  'placeholder': field.label,
+                  'id': field.id_for_label
+                }) }}
+              {% endif %}
+              {% if field.help_text %}
+                <div class="form-text">{{ field.help_text|safe }}</div>
+              {% endif %}
+              {% for err in field.errors %}
+                <div class="invalid-feedback d-block">{{ err }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endfor %}
+
+        {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <button class="btn btn-primary btn-pill" type="submit">{% trans "Зарегистрироваться" %}</button>
+          <a class="btn btn-outline-secondary btn-pill" href="{% url 'login' %}">{% trans "У меня уже есть аккаунт" %}</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    var toggles = document.querySelectorAll('[data-toggle-password]');
+    toggles.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var targetId = btn.getAttribute('data-toggle-password');
+        var input = document.getElementById(targetId);
+        if(!input) return;
+        var isText = input.getAttribute('type') === 'text';
+        input.setAttribute('type', isText ? 'password' : 'text');
+        btn.querySelector('i').className = isText ? 'bi bi-eye' : 'bi bi-eye-slash';
+        btn.setAttribute('aria-label', isText ? '{{ _("Показать пароль") }}' : '{{ _("Скрыть пароль") }}');
+      });
+    });
+  })();
+
+  (function () {
+    'use strict';
+    var forms = document.querySelectorAll('.needs-validation');
+    Array.prototype.slice.call(forms).forEach(function (form) {
+      form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+      }, false);
+    });
+  })();
+</script>
 {% endblock %}

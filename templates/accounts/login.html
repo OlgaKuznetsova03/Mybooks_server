@@ -1,28 +1,150 @@
 {% extends "base.html" %}
-{% block title %}Вход{% endblock %}
+{% load i18n %}
+
+{% block title %}{% trans "Вход" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .auth-wrap{
+    max-width: 920px;
+    margin: 0 auto;
+  }
+  .auth-card{
+    max-width: 480px;
+    margin-top: 1.25rem;
+    margin-bottom: 2.5rem;
+    border: 1px solid rgba(0,0,0,.06);
+    border-radius: 18px;
+    box-shadow: 0 22px 48px rgba(0,0,0,.06);
+    background: #fff;
+  }
+  .auth-card__header{
+    padding: 1.25rem 1.25rem 0.75rem;
+    border-bottom: 1px solid rgba(0,0,0,.06);
+    background: linear-gradient(135deg, rgba(64,83,92,.06), rgba(64,83,92,.02));
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+  }
+  .auth-card__body{ padding: 1.25rem; }
+  .form-label{ font-weight: 600; margin-bottom: .35rem; }
+  .invalid-feedback.d-block{ margin-top: .35rem; }
+  .btn-pill{ border-radius: 999px; padding-left: 1rem; padding-right: 1rem; }
+  .auth-actions{ gap:.5rem; }
+</style>
+{% endblock %}
+
 {% block content %}
-<h1 class="h4 mb-3">Войти</h1>
-<form method="post" class="card p-3" style="max-width:420px">
-  {% csrf_token %}
-  {{ form.non_field_errors }}
-  <div class="mb-3">
-    <label class="form-label">{{ form.username.label }}</label>
-    {{ form.username }}
-    {% if form.username.errors %}
-      <div class="text-danger small">{{ form.username.errors|striptags }}</div>
-    {% endif %}
+<div class="auth-wrap">
+  <div class="auth-card mx-auto">
+    <div class="auth-card__header">
+      <h1 class="h4 mb-0">{% trans "Войти" %}</h1>
+    </div>
+
+    <div class="auth-card__body">
+      <form method="post" novalidate class="needs-validation" {% if form.is_multipart %}enctype="multipart/form-data"{% endif %}>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger mb-3" role="alert">
+            {% for e in form.non_field_errors %}{{ e }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="mb-3">
+          <label class="form-label" for="{{ form.username.id_for_label }}">
+            {{ form.username.label|default:_("Email") }}
+          </label>
+          {% if form.username.errors %}
+            {{ form.username.as_widget(attrs={
+              'class':'form-control is-invalid',
+              'autocomplete':'username',
+              'inputmode':'email',
+              'autofocus':'autofocus',
+              'placeholder': form.username.label|default:_("Email")
+            }) }}
+            {% for err in form.username.errors %}
+              <div class="invalid-feedback d-block">{{ err }}</div>
+            {% endfor %}
+          {% else %}
+            {{ form.username.as_widget(attrs={
+              'class':'form-control',
+              'autocomplete':'username',
+              'inputmode':'email',
+              'autofocus':'autofocus',
+              'placeholder': form.username.label|default:_("Email")
+            }) }}
+          {% endif %}
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="{{ form.password.id_for_label }}">
+            {{ form.password.label|default:_("Пароль") }}
+          </label>
+
+          <div class="input-group">
+            {% if form.password.errors %}
+              {{ form.password.as_widget(attrs={
+                'class':'form-control is-invalid',
+                'autocomplete':'current-password',
+                'placeholder': form.password.label|default:_("Пароль"),
+                'id': form.password.id_for_label
+              }) }}
+            {% else %}
+              {{ form.password.as_widget(attrs={
+                'class':'form-control',
+                'autocomplete':'current-password',
+                'placeholder': form.password.label|default:_("Пароль"),
+                'id': form.password.id_for_label
+              }) }}
+            {% endif %}
+            <button class="btn btn-outline-secondary" type="button" id="togglePassword" aria-label="{% trans 'Показать пароль' %}">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+
+          {% for err in form.password.errors %}
+            <div class="invalid-feedback d-block">{{ err }}</div>
+          {% endfor %}
+        </div>
+
+        {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+
+        <div class="d-flex flex-wrap auth-actions">
+          <button class="btn btn-primary btn-pill" type="submit">{% trans "Войти" %}</button>
+          <a class="btn btn-outline-secondary btn-pill" href="{% url 'signup' %}">{% trans "Регистрация" %}</a>
+          <a class="btn btn-link ms-auto" href="{% url 'password_reset' %}">{% trans "Забыли пароль?" %}</a>
+        </div>
+      </form>
+    </div>
   </div>
-  <div class="mb-3">
-    <label class="form-label">{{ form.password.label }}</label>
-    {{ form.password }}
-    {% if form.password.errors %}
-      <div class="text-danger small">{{ form.password.errors|striptags }}</div>
-    {% endif %}
-  </div>
-  <div class="d-flex flex-wrap gap-2">
-    <button class="btn btn-primary">Войти</button>
-    <a class="btn btn-link" href="{% url 'signup' %}">Регистрация</a>
-    <a class="btn btn-link" href="{% url 'password_reset' %}">Забыли пароль?</a>
-  </div>
-</form>
+</div>
+
+<script>
+  (function(){
+    var btn = document.getElementById('togglePassword');
+    if(!btn) return;
+    btn.addEventListener('click', function(){
+      var input = document.getElementById('{{ form.password.id_for_label }}');
+      if(!input) return;
+      var isText = input.getAttribute('type') === 'text';
+      input.setAttribute('type', isText ? 'password' : 'text');
+      btn.querySelector('i').className = isText ? 'bi bi-eye' : 'bi bi-eye-slash';
+      btn.setAttribute('aria-label', isText ? '{{ _("Показать пароль") }}' : '{{ _("Скрыть пароль") }}');
+    });
+  })();
+
+  (function () {
+    'use strict';
+    var forms = document.querySelectorAll('.needs-validation');
+    Array.prototype.slice.call(forms).forEach(function (form) {
+      form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+      }, false);
+    });
+  })();
+</script>
 {% endblock %}
