@@ -1,659 +1,279 @@
 {% extends "base.html" %}
 {% load shelf_extras %}
 {% block title %}Моя домашняя библиотека{% endblock %}
+
 {% block extra_css %}
 <style>
-  :root {
-    --home-hero-gradient: linear-gradient(130deg, #7f9aaf 0%, #5d7283 42%, #38444e 100%);
-    --home-card-bg: rgba(57, 69, 79, 0.96);
-    --home-card-border: rgba(152, 175, 192, 0.45);
-    --home-card-shadow: 0 22px 48px rgba(33, 42, 49, 0.55);
-    --home-text-soft: rgba(244, 249, 255, 0.85);
-    --home-accent: #c2e0ef;
-    --home-accent-strong: #f6c8a2;
-    --home-surface: rgba(49, 60, 69, 0.95);
-    --home-surface-alt: rgba(70, 85, 97, 0.82);
-    --home-divider: rgba(158, 182, 201, 0.35);
+  :root{
+    --home-hero-gradient: linear-gradient(130deg,#7f9aaf 0%,#5d7283 42%,#38444e 100%);
+    --home-card-bg: rgba(57,69,79,.96);
+    --home-card-border: rgba(152,175,192,.45);
+    --home-card-shadow: 0 22px 48px rgba(33,42,49,.55);
+    --home-text-soft: rgba(244,249,255,.85);
+    --home-accent:#c2e0ef;
+    --home-accent-strong:#f6c8a2;
+    --home-surface: rgba(49,60,69,.95);
+    --home-surface-alt: rgba(70,85,97,.82);
+    --home-divider: rgba(158,182,201,.35);
+  }
+
+  .home-hero{
+    position:relative;border-radius:24px;overflow:hidden;
+    background:var(--home-hero-gradient);color:#f5f7ff;
+    padding:2.5rem 2rem;box-shadow:0 25px 55px rgba(24,32,39,.45);
+  }
+  .home-hero::before,.home-hero::after{
+    content:"";position:absolute;border-radius:100%;filter:blur(65px);opacity:.8;z-index:0;
+  }
+  .home-hero::before{width:360px;height:360px;top:-120px;right:-140px;background:rgba(216,232,242,.45);}
+  .home-hero::after{width:280px;height:280px;bottom:-140px;left:-110px;background:rgba(247,209,176,.4);}
+  .home-hero__content,.home-hero__actions{position:relative;z-index:1;}
+  .home-hero__title{font-family:"Montserrat","Segoe UI",system-ui,sans-serif;font-weight:700;letter-spacing:.02em;}
+  .home-hero__subtitle{max-width:520px;color:var(--home-text-soft);}
+  .home-hero__actions{display:flex;flex-wrap:wrap;gap:.75rem;}
+  .home-hero__btn{border-radius:999px;font-weight:600;box-shadow:0 12px 28px rgba(8,10,44,.45);border:none;transition:.15s;}
+  .home-hero__btn:hover,.home-hero__btn:focus{transform:translateY(-2px);box-shadow:0 18px 32px rgba(8,10,44,.55);}
+  .home-hero__btn.btn-outline-light{border:1px solid rgba(255,255,255,.55);background:rgba(46,58,68,.55);color:#fff;}
+  .home-hero__btn.btn-light{color:#1c242b;}
+  .home-hero__btn.btn-outline-light:hover,.home-hero__btn.btn-outline-light:focus{background:rgba(255,255,255,.15);}
+  .home-hero__btn.btn-light:hover,.home-hero__btn.btn-light:focus{background:linear-gradient(130deg,#d3e6f1 0%,#f1f6fa 100%);color:#11171c;}
+
+  /* Карточка с декоративной рамкой */
+  .home-glow-card{
+    background:var(--home-card-bg);
+    border:1px solid var(--home-card-border);
+    border-radius:20px;
+    box-shadow:var(--home-card-shadow);
+    color:#f8faff;
+    padding:1.5rem;
+    position:relative;
+    overflow:hidden;
+    z-index:0;
+  }
+  .home-glow-card::after{
+    content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;
+    background:linear-gradient(135deg,rgba(194,224,239,.35),rgba(246,200,162,.18));
+    -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+    -webkit-mask-composite:xor;mask-composite:exclude;
+    pointer-events:none;z-index:0;
+  }
+  .home-glow-card>*{position:relative;z-index:1;}
+
+  .home-stats-button{padding:0;border:none;background:none;color:inherit;font:inherit;font-weight:600;cursor:pointer;transition:color .2s;display:inline-flex;align-items:baseline;gap:.35rem;}
+  .home-stats-button:hover,.home-stats-button:focus{color:var(--home-accent-strong);}
+  .home-stats-button:focus-visible{outline:2px solid rgba(255,255,255,.45);outline-offset:2px;}
+  .home-stats-button--block{display:flex;width:100%;justify-content:flex-start;}
+  .home-stats-button--inline{display:inline;font-weight:inherit;}
+  .home-stats-button--inline:hover,.home-stats-button--inline:focus{text-decoration:underline;}
+  .home-stats-button--compact{font-size:.95rem;font-weight:700;}
+
+  .home-glow-card .badge[data-summary-trigger]{cursor:pointer;transition:.2s;}
+  .home-glow-card .badge[data-summary-trigger]:hover,.home-glow-card .badge[data-summary-trigger]:focus{background:rgba(194,224,239,.35)!important;color:var(--home-accent-strong);}
+
+  .home-progress-card{--home-progress-bought:#38bdf8;--home-progress-read:#f97316;}
+
+  .home-progress-controls{display:flex;flex-wrap:wrap;gap:.75rem;}
+  .home-progress-controls .form-select,.home-progress-controls .form-label{font-size:.85rem;}
+
+  .home-progress-stats{display:flex;align-items:center;gap:1.25rem;min-width:0;}
+  .home-progress-side{min-width:120px;}
+  .home-progress-value{font-size:2.25rem;line-height:1;display:inline-flex;align-items:center;gap:.25rem;}
+  .home-progress-value .home-progress-number{font-variant-numeric:tabular-nums;}
+
+  /* Линия прогресса — ДВЕ ПОЛОСЫ, заполняют с двух сторон + свечение */
+  .home-progress-line{
+    --bar-h: 10px;
+    position:relative;flex:1 1 auto;min-width:160px;height:var(--bar-h);border-radius:999px;
+    background:rgba(255,255,255,.16);overflow:hidden;z-index:1;
+  }
+  .home-progress-fill-left,
+  .home-progress-fill-right{
+    position:absolute;top:0;bottom:0;width:0%;
+  }
+  .home-progress-fill-left{
+    left:0;border-top-left-radius:999px;border-bottom-left-radius:999px;
+    background:var(--home-progress-bought);
+    transition:width 900ms ease;
+  }
+  .home-progress-fill-right{
+    right:0;border-top-right-radius:999px;border-bottom-right-radius:999px;
+    background:var(--home-progress-read);
+    transition:width 900ms ease;
+  }
+
+  /* Свечение вдоль залитых частей (используем псевдоэлемент и blur) */
+  .home-progress-fill-left::after,
+  .home-progress-fill-right::after{
+    content:"";position:absolute;left:-6px;right:-6px;top:-6px;bottom:-6px;
+    background:inherit;opacity:.55;filter:blur(8px);
+    pointer-events:none;z-index:-1;
+    animation:glow-pulse 3.2s ease-in-out infinite;
+  }
+  @keyframes glow-pulse{
+    0%,100%{opacity:.45;filter:blur(7px)}
+    50%    {opacity:.75;filter:blur(10px)}
+  }
+
+  /* Шиммер поверх полосы при смене */
+  .home-progress-line::before{
+    content:"";position:absolute;inset:0;
+    background:linear-gradient(120deg, transparent 0%, rgba(255,255,255,.14) 30%, transparent 60%) 0 0 / 160% 100% no-repeat;
+    opacity:0;pointer-events:none;z-index:2;
+  }
+  .home-progress-line.is-animating::before{
+    opacity:1;animation:home-shimmer 1.2s ease-in-out;
+  }
+  @keyframes home-shimmer{
+    0%{background-position:-60% 0;opacity:0}
+    25%{opacity:.6}
+    100%{background-position:100% 0;opacity:0}
+  }
+
+  .home-progress-label{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    font-size:.75rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+    color:#0f172a;text-shadow:0 1px 2px rgba(255,255,255,.8);z-index:3;
+    will-change: transform;
+  }
+  /* Подскок процентов в конце */
+  .home-progress-label.pop{
+    animation:label-pop .38s cubic-bezier(.2,1.4,.2,1) 1;
+  }
+  @keyframes label-pop{
+    0%{transform:translate(-50%,-50%) scale(1)}
+    60%{transform:translate(-50%,-52%) scale(1.18)}
+    100%{transform:translate(-50%,-50%) scale(1)}
+  }
+
+  /* Молния — выше полосы, остаётся после анимации */
+  .home-progress-lightning{
+    --size: calc(var(--bar-h) * 2.2); /* заметно выше высоты полосы */
+    position:absolute;top:50%;
+    width:var(--size);height:var(--size);
+    transform:translate(-50%,-50%) scale(.6);
+    background:radial-gradient(circle at center,#ffffffd0,#ffffff40 60%,transparent 80%);
+    clip-path:polygon(45% 0,60% 40%,88% 40%,56% 100%,45% 62%,18% 62%);
+    filter:drop-shadow(0 0 6px #fff) drop-shadow(0 0 12px #ffcc70);
+    opacity:0;pointer-events:none;z-index:4;
+  }
+  .home-progress-lightning.reflash{
+    animation:
+      lightning-flash .9s ease-out forwards,
+      lightning-jitter .18s ease-in-out 2;
+  }
+  @keyframes lightning-flash{
+    0%  {opacity:0;transform:translate(-50%,-50%) scale(.5)}
+    25% {opacity:1;transform:translate(-50%,-50%) scale(1.12)}
+    60% {opacity:.95;transform:translate(-50%,-50%) scale(.95)}
+    100%{opacity:1;transform:translate(-50%,-50%) scale(.9)}
+  }
+  @keyframes lightning-jitter{
+    0%,100%{ transform:translate(-50%,-50%) scale(1); }
+    50%    { transform:translate(calc(-50% + .6px), calc(-50% - .6px)) scale(1.02); }
+  }
+  .home-progress-lightning.is-static{
+    opacity:1;transform:translate(-50%,-50%) scale(.9);
+    animation: bolt-breathe 3s ease-in-out infinite;
+  }
+  @keyframes bolt-breathe{
+    0%,100%{ filter:drop-shadow(0 0 6px #fff) drop-shadow(0 0 12px #ffcc70); }
+    50%    { filter:drop-shadow(0 0 10px #fff) drop-shadow(0 0 18px #ffd892); }
+  }
+
+  /* Искры */
+  .home-progress-spark{
+    position:absolute; top:50%;
+    width:6px;height:6px;border-radius:50%;
+    background: radial-gradient(circle, #fff, #ffd27a 60%, transparent 70%);
+    box-shadow: 0 0 6px #ffe6b0, 0 0 10px #ffd27a;
+    transform: translate(-50%,-50%) scale(.6);
+    opacity:0;pointer-events:none;z-index:4;
+    animation: spark-fly .7s ease-out forwards;
+  }
+  @keyframes spark-fly{
+    0%   { opacity:.95; transform:translate(-50%,-50%) scale(.6); }
+    100% { opacity:0;   transform:translate(var(--dx,6px), calc(-50% + var(--dy,-8px))) scale(.2); }
+  }
+
+  .home-glow-card h2,.home-glow-card h3{color:#fff;text-transform:none;letter-spacing:.05em;font-weight:700;}
+  .home-glow-card .text-muted,.home-glow-card .small,.home-glow-card .badge.text-bg-light{color:var(--home-text-soft)!important;}
+  .home-glow-card ul li span:first-child{color:var(--home-text-soft);}
+  .home-glow-card .badge{border-radius:12px;background:rgba(194,224,239,.22)!important;color:var(--home-accent);border:1px solid rgba(194,224,239,.5);}
+
+  .home-stats-grid{display:grid;gap:1.25rem;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
+  .home-stats-primary{font-size:clamp(2.25rem,4vw,3.5rem);font-weight:700;color:var(--home-accent);}
+
+  .home-filters-card{background:var(--home-surface);border-radius:20px;border:1px solid var(--home-divider);box-shadow:0 16px 32px rgba(20,27,33,.5);}
+  .home-filters-toggle{border-radius:14px;border:1px solid rgba(255,255,255,.28);background:rgba(61,81,96,.8);color:#f8f9ff;font-weight:600;letter-spacing:.05em;}
+
+  .home-section-title{font-size:.75rem;letter-spacing:.3em;text-transform:uppercase;color:rgba(210,226,241,.82);}
+  .home-activity{display:grid;gap:1.25rem;}
+
+  .home-library-table{background:#fff;border-radius:24px;border:1px solid #dbe3f0;box-shadow:0 18px 40px rgba(15,23,42,.12);overflow:hidden;color:#0f172a;}
+  .home-library-table .table{color:inherit;margin-bottom:0;border-color:#e2e8f0;}
+  .home-library-table .table thead{background:#f8fafc;}
+  .home-library-table .table thead th{border-color:#e2e8f0;font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:.7rem;color:#0f172a;}
+  .home-library-table .table tbody td{border-color:#e2e8f0;vertical-align:top;background:#fff;color:inherit;}
+  .home-library-table .table tbody tr:hover td{background:#f1f5f9;}
+  .home-table-actions .btn{border-radius:12px;}
+  .home-table-actions .btn-outline-secondary{color:rgba(61,81,96,.9);border-color:rgba(194,224,239,.55);background:rgba(82,106,122,.65);}
+  .home-table-actions .btn-outline-secondary:hover,.home-table-actions .btn-outline-secondary:focus{background:rgba(194,224,239,.2);color:#1c242b;border-color:rgba(194,224,239,.85);}
+  .home-table-actions .btn-outline-danger{color:#fca5a5;border-color:rgba(248,113,113,.55);background:rgba(244,63,94,.12);}
+  .home-table-actions .btn-outline-danger:hover,.home-table-actions .btn-outline-danger:focus{background:rgba(244,63,94,.25);color:#fee2e2;border-color:rgba(244,63,94,.65);}
+  .tag-chip{display:inline-flex;align-items:center;padding:.25rem .6rem;border-radius:999px;background:rgba(194,224,239,.18);color:#0d2744;font-size:.75rem;margin-right:.35rem;margin-bottom:.35rem;border:1px solid rgba(255,255,255,.28);}
+
+  @media (max-width:991.98px){.home-hero{padding:2rem 1.5rem}.home-activity{grid-template-columns:1fr}}
+  @media (max-width:767.98px){
+    .home-hero{padding:1.75rem 1.25rem}
+    .home-hero__title{font-size:1.875rem}
+    .home-hero__subtitle{font-size:.95rem}
+    .home-stats-grid{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+    .home-progress-stats{flex-direction:column;align-items:stretch;gap:.75rem}
+    .home-progress-side{min-width:0;display:flex;align-items:center;justify-content:space-between;text-align:left}
+    .home-progress-side.text-end{text-align:left!important}
+    .home-progress-value{font-size:1.875rem}
+    .home-library-table .table thead{display:none}
+    .home-library-table table,.home-library-table tbody,.home-library-table tr,.home-library-table td{display:block;width:100%}
+    .home-library-table tr{background:#fff;border-radius:20px;margin-bottom:1rem;padding:1rem 1.25rem;box-shadow:0 18px 35px rgba(15,23,42,.12)}
+    .home-library-table td{border:none;padding:.25rem 0;background:transparent}
+    .home-library-table td::before{content:attr(data-label);display:block;font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:#64748b;margin-bottom:.15rem}
+    .home-library-table td[data-label="Действия"]{text-align:left;margin-top:.5rem}
+    .home-table-actions{justify-content:flex-start!important}
+    .home-filters-toggle{width:100%}
+    .home-disposed-card .table thead{display:none}
+    .home-disposed-card .table,.home-disposed-card tbody,.home-disposed-card tr,.home-disposed-card td{display:block;width:100%}
+    .home-disposed-card tr{background:#fff;border-radius:20px;margin-bottom:1rem;padding:1rem 1.25rem;box-shadow:0 18px 35px rgba(15,23,42,.12)}
+    .home-disposed-card td{border:none;padding:.3rem 0;background:transparent}
+    .home-disposed-card td::before{content:attr(data-label);display:block;font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:#64748b;margin-bottom:.1rem}
+  }
+  @media (min-width:768px){
+    #homeLibraryFilters{display:block!important;height:auto!important;visibility:visible!important}
+  }
+
+  /* Reduce motion */
+  @media (prefers-reduced-motion: reduce){
+    .home-progress-line::before,
+    .home-progress-fill-left,.home-progress-fill-right,
+    .home-progress-lightning,
+    .home-progress-label{animation:none!important;transition:none!important}
+    .home-progress-lightning.is-static{animation:none!important}
   }
-
-  .home-hero {
-    position: relative;
-    border-radius: 24px;
-    overflow: hidden;
-    background: var(--home-hero-gradient);
-    color: #f5f7ff;
-    padding: 2.5rem 2rem;
-    box-shadow: 0 25px 55px rgba(24, 32, 39, 0.45);
-  }
-
-  .home-hero::before,
-  .home-hero::after {
-    content: "";
-    position: absolute;
-    border-radius: 100%;
-    filter: blur(65px);
-    opacity: 0.8;
-    z-index: 0;
-  }
-
-  .home-hero::before {
-    width: 360px;
-    height: 360px;
-    top: -120px;
-    right: -140px;
-    background: rgba(216, 232, 242, 0.45);
-  }
-
-  .home-hero::after {
-    width: 280px;
-    height: 280px;
-    bottom: -140px;
-    left: -110px;
-    background: rgba(247, 209, 176, 0.4);
-  }
-
-  .home-hero__content,
-  .home-hero__actions {
-    position: relative;
-    z-index: 1;
-  }
-
-  .home-hero__title {
-    font-family: "Montserrat", "Segoe UI", system-ui, sans-serif;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-  }
-
-  .home-hero__subtitle {
-    max-width: 520px;
-    color: var(--home-text-soft);
-  }
-
-  .home-hero__actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-  }
-
-  .home-hero__btn {
-    border-radius: 999px;
-    font-weight: 600;
-    box-shadow: 0 12px 28px rgba(8, 10, 44, 0.45);
-    border: none;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, color 0.15s ease;
-  }
-
-  .home-hero__btn:hover,
-  .home-hero__btn:focus {
-    transform: translateY(-2px);
-    box-shadow: 0 18px 32px rgba(8, 10, 44, 0.55);
-  }
-
-  .home-hero__btn.btn-outline-light {
-    border: 1px solid rgba(255, 255, 255, 0.55);
-    background: rgba(46, 58, 68, 0.55);
-    color: #ffffff;
-  }
-
-  .home-hero__btn.btn-light {
-    color: #1c242b;
-  }
-
-  .home-hero__btn.btn-outline-light:hover,
-  .home-hero__btn.btn-outline-light:focus {
-    background: rgba(255, 255, 255, 0.15);
-  }
-
-  .home-hero__btn.btn-light:hover,
-  .home-hero__btn.btn-light:focus {
-    background: linear-gradient(130deg, #d3e6f1 0%, #f1f6fa 100%);
-    color: #11171c;
-  }
-
-  .home-glow-card {
-    background: var(--home-card-bg);
-    border: 1px solid var(--home-card-border);
-    border-radius: 20px;
-    box-shadow: var(--home-card-shadow);
-    color: #f8faff;
-    padding: 1.5rem;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .home-stats-button {
-    padding: 0;
-    border: none;
-    background: none;
-    color: inherit;
-    font: inherit;
-    font-weight: 600;
-    cursor: pointer;
-    transition: color 0.2s ease;
-    display: inline-flex;
-    align-items: baseline;
-    gap: 0.35rem;
-  }
-
-  .home-stats-button:hover,
-  .home-stats-button:focus {
-    color: var(--home-accent-strong);
-  }
-
-  .home-stats-button:focus-visible {
-    outline: 2px solid rgba(255, 255, 255, 0.45);
-    outline-offset: 2px;
-  }
-
-  .home-stats-button--block {
-    display: flex;
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  .home-stats-button--inline {
-    display: inline;
-    font-weight: inherit;
-  }
-
-  .home-stats-button--inline:hover,
-  .home-stats-button--inline:focus {
-    text-decoration: underline;
-  }
-
-  .home-stats-button--compact {
-    font-size: 0.95rem;
-    font-weight: 700;
-  }
-
-  .home-glow-card .badge[data-summary-trigger] {
-    cursor: pointer;
-    transition: background 0.2s ease, color 0.2s ease;
-  }
-
-  .home-glow-card .badge[data-summary-trigger]:hover,
-  .home-glow-card .badge[data-summary-trigger]:focus {
-    background: rgba(194, 224, 239, 0.35) !important;
-    color: var(--home-accent-strong);
-  }
-
-  .home-progress-card {
-    --home-progress-bought: #38bdf8;
-    --home-progress-read: #f97316;
-  }
-
-  .home-progress-controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-  }
-
-  .home-progress-controls .form-select,
-  .home-progress-controls .form-label {
-    font-size: 0.85rem;
-  }
-
-  .home-progress-stats {
-    display: flex;
-    align-items: center;
-    gap: 1.25rem;
-  }
-
-  .home-progress-side {
-    min-width: 120px;
-  }
-
-  .home-progress-value {
-    font-size: 2.25rem;
-    line-height: 1;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-  }
-
-  .home-progress-value .home-progress-number {
-    font-variant-numeric: tabular-nums;
-  }
-
-  .home-progress-line {
-    position: relative;
-    flex: 1;
-    height: 8px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.16);
-    overflow: hidden;
-  }
-
-  .home-progress-fill {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      90deg,
-      var(--home-progress-bought) 0%,
-      var(--home-progress-bought) var(--home-progress-split, 50%),
-      var(--home-progress-read) var(--home-progress-split, 50%),
-      var(--home-progress-read) 100%
-    );
-    transition: background 0.3s ease;
-  }
-
-  .home-progress-label {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: #0f172a;
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
-  }
-
-  .home-summary-modal .modal-content {
-    border-radius: 18px;
-    border: none;
-  }
-
-  .home-summary-modal .modal-header {
-    border-bottom: 1px solid rgba(148, 163, 184, 0.35);
-  }
-
-  .home-summary-modal .modal-body {
-    max-height: 60vh;
-    overflow-y: auto;
-  }
-
-  .home-summary-item {
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid rgba(226, 232, 240, 0.7);
-  }
-
-  .home-summary-item:last-child {
-    border-bottom: none;
-  }
-
-  .home-summary-item a {
-    color: inherit;
-    text-decoration: none;
-  }
-
-  .home-summary-item a:hover,
-  .home-summary-item a:focus {
-    text-decoration: underline;
-  }
-
-  .home-glow-card::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(135deg, rgba(194, 224, 239, 0.35), rgba(246, 200, 162, 0.18));
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-            mask-composite: exclude;
-  }
-
-  .home-glow-card h2,
-  .home-glow-card h3 {
-    color: #ffffff;
-    text-transform: none;
-    letter-spacing: 0.05em;
-    font-weight: 700;
-  }
-
-  .home-glow-card .text-muted,
-  .home-glow-card .small,
-  .home-glow-card .badge.text-bg-light {
-    color: var(--home-text-soft) !important;
-  }
-
-  .home-glow-card ul li span:first-child {
-    color: var(--home-text-soft);
-  }
-
-  .home-glow-card .badge {
-    border-radius: 12px;
-    background: rgba(194, 224, 239, 0.22) !important;
-    color: var(--home-accent);
-    border: 1px solid rgba(194, 224, 239, 0.5);
-  }
-
-  .home-stats-grid {
-    display: grid;
-    gap: 1.25rem;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  }
-
-  .home-stats-primary {
-    font-size: clamp(2.25rem, 4vw, 3.5rem);
-    font-weight: 700;
-    color: var(--home-accent);
-  }
-
-  .home-filters-card {
-    background: var(--home-surface);
-    border-radius: 20px;
-    border: 1px solid var(--home-divider);
-    box-shadow: 0 16px 32px rgba(20, 27, 33, 0.5);
-  }
-
-  .home-filters-toggle {
-    border-radius: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.28);
-    background: rgba(61, 81, 96, 0.8);
-    color: #f8f9ff;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-  }
-
-  .home-section-title {
-    font-size: 0.75rem;
-    letter-spacing: 0.3em;
-    text-transform: uppercase;
-    color: rgba(210, 226, 241, 0.82);
-  }
-
-  .home-activity {
-    display: grid;
-    gap: 1.25rem;
-  }
-
-  .home-library-table {
-    background: #ffffff;
-    border-radius: 24px;
-    border: 1px solid #dbe3f0;
-    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
-    overflow: hidden;
-    color: #0f172a;
-  }
-
-  .home-library-table .table {
-    color: inherit;
-    margin-bottom: 0;
-    border-color: #e2e8f0;
-  }
-
-  .home-library-table .table thead {
-    background: #f8fafc;
-  }
-
-  .home-library-table .table thead th {
-    border-color: #e2e8f0;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    font-size: 0.7rem;
-    color: #0f172a;
-  }
-
-  .home-library-table .table tbody td {
-    border-color: #e2e8f0;
-    vertical-align: top;
-    background: #ffffff;
-    color: inherit;
-  }
-
-  .home-library-table .table tbody tr:nth-of-type(odd) td {
-    background: #ffffff;
-  }
-
-  .home-library-table .table tbody tr:nth-of-type(even) td {
-    background: #ffffff;
-  }
-
-  .home-library-table .table tbody tr:hover td {
-    background: #f1f5f9;
-  }
-
-  .home-library-table .table tbody td .text-muted {
-    color: #64748b !important;
-  }
-
-  .home-table-actions .btn {
-    border-radius: 12px;
-  }
-
-  .home-table-actions .btn-outline-secondary {
-    color: rgba(61, 81, 96, 0.9);
-    border-color: rgba(194, 224, 239, 0.55);
-    background: rgba(82, 106, 122, 0.65);
-  }
-
-  .home-table-actions .btn-outline-secondary:hover,
-  .home-table-actions .btn-outline-secondary:focus {
-    background: rgba(194, 224, 239, 0.2);
-    color: #1c242b;
-    border-color: rgba(194, 224, 239, 0.85);
-  }
-
-  .home-table-actions .btn-outline-danger {
-    color: #fca5a5;
-    border-color: rgba(248, 113, 113, 0.55);
-    background: rgba(244, 63, 94, 0.12);
-  }
-
-  .home-table-actions .btn-outline-danger:hover,
-  .home-table-actions .btn-outline-danger:focus {
-    background: rgba(244, 63, 94, 0.25);
-    color: #fee2e2;
-    border-color: rgba(244, 63, 94, 0.65);
-  }
-
-  .tag-chip {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.25rem 0.6rem;
-    border-radius: 999px;
-    background: rgba(194, 224, 239, 0.18);
-    color: #0d2744;
-    font-size: 0.75rem;
-    margin-right: 0.35rem;
-    margin-bottom: 0.35rem;
-    border: 1px solid rgba(255, 255, 255, 0.28);
-  }
-
-  @media (max-width: 991.98px) {
-    .home-hero {
-      padding: 2rem 1.5rem;
-    }
-
-    .home-activity {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  @media (max-width: 767.98px) {
-    .home-hero {
-      padding: 1.75rem 1.25rem;
-    }
-
-    .home-hero__title {
-      font-size: 1.875rem;
-    }
-
-    .home-hero__subtitle {
-      font-size: 0.95rem;
-    }
-
-    .home-stats-grid {
-      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-    }
-
-    .home-progress-stats {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 0.75rem;
-    }
-
-    .home-progress-side {
-      min-width: 0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      text-align: left;
-    }
-
-    .home-progress-side.text-end {
-      text-align: left !important;
-    }
-
-    .home-progress-value {
-      font-size: 1.875rem;
-    }
-
-    .home-library-table .table thead {
-      display: none;
-    }
-
-    .home-library-table table,
-    .home-library-table tbody,
-    .home-library-table tr,
-    .home-library-table td {
-      display: block;
-      width: 100%;
-    }
-
-    .home-library-table tr {
-      background: #ffffff;
-      border-radius: 20px;
-      margin-bottom: 1rem;
-      padding: 1rem 1.25rem;
-      box-shadow: 0 18px 35px rgba(15, 23, 42, 0.12);
-    }
-
-    .home-library-table td {
-      border: none;
-      padding: 0.25rem 0;
-      background: transparent;
-    }
-
-    .home-library-table td::before {
-      content: attr(data-label);
-      display: block;
-      font-size: 0.7rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: #64748b;
-      margin-bottom: 0.15rem;
-    }
-
-    .home-library-table td[data-label="Действия"] {
-      text-align: left;
-      margin-top: 0.5rem;
-    }
-
-    .home-table-actions {
-      justify-content: flex-start !important;
-    }
-
-    .home-filters-toggle {
-      width: 100%;
-    }
-
-    .home-disposed-card .table thead {
-      display: none;
-    }
-
-    .home-disposed-card .table,
-    .home-disposed-card tbody,
-    .home-disposed-card tr,
-    .home-disposed-card td {
-      display: block;
-      width: 100%;
-    }
-
-    .home-disposed-card tr {
-      background: #ffffff;
-      border-radius: 20px;
-      margin-bottom: 1rem;
-      padding: 1rem 1.25rem;
-      box-shadow: 0 18px 35px rgba(15, 23, 42, 0.12);
-    }
-
-    .home-disposed-card td {
-      border: none;
-      padding: 0.3rem 0;
-      background: transparent;
-    }
-
-    .home-disposed-card td::before {
-      content: attr(data-label);
-      display: block;
-      font-size: 0.7rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: #64748b;
-      margin-bottom: 0.1rem;
-    }
-  }
-
-  @media (min-width: 768px) {
-    #homeLibraryFilters {
-      display: block !important;
-      height: auto !important;
-      visibility: visible !important;
-    }
-  }
-
-  /* Карточка со светящимся бордером */
-.home-glow-card {
-  background: var(--home-card-bg);
-  border: 1px solid var(--home-card-border);
-  border-radius: 20px;
-  box-shadow: var(--home-card-shadow);
-  color: #f8faff;
-  padding: 1.5rem;
-  position: relative;   /* важно: формируем контекст наложения */
-  overflow: hidden;
-  z-index: 0;           /* ниже, чем содержимое */
-}
-
-/* Декор-оверлей — не должен ловить клики */
-.home-glow-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(135deg, rgba(194,224,239,.35), rgba(246,200,162,.18));
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-          mask-composite: exclude;
-
-  pointer-events: none; /* <-- решает блокировку кликов */
-  z-index: 0;           /* декор под контентом */
-}
-
-/* Сам контент поверх декора (если нужно) */
-.home-glow-card > * {
-  position: relative;
-  z-index: 1;
-}
 </style>
 {% endblock %}
+
 {% block content %}
 <section class="home-hero mb-5">
   <div class="row g-4 align-items-stretch">
-    <!-- Левый столбец: заголовок, подзаголовок, кнопки -->
     <div class="col-12 col-lg-7 home-hero__content">
       <p class="home-section-title mb-2">Домашняя коллекция</p>
       <h1 class="home-hero__title display-5 mb-3">Моя домашняя библиотека</h1>
-      <p class="home-hero__subtitle mb-4">
-        Отслеживайте бумажные и электронные экземпляры, расставляйте их по полкам и возвращайтесь к любимым сериям с атмосферой ретро-игры.
-      </p>
+      <p class="home-hero__subtitle mb-4">Отслеживайте бумажные и электронные экземпляры, расставляйте их по полкам и возвращайтесь к любимым сериям с атмосферой ретро-игры.</p>
       <div class="home-hero__actions mb-3">
-        <a class="btn btn-light home-hero__btn" href="{% url 'book_list' %}">
-          <i class="bi bi-plus-circle me-2"></i> Добавить книгу
-        </a>
-        <a class="btn btn-outline-light home-hero__btn" href="{% url 'shelves:my_shelves' %}">
-          <i class="bi bi-card-list me-2"></i> К полкам
-        </a>
+        <a class="btn btn-light home-hero__btn" href="{% url 'book_list' %}"><i class="bi bi-plus-circle me-2"></i> Добавить книгу</a>
+        <a class="btn btn-outline-light home-hero__btn" href="{% url 'shelves:my_shelves' %}"><i class="bi bi-card-list me-2"></i> К полкам</a>
       </div>
     </div>
 
-    <!-- Правый столбец: карточка со статистикой периода -->
     <div class="col-12 col-lg-5 d-flex">
       <div class="home-glow-card home-progress-card w-100 h-100">
         <h2 class="h6 text-uppercase text-muted mb-3">Куплено против прочитано</h2>
@@ -683,10 +303,8 @@
         <div class="home-progress-stats">
           <div class="home-progress-side">
             <div class="small text-uppercase text-muted">Куплено</div>
-            <button class="home-stats-button home-progress-value summary-trigger"
-                    type="button"
-                    data-summary-trigger
-                    data-summary-category="period"
+            <button class="home-stats-button home-progress-value summary-trigger" type="button"
+                    data-summary-trigger data-summary-category="period"
                     data-period-kind="bought"
                     data-period-type="{{ default_period_type }}"
                     data-period-value="{{ default_period_value }}"
@@ -696,16 +314,16 @@
           </div>
 
           <div class="home-progress-line">
-            <div class="home-progress-fill" data-role="period-progress-fill"></div>
-            <div class="home-progress-label" data-role="period-progress-label">0%</div>
+            <div class="home-progress-fill-left"  data-role="fill-left"></div>
+            <div class="home-progress-fill-right" data-role="fill-right"></div>
+            <div class="home-progress-label"      data-role="period-progress-label">0%</div>
+            <!-- молния добавляется скриптом -->
           </div>
 
           <div class="home-progress-side text-end">
             <div class="small text-uppercase text-muted">Прочитано</div>
-            <button class="home-stats-button home-progress-value summary-trigger"
-                    type="button"
-                    data-summary-trigger
-                    data-summary-category="period"
+            <button class="home-stats-button home-progress-value summary-trigger" type="button"
+                    data-summary-trigger data-summary-category="period"
                     data-period-kind="read"
                     data-period-type="{{ default_period_type }}"
                     data-period-value="{{ default_period_value }}"
@@ -714,10 +332,12 @@
             </button>
           </div>
         </div>
+
       </div>
     </div>
   </div>
 </section>
+
 <div class="home-stats-grid mb-5">
   <div class="home-glow-card home-quick-actions-card h-100">
     <h2 class="h6 text-uppercase text-muted mb-3">Быстрые действия</h2>
@@ -737,6 +357,7 @@
     </div>
     <p class="small text-muted mt-3 mb-0">Следите за движением коллекции, присваивайте статусы и делитесь историями прямо со смартфона.</p>
   </div>
+
   {% if entries %}
     <div class="home-glow-card">
       <h2 class="h6 text-uppercase text-muted mb-3">Всего активных книг</h2>
@@ -750,6 +371,7 @@
         </button>
       </p>
     </div>
+
     <div class="home-glow-card">
       <h2 class="h6 text-uppercase text-muted mb-3">Классика против современности</h2>
       <div class="d-flex gap-4 align-items-end">
@@ -767,6 +389,7 @@
         </div>
       </div>
     </div>
+
     <div class="home-glow-card">
       <h2 class="h6 text-uppercase text-muted mb-3">Популярные серии</h2>
       {% if summary.series_counts %}
@@ -774,7 +397,7 @@
           {% for series in summary.series_counts %}
             <li class="d-flex justify-content-between">
               <span>{{ series.series_name }}</span>
-                <button class="home-stats-button home-stats-button--compact summary-trigger" type="button" data-summary-trigger data-summary-category="series" data-summary-key="{{ series.series_name }}" data-summary-title="Серия «{{ series.series_name }}»">
+              <button class="home-stats-button home-stats-button--compact summary-trigger" type="button" data-summary-trigger data-summary-category="series" data-summary-key="{{ series.series_name }}" data-summary-title="Серия «{{ series.series_name }}»">
                 {{ series.total }}
               </button>
             </li>
@@ -784,6 +407,7 @@
         <p class="text-muted mb-0">Добавьте серию для экземпляров.</p>
       {% endif %}
     </div>
+
     <div class="home-glow-card">
       <h2 class="h6 text-uppercase text-muted mb-3">Популярные жанры</h2>
       {% if summary.genre_counts %}
@@ -815,24 +439,19 @@
     <div id="homeLibraryFilters" class="collapse">
       <form method="get" class="row g-3">
         {% if filter_form.non_field_errors %}
-          <div class="col-12">
-            <div class="alert alert-danger">{{ filter_form.non_field_errors }}</div>
-          </div>
+          <div class="col-12"><div class="alert alert-danger">{{ filter_form.non_field_errors }}</div></div>
         {% endif %}
         <div class="col-12 col-md-4">
           <label class="form-label" for="id_is_classic">{{ filter_form.is_classic.label }}</label>
-          {{ filter_form.is_classic }}
-          {{ filter_form.is_classic.errors }}
+          {{ filter_form.is_classic }}{{ filter_form.is_classic.errors }}
         </div>
         <div class="col-12 col-md-4">
           <label class="form-label" for="id_series">{{ filter_form.series.label }}</label>
-          {{ filter_form.series }}
-          {{ filter_form.series.errors }}
+          {{ filter_form.series }}{{ filter_form.series.errors }}
         </div>
         <div class="col-12 col-md-4">
           <label class="form-label" for="id_genres">{{ filter_form.genres.label }}</label>
-          {{ filter_form.genres }}
-          {{ filter_form.genres.errors }}
+          {{ filter_form.genres }}{{ filter_form.genres.errors }}
         </div>
         <div class="col-12 d-flex flex-column flex-md-row gap-2 mt-2">
           <button class="btn btn-primary flex-fill" type="submit">Применить</button>
@@ -853,17 +472,9 @@
             <li class="mb-3 pb-3 border-bottom border-secondary-subtle">
               <div class="fw-semibold">{{ entry.book.title }}</div>
               <div class="small text-muted">
-                {% if entry.book.authors.all %}
-                  {{ entry.book.authors.all|join:", " }} ·
-                {% endif %}
-                {% if entry.acquired_at %}
-                  получена {{ entry.acquired_at|date:"d.m.Y" }}
-                {% else %}
-                  добавлена {{ entry.shelf_item.added_at|date:"d.m.Y" }}
-                {% endif %}
-                {% if entry.location %}
-                  · хранится: {{ entry.location }}
-                {% endif %}
+                {% if entry.book.authors.all %}{{ entry.book.authors.all|join:", " }} ·{% endif %}
+                {% if entry.acquired_at %}получена {{ entry.acquired_at|date:"d.m.Y" }}{% else %}добавлена {{ entry.shelf_item.added_at|date:"d.m.Y" }}{% endif %}
+                {% if entry.location %} · хранится: {{ entry.location }}{% endif %}
               </div>
             </li>
           {% endfor %}
@@ -872,6 +483,7 @@
         <p class="text-muted mb-0">Пока нет активности. Заполните информацию о нескольких книгах.</p>
       {% endif %}
     </div>
+
     <div class="home-glow-card h-100">
       <h2 class="h6 text-uppercase text-muted mb-3">Статусы экземпляров</h2>
       {% if summary.statuses %}
@@ -913,16 +525,7 @@
       <table class="table align-middle">
         <thead>
           <tr>
-            <th>Книга</th>
-            <th>Формат</th>
-            <th>Статус</th>
-            <th>Хранение</th>
-            <th>Классика</th>
-            <th>Серия</th>
-            <th>Жанры</th>
-            <th>Приобретена</th>
-            <th>Заметки</th>
-            <th class="text-end">Действия</th>
+            <th>Книга</th><th>Формат</th><th>Статус</th><th>Хранение</th><th>Классика</th><th>Серия</th><th>Жанры</th><th>Приобретена</th><th>Заметки</th><th class="text-end">Действия</th>
           </tr>
         </thead>
         <tbody>
@@ -930,7 +533,7 @@
           {% if entries %}
             {% for entry in entries %}
               <tr>
-                <td data-label="Книга" style="min-width: 200px;">
+                <td data-label="Книга" style="min-width:200px;">
                   <div class="fw-semibold"><a class="text-decoration-none text-reset" href="{% url 'book_detail' entry.book.pk %}">{{ entry.book.title }}</a></div>
                   <div class="small text-muted">{{ entry.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
                   {% with status=default_status_map|dict_get:entry.book.pk %}
@@ -947,10 +550,7 @@
                         <form method="post" action="{% url 'shelves:move_book_to_reading' entry.book.pk %}">
                           {% csrf_token %}
                           <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                          <button type="submit" class="btn btn-sm btn-outline-primary mt-1">
-                            <i class="bi bi-book-half" aria-hidden="true"></i>
-                            <span>Начать читать</span>
-                          </button>
+                          <button type="submit" class="btn btn-sm btn-outline-primary mt-1"><i class="bi bi-book-half" aria-hidden="true"></i><span>Начать читать</span></button>
                         </form>
                       {% endif %}
                     </div>
@@ -959,61 +559,31 @@
                 <td data-label="Формат">{{ entry.get_format_display }}</td>
                 <td data-label="Статус">{{ entry.status|default:"—" }}</td>
                 <td data-label="Хранение">
-                  {% if entry.location %}
-                    {{ entry.location }}<br>
-                  {% endif %}
-                  {% if entry.shelf_section %}
-                    <span class="text-muted small">{{ entry.shelf_section }}</span>
-                  {% endif %}
-                  {% if not entry.location and not entry.shelf_section %}
-                    —
-                  {% endif %}
+                  {% if entry.location %}{{ entry.location }}<br>{% endif %}
+                  {% if entry.shelf_section %}<span class="text-muted small">{{ entry.shelf_section }}</span>{% endif %}
+                  {% if not entry.location and not entry.shelf_section %}—{% endif %}
                 </td>
-                <td data-label="Классика">
-                  {% if entry.is_classic %}
-                    <span class="badge text-bg-success">Да</span>
-                  {% else %}
-                    <span class="text-muted">Нет</span>
-                  {% endif %}
-                </td>
+                <td data-label="Классика">{% if entry.is_classic %}<span class="badge text-bg-success">Да</span>{% else %}<span class="text-muted">Нет</span>{% endif %}</td>
                 <td data-label="Серия">{{ entry.series_name|default:"—" }}</td>
                 <td data-label="Жанры">
                   {% with entry.custom_genres.all as entry_genres %}
-                    {% if entry_genres %}
-                      {% for genre in entry_genres %}
-                        <span class="tag-chip">{{ genre }}</span>
-                      {% endfor %}
-                    {% else %}
-                      —
-                    {% endif %}
-                    {% endwith %}
+                    {% if entry_genres %}{% for genre in entry_genres %}<span class="tag-chip">{{ genre }}</span>{% endfor %}{% else %}—{% endif %}
+                  {% endwith %}
                 </td>
-                <td data-label="Приобретена">
-                  {% if entry.acquired_at %}
-                    {{ entry.acquired_at|date:"d.m.Y" }}
-                  {% else %}
-                    —
-                  {% endif %}
-                </td>
-                <td data-label="Заметки" style="max-width: 240px; white-space: pre-wrap;">{{ entry.notes|default:"—" }}</td>
+                <td data-label="Приобретена">{% if entry.acquired_at %}{{ entry.acquired_at|date:"d.m.Y" }}{% else %}—{% endif %}</td>
+                <td data-label="Заметки" style="max-width:240px;white-space:pre-wrap;">{{ entry.notes|default:"—" }}</td>
                 <td data-label="Действия" class="text-end">
                   <div class="btn-group btn-group-sm home-table-actions">
-                    <a class="btn btn-outline-secondary" href="{% url 'shelves:home_library_edit' entry.shelf_item_id %}?next={{ request.get_full_path|urlencode }}">
-                      <i class="bi bi-pencil"></i>
-                    </a>
-                    <a class="btn btn-outline-danger" href="{% url 'shelves:remove_book_from_shelf' shelf.id entry.book.id %}?next={{ request.get_full_path|urlencode }}" title="Удалить из полки" aria-label="Удалить книгу">
-                      <i class="bi bi-trash"></i>
-                    </a>
+                    <a class="btn btn-outline-secondary" href="{% url 'shelves:home_library_edit' entry.shelf_item_id %}?next={{ request.get_full_path|urlencode }}"><i class="bi bi-pencil"></i></a>
+                    <a class="btn btn-outline-danger" href="{% url 'shelves:remove_book_from_shelf' shelf.id entry.book.id %}?next={{ request.get_full_path|urlencode }}" title="Удалить из полки" aria-label="Удалить книгу"><i class="bi bi-trash"></i></a>
                   </div>
                 </td>
               </tr>
             {% endfor %}
           {% else %}
-            <tr>
-              <td colspan="10" class="text-center text-muted py-4">По выбранным условиям книги не найдены.</td>
-            </tr>
+            <tr><td colspan="10" class="text-center text-muted py-4">По выбранным условиям книги не найдены.</td></tr>
           {% endif %}
-          </tbody>
+        </tbody>
       </table>
     </div>
   </div>
@@ -1023,20 +593,12 @@
       <h2 class="h6 text-uppercase text-muted mb-3">Проданные и отданные книги</h2>
       <div class="table-responsive">
         <table class="table align-middle mb-0">
-          <thead>
-            <tr>
-              <th>Книга</th>
-              <th>Статус</th>
-              <th>Комментарий</th>
-              <th>Обновлено</th>
-              <th class="text-end">Действия</th>
-            </tr>
-          </thead>
+          <thead><tr><th>Книга</th><th>Статус</th><th>Комментарий</th><th>Обновлено</th><th class="text-end">Действия</th></tr></thead>
           <tbody>
             {% default_shelf_status_map disposed_entries request.user as disposed_status_map %}
             {% for entry in disposed_entries %}
-            <tr>
-              <td data-label="Книга" style="min-width: 200px;">
+              <tr>
+                <td data-label="Книга" style="min-width:200px;">
                   <div class="fw-semibold"><a class="text-decoration-none text-reset" href="{% url 'book_detail' entry.book.pk %}">{{ entry.book.title }}</a></div>
                   <div class="small text-muted">{{ entry.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
                   {% with status=disposed_status_map|dict_get:entry.book.pk %}
@@ -1052,42 +614,40 @@
                   {% endwith %}
                 </td>
                 <td data-label="Статус">{{ entry.status|default:"—" }}</td>
-                <td data-label="Комментарий" style="max-width: 280px; white-space: pre-wrap;">{{ entry.disposition_note|default:"—" }}</td>
+                <td data-label="Комментарий" style="max-width:280px;white-space:pre-wrap;">{{ entry.disposition_note|default:"—" }}</td>
                 <td data-label="Обновлено">{{ entry.updated_at|date:"d.m.Y H:i" }}</td>
                 <td data-label="Действия" class="text-end">
                   <div class="btn-group btn-group-sm home-table-actions">
-                    <a class="btn btn-outline-secondary" href="{% url 'shelves:home_library_edit' entry.shelf_item_id %}?next={{ request.get_full_path|urlencode }}">
-                      <i class="bi bi-pencil"></i>
-                    </a>
-                    <a class="btn btn-outline-danger" href="{% url 'shelves:remove_book_from_shelf' shelf.id entry.book.id %}?next={{ request.get_full_path|urlencode }}" title="Удалить из полки" aria-label="Удалить книгу">
-                      <i class="bi bi-trash"></i>
-                    </a>
+                    <a class="btn btn-outline-secondary" href="{% url 'shelves:home_library_edit' entry.shelf_item_id %}?next={{ request.get_full_path|urlencode }}"><i class="bi bi-pencil"></i></a>
+                    <a class="btn btn-outline-danger" href="{% url 'shelves:remove_book_from_shelf' shelf.id entry.book.id %}?next={{ request.get_full_path|urlencode }}" title="Удалить из полки" aria-label="Удалить книгу"><i class="bi bi-trash"></i></a>
                   </div>
                 </td>
               </tr>
             {% endfor %}
-            </tbody>
-          </table>
+          </tbody>
+        </table>
       </div>
     </div>
   {% endif %}
-  {% else %}
+{% else %}
   <div class="alert alert-light border">На полке пока нет книг. Найдите книгу в каталоге и добавьте её в полку «{{ shelf.name }}» на странице книги.</div>
 {% endif %}
+
+<!-- Модалка списка -->
 <div class="modal fade home-summary-modal" id="homeLibrarySummaryModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h1 class="modal-title fs-5" data-role="summary-title">Список книг</h1>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-        </div>
-        <div class="modal-body">
-          <p class="text-muted mb-0" data-role="summary-empty">Для этого раздела пока нет книг.</p>
-          <div data-role="summary-list" class="list-group list-group-flush d-none"></div>
-        </div>
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" data-role="summary-title">Список книг</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted mb-0" data-role="summary-empty">Для этого раздела пока нет книг.</p>
+        <div data-role="summary-list" class="list-group list-group-flush d-none"></div>
       </div>
     </div>
   </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -1095,17 +655,11 @@
   <script>
     (function () {
       const dataElement = document.getElementById('homeLibrarySummaryData');
-      if (!dataElement) {
-        return;
-      }
-      
+      if (!dataElement) return;
+
       let summaryData = {};
-      try {
-        summaryData = JSON.parse(dataElement.textContent || '{}');
-      } catch (error) {
-        console.error('Failed to parse home library summary data', error);
-        summaryData = {};
-      }
+      try { summaryData = JSON.parse(dataElement.textContent || '{}'); }
+      catch (e) { console.error('Failed to parse home library summary data', e); summaryData = {}; }
 
       const modalEl = document.getElementById('homeLibrarySummaryModal');
       const titleEl = modalEl ? modalEl.querySelector('[data-role="summary-title"]') : null;
@@ -1113,330 +667,268 @@
       const emptyEl = modalEl ? modalEl.querySelector('[data-role="summary-empty"]') : null;
       let modalInstance = null;
 
-      function ensureModal() {
-        if (!modalEl) {
-          return null;
-        }
-        if (!modalInstance && window.bootstrap && window.bootstrap.Modal) {
-          modalInstance = new window.bootstrap.Modal(modalEl);
-        }
+      function ensureModal(){
+        if (!modalEl) return null;
+        if (!modalInstance && window.bootstrap?.Modal) modalInstance = new bootstrap.Modal(modalEl);
         return modalInstance;
       }
 
-      function renderBooks(items) {
-        if (!listWrapper || !emptyEl) {
-          return;
+      function renderBooks(items){
+        if (!listWrapper || !emptyEl) return;
+        if (!Array.isArray(items) || !items.length){
+          listWrapper.innerHTML=''; listWrapper.classList.add('d-none');
+          emptyEl.classList.remove('d-none'); emptyEl.textContent='Для этого раздела пока нет книг.'; return;
         }
-        if (!Array.isArray(items) || !items.length) {
-          listWrapper.innerHTML = '';
-          listWrapper.classList.add('d-none');
-          emptyEl.classList.remove('d-none');
-          emptyEl.textContent = 'Для этого раздела пока нет книг.';
-          return;
-        }
-        const fragment = document.createDocumentFragment();
-        items.forEach((book) => {
-          const item = document.createElement('div');
-          item.className = 'list-group-item home-summary-item';
-          const link = document.createElement('a');
-          link.href = book.url;
-          link.textContent = book.title;
-          const subtitle = document.createElement('div');
-          subtitle.className = 'text-muted small mt-1';
-          subtitle.textContent = book.authors || 'Автор неизвестен';
-          item.appendChild(link);
-          item.appendChild(subtitle);
-          fragment.appendChild(item);
+        const frag = document.createDocumentFragment();
+        items.forEach(book=>{
+          const item = document.createElement('div'); item.className='list-group-item home-summary-item';
+          const link = document.createElement('a'); link.href=book.url; link.textContent=book.title;
+          const sub = document.createElement('div'); sub.className='text-muted small mt-1'; sub.textContent=book.authors || 'Автор неизвестен';
+          item.appendChild(link); item.appendChild(sub); frag.appendChild(item);
         });
-        listWrapper.innerHTML = '';
-        listWrapper.appendChild(fragment);
-        emptyEl.classList.add('d-none');
-        listWrapper.classList.remove('d-none');
+        listWrapper.innerHTML=''; listWrapper.appendChild(frag);
+        emptyEl.classList.add('d-none'); listWrapper.classList.remove('d-none');
       }
 
-      function openModal(title, items) {
-        if (titleEl) {
-          titleEl.textContent = title || 'Список книг';
-        }
+      function openModal(title, items){
+        if (titleEl) titleEl.textContent = title || 'Список книг';
         renderBooks(items);
-        const modal = ensureModal();
-        if (modal) {
-          modal.show();
-        }
+        const m = ensureModal(); if (m) m.show();
       }
 
-      function getSummaryItems(trigger) {
-        const category = trigger.dataset.summaryCategory;
-        if (!category) {
-          return [];
+      function getSummaryItems(trigger){
+        const category = trigger.dataset.summaryCategory; if (!category) return [];
+        if (['classic','modern','active','disposed'].includes(category)) return summaryData[category] || [];
+        if (['series','genres','locations','statuses'].includes(category)){
+          const key = trigger.dataset.summaryKey; const bucket = summaryData[category] || {};
+          return key ? (bucket[key] || []) : [];
         }
-        if (category === 'classic' || category === 'modern' || category === 'active' || category === 'disposed') {
-          return summaryData[category] || [];
-        }
-        if (category === 'series' || category === 'genres' || category === 'locations' || category === 'statuses') {
-          const key = trigger.dataset.summaryKey;
-          const bucket = summaryData[category] || {};
-          return key ? bucket[key] || [] : [];
-        }
-        if (category === 'period') {
-          const kind = trigger.dataset.periodKind;
-          const type = trigger.dataset.periodType;
-          const value = trigger.dataset.periodValue;
-          if (!kind || !type) {
-            return [];
-          }
-          const periods = summaryData.periods || {};
-          const typeBucket = periods[type] || {};
-          const stats = typeBucket[value] || {};
-          if (kind === 'bought') {
-            return stats.bought_books || [];
-          }
-          if (kind === 'read') {
-            return stats.read_books || [];
-          }
+        if (category === 'period'){
+          const kind = trigger.dataset.periodKind, type = trigger.dataset.periodType, value = trigger.dataset.periodValue;
+          const periods = summaryData.periods || {}; const typeBucket = periods[type] || {}; const stats = typeBucket[value] || {};
+          if (kind === 'bought') return stats.bought_books || [];
+          if (kind === 'read')   return stats.read_books || [];
           return [];
         }
         return [];
       }
 
-      function getPeriodOptions(type) {
-        const options = summaryData.periodOptions || {};
-        return options[type] || [];
+      function getPeriodOptions(type){
+        const options = summaryData.periodOptions || {}; return options[type] || [];
+      }
+      function getPeriodLabel(type, value){
+        const opts = getPeriodOptions(type); const found = opts.find(o=>o.value===value); return found ? found.label : '';
       }
 
-      function getPeriodLabel(type, value) {
-        const options = getPeriodOptions(type);
-        const found = options.find((option) => option.value === value);
-        return found ? found.label : '';
-      }
-
-      const triggers = document.querySelectorAll('[data-summary-trigger]');
-      triggers.forEach((trigger) => {
-        trigger.addEventListener('click', () => {
+      document.querySelectorAll('[data-summary-trigger]').forEach(trigger=>{
+        trigger.addEventListener('click', ()=>{
           const title = trigger.dataset.summaryTitle || trigger.textContent.trim();
           const items = getSummaryItems(trigger);
           openModal(title, items);
         });
       });
 
-      const periodTypeSelect = document.querySelector('[data-role="period-type"]');
+      const periodTypeSelect  = document.querySelector('[data-role="period-type"]');
       const periodValueSelect = document.querySelector('[data-role="period-value"]');
-      const boughtCountEl = document.querySelector('[data-role="period-bought-count"]');
-      const readCountEl = document.querySelector('[data-role="period-read-count"]');
-      const progressFillEl = document.querySelector('[data-role="period-progress-fill"]');
-      const progressLabelEl = document.querySelector('[data-role="period-progress-label"]');
+      const boughtCountEl     = document.querySelector('[data-role="period-bought-count"]');
+      const readCountEl       = document.querySelector('[data-role="period-read-count"]');
+      const fillLeftEl        = document.querySelector('[data-role="fill-left"]');
+      const fillRightEl       = document.querySelector('[data-role="fill-right"]');
+      const labelEl           = document.querySelector('[data-role="period-progress-label"]');
+      const lineEl            = fillLeftEl?.parentElement; // .home-progress-line
       const PERIOD_STORAGE_KEY = 'homeLibraryPeriodSelection';
 
-      function getStorage() {
-        try {
-          return window.localStorage;
-        } catch (error) {
-          return null;
-        }
-      }
+      function getStorage(){ try { return window.localStorage; } catch(e){ return null; } }
 
-      function loadSavedPeriod() {
-        const storage = getStorage();
-        if (!storage) {
-          return null;
-        }
-        try {
-          const stored = storage.getItem(PERIOD_STORAGE_KEY);
-          if (!stored) {
-            return null;
-          }
-          const parsed = JSON.parse(stored);
-          if (!parsed || typeof parsed !== 'object') {
-            return null;
-          }
-          const storedType = parsed.type;
-          const rawValues = parsed.values && typeof parsed.values === 'object' ? parsed.values : {};
-          const values = {};
-          if (typeof rawValues.year === 'string' && rawValues.year) {
-            values.year = rawValues.year;
-          }
-          if (typeof rawValues.month === 'string' && rawValues.month) {
-            values.month = rawValues.month;
-          }
-          const type = storedType === 'year' || storedType === 'month' ? storedType : null;
-          const valueFromType = type && values[type] ? values[type] : null;
-          const fallbackValue = typeof parsed.value === 'string' ? parsed.value : '';
-          return {
-            type,
-            value: valueFromType || fallbackValue || '',
-            values,
-          };
-        } catch (error) {
-          console.warn('Failed to read saved home library period', error);
-          return null;
-        }
+      function loadSavedPeriod(){
+        const storage = getStorage(); if (!storage) return null;
+        try{
+          const raw = storage.getItem(PERIOD_STORAGE_KEY); if (!raw) return null;
+          const parsed = JSON.parse(raw); if (!parsed || typeof parsed!=='object') return null;
+          const values = typeof parsed.values==='object' && parsed.values ? parsed.values : {};
+          const type = (parsed.type==='year' || parsed.type==='month') ? parsed.type : null;
+          const value = type && values[type] ? values[type] : (typeof parsed.value==='string' ? parsed.value : '');
+          return { type, value, values };
+        }catch(e){ console.warn('Failed to read saved period', e); return null; }
       }
-
-      function savePeriodSelection(type, value) {
-        const storage = getStorage();
-        if (!storage) {
-          return;
-        }
-        try {
-          const existing = loadSavedPeriod();
-          const values = existing && existing.values ? { ...existing.values } : {};
-          if (type === 'year' || type === 'month') {
-            if (value) {
-              values[type] = value;
-            } else {
-              delete values[type];
-            }
-          }
-          if (!type || !value) {
-            if (type && Object.keys(values).length) {
-              const payload = JSON.stringify({ type, value: value || '', values });
-              storage.setItem(PERIOD_STORAGE_KEY, payload);
-            } else {
-              storage.removeItem(PERIOD_STORAGE_KEY);
-            }
-            return;
-          }
-          const payload = JSON.stringify({ type, value, values });
+      function savePeriodSelection(type, value){
+        const storage = getStorage(); if (!storage) return;
+        try{
+          const existing = loadSavedPeriod(); const values = existing?.values ? { ...existing.values } : {};
+          if (type==='year' || type==='month'){ value ? values[type]=value : delete values[type]; }
+          const payload = JSON.stringify({ type, value: value || '', values });
           storage.setItem(PERIOD_STORAGE_KEY, payload);
-        } catch (error) {
-          console.warn('Failed to save home library period', error);
+        }catch(e){ console.warn('Failed to save period', e); }
+      }
+
+      /* утилиты анимации */
+      const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      function animateNumber(el, to){
+        const from = parseInt(el.textContent || '0', 10) || 0;
+        if (prefersReduced || from === to){ el.textContent = to; return; }
+        const dur = 700; const start = performance.now();
+        const step = (t)=>{
+          const p = Math.min(1, (t - start) / dur);
+          const eased = 1 - Math.pow(1 - p, 3);
+          el.textContent = Math.round(from + (to - from) * eased);
+          if (p < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      }
+
+      function placeLightningAt(percent){
+        if (!lineEl) return;
+        let bolt = lineEl.querySelector('.home-progress-lightning');
+        if (!bolt){
+          bolt = document.createElement('div');
+          bolt.className = 'home-progress-lightning';
+          lineEl.appendChild(bolt);
+        }
+        bolt.style.left = percent + '%';
+        bolt.classList.remove('reflash','is-static'); void bolt.offsetWidth;
+        bolt.classList.add('reflash');
+        setTimeout(()=> bolt.classList.add('is-static'), 900);
+      }
+
+      function spawnSparksAt(percent){
+        if (!lineEl || prefersReduced) return;
+        const sparks = 6;
+        for (let i=0;i<sparks;i++){
+          const s = document.createElement('div');
+          s.className = 'home-progress-spark';
+          s.style.left = percent + '%';
+          const angle = (Math.random()*70 - 35) * (Math.PI/180);
+          const dist  = 16 + Math.random()*18;
+          s.style.setProperty('--dx', `${Math.cos(angle)*dist}px`);
+          s.style.setProperty('--dy', `${Math.sin(angle)*dist - 8}px`);
+          lineEl.appendChild(s);
+          setTimeout(()=>s.remove(), 700);
         }
       }
 
-      function updatePeriodTriggers(type, value, label) {
-        document.querySelectorAll('[data-summary-category="period"]').forEach((trigger) => {
+      function updatePeriodTriggers(type, value, label){
+        document.querySelectorAll('[data-summary-category="period"]').forEach((trigger)=>{
           trigger.dataset.periodType = type;
           trigger.dataset.periodValue = value || '';
           const kind = trigger.dataset.periodKind;
-          if (label && kind) {
+          if (label && kind){
             const prefix = kind === 'bought' ? 'Куплено — ' : 'Прочитано — ';
             trigger.dataset.summaryTitle = prefix + label;
-          } else if (kind) {
+          } else if (kind){
             trigger.dataset.summaryTitle = kind === 'bought' ? 'Куплено' : 'Прочитано';
           }
         });
       }
 
-      function updatePeriodCard() {
-        if (!periodTypeSelect || !periodValueSelect || !boughtCountEl || !readCountEl) {
-          return;
-        }
-        const type = periodTypeSelect.value || 'year';
+      function updatePeriodCard(){
+        if (!fillLeftEl || !fillRightEl) return;
+
+        const type = periodTypeSelect?.value || 'year';
         const options = getPeriodOptions(type);
-        if (!options.length) {
-          periodValueSelect.innerHTML = '<option value="">Нет данных</option>';
-          periodValueSelect.disabled = true;
-          boughtCountEl.textContent = '0';
-          readCountEl.textContent = '0';
-          if (progressFillEl) {
-            progressFillEl.style.setProperty('--home-progress-split', '50%');
+        let value = '';
+        if (options.length){
+          value = periodValueSelect?.value || options[0].value;
+          if (periodValueSelect && !options.some(o=>o.value===value)){
+            periodValueSelect.value = options[0].value;
+            value = periodValueSelect.value;
           }
-          if (progressLabelEl) {
-            progressLabelEl.textContent = '0% / 0%';
-          }
-          updatePeriodTriggers(type, '', '');
-          savePeriodSelection(type, '');
-          return;
         }
-        periodValueSelect.disabled = false;
-        const currentValue = periodValueSelect.value;
-        if (!options.some((option) => option.value === currentValue)) {
-          periodValueSelect.value = options[0].value;
-        }
-        const value = periodValueSelect.value || options[0].value;
-        if (value !== periodValueSelect.value) {
-          periodValueSelect.value = value;
-        }
+
         const periods = summaryData.periods || {};
         const stats = (periods[type] && periods[type][value]) || {};
         const boughtCount = stats.bought_count || 0;
-        const readCount = stats.read_count || 0;
-        boughtCountEl.textContent = boughtCount;
-        readCountEl.textContent = readCount;
+        const readCount   = stats.read_count   || 0;
+
+        animateNumber(boughtCountEl, boughtCount);
+        animateNumber(readCountEl,   readCount);
+
         const total = boughtCount + readCount;
         const boughtPercent = total ? Math.round((boughtCount / total) * 100) : 0;
-        const readPercent = total ? 100 - boughtPercent : 0;
-        if (progressFillEl) {
-          progressFillEl.style.setProperty('--home-progress-split', `${boughtPercent}%`);
+        const readPercent   = 100 - boughtPercent;
+
+        // Шиммер поверх полосы
+        lineEl?.classList.add('is-animating');
+        setTimeout(()=> lineEl?.classList.remove('is-animating'), 1200);
+
+        // Сброс анимации ширины
+        fillLeftEl.style.transition = 'none';
+        fillRightEl.style.transition = 'none';
+        fillLeftEl.style.width  = '0%';
+        fillRightEl.style.width = '0%';
+        void fillLeftEl.offsetWidth;
+        // Целевые ширины с анимацией
+        fillLeftEl.style.transition  = 'width 900ms ease';
+        fillRightEl.style.transition = 'width 900ms ease';
+        fillLeftEl.style.width  = boughtPercent + '%';
+        fillRightEl.style.width = readPercent   + '%';
+
+        // Молния и искры на стыке
+        placeLightningAt(boughtPercent);
+        spawnSparksAt(boughtPercent);
+
+        // Текст % + подскок в конце
+        if (labelEl){
+          labelEl.classList.remove('pop'); // сброс
+          labelEl.textContent = `${boughtPercent}% / ${readPercent}%`;
+          // подскок чуть позже ширины (задержка = длительность перехода)
+          setTimeout(()=> labelEl.classList.add('pop'), 920);
         }
-        if (progressLabelEl) {
-          progressLabelEl.textContent = `${boughtPercent}% / ${readPercent}%`;
-        }
+
         const label = getPeriodLabel(type, value);
         updatePeriodTriggers(type, value, label);
         savePeriodSelection(type, value);
       }
 
-      function populatePeriodOptions(type, preferredValue) {
-        if (!periodValueSelect) {
-          return;
-        }
+      function populatePeriodOptions(type, preferredValue){
+        if (!periodValueSelect) return;
         const options = getPeriodOptions(type);
         periodValueSelect.innerHTML = '';
-        if (!options.length) {
-          const optionEl = document.createElement('option');
-          optionEl.value = '';
-          optionEl.textContent = 'Нет данных';
-          optionEl.selected = true;
-          periodValueSelect.appendChild(optionEl);
-          periodValueSelect.disabled = true;
-          updatePeriodCard();
+        if (!options.length){
+          const opt = document.createElement('option'); opt.value=''; opt.textContent='Нет данных'; opt.selected=true;
+          periodValueSelect.appendChild(opt); periodValueSelect.disabled = true;
+          if (labelEl) labelEl.textContent = '0% / 0%';
+          if (fillLeftEl && fillRightEl){
+            fillLeftEl.style.width = '0%'; fillRightEl.style.width = '0%';
+          }
           return;
         }
-        let hasSelected = false;
-        options.forEach((option) => {
-          const optionEl = document.createElement('option');
-          optionEl.value = option.value;
-          optionEl.textContent = option.label;
-          if (!hasSelected && preferredValue && option.value === preferredValue) {
-            optionEl.selected = true;
-            hasSelected = true;
-          } else if (!hasSelected && summaryData.defaultPeriod && summaryData.defaultPeriod.type === type && summaryData.defaultPeriod.value === option.value) {
-            optionEl.selected = true;
-            hasSelected = true;
-          }
-          periodValueSelect.appendChild(optionEl);
+        periodValueSelect.disabled = false;
+        let selectedDone = false;
+        options.forEach(o=>{
+          const el = document.createElement('option'); el.value=o.value; el.textContent=o.label;
+          if (!selectedDone && preferredValue && o.value===preferredValue){ el.selected=true; selectedDone=true; }
+          periodValueSelect.appendChild(el);
         });
-        if (!hasSelected && periodValueSelect.options.length) {
+        if (!selectedDone && summaryData?.defaultPeriod?.type===type){
+          const def = summaryData.defaultPeriod.value;
+          const opt = Array.from(periodValueSelect.options).find(x=>x.value===def);
+          if (opt) opt.selected = true;
+        }
+        if (!Array.from(periodValueSelect.options).some(x=>x.selected) && periodValueSelect.options.length){
           periodValueSelect.options[0].selected = true;
         }
-        periodValueSelect.disabled = false;
       }
 
-      if (periodTypeSelect) {
-        periodTypeSelect.addEventListener('change', () => {
-          const type = periodTypeSelect.value || 'year';
-          const saved = loadSavedPeriod();
-          const preferredValue = saved && saved.values ? saved.values[type] : undefined;
-          populatePeriodOptions(type, preferredValue);
-          updatePeriodCard();
-        });
-      }
+      // Слушатели
+      periodTypeSelect?.addEventListener('change', ()=>{
+        const t = periodTypeSelect.value || 'year';
+        const saved = loadSavedPeriod(); const preferred = saved?.values ? saved.values[t] : undefined;
+        populatePeriodOptions(t, preferred); updatePeriodCard();
+      });
+      periodValueSelect?.addEventListener('change', updatePeriodCard);
 
-      if (periodValueSelect) {
-        periodValueSelect.addEventListener('change', updatePeriodCard);
-      }
-
-      let initialType = periodTypeSelect ? periodTypeSelect.value || 'year' : 'year';
+      // Инициализация
+      let initialType = periodTypeSelect?.value || 'year';
       let initialValue;
-      const savedPeriod = loadSavedPeriod();
-      if (savedPeriod) {
-        const savedType = savedPeriod.type;
-        if (savedType && getPeriodOptions(savedType).length) {
-          initialType = savedType;
-          if (periodTypeSelect) {
-            periodTypeSelect.value = savedType;
-          }
+      const saved = loadSavedPeriod();
+      if (saved){
+        if (saved.type && getPeriodOptions(saved.type).length){
+          initialType = saved.type; if (periodTypeSelect) periodTypeSelect.value = saved.type;
         }
-        if (savedPeriod.values && savedPeriod.values[initialType]) {
-          initialValue = savedPeriod.values[initialType];
-        } else if (savedPeriod.value) {
-          initialValue = savedPeriod.value;
-        }
+        initialValue = saved.values?.[initialType] || saved.value;
       }
-
       populatePeriodOptions(initialType, initialValue);
-      updatePeriodCard();
+      updatePeriodCard(); // первая отрисовка с эффектами
     })();
   </script>
 {% endblock %}

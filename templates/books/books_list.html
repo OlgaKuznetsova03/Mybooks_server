@@ -190,15 +190,42 @@
   </div>
 
   <form class="books-hero__search" method="get" action="{% url 'book_list' %}">
-    <div class="input-group input-group-lg shadow-sm">
-      <span class="input-group-text bg-white border-0"><i class="bi bi-search text-primary"></i></span>
-      <input class="form-control border-0" name="q" value="{{ q|default:'' }}" placeholder="Название, автор, жанр или ISBN">
-      {% if active_sort %}<input type="hidden" name="sort" value="{{ active_sort }}">{% endif %}
-      {% if view_mode == 'grid' %}<input type="hidden" name="view" value="grid">{% endif %}
-      {% if q %}<button class="btn btn-outline-secondary" type="button" data-clear-search>Сбросить</button>{% endif %}
-      <button class="btn btn-primary" type="submit">Найти</button>
-    </div>
-  </form>
+  <div class="input-group input-group-lg shadow-sm">
+    <span class="input-group-text bg-white border-0">
+      <i class="bi bi-search text-primary"></i>
+    </span>
+
+    <input
+      class="form-control border-0"
+      name="q"
+      value="{{ q|default:'' }}"
+      placeholder="Название, автор или ISBN"
+      aria-describedby="booksSearchHelp"
+    >
+
+    {% if active_sort %}<input type="hidden" name="sort" value="{{ active_sort }}">{% endif %}
+    {% if view_mode == 'grid' %}<input type="hidden" name="view" value="grid">{% endif %}
+
+    {% if q %}
+      <button
+        class="btn btn-outline-secondary border-0"
+        type="button"
+        data-clear-search
+        aria-label="Очистить поиск"
+        title="Очистить"
+      >
+        <i class="bi bi-x-lg"></i>
+      </button>
+    {% endif %}
+
+    <button class="btn btn-primary" type="submit">Найти</button>
+  </div>
+
+  <div id="booksSearchHelp" class="form-text small mt-1">
+    Можно искать по фамилии автора, названию или по ISBN.
+  </div>
+</form>
+
 </section>
 
 {% if view_mode == 'discover' %}
