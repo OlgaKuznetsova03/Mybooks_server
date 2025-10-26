@@ -30,7 +30,7 @@
       margin-bottom: .75rem;
     }
     .genre-shelf-card__title{
-      margin:0; font-size:1.25rem; font-weight:800;
+      margin:0; font-size:1.25rem; font-weight:600;
     }
     .genre-shelf-card__subtitle{
       margin:.15rem 0 0; color: var(--bs-secondary-color);
@@ -130,13 +130,13 @@
       display:grid;
       /* 4 строки фиксированной высоты + нижняя зона для кнопки */
       grid-template-rows:
-        minmax(calc(var(--lh)*1em), auto)          /* 1: строка-заглушка (отступ) */
+        minmax(.25rem, .5rem)   
         calc(var(--row-title) * 1em * var(--lh))   /* 2: Название (2 строки) */
         calc(var(--row-authors) * 1em * var(--lh)) /* 3: Авторы (1 строка) */
         1.6em                                      /* 4: Рейтинг/мета */
         auto;                                      /* 5: кнопка/бейдж (растягиваем вниз) */
-      row-gap: .35rem;
-      padding: .65rem .75rem .75rem;
+      row-gap: .3rem;
+      padding: .5rem .75rem .75rem;
       min-height: 200px; /* общая «высота под обложкой», чтобы все карты ровнялись */
     }
 
@@ -144,7 +144,7 @@
     .genre-shelf-card__spacer{ font-size: 0; }
 
     .genre-shelf-card__book-title{
-      margin:0; font-weight:700; line-height: var(--lh);
+      margin:0; font-weight:600; line-height: var(--lh);
       display: -webkit-box;
       -webkit-box-orient: vertical;
       -webkit-line-clamp: var(--row-title);
@@ -178,9 +178,10 @@
     }
 
     /* Зона с кнопкой всегда прижата книзу: помещаем во 5-ю строку и задаём margin-top:auto */
-    .genre-shelf-card__actions{ 
+    .genre-shelf-card__actions{
       align-self: stretch;
       margin-top: auto;
+      padding-top: .6rem;
     }
 
     /* Мелкие улучшения */
