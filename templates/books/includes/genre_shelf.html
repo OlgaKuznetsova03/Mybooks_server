@@ -270,8 +270,9 @@
                   </div>
                 {% else %}
                   <div class="genre-shelf-card__book-meta"> </div>
+                  {% endif %}
 
-                   <!-- Кнопка/бейдж всегда внизу карточки -->
+                <!-- Кнопка/бейдж всегда внизу карточки -->
                 <div class="genre-shelf-card__actions">
                   {% if request.user.is_authenticated %}
                     {% with status=entry.default_shelf_status %}
@@ -305,7 +306,8 @@
                     {% endwith %}
                   {% endif %}
                 </div>
-                </article>
+                </div>
+            </article>
           {% endfor %}
         </div>
 
