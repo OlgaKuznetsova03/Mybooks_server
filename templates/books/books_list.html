@@ -145,6 +145,47 @@
       border-color: var(--rt-btn-bg-hover) !important;
 }
 
+.books-page .book-item__content {
+      display: flex;
+      flex-direction: column;
+      gap: .75rem;
+    }
+
+    .books-page .book-item__info {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: .5rem 1rem;
+    }
+
+    .books-page .book-item__info .book-item__title,
+    .books-page .book-item__info .book-item__authors,
+    .books-page .book-item__info .book-item__meta {
+      margin-bottom: 0;
+    }
+
+    .books-page .book-item__info .book-item__title {
+      flex: 1 1 auto;
+      min-width: 220px;
+    }
+
+    .books-page .book-item__info .book-item__authors {
+      color: var(--bs-secondary-color, rgba(33, 37, 41, .75));
+    }
+
+    .books-page .book-item__info .book-item__meta {
+      color: var(--bs-secondary-color, rgba(33, 37, 41, .75));
+      font-size: .875rem;
+    }
+
+    .books-page .book-item__actions {
+      margin-left: auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: .5rem;
+    }
+
   </style>
 {% endblock %}
 
@@ -162,10 +203,6 @@
       {% if request.user.is_authenticated %}
         <a class="btn btn-light text-primary-emphasis" href="{% url 'book_create' %}">
           <i class="bi bi-plus-lg me-2"></i>Добавить книгу
-        </a>
-      {% else %}
-        <a class="btn btn-outline-light" href="{% url 'login' %}?next={% url 'book_create' %}">
-          <i class="bi bi-person-plus me-2"></i>Войти, чтобы добавить
         </a>
       {% endif %}
       {% if view_mode == 'grid' and not q %}
@@ -291,13 +328,39 @@
                 </div>
 
                 <div class="book-item__content">
-                  <h2 class="book-item__title line-clamp-2">
-                    <a class="stretched-link" href="{% url 'book_detail' b.pk %}">{{ b.title }}</a>
-                  </h2>
-                  <div class="book-item__authors line-clamp-2">{{ b.authors.all|join:', ' }}</div>
-
-                  <div class="book-item__meta">
-                    <span class="text-muted small text-opacity-75">{{ b.rating_count|default:0 }} оценок</span>
+                  <div class="book-item__info">
+                    <h2 class="book-item__title line-clamp-2 mb-0">
+                      <a class="stretched-link" href="{% url 'book_detail' b.pk %}">{{ b.title }}</a>
+                    </h2>
+                    <div class="book-item__authors line-clamp-2">{{ b.authors.all|join:', ' }}</div>
+                    <div class="book-item__meta">
+                      <span>{{ b.rating_count|default:0 }} оценок</span>
+                    </div>
+                    {% if request.user.is_authenticated %}
+                      <div class="book-item__actions">
+                        {% with status=b.default_shelf_status %}
+                          {% if status and status.code == 'read' %}
+                            <span class="badge rounded-pill text-bg-success-subtle text-success-emphasis book-gallery-card__status">
+                              <i class="bi bi-check-circle-fill me-1"></i>Прочитано{% if status.added_at %} {{ status.added_at|date:"d.m.Y" }}{% endif %}
+                            </span>
+                          {% elif status and status.code == 'want' %}
+                            <span class="badge rounded-pill text-bg-light text-secondary book-gallery-card__status">
+                              <i class="bi bi-bookmark-check-fill me-1"></i>На полке Хочу прочитать
+                            </span>
+                          {% elif status %}
+                            <span class="badge rounded-pill text-bg-light text-secondary book-gallery-card__status">
+                              <i class="bi bi-bookmark-check-fill me-1"></i>На полке «{{ status.label }}»
+                            </span>
+                          {% else %}
+                            <form method="post" action="{% url 'shelves:quick_add_shelf' b.pk 'want' %}">
+                              {% csrf_token %}
+                              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                              <button class="btn btn-outline-primary btn-sm" type="submit">Добавить на полку «Хочу прочитать»</button>
+                            </form>
+                          {% endif %}
+                        {% endwith %}
+                      </div>
+                    {% endif %}
                   </div>
 
                   {% with genres=b.genres.all genre_count=b.genres.count %}
@@ -314,32 +377,6 @@
                   {% endwith %}
 
                   <div class="book-item__actions">
-                    {% if request.user.is_authenticated %}
-                      {% with status=b.default_shelf_status %}
-                        {% if status and status.code == 'read' %}
-                          <span class="badge rounded-pill text-bg-success-subtle text-success-emphasis book-gallery-card__status">
-                            <i class="bi bi-check-circle-fill me-1"></i>Прочитано{% if status.added_at %} {{ status.added_at|date:"d.m.Y" }}{% endif %}
-                          </span>
-                          {% elif status and status.code == 'want' %}
-                          <span class="badge rounded-pill text-bg-light text-secondary book-gallery-card__status">
-                            <i class="bi bi-bookmark-check-fill me-1"></i>На полке Хочу прочитать
-                          </span>
-                        {% elif status %}
-                          <span class="badge rounded-pill text-bg-light text-secondary book-gallery-card__status">
-                            <i class="bi bi-bookmark-check-fill me-1"></i>На полке «{{ status.label }}»
-                          </span>
-                        {% else %}
-                          <form method="post" action="{% url 'shelves:quick_add_shelf' b.pk 'want' %}">
-                            {% csrf_token %}
-                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                            <button class="btn btn-outline-primary btn-sm" type="submit">Добавить на полку «Хочу прочитать»</button>
-                          </form>
-                        {% endif %}
-                      {% endwith %}
-                    {% else %}
-                      <a class="btn btn-outline-primary btn-sm" href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">Войти, чтобы добавить</a>
-                    {% endif %}
-                  </div>
                 </div>
               </article>
             {% endfor %}

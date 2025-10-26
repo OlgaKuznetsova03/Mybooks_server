@@ -1,9 +1,154 @@
 {% load shelf_extras %}
 {% with variant=variant|default:shelf.variant texture=texture_url|default:shelf.texture_url %}
 <section class="genre-shelf-card card border-0 shadow-sm{% if variant %} genre-shelf-card--{{ variant }}{% endif %}">
+  <style>
+    /* ====== ЛОКАЛЬНЫЕ ПЕРЕМЕННЫЕ ====== */
+    .genre-shelf-card{
+      --cover-w: 210px;                 /* ширина обложки */
+      --cover-h: 300px;                 /* высота обложки */
+      --gap: 16px;                      /* внутренние отступы/зазоры */
+      --card-w: 260px;                  /* ширина единичной карточки книги */
+      --row-title: 2;                   /* строки для названия (line-clamp) */
+      --row-authors: 1;                 /* строки для авторов */
+      --lh: 1.25;                       /* базовая line-height */
+      --track-bg: rgba(0,0,0,.06);      /* цвет тонкой полоски скролла */
+      --bookshelf-texture: none;        /* фон полки (можно передать url(...)) */
+    }
+
+    /* ====== ОБЩЕЕ ОФОРМЛЕНИЕ ПОЛКИ ====== */
+    .genre-shelf-card__body{
+      padding: calc(var(--gap) * 1.25);
+      border-radius: .75rem;
+      background:
+        var(--bookshelf-texture),
+        linear-gradient(180deg, rgba(255,255,255,.7), rgba(0,0,0,.04));
+      background-blend-mode: normal, multiply;
+    }
+
+    .genre-shelf-card__header{
+      display:flex; align-items:flex-end; justify-content:space-between; gap:12px;
+      margin-bottom: .75rem;
+    }
+    .genre-shelf-card__title{
+      margin:0; font-size:1.25rem; font-weight:800;
+    }
+    .genre-shelf-card__subtitle{
+      margin:.15rem 0 0; color: var(--bs-secondary-color);
+    }
+
+    /* ====== СПИСОК КНИГ (ГОР. ПРОКРУТКА) ====== */
+    .genre-shelf-card__list{
+      display:flex; gap: calc(var(--gap) * 1.25);
+      overflow-x: auto; overflow-y: hidden;
+      padding-bottom: .25rem; /* чтобы не резалось содержимое над скроллом */
+      scroll-snap-type: x proximity;  /* чуть комфортнее листать */
+    }
+    .genre-shelf-card__list::-webkit-scrollbar{
+      height: 8px;
+    }
+    .genre-shelf-card__list::-webkit-scrollbar-track{
+      background: transparent;
+    }
+    .genre-shelf-card__list::-webkit-scrollbar-thumb{
+      background: var(--track-bg);
+      border-radius: 999px;
+    }
+
+    /* ====== КАРТОЧКА КНИГИ ====== */
+    .genre-shelf-card__book{
+      flex: 0 0 var(--card-w);
+      scroll-snap-align: start;
+      background: rgba(255,255,255,.5);
+      border-radius: .75rem;
+      box-shadow: var(--rt-shelf-card-shadow, 0 10px 24px rgba(0,0,0,.06));
+      display:flex; flex-direction:column;
+      overflow:hidden;
+    }
+
+    /* Обложка фиксированной высоты */
+    .genre-shelf-card__cover{
+      width: 100%;
+      height: var(--cover-h);
+      display:block;
+      position: relative;
+      overflow:hidden;
+      border-bottom: 1px solid rgba(0,0,0,.06);
+      background: #f4f4f4;
+    }
+    .genre-shelf-card__cover img{ 
+      width:100%; height:100%; object-fit:cover; display:block;
+    }
+    .genre-shelf-card__cover-placeholder{
+      width:100%; height:100%;
+      display:grid; place-items:center;
+      color:#999; font-weight:700; font-size:2rem;
+    }
+
+    /* ====== МЕТА-ЧАСТЬ ПОД ОБЛОЖКОЙ ====== */
+    .genre-shelf-card__meta{
+      display:grid;
+      /* 4 строки фиксированной высоты + нижняя зона для кнопки */
+      grid-template-rows:
+        minmax(calc(var(--lh)*1em), auto)          /* 1: строка-заглушка (отступ) */
+        calc(var(--row-title) * 1em * var(--lh))   /* 2: Название (2 строки) */
+        calc(var(--row-authors) * 1em * var(--lh)) /* 3: Авторы (1 строка) */
+        1.6em                                      /* 4: Рейтинг/мета */
+        auto;                                      /* 5: кнопка/бейдж (растягиваем вниз) */
+      row-gap: .35rem;
+      padding: .75rem .85rem .85rem;
+      min-height: 230px; /* общая «высота под обложкой», чтобы все карты ровнялись */
+    }
+
+    /* Скрытая «строка-заглушка», просто добавляет одинаковый верхний отступ */
+    .genre-shelf-card__spacer{ font-size: 0; }
+
+    .genre-shelf-card__book-title{
+      margin:0; font-weight:700; line-height: var(--lh);
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: var(--row-title);
+      overflow: hidden;
+    }
+    .genre-shelf-card__book-title a{ color: inherit; text-decoration: none; }
+    .genre-shelf-card__book-title a:hover{ text-decoration: underline; }
+
+    .genre-shelf-card__book-authors{
+      color: var(--bs-secondary-color);
+      line-height: var(--lh);
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: var(--row-authors);
+      overflow: hidden;
+    }
+
+    .genre-shelf-card__book-rating{
+      display:flex; align-items:baseline; gap:.45rem;
+      font-size:.95rem;
+    }
+    .genre-shelf-card__rating-value{ font-weight:700; }
+    .genre-shelf-card__rating-meta{ color: var(--bs-secondary-color); font-size:.9rem; }
+
+    .genre-shelf-card__book-meta{
+      color: var(--bs-secondary-color);
+      font-size:.9rem;
+    }
+    .genre-shelf-card__book-meta--accent{
+      color: var(--bs-success); font-weight:600;
+    }
+
+    /* Зона с кнопкой всегда прижата книзу: помещаем во 5-ю строку и задаём margin-top:auto */
+    .genre-shelf-card__actions{ 
+      align-self: stretch;
+      margin-top: auto;
+    }
+
+    /* Мелкие улучшения */
+    .genre-shelf-card__empty{ color: var(--bs-secondary-color); margin:0; padding:.5rem 0 .25rem; }
+  </style>
+
   <div class="genre-shelf-card__body"{% if texture %} style="--bookshelf-texture: url('{{ texture }}');"{% endif %}>
 
-    {# ---------- Заголовок полки ---------- #}
+    <!-- Заголовок -->
     <header class="genre-shelf-card__header">
       <div>
         <h3 class="genre-shelf-card__title">{{ shelf.title }}</h3>
@@ -21,37 +166,37 @@
       {% endwith %}
     </header>
 
-    {# ---------- Список карточек книг ---------- #}
     {% if shelf.books %}
       <div class="genre-shelf-card__list" role="list">
         {% for entry in shelf.books %}
-
-          {# Нормализуем id из разных возможных структур #}
           {% firstof entry.pk entry.id entry.book_id entry.book.pk entry.book.id as book_id %}
 
           <article class="genre-shelf-card__book" role="listitem">
+            <!-- Обложка -->
             <a class="genre-shelf-card__cover" href="{{ entry.detail_url }}" aria-label="{{ entry.title }}">
               {% if entry.cover_url %}
                 <img src="{{ entry.cover_url }}" alt="Обложка «{{ entry.title }}»" loading="lazy">
               {% else %}
-                <span class="genre-shelf-card__cover-placeholder">
-                  {{ entry.initial|default:"?" }}
-                </span>
+                <span class="genre-shelf-card__cover-placeholder">{{ entry.initial|default:"?" }}</span>
               {% endif %}
             </a>
 
+            <!-- Метаданные под обложкой (ровные ряды) -->
             <div class="genre-shelf-card__meta">
-              <h4 class="genre-shelf-card__book-title line-clamp-2">
+              <div class="genre-shelf-card__spacer" aria-hidden="true"></div>
+
+              <h4 class="genre-shelf-card__book-title">
                 <a href="{{ entry.detail_url }}">{{ entry.title }}</a>
               </h4>
 
               {% if entry.authors %}
-                <div class="genre-shelf-card__book-authors line-clamp-2">
+                <div class="genre-shelf-card__book-authors">
                   {{ entry.authors|join:", " }}
                 </div>
+              {% else %}
+                <div class="genre-shelf-card__book-authors"> </div>
               {% endif %}
 
-              {# Рейтинг и счётчик оценок (если есть) #}
               <div class="genre-shelf-card__book-rating">
                 <span class="genre-shelf-card__rating-value">
                   {% if entry.average_rating is not None %}
@@ -63,7 +208,6 @@
                 </span>
               </div>
 
-              {# Доп. мета: читатели за 30 дней или когда добавлено #}
               {% if entry.reader_count %}
                 <div class="genre-shelf-card__book-meta genre-shelf-card__book-meta--accent">
                   {{ entry.reader_count }} {{ entry.reader_count|ru_pluralize:"читатель,читателя,читателей" }} за 30 дней
@@ -72,26 +216,28 @@
                 <div class="genre-shelf-card__book-meta">
                   Добавлена {{ entry.added_at|timesince }} назад
                 </div>
+              {% else %}
+                <div class="genre-shelf-card__book-meta"> </div>
               {% endif %}
 
-              {# ---------- Кнопка/бейдж статуса, как в каталоге ---------- #}
-              <div class="mt-2 genre-shelf-card__actions">
+              <!-- Кнопка/бейдж всегда внизу карточки -->
+              <div class="genre-shelf-card__actions">
                 {% if request.user.is_authenticated %}
                   {% with status=entry.default_shelf_status %}
                     {% if status and status.code == 'read' %}
-                      <span class="badge rounded-pill text-bg-success-subtle text-success-emphasis book-gallery-card__status w-100 d-inline-flex justify-content-center">
+                      <span class="badge rounded-pill text-bg-success-subtle text-success-emphasis w-100 d-inline-flex justify-content-center">
                         <i class="bi bi-check-circle-fill me-1"></i>
                         Прочитано{% if status.added_at %} {{ status.added_at|date:"d.m.Y" }}{% endif %}
                       </span>
 
                     {% elif status and status.code == 'want' %}
-                      <span class="badge rounded-pill text-bg-light text-secondary book-gallery-card__status w-100 d-inline-flex justify-content-center">
+                      <span class="badge rounded-pill text-bg-light text-secondary w-100 d-inline-flex justify-content-center">
                         <i class="bi bi-bookmark-check-fill me-1"></i>
                         На полке Хочу прочитать
                       </span>
 
                     {% elif status %}
-                      <span class="badge rounded-pill text-bg-light text-secondary book-gallery-card__status w-100 d-inline-flex justify-content-center">
+                      <span class="badge rounded-pill text-bg-light text-secondary w-100 d-inline-flex justify-content-center">
                         <i class="bi bi-bookmark-check-fill me-1"></i>
                         На полке «{{ status.label }}»
                       </span>
@@ -101,21 +247,13 @@
                         <form method="post" action="{% url 'shelves:quick_add_shelf' book_id 'want' %}">
                           {% csrf_token %}
                           <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                          <button class="btn btn-outline-primary btn-sm w-100" type="submit">
-                            «Хочу прочитать»
-                          </button>
+                          <button class="btn btn-outline-primary btn-sm w-100" type="submit">«Хочу прочитать»</button>
                         </form>
                       {% endif %}
                     {% endif %}
                   {% endwith %}
-                {% else %}
-                  <a class="btn btn-outline-primary btn-sm w-100" href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">
-                    Войти, чтобы добавить
-                  </a>
                 {% endif %}
               </div>
-              {# ---------- /Кнопка/бейдж статуса ---------- #}
-
             </div>
           </article>
         {% endfor %}
