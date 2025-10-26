@@ -98,12 +98,39 @@
       box-shadow:0 8px 20px rgba(0,0,0,.06);
     }
     .reading-detail-theme .participant-badge{
-      display:flex; align-items:center; gap:.5rem;
-      padding:.5rem .75rem;
+      display:flex; align-items:flex-start; gap:.5rem;
+      padding:.6rem .75rem;
       border:1px solid rgba(157,111,81,.25);
-      border-radius:.75rem;
+      border-radius:.9rem;
       background:rgba(157,111,81,.08);
       color:#5a3c2b;
+    }
+    .reading-detail-theme .participant-badge__info{
+      flex:1 1 auto;
+    }
+    .reading-detail-theme .participant-badge__name{
+      font-weight:600;
+      display:block;
+    }
+    .reading-detail-theme .participant-progress{
+      margin-top:.35rem;
+      display:flex;
+      align-items:center;
+      gap:.5rem;
+    }
+    .reading-detail-theme .participant-progress .progress{
+      flex:1 1 auto;
+      height:6px;
+      border-radius:999px;
+      background:rgba(0,0,0,.08);
+    }
+    .reading-detail-theme .participant-progress .progress-bar{
+      background:var(--page-primary);
+      border-radius:999px;
+    }
+    .reading-detail-theme .participant-progress__label{
+      font-size:.85rem;
+      font-weight:600;
     }
   </style>
 {% endblock %}
@@ -185,6 +212,14 @@
                     <div><i class="bi bi-chat-left-text me-1"></i> {{ topic.post_count }} сообщений</div>
                   </div>
                 </div>
+                {% if user == reading.creator %}
+                  <div class="topic-card__actions mt-3 d-flex justify-content-end">
+                    <a class="btn btn-sm btn-outline-secondary" href="{% url 'reading_clubs:topic_edit' reading.slug topic.pk %}">
+                      <i class="bi bi-pencil"></i>
+                      <span class="ms-1">Редактировать</span>
+                    </a>
+                  </div>
+                {% endif %}
               </article>
             {% endfor %}
           </div>
@@ -200,7 +235,17 @@
               {% for participant in approved_participants %}
                 <div class="participant-badge">
                   <i class="bi bi-person-circle"></i>
-                  <span>{{ participant.user.get_full_name|default:participant.user.username }}</span>
+                  <div class="participant-badge__info">
+                    <span class="participant-badge__name">{{ participant.user.get_full_name|default:participant.user.username }}</span>
+                    {% if participant.reading_progress_percent is not None %}
+                      <div class="participant-progress" aria-label="Прогресс чтения участника">
+                        <div class="progress" role="progressbar" aria-valuenow="{{ participant.reading_progress_percent }}" aria-valuemin="0" aria-valuemax="100">
+                          <div class="progress-bar" style="width: {{ participant.reading_progress_percent }}%"></div>
+                        </div>
+                        <span class="participant-progress__label">{{ participant.reading_progress_percent }}%</span>
+                      </div>
+                    {% endif %}
+                  </div>
                 </div>
               {% endfor %}
             </div>

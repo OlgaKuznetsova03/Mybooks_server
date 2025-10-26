@@ -19,6 +19,8 @@ from user_ratings.services import award_for_discussion_post
 
 from .forms import DiscussionPostForm, ReadingClubForm, ReadingNormForm
 from .models import DiscussionPost, ReadingClub, ReadingNorm, ReadingParticipant
+from shelves.models import BookProgress, ShelfItem
+from shelves.services import ALL_DEFAULT_READ_SHELF_NAMES
 
 
 def _format_reply_prefill(post: DiscussionPost) -> str:
@@ -162,11 +164,15 @@ class ReadingClubDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         reading: ReadingClub = context["reading"]
         participants = list(reading.participants.all())
-        context["topics"] = reading.topics.all()
-        context["approved_participants"] = [
-            participant for participant in participants
+        topics = list(reading.topics.all())
+        context["topics"] = topics
+        approved_participants = [
+            participant
+            for participant in participants
             if participant.status == ReadingParticipant.Status.APPROVED
         ]
+        self._attach_progress(reading, approved_participants)
+        context["approved_participants"] = approved_participants
         context["pending_participants"] = [
             participant for participant in participants
             if participant.status == ReadingParticipant.Status.PENDING
@@ -178,6 +184,52 @@ class ReadingClubDetailView(DetailView):
                 status=ReadingParticipant.Status.APPROVED,
             ).exists()
         return context
+
+    def _attach_progress(
+        self,
+        reading: ReadingClub,
+        participants: list[ReadingParticipant],
+    ) -> None:
+        if not participants:
+            return
+
+        user_ids = [participant.user_id for participant in participants]
+        progress_qs = BookProgress.objects.filter(
+            user_id__in=user_ids,
+            book=reading.book,
+            event__isnull=True,
+        )
+        progress_map = {progress.user_id: progress for progress in progress_qs}
+        read_users = set(
+            ShelfItem.objects.filter(
+                shelf__user_id__in=user_ids,
+                shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+                book=reading.book,
+            ).values_list("shelf__user_id", flat=True)
+        )
+
+        for participant in participants:
+            participant.reading_progress_percent = None
+            participant.reading_progress_source = None
+            progress = progress_map.get(participant.user_id)
+
+            percent: float | None = None
+            if progress and progress.percent is not None:
+                try:
+                    percent = float(progress.percent)
+                except (TypeError, ValueError):
+                    percent = None
+            if percent is not None:
+                percent = max(0.0, min(percent, 100.0))
+
+            if participant.user_id in read_users and (percent is None or percent < 100.0):
+                percent = 100.0
+                participant.reading_progress_source = "shelf"
+            elif percent is not None:
+                participant.reading_progress_source = "progress"
+
+            if percent is not None:
+                participant.reading_progress_percent = round(percent)
 
 
 @login_required
@@ -230,7 +282,7 @@ class ReadingNormCreateView(LoginRequiredMixin, View):
 
     def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         form = ReadingNormForm()
-        return render(request, self.template_name, {"form": form, "reading": self.reading})
+        return self._render(form, request)
 
     def post(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         form = ReadingNormForm(request.POST)
@@ -240,7 +292,48 @@ class ReadingNormCreateView(LoginRequiredMixin, View):
             topic.save()
             messages.success(request, "Норма добавлена в совместные чтения.")
             return redirect(self.reading.get_absolute_url())
-        return render(request, self.template_name, {"form": form, "reading": self.reading})
+        return self._render(form, request)
+
+    def _render(self, form: ReadingNormForm, request: HttpRequest) -> HttpResponse:
+        context = {
+            "form": form,
+            "reading": self.reading,
+            "topic": None,
+            "form_mode": "create",
+        }
+        return render(request, self.template_name, context)
+
+
+class ReadingNormUpdateView(LoginRequiredMixin, View):
+    template_name = "reading_clubs/topic_form.html"
+
+    def dispatch(self, request: HttpRequest, *args, **kwargs):
+        self.reading = get_object_or_404(ReadingClub, slug=kwargs["slug"])
+        self.topic = get_object_or_404(ReadingNorm, pk=kwargs["pk"], reading=self.reading)
+        if self.reading.creator != request.user:
+            raise Http404
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        form = ReadingNormForm(instance=self.topic)
+        return self._render(form, request)
+
+    def post(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        form = ReadingNormForm(request.POST, instance=self.topic)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Изменения нормы сохранены.")
+            return redirect(self.reading.get_absolute_url())
+        return self._render(form, request)
+
+    def _render(self, form: ReadingNormForm, request: HttpRequest) -> HttpResponse:
+        context = {
+            "form": form,
+            "reading": self.reading,
+            "topic": self.topic,
+            "form_mode": "update",
+        }
+        return render(request, self.template_name, context)
 
 
 class ReadingTopicDetailView(DetailView):

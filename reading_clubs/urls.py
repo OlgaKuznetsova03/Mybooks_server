@@ -21,6 +21,11 @@ urlpatterns = [
         name="topic_detail",
     ),
     path(
+        "<slug:slug>/topics/<int:pk>/edit/",
+        views.ReadingNormUpdateView.as_view(),
+        name="topic_edit",
+    ),
+    path(
         "<slug:slug>/topics/<int:pk>/posts/add/",
         views.DiscussionPostCreateView.as_view(),
         name="post_add",

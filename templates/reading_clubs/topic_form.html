@@ -1,37 +1,116 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Новая норма · {{ reading.title }}{% endblock %}
+{% block title %}
+  {% if form_mode == 'update' %}
+    Редактировать норму «{{ topic.title }}» · {{ reading.title }}
+  {% else %}
+    Новая норма · {{ reading.title }}
+  {% endif %}
+{% endblock %}
 
 {% block extra_css %}
   {{ block.super }}
   <link rel="stylesheet" href="{% static 'reading_clubs/style.css' %}">
+  <style>
+    .reading-auth{
+      background:linear-gradient(180deg, rgba(231,221,213,.5), rgba(231,221,213,0));
+      padding-top:1rem;
+      padding-bottom:2rem;
+    }
+    .reading-auth .auth-wrap{
+      max-width:920px;
+      margin:0 auto;
+    }
+    .reading-auth .auth-card{
+      max-width:560px;
+      margin:1.5rem auto 2.5rem;
+      border:1px solid rgba(0,0,0,.06);
+      border-radius:18px;
+      box-shadow:0 22px 48px rgba(0,0,0,.08);
+      background:#fff;
+      overflow:hidden;
+    }
+    .reading-auth .auth-card__header{
+      padding:1.5rem 1.5rem 1rem;
+      border-bottom:1px solid rgba(0,0,0,.06);
+      background:linear-gradient(135deg, rgba(157,111,81,.12), rgba(157,111,81,.04));
+    }
+    .reading-auth .auth-card__body{ padding:1.5rem; }
+    .reading-auth .form-label{ font-weight:600; margin-bottom:.35rem; }
+    .reading-auth .invalid-feedback.d-block{ margin-top:.35rem; }
+    .reading-auth .btn-pill{ border-radius:999px; padding-left:1.2rem; padding-right:1.2rem; }
+  </style>
 {% endblock %}
 
 {% block content %}
-  <div class="reading-detail-header">
-    <h1 class="h3 mb-3">Добавить норму для «{{ reading.title }}»</h1>
-    <p class="text-muted mb-0">Разбейте книгу на части и назначьте дату открытия обсуждения для каждой нормы.</p>
-  </div>
-
-  <div class="card border-0 shadow-sm">
-    <div class="card-body">
-      <form method="post" novalidate>
-        {% csrf_token %}
-        {% for field in form %}
-          <div class="mb-3">
-            <label class="form-label" for="id_{{ field.name }}">{{ field.label }}</label>
-            {{ field }}
-            {% if field.help_text %}
-              <div class="form-text">{{ field.help_text }}</div>
+  <div class="reading-auth">
+    <div class="auth-wrap">
+      <div class="auth-card">
+        <div class="auth-card__header">
+          <h1 class="h4 mb-1">
+            {% if form_mode == 'update' %}
+              Редактировать норму «{{ topic.title }}»
+            {% else %}
+              Добавить норму для «{{ reading.title }}»
             {% endif %}
-            {% for error in field.errors %}
-              <div class="invalid-feedback d-block">{{ error }}</div>
+            </h1>
+          <p class="text-muted mb-0">Разбейте книгу на части и назначьте дату открытия обсуждения для каждой нормы.</p>
+        </div>
+        <div class="auth-card__body">
+          <form method="post" novalidate class="needs-validation">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger" role="alert">
+                {% for err in form.non_field_errors %}{{ err }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+              </div>
+            {% endif %}
+            {% for field in form %}
+              <div class="mb-3">
+                <label class="form-label" for="id_{{ field.name }}">{{ field.label }}</label>
+                {% with field.field.widget.attrs.class|default:'' as widget_class %}
+                  {% if field.errors %}
+                    {{ field.as_widget(attrs={'class': widget_class|add:' is-invalid'}) }}
+                  {% else %}
+                    {{ field }}
+                  {% endif %}
+                {% endwith %}
+                {% if field.help_text %}
+                  <div class="form-text">{{ field.help_text }}</div>
+                {% endif %}
+                {% for error in field.errors %}
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+              </div>
             {% endfor %}
-          </div>
-        {% endfor %}
-        <button class="btn btn-reading" type="submit">Сохранить норму</button>
-      </form>
+          <div class="d-flex gap-2">
+              <button class="btn btn-reading btn-pill" type="submit">
+                {% if form_mode == 'update' %}
+                  Сохранить изменения
+                {% else %}
+                  Сохранить норму
+                {% endif %}
+              </button>
+              <a class="btn btn-outline-secondary btn-pill" href="{{ reading.get_absolute_url }}">Отменить</a>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
+<script>
+    (function () {
+      'use strict';
+      var forms = document.querySelectorAll('.needs-validation');
+      Array.prototype.slice.call(forms).forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+          if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+          form.classList.add('was-validated');
+        }, false);
+      });
+    })();
+  </script>
 {% endblock %}

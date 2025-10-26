@@ -23,6 +23,26 @@ class ReadingClubForm(forms.ModelForm):
             "join_policy",
         ]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._apply_form_control_styles()
+
+    def _apply_form_control_styles(self) -> None:
+        for name, field in self.fields.items():
+            widget = field.widget
+            classes = widget.attrs.get("class", "").split()
+            if isinstance(widget, forms.Select):
+                base_class = "form-select"
+            elif isinstance(widget, forms.CheckboxInput):
+                base_class = "form-check-input"
+            else:
+                base_class = "form-control"
+            if base_class not in classes:
+                classes.append(base_class)
+            if "form-control" not in classes and base_class != "form-control" and isinstance(widget, forms.Textarea):
+                classes.append("form-control")
+            widget.attrs["class"] = " ".join(filter(None, classes))
+
     def clean(self):
         cleaned_data = super().clean()
         start_date = cleaned_data.get("start_date")
@@ -39,7 +59,24 @@ class ReadingNormForm(forms.ModelForm):
         model = ReadingNorm
         fields = ["title", "description", "order", "discussion_opens_at"]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name, field in self.fields.items():
+            widget = field.widget
+            classes = widget.attrs.get("class", "").split()
+            if isinstance(widget, forms.Select):
+                base_class = "form-select"
+            elif isinstance(widget, forms.CheckboxInput):
+                base_class = "form-check-input"
+            else:
+                base_class = "form-control"
+            if base_class not in classes:
+                classes.append(base_class)
+            if "form-control" not in classes and base_class != "form-control" and isinstance(widget, forms.Textarea):
+                classes.append("form-control")
+            widget.attrs["class"] = " ".join(filter(None, classes))
 
+            
 class DiscussionPostForm(forms.ModelForm):
     class Meta:
         model = DiscussionPost
