@@ -114,21 +114,7 @@
           {% elif field.name == 'username' %}
             <div class="mb-3">
               <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-              {% if field.errors %}
-                {{ field.as_widget(attrs={
-                  'class':'form-control is-invalid',
-                  'autocomplete':'nickname',
-                  'placeholder': field.label,
-                  'id': field.id_for_label
-                }) }}
-              {% else %}
-                {{ field.as_widget(attrs={
-                  'class':'form-control',
-                  'autocomplete':'nickname',
-                  'placeholder': field.label,
-                  'id': field.id_for_label
-                }) }}
-              {% endif %}
+              {{ field }}
               {% if field.help_text %}
                 <div class="form-text">{{ field.help_text|safe }}</div>
               {% endif %}
