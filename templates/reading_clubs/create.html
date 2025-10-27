@@ -48,21 +48,21 @@
         <div class="auth-card__body">
           <form method="post" novalidate class="needs-validation">
             {% csrf_token %}
+
             {% if form.non_field_errors %}
               <div class="alert alert-danger" role="alert">
-                {% for err in form.non_field_errors %}{{ err }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+                {% for err in form.non_field_errors %}
+                  {{ err }}{% if not forloop.last %}<br>{% endif %}
+                {% endfor %}
               </div>
             {% endif %}
+
             {% for field in form %}
               <div class="mb-3">
                 <label class="form-label" for="id_{{ field.name }}">{{ field.label }}</label>
-                {% with field.field.widget.attrs.class|default:'' as widget_class %}
-                  {% if field.errors %}
-                    {{ field.as_widget(attrs={'class': widget_class|add:' is-invalid'}) }}
-                  {% else %}
-                    {{ field }}
-                  {% endif %}
-                {% endwith %}
+
+                {{ field }} {# классы и is-invalid проставляются в форме #}
+
                 {% if field.help_text %}
                   <div class="form-text">{{ field.help_text }}</div>
                 {% endif %}
@@ -71,12 +71,14 @@
                 {% endfor %}
               </div>
             {% endfor %}
+
             <button class="btn btn-reading btn-pill" type="submit">Создать совместное чтение</button>
           </form>
         </div>
       </div>
     </div>
   </div>
+
   <script>
     (function () {
       'use strict';

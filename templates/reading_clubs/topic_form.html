@@ -54,27 +54,28 @@
             {% else %}
               Добавить норму для «{{ reading.title }}»
             {% endif %}
-            </h1>
+          </h1>
           <p class="text-muted mb-0">Разбейте книгу на части и назначьте дату открытия обсуждения для каждой нормы.</p>
         </div>
+
         <div class="auth-card__body">
           <form method="post" novalidate class="needs-validation">
             {% csrf_token %}
+
             {% if form.non_field_errors %}
               <div class="alert alert-danger" role="alert">
-                {% for err in form.non_field_errors %}{{ err }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+                {% for err in form.non_field_errors %}
+                  {{ err }}{% if not forloop.last %}<br>{% endif %}
+                {% endfor %}
               </div>
             {% endif %}
+
             {% for field in form %}
               <div class="mb-3">
                 <label class="form-label" for="id_{{ field.name }}">{{ field.label }}</label>
-                {% with field.field.widget.attrs.class|default:'' as widget_class %}
-                  {% if field.errors %}
-                    {{ field.as_widget(attrs={'class': widget_class|add:' is-invalid'}) }}
-                  {% else %}
-                    {{ field }}
-                  {% endif %}
-                {% endwith %}
+
+                {{ field }} {# классы и is-invalid расставляет форма #}
+
                 {% if field.help_text %}
                   <div class="form-text">{{ field.help_text }}</div>
                 {% endif %}
@@ -83,7 +84,8 @@
                 {% endfor %}
               </div>
             {% endfor %}
-          <div class="d-flex gap-2">
+
+            <div class="d-flex gap-2">
               <button class="btn btn-reading btn-pill" type="submit">
                 {% if form_mode == 'update' %}
                   Сохранить изменения
@@ -95,10 +97,12 @@
             </div>
           </form>
         </div>
+
       </div>
     </div>
   </div>
-<script>
+
+  <script>
     (function () {
       'use strict';
       var forms = document.querySelectorAll('.needs-validation');
