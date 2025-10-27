@@ -780,7 +780,7 @@ class Collaboration(models.Model):
         choices=Status.choices,
         default=Status.NEGOTIATION,
     )
-    t_activity_at = models.DateTimeField(null=True, blank=True)
+    last_activity_at = models.DateTimeField(null=True, blank=True)
     last_activity_by = models.ForeignKey(
         User,
         null=True,
@@ -925,7 +925,7 @@ class Collaboration(models.Model):
             return self.partner_last_read_at < self.last_activity_at
         return False
     
-    
+
 class CollaborationMessage(models.Model):
     """Сообщение в рамках согласованного сотрудничества."""
 
