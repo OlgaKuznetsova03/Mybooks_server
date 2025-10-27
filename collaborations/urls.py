@@ -40,6 +40,11 @@ urlpatterns = [
         views.OfferResponseDeclineView.as_view(),
         name="offer_response_decline",
     ),
+    path(
+        "offers/responses/<int:pk>/withdraw/",
+        views.OfferResponseWithdrawView.as_view(),
+        name="offer_response_withdraw",
+    ),
     path("bloggers/", views.BloggerRequestListView.as_view(), name="blogger_request_list"),
     path("bloggers/create/", views.BloggerRequestCreateView.as_view(), name="blogger_request_create"),
     path("bloggers/<int:pk>/", views.BloggerRequestDetailView.as_view(), name="blogger_request_detail"),
@@ -68,6 +73,11 @@ urlpatterns = [
         "bloggers/responses/<int:pk>/decline/",
         views.BloggerRequestResponseDeclineView.as_view(),
         name="blogger_request_response_decline",
+    ),
+    path(
+        "bloggers/responses/<int:pk>/withdraw/",
+        views.BloggerRequestResponseWithdrawView.as_view(),
+        name="blogger_request_response_withdraw",
     ),
     path("collaborations/", views.CollaborationListView.as_view(), name="collaboration_list"),
     path(

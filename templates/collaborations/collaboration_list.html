@@ -203,5 +203,142 @@
     </div>
   {% endif %}
 
+  <hr class="my-5">
+
+  <section aria-labelledby="pending-responses-heading">
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
+      <h2 id="pending-responses-heading" class="h4 mb-0">{% trans "Мои отклики" %}</h2>
+      {% if pending_response_count %}
+        <span class="badge text-bg-secondary">
+          {% blocktrans count pending=pending_response_count %}
+            {{ pending }} отклик ожидает ответа
+          {% plural %}
+            {{ pending }} отклика ожидают ответа
+          {% endblocktrans %}
+        </span>
+      {% endif %}
+    </div>
+
+    {% if my_offer_responses or my_blogger_request_responses %}
+      {% if my_offer_responses %}
+        <div class="card mb-4">
+          <div class="card-header d-flex align-items-center justify-content-between">
+            <span class="fw-semibold">
+              <i class="bi bi-journal-richtext me-2"></i>{% trans "Отклики на предложения авторов" %}
+            </span>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>{% trans "Предложение" %}</th>
+                    <th>{% trans "Автор" %}</th>
+                    <th>{% trans "Статус" %}</th>
+                    <th>{% trans "Отправлено" %}</th>
+                    <th class="text-end">{% trans "Действия" %}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for response in my_offer_responses %}
+                    <tr>
+                      <td>
+                        <a href="{% url 'collaborations:offer_detail' response.offer.pk %}">
+                          {{ response.offer.title }}
+                        </a>
+                      </td>
+                      <td>{{ response.offer.author.get_full_name|default:response.offer.author.username }}</td>
+                      <td>
+                        <span class="badge text-bg-secondary">{{ response.get_status_display }}</span>
+                      </td>
+                      <td class="text-muted small">{{ response.created_at|date:"j E Y" }}</td>
+                      <td class="text-end">
+                        {% if response.status == response.Status.PENDING %}
+                          <form
+                            method="post"
+                            action="{% url 'collaborations:offer_response_withdraw' response.pk %}"
+                            class="d-inline"
+                          >
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                              <i class="bi bi-x-circle me-1"></i>{% trans "Отозвать" %}
+                            </button>
+                          </form>
+                        {% else %}
+                          <span class="text-muted small">—</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if my_blogger_request_responses %}
+        <div class="card mb-4">
+          <div class="card-header d-flex align-items-center justify-content-between">
+            <span class="fw-semibold">
+              <i class="bi bi-megaphone me-2"></i>{% trans "Отклики на заявки блогеров" %}
+            </span>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>{% trans "Заявка" %}</th>
+                    <th>{% trans "Блогер" %}</th>
+                    <th>{% trans "Статус" %}</th>
+                    <th>{% trans "Отправлено" %}</th>
+                    <th class="text-end">{% trans "Действия" %}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for response in my_blogger_request_responses %}
+                    <tr>
+                      <td>
+                        <a href="{% url 'collaborations:blogger_request_detail' response.request.pk %}">
+                          {{ response.request.title }}
+                        </a>
+                      </td>
+                      <td>{{ response.request.blogger.get_full_name|default:response.request.blogger.username }}</td>
+                      <td>
+                        <span class="badge text-bg-secondary">{{ response.get_status_display }}</span>
+                      </td>
+                      <td class="text-muted small">{{ response.created_at|date:"j E Y" }}</td>
+                      <td class="text-end">
+                        {% if response.status == response.Status.PENDING %}
+                          <form
+                            method="post"
+                            action="{% url 'collaborations:blogger_request_response_withdraw' response.pk %}"
+                            class="d-inline"
+                          >
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                              <i class="bi bi-x-circle me-1"></i>{% trans "Отозвать" %}
+                            </button>
+                          </form>
+                        {% else %}
+                          <span class="text-muted small">—</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    {% else %}
+      <div class="alert alert-info" role="alert">
+        {% trans "Вы ещё не откликались на предложения или заявки." %}
+      </div>
+    {% endif %}
+  </section>
+  
 </div>
 {% endblock %}

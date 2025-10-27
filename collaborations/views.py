@@ -749,6 +749,29 @@ class OfferResponseDeclineView(LoginRequiredMixin, View):
         return redirect("collaborations:offer_responses")
 
 
+class OfferResponseWithdrawView(LoginRequiredMixin, View):
+    """Позволяет блогеру или читателю отозвать собственный отклик."""
+
+    def post(self, request, pk: int):
+        response = get_object_or_404(
+            AuthorOfferResponse.objects.select_related("offer", "respondent"),
+            pk=pk,
+            respondent=request.user,
+        )
+
+        if response.status != AuthorOfferResponse.Status.PENDING:
+            messages.error(
+                request,
+                _("Нельзя отозвать отклик: автор уже дал ответ."),
+            )
+            return redirect("collaborations:collaboration_list")
+
+        response.status = AuthorOfferResponse.Status.WITHDRAWN
+        response.save(update_fields=["status", "updated_at"])
+        messages.success(request, _("Вы отозвали отклик."))
+        return redirect("collaborations:collaboration_list")
+
+
 class BloggerRequestResponseListView(LoginRequiredMixin, ListView):
     model = BloggerRequestResponse
     template_name = "collaborations/blogger_request_response_list.html"
@@ -1006,6 +1029,29 @@ class BloggerRequestResponseDeclineView(LoginRequiredMixin, View):
 
         messages.info(request, _("Отклик отклонён."))
         return redirect("collaborations:blogger_request_responses")
+
+
+class BloggerRequestResponseWithdrawView(LoginRequiredMixin, View):
+    """Позволяет автору отозвать отклик на заявку блогера."""
+
+    def post(self, request, pk: int):
+        response = get_object_or_404(
+            BloggerRequestResponse.objects.select_related("request", "author"),
+            pk=pk,
+            author=request.user,
+        )
+
+        if response.status != BloggerRequestResponse.Status.PENDING:
+            messages.error(
+                request,
+                _("Нельзя отозвать отклик: блогер уже ответил."),
+            )
+            return redirect("collaborations:collaboration_list")
+
+        response.status = BloggerRequestResponse.Status.WITHDRAWN
+        response.save(update_fields=["status", "updated_at"])
+        messages.success(request, _("Вы отозвали отклик."))
+        return redirect("collaborations:collaboration_list")
 
 
 class CollaborationApprovalView(LoginRequiredMixin, FormView):
@@ -1344,6 +1390,34 @@ class CollaborationListView(LoginRequiredMixin, ListView):
             .select_related("author", "partner", "offer", "request")
             .order_by("-created_at")
         )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        offer_responses = (
+            AuthorOfferResponse.objects.filter(respondent=user)
+            .select_related("offer", "offer__author")
+            .order_by("-created_at")
+        )
+        blogger_request_responses = (
+            BloggerRequestResponse.objects.filter(author=user)
+            .select_related("request", "request__blogger", "book")
+            .order_by("-created_at")
+        )
+        pending_count = (
+            offer_responses.filter(status=AuthorOfferResponse.Status.PENDING).count()
+            + blogger_request_responses.filter(
+                status=BloggerRequestResponse.Status.PENDING
+            ).count()
+        )
+        context.update(
+            {
+                "my_offer_responses": offer_responses,
+                "my_blogger_request_responses": blogger_request_responses,
+                "pending_response_count": pending_count,
+            }
+        )
+        return context
 
 
 class CollaborationDetailView(LoginRequiredMixin, View):
