@@ -7,8 +7,93 @@
 <div class="coop-theme">
   <h1 class="h3 mb-4">{% trans "Уведомления сотрудничества" %}</h1>
 
-  {% if pending_offer_responses or pending_partner_collaborations or pending_author_collaborations %}
+   {% if pending_offer_responses or pending_partner_collaborations or pending_author_collaborations or unread_offer_threads or unread_collaborations %}
     <div class="d-flex flex-column gap-4">
+        {% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Уведомления" %} · {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="coop-theme">
+  <h1 class="h3 mb-4">{% trans "Уведомления сотрудничества" %}</h1>
+
+  {% if pending_offer_responses or pending_partner_collaborations or pending_author_collaborations %}
+  {% if pending_offer_responses or pending_partner_collaborations or pending_author_collaborations or unread_offer_threads or unread_collaborations %}
+    <div class="d-flex flex-column gap-4">
+      {% if unread_offer_threads %}
+        <section class="card shadow-sm">
+          <div class="card-body">
+            <h2 class="h5 mb-3">{% trans "Новые сообщения в откликах" %}</h2>
+            <p class="text-muted small mb-3">{% trans "Продолжите обсуждение, чтобы договориться о деталях." %}</p>
+            <div class="list-group list-group-flush">
+              {% for response in unread_offer_threads %}
+                <a href="{% url 'collaborations:offer_response_detail' response.pk %}" class="list-group-item list-group-item-action d-flex flex-column gap-1">
+                  <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div>
+                      <div class="fw-semibold">{{ response.offer.title }}</div>
+                      {% if request.user.id == response.offer.author_id %}
+                        <div class="small text-muted">{% trans "Отклик от" %} {{ response.respondent.get_full_name|default:response.respondent.username }}</div>
+                      {% else %}
+                        <div class="small text-muted">{% trans "Автор" %}: {{ response.offer.author.get_full_name|default:response.offer.author.username }}</div>
+                      {% endif %}
+                    </div>
+                    <span class="badge text-bg-secondary">{{ response.last_activity_at|date:"j E, H:i" }}</span>
+                  </div>
+                  <div class="small text-muted">
+                    {% if response.last_activity_by_id == response.offer.author_id %}
+                      {% trans "Последнее слово за автором" %}
+                    {% elif response.last_activity_by_id == response.respondent_id %}
+                      {% trans "Последнее слово за откликнувшимся" %}
+                    {% else %}
+                      {% trans "Есть новое обновление" %}
+                    {% endif %}
+                  </div>
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+      {% endif %}
+
+      {% if unread_collaborations %}
+        <section class="card shadow-sm">
+          <div class="card-body">
+            <h2 class="h5 mb-3">{% trans "Обновления в сотрудничествах" %}</h2>
+            <p class="text-muted small mb-3">{% trans "Проверьте новые сообщения или решения по активным сотрудничествам." %}</p>
+            <div class="list-group list-group-flush">
+              {% for collaboration in unread_collaborations %}
+                <a href="{% url 'collaborations:collaboration_detail' collaboration.pk %}" class="list-group-item list-group-item-action d-flex flex-column gap-1">
+                  <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div>
+                      <div class="fw-semibold">
+                        {% if collaboration.offer %}
+                          {{ collaboration.offer.title }}
+                        {% else %}
+                          {{ collaboration.request.title }}
+                        {% endif %}
+                      </div>
+                      <div class="small text-muted">
+                        {% trans "Статус" %}: {{ collaboration.get_status_display }}
+                      </div>
+                    </div>
+                    <span class="badge text-bg-secondary">{{ collaboration.last_activity_at|date:"j E, H:i" }}</span>
+                  </div>
+                  <div class="small text-muted">
+                    {% if collaboration.last_activity_by_id == collaboration.author_id %}
+                      {% trans "Автор отправил обновление" %}
+                    {% elif collaboration.last_activity_by_id == collaboration.partner_id %}
+                      {% trans "Партнёр отправил обновление" %}
+                    {% else %}
+                      {% trans "Есть новое системное обновление" %}
+                    {% endif %}
+                  </div>
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+      {% endif %}
       {% if pending_offer_responses %}
         <section class="card shadow-sm">
           <div class="card-body">

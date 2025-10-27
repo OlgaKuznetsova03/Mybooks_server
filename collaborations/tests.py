@@ -385,3 +385,49 @@ class OfferResponseViewsTests(TestCase):
             respondent=self.reader,
         ).exists()
         self.assertTrue(exists)
+
+    def test_unread_offer_response_comment_shows_in_notifications(self):
+        self.client.force_login(self.blogger)
+        detail_url = reverse("collaborations:offer_response_detail", args=[self.response.pk])
+        self.client.post(detail_url, {"text": "Есть пара вопросов по срокам"})
+
+        self.response.refresh_from_db()
+        self.assertEqual(self.response.last_activity_by_id, self.blogger.id)
+        self.assertIsNotNone(self.response.last_activity_at)
+
+        self.client.force_login(self.author)
+        notifications_url = reverse("collaborations:collaboration_notifications")
+        response = self.client.get(notifications_url)
+        unread_threads = list(response.context["unread_offer_threads"])
+        self.assertTrue(any(item.pk == self.response.pk for item in unread_threads))
+
+        # Просмотр обсуждения снимает уведомление
+        self.client.get(detail_url)
+        response = self.client.get(notifications_url)
+        self.assertFalse(response.context["unread_offer_threads"])
+
+    def test_collaboration_message_triggers_notification(self):
+        self.client.force_login(self.author)
+        deadline = date.today() + timedelta(days=5)
+        accept_url = reverse("collaborations:offer_response_accept", args=[self.response.pk])
+        self.client.post(accept_url, {"deadline": deadline.isoformat()})
+
+        collaboration = Collaboration.objects.get(offer=self.offer, partner=self.blogger)
+
+        self.client.force_login(self.blogger)
+        collaboration_url = reverse("collaborations:collaboration_detail", args=[collaboration.pk])
+        self.client.post(collaboration_url, {"text": "Готов обсудить план работы"})
+
+        collaboration.refresh_from_db()
+        self.assertEqual(collaboration.last_activity_by_id, self.blogger.id)
+
+        self.client.force_login(self.author)
+        notifications_url = reverse("collaborations:collaboration_notifications")
+        response = self.client.get(notifications_url)
+        unread_collaborations = list(response.context["unread_collaborations"])
+        self.assertTrue(any(item.pk == collaboration.pk for item in unread_collaborations))
+
+        # Ответ автора убирает уведомление
+        self.client.post(collaboration_url, {"text": "Получил сообщение"})
+        response = self.client.get(notifications_url)
+        self.assertFalse(response.context["unread_collaborations"])

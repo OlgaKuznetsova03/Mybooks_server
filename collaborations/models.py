@@ -1,18 +1,73 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from typing import Iterable, Optional
 
 from django.contrib.auth import get_user_model
 from django.core.validators import MaxLengthValidator
 from django.db import models
+from django.db.models import F, Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from books.models import Book
 
 User = get_user_model()
+
+
+class AuthorOfferResponseQuerySet(models.QuerySet):
+    def unread_for(self, user: User) -> "AuthorOfferResponseQuerySet":
+        if user is None or not getattr(user, "is_authenticated", False):
+            return self.none()
+        return (
+            self.filter(last_activity_at__isnull=False)
+            .exclude(last_activity_by=user)
+            .filter(
+                (
+                    Q(offer__author=user)
+                    & (
+                        Q(author_last_read_at__isnull=True)
+                        | Q(author_last_read_at__lt=F("last_activity_at"))
+                    )
+                )
+                |
+                (
+                    Q(respondent=user)
+                    & (
+                        Q(respondent_last_read_at__isnull=True)
+                        | Q(respondent_last_read_at__lt=F("last_activity_at"))
+                    )
+                )
+            )
+        )
+
+
+class CollaborationQuerySet(models.QuerySet):
+    def unread_for(self, user: User) -> "CollaborationQuerySet":
+        if user is None or not getattr(user, "is_authenticated", False):
+            return self.none()
+        return (
+            self.filter(last_activity_at__isnull=False)
+            .exclude(last_activity_by=user)
+            .filter(
+                (
+                    Q(author=user)
+                    & (
+                        Q(author_last_read_at__isnull=True)
+                        | Q(author_last_read_at__lt=F("last_activity_at"))
+                    )
+                )
+                |
+                (
+                    Q(partner=user)
+                    & (
+                        Q(partner_last_read_at__isnull=True)
+                        | Q(partner_last_read_at__lt=F("last_activity_at"))
+                    )
+                )
+            )
+        )
 
 
 class ReviewPlatform(models.Model):
@@ -318,8 +373,20 @@ class AuthorOfferResponse(models.Model):
         default=Status.PENDING,
         verbose_name=_("Статус"),
     )
+    last_activity_at = models.DateTimeField(null=True, blank=True)
+    last_activity_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="author_offer_response_updates",
+    )
+    author_last_read_at = models.DateTimeField(null=True, blank=True)
+    respondent_last_read_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    objects = AuthorOfferResponseQuerySet.as_manager()
 
     class Meta:
         unique_together = ("offer", "respondent")
@@ -340,6 +407,61 @@ class AuthorOfferResponse(models.Model):
     def get_participants(self) -> tuple[User, User]:
         return (self.offer.author, self.respondent)
 
+    def register_activity(
+        self,
+        actor: User,
+        timestamp: Optional[datetime] = None,
+    ) -> None:
+        if actor is None or actor.id is None:
+            return
+        timestamp = timestamp or timezone.now()
+        self.last_activity_at = timestamp
+        self.last_activity_by = actor
+        self.updated_at = timestamp
+        update_fields = ["last_activity_at", "last_activity_by", "updated_at"]
+        if actor.id == self.offer.author_id:
+            self.author_last_read_at = timestamp
+            update_fields.append("author_last_read_at")
+        if actor.id == self.respondent_id:
+            self.respondent_last_read_at = timestamp
+            update_fields.append("respondent_last_read_at")
+        self.save(update_fields=update_fields)
+
+    def mark_read(
+        self,
+        user: User,
+        timestamp: Optional[datetime] = None,
+    ) -> None:
+        if user is None or user.id is None:
+            return
+        timestamp = timestamp or timezone.now()
+        if user.id == self.offer.author_id:
+            if self.author_last_read_at is None or self.author_last_read_at < timestamp:
+                self.author_last_read_at = timestamp
+                self.save(update_fields=["author_last_read_at"])
+        elif user.id == self.respondent_id:
+            if (
+                self.respondent_last_read_at is None
+                or self.respondent_last_read_at < timestamp
+            ):
+                self.respondent_last_read_at = timestamp
+                self.save(update_fields=["respondent_last_read_at"])
+
+    def has_unread_for(self, user: User) -> bool:
+        if user is None or user.id is None or self.last_activity_at is None:
+            return False
+        if self.last_activity_by_id == user.id:
+            return False
+        if user.id == self.offer.author_id:
+            if self.author_last_read_at is None:
+                return True
+            return self.author_last_read_at < self.last_activity_at
+        if user.id == self.respondent_id:
+            if self.respondent_last_read_at is None:
+                return True
+            return self.respondent_last_read_at < self.last_activity_at
+        return False
+    
 
 class AuthorOfferResponseComment(models.Model):
     """Комментарий по отклику до подтверждения сотрудничества."""
@@ -658,6 +780,16 @@ class Collaboration(models.Model):
         choices=Status.choices,
         default=Status.NEGOTIATION,
     )
+    t_activity_at = models.DateTimeField(null=True, blank=True)
+    last_activity_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="collaboration_updates",
+    )
+    author_last_read_at = models.DateTimeField(null=True, blank=True)
+    partner_last_read_at = models.DateTimeField(null=True, blank=True)
     review_links = models.TextField(
         blank=True,
         verbose_name=_("Ссылки на опубликованные отзывы"),
@@ -676,6 +808,8 @@ class Collaboration(models.Model):
     completed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    objects = CollaborationQuerySet.as_manager()
 
     class Meta:
         ordering = ("-created_at",)
@@ -739,7 +873,59 @@ class Collaboration(models.Model):
             return None
         return rating.score
 
+    def register_activity(
+        self,
+        actor: User,
+        timestamp: Optional[datetime] = None,
+    ) -> None:
+        if actor is None or actor.id is None:
+            return
+        timestamp = timestamp or timezone.now()
+        self.last_activity_at = timestamp
+        self.last_activity_by = actor
+        self.updated_at = timestamp
+        update_fields = ["last_activity_at", "last_activity_by", "updated_at"]
+        if actor.id == self.author_id:
+            self.author_last_read_at = timestamp
+            update_fields.append("author_last_read_at")
+        if actor.id == self.partner_id:
+            self.partner_last_read_at = timestamp
+            update_fields.append("partner_last_read_at")
+        self.save(update_fields=update_fields)
 
+    def mark_read(
+        self,
+        user: User,
+        timestamp: Optional[datetime] = None,
+    ) -> None:
+        if user is None or user.id is None:
+            return
+        timestamp = timestamp or timezone.now()
+        if user.id == self.author_id:
+            if self.author_last_read_at is None or self.author_last_read_at < timestamp:
+                self.author_last_read_at = timestamp
+                self.save(update_fields=["author_last_read_at"])
+        elif user.id == self.partner_id:
+            if self.partner_last_read_at is None or self.partner_last_read_at < timestamp:
+                self.partner_last_read_at = timestamp
+                self.save(update_fields=["partner_last_read_at"])
+
+    def has_unread_for(self, user: User) -> bool:
+        if user is None or user.id is None or self.last_activity_at is None:
+            return False
+        if self.last_activity_by_id == user.id:
+            return False
+        if user.id == self.author_id:
+            if self.author_last_read_at is None:
+                return True
+            return self.author_last_read_at < self.last_activity_at
+        if user.id == self.partner_id:
+            if self.partner_last_read_at is None:
+                return True
+            return self.partner_last_read_at < self.last_activity_at
+        return False
+    
+    
 class CollaborationMessage(models.Model):
     """Сообщение в рамках согласованного сотрудничества."""
 

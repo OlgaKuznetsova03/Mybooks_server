@@ -471,6 +471,7 @@ class OfferRespondView(LoginRequiredMixin, FormView):
             messages.info(self.request, _("Отклик обновлён."))
         else:
             messages.success(self.request, _("Отклик отправлен автору."))
+        response.register_activity(self.request.user)
         return redirect("collaborations:offer_detail", pk=self.offer.pk)
 
     def form_invalid(self, form):
@@ -583,6 +584,7 @@ class OfferResponseDetailView(LoginRequiredMixin, View):
         return context
 
     def get(self, request, *args, **kwargs):
+        self.response.mark_read(request.user)
         return render(
             request,
             self.template_name,
@@ -590,6 +592,7 @@ class OfferResponseDetailView(LoginRequiredMixin, View):
         )
 
     def post(self, request, *args, **kwargs):
+        self.response.mark_read(request.user)
         if not self.response.allows_discussion():
             messages.error(
                 request,
@@ -601,10 +604,11 @@ class OfferResponseDetailView(LoginRequiredMixin, View):
 
         form = AuthorOfferResponseCommentForm(request.POST)
         if form.is_valid():
-            self.response.comments.create(
+            comment = self.response.comments.create(
                 author=request.user,
                 text=form.cleaned_data["text"],
             )
+            self.response.register_activity(request.user, comment.created_at)
             messages.success(request, _("Комментарий отправлен."))
             return redirect(
                 "collaborations:offer_response_detail", pk=self.response.pk
@@ -697,6 +701,8 @@ class OfferResponseAcceptView(LoginRequiredMixin, FormView):
             response.status = AuthorOfferResponse.Status.ACCEPTED
             response.save(update_fields=["status", "updated_at"])
 
+        response.register_activity(self.request.user)
+        collaboration.register_activity(self.request.user)
         messages.success(
             self.request,
             _(
@@ -744,7 +750,9 @@ class OfferResponseDeclineView(LoginRequiredMixin, View):
                     "updated_at",
                 ]
             )
+            collaboration.register_activity(request.user)
 
+        response.register_activity(request.user)
         messages.info(request, _("Отклик отклонён."))
         return redirect("collaborations:offer_responses")
 
@@ -768,6 +776,7 @@ class OfferResponseWithdrawView(LoginRequiredMixin, View):
 
         response.status = AuthorOfferResponse.Status.WITHDRAWN
         response.save(update_fields=["status", "updated_at"])
+        response.register_activity(request.user)
         messages.success(request, _("Вы отозвали отклик."))
         return redirect("collaborations:collaboration_list")
 
@@ -979,6 +988,7 @@ class BloggerRequestResponseAcceptView(LoginRequiredMixin, FormView):
             response.status = BloggerRequestResponse.Status.ACCEPTED
             response.save(update_fields=["status", "updated_at"])
 
+        collaboration.register_activity(self.request.user)
         messages.success(
             self.request,
             _(
@@ -1026,7 +1036,9 @@ class BloggerRequestResponseDeclineView(LoginRequiredMixin, View):
                     "updated_at",
                 ]
             )
+            collaboration.register_activity(request.user)
 
+        # BloggerRequestResponse does not track threaded discussions, so we update collaboration only.
         messages.info(request, _("Отклик отклонён."))
         return redirect("collaborations:blogger_request_responses")
 
@@ -1116,6 +1128,7 @@ class CollaborationApprovalView(LoginRequiredMixin, FormView):
             update_fields.append("author_approved")
 
         collaboration.save(update_fields=update_fields)
+        collaboration.register_activity(request.user)
 
         if collaboration.author_approved and collaboration.partner_approved:
             messages.success(
@@ -1156,11 +1169,25 @@ class CollaborationNotificationsView(LoginRequiredMixin, TemplateView):
             status__in=[Collaboration.Status.NEGOTIATION, Collaboration.Status.ACTIVE],
         ).select_related("author", "partner", "offer", "request")
 
+        unread_offer_threads = (
+            AuthorOfferResponse.objects.unread_for(user)
+            .select_related("offer", "offer__author", "respondent")
+            .order_by("-last_activity_at")
+        )
+
+        unread_collaborations = (
+            Collaboration.objects.unread_for(user)
+            .select_related("author", "partner", "offer", "request")
+            .order_by("-last_activity_at")
+        )
+
         context.update(
             {
                 "pending_offer_responses": pending_offer_responses,
                 "pending_partner_collaborations": pending_partner_collaborations,
                 "pending_author_collaborations": pending_author_collaborations,
+                "unread_offer_threads": unread_offer_threads,
+                "unread_collaborations": unread_collaborations,
             }
         )
         return context
@@ -1452,6 +1479,7 @@ class CollaborationDetailView(LoginRequiredMixin, View):
         collaboration = self.get_object(pk)
         if not self._ensure_participant(request, collaboration):
             return redirect("collaborations:collaboration_list")
+        collaboration.mark_read(request.user)
         form = CollaborationMessageForm()
         return render(
             request,
@@ -1473,14 +1501,16 @@ class CollaborationDetailView(LoginRequiredMixin, View):
             return redirect("collaborations:collaboration_detail", pk=collaboration.pk)
 
         if form.is_valid():
-            CollaborationMessage.objects.create(
+            message = CollaborationMessage.objects.create(
                 collaboration=collaboration,
                 author=request.user,
                 text=form.cleaned_data["text"],
             )
+            collaboration.register_activity(request.user, message.created_at)
             messages.success(request, _("Сообщение отправлено."))
             return redirect("collaborations:collaboration_detail", pk=collaboration.pk)
 
+        collaboration.mark_read(request.user)
         context = self._get_context(collaboration, form)
         return render(request, self.template_name, context, status=400)
 
@@ -1509,6 +1539,7 @@ class CollaborationReviewUpdateView(LoginRequiredMixin, View):
             collaboration.status = Collaboration.Status.ACTIVE
             collaboration.updated_at = timezone.now()
             collaboration.save(update_fields=["partner_confirmed", "review_links", "status", "updated_at"])
+            collaboration.register_activity(request.user)
             messages.success(request, _("Ссылки на отзывы отправлены автору."))
             return redirect("collaborations:collaboration_list")
         return render(request, self.template_name, {"form": form, "collaboration": collaboration})
@@ -1529,6 +1560,7 @@ def confirm_collaboration_completion(request, pk: int):
     update = CollaborationStatusUpdate.confirm_completion(collaboration, links)
     collaboration.author_confirmed = True
     collaboration.save(update_fields=["author_confirmed"])
+    collaboration.register_activity(request.user)
 
     if update.rating_change is not None:
         messages.success(
@@ -1549,6 +1581,7 @@ def mark_collaboration_failed(request, pk: int):
         author=request.user,
     )
     update = CollaborationStatusUpdate.mark_failed(collaboration)
+    collaboration.register_activity(request.user)
     if update.rating_change is not None:
         messages.warning(
             request,
