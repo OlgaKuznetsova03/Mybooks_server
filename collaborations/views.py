@@ -698,6 +698,7 @@ class OfferResponseAcceptView(LoginRequiredMixin, FormView):
         )
 
         if response.status != AuthorOfferResponse.Status.ACCEPTED:
+            response.move_discussion_to_collaboration(collaboration)
             response.status = AuthorOfferResponse.Status.ACCEPTED
             response.save(update_fields=["status", "updated_at"])
 
@@ -1423,11 +1424,13 @@ class CollaborationListView(LoginRequiredMixin, ListView):
         user = self.request.user
         offer_responses = (
             AuthorOfferResponse.objects.filter(respondent=user)
+            .exclude(status=AuthorOfferResponse.Status.ACCEPTED)
             .select_related("offer", "offer__author")
             .order_by("-created_at")
         )
         blogger_request_responses = (
             BloggerRequestResponse.objects.filter(author=user)
+            .exclude(status=BloggerRequestResponse.Status.ACCEPTED)
             .select_related("request", "request__blogger", "book")
             .order_by("-created_at")
         )
