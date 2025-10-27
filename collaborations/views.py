@@ -1128,7 +1128,7 @@ class CollaborationApprovalView(LoginRequiredMixin, FormView):
             update_fields.append("author_approved")
 
         collaboration.save(update_fields=update_fields)
-        collaboration.register_activity(request.user)
+        collaboration.register_activity(self.request.user)
 
         if collaboration.author_approved and collaboration.partner_approved:
             messages.success(
