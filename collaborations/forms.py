@@ -390,6 +390,7 @@ class BloggerRequestResponseAcceptForm(forms.Form):
             raise forms.ValidationError(_("Дата не может быть в прошлом."))
         return deadline
 
+
 BloggerPlatformPresenceFormSet = inlineformset_factory(
     BloggerRequest,
     BloggerPlatformPresence,
@@ -403,6 +404,20 @@ class AuthorOfferResponseAcceptForm(forms.Form):
     deadline = forms.DateField(
         label=_("Сдать отзыв до"),
         help_text=_("Выберите дату, к которой партнёр должен прислать ссылки на отзывы."),
+        widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+    )
+
+    def clean_deadline(self):
+        deadline = self.cleaned_data["deadline"]
+        if deadline < date.today():
+            raise forms.ValidationError(_("Дата не может быть в прошлом."))
+        return deadline
+
+
+class CollaborationApprovalForm(forms.Form):
+    deadline = forms.DateField(
+        label=_("Подтвердить дедлайн"),
+        help_text=_("Если нужно, скорректируйте дату сдачи материалов."),
         widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
     )
 

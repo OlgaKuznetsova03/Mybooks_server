@@ -149,6 +149,24 @@
               </ul>
             </div>
           {% endif %}
+
+          {% if accept_url %}
+            <hr class="my-4">
+            <div class="d-grid gap-2">
+              <a href="{{ accept_url }}" class="btn btn-primary">
+                <i class="bi bi-check-lg me-1"></i>{% trans "Подтвердить сотрудничество" %}
+              </a>
+              <form method="post" action="{{ decline_url }}" class="d-grid">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger">
+                  <i class="bi bi-x-lg me-1"></i>{% trans "Отклонить отклик" %}
+                </button>
+              </form>
+              <p class="text-muted small mb-0">
+                {% trans "Подтвердите, когда обсудите условия и готовы отправить запрос партнёру." %}
+              </p>
+            </div>
+          {% endif %}
         </div>
         <div class="card-footer small text-muted">
           {% if can_comment %}

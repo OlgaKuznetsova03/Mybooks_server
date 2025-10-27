@@ -258,6 +258,8 @@ class OfferResponseViewsTests(TestCase):
         self.assertEqual(collaboration.status, Collaboration.Status.NEGOTIATION)
         self.assertFalse(collaboration.author_confirmed)
         self.assertFalse(collaboration.partner_confirmed)
+        self.assertTrue(collaboration.author_approved)
+        self.assertFalse(collaboration.partner_approved)
         self.assertEqual(collaboration.review_links, "")
 
     def test_author_can_decline_response_and_cancel_collaboration(self):
@@ -280,6 +282,34 @@ class OfferResponseViewsTests(TestCase):
 
         collaboration.refresh_from_db()
         self.assertEqual(collaboration.status, Collaboration.Status.CANCELLED)
+        self.assertFalse(collaboration.author_approved)
+        self.assertFalse(collaboration.partner_approved)
+
+    def test_partner_can_confirm_collaboration_after_author_accepts(self):
+        self.client.force_login(self.author)
+        deadline = date.today() + timedelta(days=7)
+        accept_url = reverse("collaborations:offer_response_accept", args=[self.response.pk])
+        self.client.post(accept_url, {"deadline": deadline.isoformat()})
+
+        collaboration = Collaboration.objects.get(offer=self.offer, partner=self.blogger)
+
+        self.client.force_login(self.blogger)
+        approval_url = reverse("collaborations:collaboration_approval", args=[collaboration.pk])
+        new_deadline = date.today() + timedelta(days=10)
+        response = self.client.post(
+            approval_url,
+            {"deadline": new_deadline.isoformat()},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("collaborations:collaboration_detail", args=[collaboration.pk]),
+        )
+
+        collaboration.refresh_from_db()
+        self.assertTrue(collaboration.author_approved)
+        self.assertTrue(collaboration.partner_approved)
+        self.assertEqual(collaboration.deadline, new_deadline)
 
     def test_non_author_redirected_from_response_list(self):
         self.client.force_login(self.blogger)

@@ -134,6 +134,11 @@
 
               <td>
                 <span class="badge text-bg-secondary">{{ collaboration.get_status_display }}</span>
+                {% if user == collaboration.partner and collaboration.waiting_for_partner_confirmation %}
+                  <div class="text-warning small mt-1">{% trans "Ожидает вашего подтверждения" %}</div>
+                {% elif user == collaboration.author and collaboration.waiting_for_author_confirmation %}
+                  <div class="text-warning small mt-1">{% trans "Ожидаем подтверждение автора" %}</div>
+                {% endif %}
               </td>
 
               <td>
@@ -151,6 +156,14 @@
                   <i class="bi bi-chat-dots me-1"></i>{% trans "Переписка" %}
                 </a>
                 {% if user == collaboration.partner %}
+                {% if collaboration.waiting_for_partner_confirmation %}
+                    <a
+                      href="{% url 'collaborations:collaboration_approval' collaboration.pk %}"
+                      class="btn btn-sm btn-primary me-2"
+                    >
+                      <i class="bi bi-check-lg me-1"></i>{% trans "Подтвердить участие" %}
+                    </a>
+                  {% endif %}
                   {% if collaboration.status == collaboration.Status.NEGOTIATION or collaboration.status == collaboration.Status.ACTIVE %}
                     <a href="{% url 'collaborations:collaboration_review' collaboration.pk %}" class="btn btn-sm btn-outline-primary me-2">
                       <i class="bi bi-upload me-1"></i>{% trans "Отправить ссылки" %}
@@ -159,6 +172,14 @@
                 {% endif %}
 
                 {% if user == collaboration.author %}
+                {% if collaboration.waiting_for_author_confirmation %}
+                    <a
+                      href="{% url 'collaborations:collaboration_approval' collaboration.pk %}"
+                      class="btn btn-sm btn-primary me-2"
+                    >
+                      <i class="bi bi-check-lg me-1"></i>{% trans "Подтвердить участие" %}
+                    </a>
+                  {% endif %}
                   {% if collaboration.status == collaboration.Status.NEGOTIATION or collaboration.status == collaboration.Status.ACTIVE %}
                     <div class="btn-group">
                       <a href="{% url 'collaborations:collaboration_confirm' collaboration.pk %}" class="btn btn-sm btn-primary">

@@ -10,7 +10,7 @@ from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views import View
-from django.views.generic import DetailView, ListView
+from django.views.generic import DetailView, ListView, TemplateView
 from django.views.generic.edit import CreateView, FormView, UpdateView
 
 from .forms import (
@@ -26,6 +26,7 @@ from .forms import (
     BloggerRequestResponseAcceptForm,
     BloggerRequestResponseCommentForm,
     BloggerRequestResponseForm,
+    CollaborationApprovalForm,
     CollaborationReviewForm,
     CollaborationMessageForm,
 )
@@ -567,6 +568,16 @@ class OfferResponseDetailView(LoginRequiredMixin, View):
             "is_author": self.request.user.id == self.response.offer.author_id,
             "back_url": self.get_back_url(),
         }
+        if (
+            context["is_author"]
+            and self.response.status == AuthorOfferResponse.Status.PENDING
+        ):
+            context["accept_url"] = reverse(
+                "collaborations:offer_response_accept", args=[self.response.pk]
+            )
+            context["decline_url"] = reverse(
+                "collaborations:offer_response_decline", args=[self.response.pk]
+            )
         if can_comment:
             context["form"] = form or AuthorOfferResponseCommentForm()
         return context
@@ -655,12 +666,16 @@ class OfferResponseAcceptView(LoginRequiredMixin, FormView):
                 "author": response.offer.author,
                 "deadline": deadline,
                 "status": Collaboration.Status.NEGOTIATION,
+                "author_approved": True,
+                "partner_approved": False,
             },
         )
         collaboration.deadline = deadline
         collaboration.status = Collaboration.Status.NEGOTIATION
         collaboration.author_confirmed = False
         collaboration.partner_confirmed = False
+        collaboration.author_approved = True
+        collaboration.partner_approved = False
         collaboration.review_links = ""
         collaboration.completed_at = None
         collaboration.updated_at = timezone.now()
@@ -670,6 +685,8 @@ class OfferResponseAcceptView(LoginRequiredMixin, FormView):
                 "status",
                 "author_confirmed",
                 "partner_confirmed",
+                "author_approved",
+                "partner_approved",
                 "review_links",
                 "completed_at",
                 "updated_at",
@@ -682,7 +699,9 @@ class OfferResponseAcceptView(LoginRequiredMixin, FormView):
 
         messages.success(
             self.request,
-            _("Отклик принят. Мы создали сотрудничество и ожидаем ссылки к указанной дате."),
+            _(
+                "Отклик принят. Запрос отправлен партнёру, ожидаем подтверждения и согласия с дедлайном."
+            ),
         )
         return redirect("collaborations:offer_responses")
 
@@ -712,12 +731,16 @@ class OfferResponseDeclineView(LoginRequiredMixin, View):
             collaboration.status = Collaboration.Status.CANCELLED
             collaboration.author_confirmed = False
             collaboration.partner_confirmed = False
+            collaboration.author_approved = False
+            collaboration.partner_approved = False
             collaboration.updated_at = timezone.now()
             collaboration.save(
                 update_fields=[
                     "status",
                     "author_confirmed",
                     "partner_confirmed",
+                    "author_approved",
+                    "partner_approved",
                     "updated_at",
                 ]
             )
@@ -900,6 +923,8 @@ class BloggerRequestResponseAcceptView(LoginRequiredMixin, FormView):
                 "partner": response.request.blogger,
                 "deadline": deadline,
                 "status": Collaboration.Status.NEGOTIATION,
+                "partner_approved": True,
+                "author_approved": False,
             },
         )
         collaboration.partner = response.request.blogger
@@ -907,6 +932,8 @@ class BloggerRequestResponseAcceptView(LoginRequiredMixin, FormView):
         collaboration.status = Collaboration.Status.NEGOTIATION
         collaboration.author_confirmed = False
         collaboration.partner_confirmed = False
+        collaboration.partner_approved = True
+        collaboration.author_approved = False
         collaboration.review_links = ""
         collaboration.completed_at = None
         collaboration.updated_at = timezone.now()
@@ -917,6 +944,8 @@ class BloggerRequestResponseAcceptView(LoginRequiredMixin, FormView):
                 "status",
                 "author_confirmed",
                 "partner_confirmed",
+                "author_approved",
+                "partner_approved",
                 "review_links",
                 "completed_at",
                 "updated_at",
@@ -929,7 +958,9 @@ class BloggerRequestResponseAcceptView(LoginRequiredMixin, FormView):
 
         messages.success(
             self.request,
-            _("Отклик принят. Мы создали сотрудничество и ожидаем ссылки к указанной дате."),
+            _(
+                "Отклик принят. Мы попросили автора подтвердить участие и согласовать дедлайн."
+            ),
         )
         return redirect("collaborations:blogger_request_responses")
 
@@ -959,18 +990,134 @@ class BloggerRequestResponseDeclineView(LoginRequiredMixin, View):
             collaboration.status = Collaboration.Status.CANCELLED
             collaboration.author_confirmed = False
             collaboration.partner_confirmed = False
+            collaboration.author_approved = False
+            collaboration.partner_approved = False
             collaboration.updated_at = timezone.now()
             collaboration.save(
                 update_fields=[
                     "status",
                     "author_confirmed",
                     "partner_confirmed",
+                    "author_approved",
+                    "partner_approved",
                     "updated_at",
                 ]
             )
 
         messages.info(request, _("Отклик отклонён."))
         return redirect("collaborations:blogger_request_responses")
+
+
+class CollaborationApprovalView(LoginRequiredMixin, FormView):
+    form_class = CollaborationApprovalForm
+    template_name = "collaborations/collaboration_approval.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.collaboration = get_object_or_404(
+            Collaboration.objects.select_related("author", "partner", "offer", "request"),
+            pk=kwargs["pk"],
+        )
+        if not self.collaboration.is_participant(request.user):
+            messages.error(
+                request,
+                _("Только участники могут подтверждать сотрудничество."),
+            )
+            return redirect("collaborations:collaboration_list")
+
+        self.pending_role = self._get_pending_role(request.user)
+        if self.pending_role is None:
+            messages.info(
+                request,
+                _("Подтверждение не требуется или уже выполнено."),
+            )
+            return redirect("collaborations:collaboration_detail", pk=self.collaboration.pk)
+        return super().dispatch(request, *args, **kwargs)
+
+    def _get_pending_role(self, user: User) -> str | None:
+        if user.id == self.collaboration.partner_id and self.collaboration.waiting_for_partner_confirmation:
+            return "partner"
+        if user.id == self.collaboration.author_id and self.collaboration.waiting_for_author_confirmation:
+            return "author"
+        return None
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial["deadline"] = self.collaboration.deadline
+        return initial
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(
+            {
+                "collaboration": self.collaboration,
+                "pending_role": self.pending_role,
+            }
+        )
+        return context
+
+    def form_valid(self, form):
+        deadline = form.cleaned_data["deadline"]
+        collaboration = self.collaboration
+        collaboration.deadline = deadline
+        collaboration.updated_at = timezone.now()
+        update_fields = ["deadline", "updated_at"]
+
+        if self.pending_role == "partner":
+            collaboration.partner_approved = True
+            update_fields.append("partner_approved")
+        elif self.pending_role == "author":
+            collaboration.author_approved = True
+            update_fields.append("author_approved")
+
+        collaboration.save(update_fields=update_fields)
+
+        if collaboration.author_approved and collaboration.partner_approved:
+            messages.success(
+                self.request,
+                _("Сотрудничество подтверждено обеими сторонами. Можно приступать к работе."),
+            )
+        else:
+            messages.success(
+                self.request,
+                _("Подтверждение сохранено. Сообщим второй стороне о вашем решении."),
+            )
+        return redirect("collaborations:collaboration_detail", pk=collaboration.pk)
+
+
+class CollaborationNotificationsView(LoginRequiredMixin, TemplateView):
+    template_name = "collaborations/notifications_overview.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+
+        pending_offer_responses = AuthorOfferResponse.objects.filter(
+            offer__author=user,
+            status=AuthorOfferResponse.Status.PENDING,
+        ).select_related("offer", "respondent")
+
+        pending_partner_collaborations = Collaboration.objects.filter(
+            partner=user,
+            author_approved=True,
+            partner_approved=False,
+            status__in=[Collaboration.Status.NEGOTIATION, Collaboration.Status.ACTIVE],
+        ).select_related("author", "partner", "offer", "request")
+
+        pending_author_collaborations = Collaboration.objects.filter(
+            author=user,
+            partner_approved=True,
+            author_approved=False,
+            status__in=[Collaboration.Status.NEGOTIATION, Collaboration.Status.ACTIVE],
+        ).select_related("author", "partner", "offer", "request")
+
+        context.update(
+            {
+                "pending_offer_responses": pending_offer_responses,
+                "pending_partner_collaborations": pending_partner_collaborations,
+                "pending_author_collaborations": pending_author_collaborations,
+            }
+        )
+        return context
 
 
 class BloggerRequestListView(ListView):

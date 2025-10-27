@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Подтверждение сотрудничества" %} · {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="coop-theme">
+  <div class="mb-4">
+    <a href="{% url 'collaborations:collaboration_detail' collaboration.pk %}" class="btn btn-link text-decoration-none ps-0">
+      <i class="bi bi-arrow-left"></i> {% trans "Вернуться к переписке" %}
+    </a>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h1 class="h4 mb-3">{% trans "Подтвердите участие" %}</h1>
+          {% if pending_role == 'partner' %}
+            <p class="mb-3">{% trans "Автор подтвердил сотрудничество и предложил дедлайн. Проверьте дату и подтвердите, что готовы прочитать книгу и предоставить отзыв." %}</p>
+          {% else %}
+            <p class="mb-3">{% trans "Партнёр подтвердил участие. Подтвердите со своей стороны и при необходимости скорректируйте дедлайн." %}</p>
+          {% endif %}
+
+          <dl class="row small text-muted mb-4">
+            <dt class="col-sm-5">{% trans "Автор" %}</dt>
+            <dd class="col-sm-7">{{ collaboration.author.get_full_name|default:collaboration.author.username }}</dd>
+            <dt class="col-sm-5">{% trans "Партнёр" %}</dt>
+            <dd class="col-sm-7">{{ collaboration.partner.get_full_name|default:collaboration.partner.username }}</dd>
+            <dt class="col-sm-5">{% trans "Текущий дедлайн" %}</dt>
+            <dd class="col-sm-7">{{ collaboration.deadline|date:"j E Y" }}</dd>
+          </dl>
+
+          <form method="post" class="d-flex flex-column gap-3">
+            {% csrf_token %}
+            <div>
+              <label class="form-label" for="{{ form.deadline.id_for_label }}">{{ form.deadline.label }}</label>
+              {{ form.deadline }}
+              {% for error in form.deadline.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+              {% endfor %}
+              {% if form.deadline.help_text %}
+                <div class="form-text">{{ form.deadline.help_text }}</div>
+              {% endif %}
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+              <a href="{% url 'collaborations:collaboration_detail' collaboration.pk %}" class="btn btn-outline-secondary">{% trans "Отмена" %}</a>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg me-1"></i>{% trans "Подтвердить" %}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h2 class="h5 mb-3">{% trans "Что произойдёт дальше" %}</h2>
+          <ul class="list-unstyled small mb-0 d-flex flex-column gap-2">
+            <li>
+              <i class="bi bi-envelope-paper-heart me-1 text-primary"></i>
+              {% trans "Мы уведомим второго участника о вашем решении." %}
+            </li>
+            <li>
+              <i class="bi bi-chat-dots me-1 text-primary"></i>
+              {% trans "После подтверждения с обеих сторон переписка останется доступной на странице сотрудничества." %}
+            </li>
+            <li>
+              <i class="bi bi-calendar2-check me-1 text-primary"></i>
+              {% trans "Вы всегда сможете изменить дедлайн по согласованию, отправив новое подтверждение." %}
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

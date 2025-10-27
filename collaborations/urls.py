@@ -81,6 +81,11 @@ urlpatterns = [
         name="collaboration_review",
     ),
     path(
+        "collaborations/<int:pk>/approve/",
+        views.CollaborationApprovalView.as_view(),
+        name="collaboration_approval",
+    ),
+    path(
         "collaborations/<int:pk>/confirm/",
         views.confirm_collaboration_completion,
         name="collaboration_confirm",
@@ -89,5 +94,10 @@ urlpatterns = [
         "collaborations/<int:pk>/fail/",
         views.mark_collaboration_failed,
         name="collaboration_fail",
+    ),
+    path(
+        "collaborations/notifications/",
+        views.CollaborationNotificationsView.as_view(),
+        name="collaboration_notifications",
     ),
 ]

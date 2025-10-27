@@ -665,6 +665,14 @@ class Collaboration(models.Model):
     )
     author_confirmed = models.BooleanField(default=False, verbose_name=_("Автор подтвердил"))
     partner_confirmed = models.BooleanField(default=False, verbose_name=_("Блогер подтвердил"))
+    author_approved = models.BooleanField(
+        default=False,
+        verbose_name=_("Автор подтвердил сотрудничество"),
+    )
+    partner_approved = models.BooleanField(
+        default=False,
+        verbose_name=_("Партнёр подтвердил сотрудничество"),
+    )
     completed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -711,6 +719,14 @@ class Collaboration(models.Model):
             self.Status.ACTIVE,
         }
 
+    @property
+    def waiting_for_partner_confirmation(self) -> bool:
+        return self.author_approved and not self.partner_approved
+
+    @property
+    def waiting_for_author_confirmation(self) -> bool:
+        return self.partner_approved and not self.author_approved
+    
     def is_participant(self, user: User) -> bool:
         user_id = getattr(user, "id", None)
         return user_id in {self.author_id, self.partner_id}
