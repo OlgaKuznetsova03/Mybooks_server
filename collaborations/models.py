@@ -462,6 +462,42 @@ class AuthorOfferResponse(models.Model):
             return self.respondent_last_read_at < self.last_activity_at
         return False
     
+    def move_discussion_to_collaboration(self, collaboration: "Collaboration") -> None:
+        """Переносит исходное сообщение и комментарии в переписку сотрудничества."""
+
+        if collaboration is None:
+            return
+
+        messages_to_transfer: list[tuple[User, str, datetime]] = []
+        if self.message and self.message.strip():
+            messages_to_transfer.append(
+                (self.respondent, self.message, self.created_at)
+            )
+
+        comments = list(
+            self.comments.select_related("author").order_by("created_at")
+        )
+        for comment in comments:
+            messages_to_transfer.append(
+                (comment.author, comment.text, comment.created_at)
+            )
+
+        if not messages_to_transfer:
+            return
+
+        for author, text, created_at in messages_to_transfer:
+            collaboration_message = collaboration.messages.create(
+                author=author,
+                text=text,
+            )
+            if created_at:
+                collaboration.messages.filter(pk=collaboration_message.pk).update(
+                    created_at=created_at
+                )
+
+        if comments:
+            self.comments.filter(pk__in=[comment.pk for comment in comments]).delete()
+
 
 class AuthorOfferResponseComment(models.Model):
     """Комментарий по отклику до подтверждения сотрудничества."""

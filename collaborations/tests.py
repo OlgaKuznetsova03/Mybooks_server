@@ -311,6 +311,55 @@ class OfferResponseViewsTests(TestCase):
         self.assertTrue(collaboration.partner_approved)
         self.assertEqual(collaboration.deadline, new_deadline)
 
+    def test_acceptance_moves_discussion_to_collaboration(self):
+        AuthorOfferResponseComment.objects.create(
+            response=self.response,
+            author=self.author,
+            text="Проверим дедлайны",
+        )
+        AuthorOfferResponseComment.objects.create(
+            response=self.response,
+            author=self.blogger,
+            text="Могу успеть к концу месяца",
+        )
+
+        self.client.force_login(self.author)
+        deadline = date.today() + timedelta(days=5)
+        accept_url = reverse("collaborations:offer_response_accept", args=[self.response.pk])
+        self.client.post(accept_url, {"deadline": deadline.isoformat()})
+
+        collaboration = Collaboration.objects.get(offer=self.offer, partner=self.blogger)
+        messages = list(collaboration.messages.order_by("created_at"))
+
+        self.assertEqual(len(messages), 3)
+        self.assertEqual(messages[0].author, self.blogger)
+        self.assertEqual(messages[0].text, self.response.message)
+        self.assertEqual(messages[1].author, self.author)
+        self.assertEqual(messages[1].text, "Проверим дедлайны")
+        self.assertEqual(messages[2].author, self.blogger)
+        self.assertEqual(messages[2].text, "Могу успеть к концу месяца")
+
+        self.assertFalse(
+            AuthorOfferResponseComment.objects.filter(response=self.response).exists()
+        )
+
+    def test_accepted_response_hidden_from_my_responses(self):
+        self.client.force_login(self.author)
+        deadline = date.today() + timedelta(days=3)
+        accept_url = reverse("collaborations:offer_response_accept", args=[self.response.pk])
+        self.client.post(accept_url, {"deadline": deadline.isoformat()})
+
+        self.response.refresh_from_db()
+        self.assertEqual(self.response.status, AuthorOfferResponse.Status.ACCEPTED)
+
+        self.client.force_login(self.blogger)
+        list_url = reverse("collaborations:collaboration_list")
+        response = self.client.get(list_url)
+
+        my_responses = list(response.context["my_offer_responses"])
+        self.assertFalse(any(item.pk == self.response.pk for item in my_responses))
+        self.assertEqual(response.context["pending_response_count"], 0)
+        
     def test_non_author_redirected_from_response_list(self):
         self.client.force_login(self.blogger)
         url = reverse("collaborations:offer_responses")
