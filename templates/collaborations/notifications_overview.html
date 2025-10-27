@@ -7,18 +7,6 @@
 <div class="coop-theme">
   <h1 class="h3 mb-4">{% trans "Уведомления сотрудничества" %}</h1>
 
-   {% if pending_offer_responses or pending_partner_collaborations or pending_author_collaborations or unread_offer_threads or unread_collaborations %}
-    <div class="d-flex flex-column gap-4">
-        {% extends "base.html" %}
-{% load i18n %}
-
-{% block title %}{% trans "Уведомления" %} · {{ block.super }}{% endblock %}
-
-{% block content %}
-<div class="coop-theme">
-  <h1 class="h3 mb-4">{% trans "Уведомления сотрудничества" %}</h1>
-
-  {% if pending_offer_responses or pending_partner_collaborations or pending_author_collaborations %}
   {% if pending_offer_responses or pending_partner_collaborations or pending_author_collaborations or unread_offer_threads or unread_collaborations %}
     <div class="d-flex flex-column gap-4">
       {% if unread_offer_threads %}
