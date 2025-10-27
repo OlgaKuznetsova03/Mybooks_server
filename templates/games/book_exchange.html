@@ -29,8 +29,20 @@
   <div class="col-12">
     <div class="card border-0 shadow-sm">
       <div class="card-body">
-        <h2 class="h4">Начать новый раунд</h2>
-        <p class="text-muted">Выберите цель и жанры — другие игроки будут предлагать подходящие книги.</p>
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+        <h2 class="h5 mb-0">Начать новый раунд</h2>
+        <button
+          class="btn btn-sm btn-outline-secondary"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#start-round-panel"
+          aria-expanded="{% if not challenge_data %}true{% else %}false{% endif %}"
+          aria-controls="start-round-panel"
+        >
+          Показать/скрыть форму
+        </button>
+      </div>
+      <div id="start-round-panel" class="card-body collapse{% if not challenge_data %} show{% endif %}">
         <form method="post" class="row g-3">
           {% csrf_token %}
           <input type="hidden" name="action" value="start">
@@ -252,12 +264,29 @@
   </div>
   {% endif %}
 
-  {% if other_challenges %}
+  {% if challenge_data or other_challenges %}
   <div class="col-12">
     <section class="card border-0 shadow-sm">
       <div class="card-body">
-        <h2 class="h5 mb-3">Активные полки других игроков</h2>
+        <h2 class="h5 mb-3">Активные полки игроков</h2>
         <div class="row g-3">
+            {% if challenge_data %}
+          <div class="col-12 col-md-6 col-xl-4">
+            <article class="card h-100 border-0 bg-light">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <h3 class="h6 mb-1">{{ challenge_data.challenge.user.username }}</h3>
+                    <div class="small text-muted">Раунд № {{ challenge_data.challenge.round_number }}</div>
+                  </div>
+                  <span class="badge bg-primary text-white">Ваша полка</span>
+                </div>
+                <p class="small text-muted mb-3">Принято книг: {{ challenge_data.accepted_count }}</p>
+                <a class="btn btn-sm btn-primary" href="{{ challenge_data.challenge.get_absolute_url }}">Открыть полку</a>
+              </div>
+            </article>
+          </div>
+          {% endif %}
           {% for foreign in other_challenges %}
           <div class="col-12 col-md-6 col-xl-4">
             <article class="card h-100 border-0">
