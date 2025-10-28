@@ -194,10 +194,30 @@
                 {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
                 {% if genre_suggestions %}
                   <div class="small text-muted mt-2">Выберите подходящие жанры из списка или введите свои вручную.</div>
-                  <div class="d-flex flex-wrap gap-2 mt-2" data-genre-suggestions>
-                    {% for genre in genre_suggestions %}
-                      <button type="button" class="btn btn-outline-secondary btn-sm" data-genre-suggestion="{{ genre }}">{{ genre }}</button>
-                    {% endfor %}
+                  <button type="button" class="btn btn-outline-secondary btn-sm mt-2" data-bs-toggle="collapse" data-bs-target="#genre-suggestions-panel" aria-expanded="false" aria-controls="genre-suggestions-panel">
+                    <i class="bi bi-tags"></i>
+                    Популярные жанры
+                  </button>
+                  <div class="collapse" id="genre-suggestions-panel">
+                    <div class="border rounded mt-3 p-3 bg-light" data-genre-suggestions-panel>
+                      <div class="small text-muted" data-genre-selection-counter>Отметьте жанры и добавьте их в поле выше. Уже внесённые жанры отмечены автоматически.</div>
+                      <div class="d-flex flex-wrap gap-2 mt-3" data-genre-suggestions>
+                        {% for genre in genre_suggestions %}
+                          <input type="checkbox" class="btn-check" id="genre-suggestion-{{ forloop.counter }}" autocomplete="off" data-genre-checkbox value="{{ genre }}">
+                          <label class="btn btn-outline-secondary btn-sm" for="genre-suggestion-{{ forloop.counter }}" data-genre-toggle data-genre-suggestion="{{ genre }}">{{ genre }}</label>
+                        {% endfor %}
+                      </div>
+                      <div class="d-flex flex-wrap gap-2 justify-content-end mt-3">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-genre-clear>
+                          <i class="bi bi-arrow-counterclockwise"></i>
+                          Сбросить выбор
+                        </button>
+                        <button type="button" class="btn btn-primary btn-sm" data-genre-apply>
+                          <i class="bi bi-plus-circle"></i>
+                          Добавить выбранные
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 {% endif %}
                 {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
@@ -275,54 +295,102 @@
       const synopsisField = document.getElementById('id_synopsis');
       const isbnField = document.getElementById('id_isbn');
       const metadataField = document.getElementById('id_isbn_metadata');
-      onst genreSuggestionsRoot = document.querySelector('[data-genre-suggestions]');
+      const genreSuggestionsPanel = document.querySelector('[data-genre-suggestions-panel]');
 
-      if (genreSuggestionsRoot && genresField) {
-        const suggestionButtons = Array.from(genreSuggestionsRoot.querySelectorAll('[data-genre-suggestion]'));
+      if (genreSuggestionsPanel && genresField) {
+        const suggestionCheckboxes = Array.from(genreSuggestionsPanel.querySelectorAll('[data-genre-checkbox]'));
+        const applyButton = genreSuggestionsPanel.querySelector('[data-genre-apply]');
+        const clearButton = genreSuggestionsPanel.querySelector('[data-genre-clear]');
+        const counterElement = genreSuggestionsPanel.querySelector('[data-genre-selection-counter]');
 
         const getCurrentGenres = () => genresField.value
           .split(',')
           .map((item) => item.trim())
           .filter(Boolean);
 
-        const updateSuggestionStates = () => {
-          const current = new Set(getCurrentGenres());
-          suggestionButtons.forEach((button) => {
-            const value = (button.getAttribute('data-genre-suggestion') || button.textContent || '').trim();
-            if (!value) return;
-            if (current.has(value)) {
-              button.classList.remove('btn-outline-secondary');
-              button.classList.add('btn-secondary');
-            } else {
-              button.classList.add('btn-outline-secondary');
-              button.classList.remove('btn-secondary');
-            }
-          });
+        const getCheckboxValue = (checkbox) => (checkbox.getAttribute('value') || checkbox.value || '').trim();
+
+        const updateCounter = () => {
+          const selectedCount = suggestionCheckboxes.filter((checkbox) => checkbox.checked).length;
+          if (!counterElement) return;
+          counterElement.textContent = selectedCount
+            ? `Отмечено жанров: ${selectedCount}. Нажмите «Добавить», чтобы обновить поле.`
+            : 'Отметьте жанры и добавьте их в поле выше. Уже внесённые жанры отмечены автоматически.';
         };
 
-        genreSuggestionsRoot.addEventListener('click', (event) => {
-          const button = event.target.closest('[data-genre-suggestion]');
-          if (!button) return;
-          event.preventDefault();
+        const syncCheckboxesWithField = () => {
+          const current = new Set(getCurrentGenres());
+          suggestionCheckboxes.forEach((checkbox) => {
+            const value = getCheckboxValue(checkbox);
+            const shouldBeChecked = current.has(value);
+            if (checkbox.checked !== shouldBeChecked) {
+              checkbox.checked = shouldBeChecked;
+            }
+            const label = genreSuggestionsPanel.querySelector(`[for="${checkbox.id}"]`);
+            if (label) {
+              label.setAttribute('aria-pressed', shouldBeChecked ? 'true' : 'false');
+              label.classList.toggle('btn-secondary', shouldBeChecked);
+              label.classList.toggle('btn-outline-secondary', !shouldBeChecked);
+            }
+          });
+          updateCounter();
+        };
 
-          const value = button.getAttribute('data-genre-suggestion') || button.textContent || '';
-          const normalized = value.trim();
-          if (!normalized) return;
-
-          const current = getCurrentGenres();
-
-          if (!current.includes(normalized)) {
-            current.push(normalized);
-            genresField.value = current.join(', ');
-            genresField.dispatchEvent(new Event('input', { bubbles: true }));
+        suggestionCheckboxes.forEach((checkbox) => {
+          const label = genreSuggestionsPanel.querySelector(`[for="${checkbox.id}"]`);
+          if (label) {
+            label.setAttribute('aria-pressed', checkbox.checked ? 'true' : 'false');
+            label.classList.toggle('btn-secondary', checkbox.checked);
+            label.classList.toggle('btn-outline-secondary', !checkbox.checked);
           }
-
-          genresField.focus();
-          updateSuggestionStates();
+          checkbox.addEventListener('change', () => {
+            const associatedLabel = genreSuggestionsPanel.querySelector(`[for="${checkbox.id}"]`);
+            if (associatedLabel) {
+              associatedLabel.setAttribute('aria-pressed', checkbox.checked ? 'true' : 'false');
+              associatedLabel.classList.toggle('btn-secondary', checkbox.checked);
+              associatedLabel.classList.toggle('btn-outline-secondary', !checkbox.checked);
+            }
+            updateCounter();
+          });
         });
 
-        genresField.addEventListener('input', updateSuggestionStates);
-        updateSuggestionStates();
+        applyButton?.addEventListener('click', () => {
+          const selected = suggestionCheckboxes
+            .filter((checkbox) => checkbox.checked)
+            .map((checkbox) => getCheckboxValue(checkbox))
+            .filter(Boolean);
+
+          if (!selected.length) return;
+
+          const current = getCurrentGenres();
+          selected.forEach((value) => {
+            if (!current.includes(value)) {
+              current.push(value);
+            }
+          });
+
+          genresField.value = current.join(', ');
+          genresField.dispatchEvent(new Event('input', { bubbles: true }));
+          genresField.focus();
+          syncCheckboxesWithField();
+        });
+
+        clearButton?.addEventListener('click', () => {
+          suggestionCheckboxes.forEach((checkbox) => {
+            if (!checkbox.checked) return;
+            checkbox.checked = false;
+            const label = genreSuggestionsPanel.querySelector(`[for="${checkbox.id}"]`);
+            if (label) {
+              label.setAttribute('aria-pressed', 'false');
+              label.classList.add('btn-outline-secondary');
+              label.classList.remove('btn-secondary');
+            }
+          });
+          updateCounter();
+        });
+
+        genresField.addEventListener('input', syncCheckboxesWithField);
+        syncCheckboxesWithField();
       }
 
       const userAgent = navigator.userAgent || '';
