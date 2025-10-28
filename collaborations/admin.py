@@ -40,7 +40,7 @@ class AuthorOfferAdmin(admin.ModelAdmin):
 class BloggerRequestResponseInline(admin.TabularInline):
     model = BloggerRequestResponse
     extra = 0
-    readonly_fields = ("author", "status", "created_at", "updated_at")
+    readonly_fields = ("responder", "status", "created_at", "updated_at")
 
 
 class BloggerPlatformPresenceInline(admin.TabularInline):
