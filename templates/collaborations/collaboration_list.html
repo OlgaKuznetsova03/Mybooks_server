@@ -291,6 +291,7 @@
                   <tr>
                     <th>{% trans "Заявка" %}</th>
                     <th>{% trans "Блогер" %}</th>
+                    <th>{% trans "Откликнувшийся" %}</th>
                     <th>{% trans "Статус" %}</th>
                     <th>{% trans "Отправлено" %}</th>
                     <th class="text-end">{% trans "Действия" %}</th>
@@ -305,6 +306,16 @@
                         </a>
                       </td>
                       <td>{{ response.request.blogger.get_full_name|default:response.request.blogger.username }}</td>
+                      <td>
+                        {{ response.responder.get_full_name|default:response.responder.username }}
+                        <div class="small text-muted">
+                          {% if response.responder_type == response.ResponderType.AUTHOR %}
+                            {% trans "Автор" %}
+                          {% else %}
+                            {% trans "Блогер" %}
+                          {% endif %}
+                        </div>
+                      </td>
                       <td>
                         <span class="badge text-bg-secondary">{{ response.get_status_display }}</span>
                       </td>
@@ -339,6 +350,6 @@
       </div>
     {% endif %}
   </section>
-  
+
 </div>
 {% endblock %}

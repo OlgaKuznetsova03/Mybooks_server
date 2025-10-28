@@ -207,6 +207,9 @@
                       {{ display_name }}
                     </span>
                   </div>
+                  <div class="small text-muted mb-2">
+                    {% trans "Ищет" %}: {{ request_obj.get_target_audience_display|default:_("Уточняется") }}
+                  </div>
                   {% if request_obj.additional_info %}
                     <p class="text-muted small mb-0">{{ request_obj.additional_info|truncatechars:160 }}</p>
                   {% endif %}
@@ -267,7 +270,7 @@
     <div class="text-center py-5">
       <p class="lead mb-2">{% trans "Активных заявок нет." %}</p>
       {% if request.user.is_authenticated %}
-        <p class="text-muted">{% trans "Создайте свою и найдите автора!" %}</p>
+        <p class="text-muted">{% trans "Создайте свою и найдите автора или блогера!" %}</p>
       {% endif %}
     </div>
   {% endif %}

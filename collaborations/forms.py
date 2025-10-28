@@ -103,6 +103,7 @@ class BloggerRequestForm(BootstrapModelForm):
             "additional_info",
             "collaboration_type",
             "collaboration_terms",
+            "target_audience",
             "is_active",
         ]
         widgets = {
@@ -117,6 +118,7 @@ class BloggerRequestForm(BootstrapModelForm):
                 }
             ),
             "collaboration_type": forms.Select(attrs={"class": "form-select"}),
+            "target_audience": forms.Select(attrs={"class": "form-select"}),
         }
 
     def clean_review_platform_links(self):
@@ -198,30 +200,93 @@ class AuthorOfferResponseCommentForm(BootstrapModelForm):
 
 
 class BloggerRequestResponseForm(BootstrapModelForm):
-    book = forms.ModelChoiceField(
+    platform_link = forms.URLField(
         required=False,
+        label=_("Ссылка на площадку"),
+        help_text=_("Добавьте ссылку на блог или профиль."),
+        widget=forms.URLInput(
+            attrs={
+                "placeholder": "https://t.me/username",
+            }
+        ),
+    )
+    message = forms.CharField(
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                "rows": 4,
+                "placeholder": _("Расскажите о себе и предложите формат сотрудничества."),
+            }
+        ),
+        label=_("Сообщение"),
+    )
+    book = forms.ModelChoiceField(
         queryset=Book.objects.none(),
+        required=False,
         label=_("Книга"),
-        help_text=_("Прикрепите книгу, чтобы блогер мог быстро её изучить."),
+        help_text=_("Выберите книгу, которую готовы предложить."),
         widget=forms.Select(attrs={"data-enhanced-single": "1"}),
     )
 
     def __init__(self, *args, **kwargs):
-        self.author = kwargs.pop("author", None)
+        self.responder = kwargs.pop("responder", None)
+        self.request_obj: BloggerRequest | None = kwargs.pop("request_obj", None)
         super().__init__(*args, **kwargs)
-        queryset = Book.objects.all()
-        if self.author is not None:
-            user_books = getattr(self.author, "books", None)
-            if hasattr(user_books, "all"):
-                queryset = user_books.all()
-        self.fields["book"].queryset = queryset.order_by("title")
+        
+        queryset = Book.objects.none()
+        if self.responder is not None:
+            queryset = Book.objects.filter(contributors=self.responder)
+        if self.instance and self.instance.book_id:
+            queryset = queryset | Book.objects.filter(pk=self.instance.book_id)
+        self.fields["book"].queryset = queryset.distinct().order_by("title")
+
+        self.show_book_field = False
+        self.show_platform_link_field = False
+        if self.request_obj is not None:
+            if self.request_obj.is_for_authors:
+                self.show_book_field = True
+                self.fields["book"].required = True
+                self.fields["platform_link"].required = False
+                self.fields["platform_link"].widget = forms.HiddenInput()
+            elif self.request_obj.is_for_bloggers:
+                self.show_platform_link_field = True
+                self.fields["platform_link"].required = True
+                self.fields["book"].required = False
+                self.fields["book"].widget = forms.HiddenInput()
 
     class Meta:
         model = BloggerRequestResponse
-        fields = ["message", "book"]
-        widgets = {"message": forms.Textarea(attrs={"rows": 4})}
+        fields = ["message", "book", "platform_link"]
 
+    def clean_message(self):
+        message = self.cleaned_data.get("message", "")
+        if message:
+            return message.strip()
+        return ""
 
+    def clean_book(self):
+        book = self.cleaned_data.get("book")
+        if self.request_obj and self.request_obj.is_for_authors:
+            if book is None:
+                raise forms.ValidationError(_("Укажите книгу, чтобы блогер мог ознакомиться с ней."))
+            if self.responder is not None:
+                if not book.contributors.filter(pk=self.responder.pk).exists():
+                    raise forms.ValidationError(
+                        _("Вы можете предложить только книгу, где указаны как автор."),
+                    )
+        return book
+
+    def clean_platform_link(self):
+        link = self.cleaned_data.get("platform_link", "")
+        if self.request_obj and self.request_obj.is_for_bloggers:
+            if not link:
+                raise forms.ValidationError(_("Добавьте ссылку на ваш блог или профиль."))
+        return link.strip()
+
+    def expected_responder_type(self) -> str:
+        if self.request_obj and self.request_obj.is_for_bloggers:
+            return BloggerRequestResponse.ResponderType.BLOGGER
+        return BloggerRequestResponse.ResponderType.AUTHOR
 class CollaborationMessageForm(BootstrapModelForm):
     class Meta:
         model = CollaborationMessage

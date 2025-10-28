@@ -135,7 +135,13 @@
       </a>
       <div>
         <h1 class="h3 mb-1">{{ request_obj.title }}</h1>
-        <p class="text-muted mb-0">{% trans "Заявка блогера" %}</p>
+        <p class="text-muted mb-0">
+          {% if request_obj.is_for_authors %}
+            {% trans "Заявка для авторов" %}
+          {% else %}
+            {% trans "Заявка для блогеров" %}
+          {% endif %}
+        </p>
       </div>
     </div>
     <div class="d-flex align-items-center gap-2 collab-header-actions">
@@ -267,13 +273,57 @@
               {% endif %}
               <form method="post" action="{% url 'collaborations:blogger_request_respond' request_obj.pk %}">
                 {% csrf_token %}
-                {{ response_form.as_p }}
+                {{ response_form.non_field_errors }}
+                <div class="mb-3">
+                  <label class="form-label" for="{{ response_form.message.id_for_label }}">{{ response_form.message.label }}</label>
+                  {{ response_form.message }}
+                  {% if response_form.message.help_text %}
+                    <div class="form-text">{{ response_form.message.help_text }}</div>
+                  {% endif %}
+                  {% for error in response_form.message.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                {% if response_form.show_book_field %}
+                  <div class="mb-3">
+                    <label class="form-label" for="{{ response_form.book.id_for_label }}">{{ response_form.book.label }}</label>
+                    {{ response_form.book }}
+                    {% if response_form.book.help_text %}
+                      <div class="form-text">{{ response_form.book.help_text }}</div>
+                    {% endif %}
+                    {% for error in response_form.book.errors %}
+                      <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  {{ response_form.book }}
+                {% endif %}
+                {% if response_form.show_platform_link_field %}
+                  <div class="mb-3">
+                    <label class="form-label" for="{{ response_form.platform_link.id_for_label }}">{{ response_form.platform_link.label }}</label>
+                    {{ response_form.platform_link }}
+                    {% if response_form.platform_link.help_text %}
+                      <div class="form-text">{{ response_form.platform_link.help_text }}</div>
+                    {% endif %}
+                    {% for error in response_form.platform_link.errors %}
+                      <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  {{ response_form.platform_link }}
+                {% endif %}
                 <button type="submit" class="btn btn-primary w-100">
                   <i class="bi bi-send me-1"></i>{% trans "Отправить предложение" %}
                 </button>
               </form>
             {% else %}
-              <p class="text-muted small mb-0">{% trans "На заявку могут откликаться только авторы." %}</p>
+              <p class="text-muted small mb-0">
+                {% if request_obj.is_for_authors %}
+                  {% trans "На заявку могут откликаться только авторы." %}
+                {% else %}
+                  {% trans "На заявку могут откликаться только блогеры." %}
+                {% endif %}
+              </p>
             {% endif %}
           </div>
         </div>

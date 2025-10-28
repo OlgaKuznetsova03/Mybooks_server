@@ -204,12 +204,16 @@ class AuthorOffer(models.Model):
     
 
 class BloggerRequest(models.Model):
-    """Заявка блогера на поиск авторов."""
+    """Заявка блогера на поиск авторов или других блогеров."""
 
     class CollaborationType(models.TextChoices):
         BARTER = "barter", _("Бартер")
         PAID_ONLY = "paid_only", _("Только платно")
         BARTER_OR_PAID = "mixed", _("Бартер или оплата")
+
+    class TargetAudience(models.TextChoices):
+        AUTHORS = "authors", _("Авторов")
+        BLOGGERS = "bloggers", _("Блогеров")
 
     blogger = models.ForeignKey(
         User,
@@ -259,6 +263,13 @@ class BloggerRequest(models.Model):
         verbose_name=_("Условия сотрудничества"),
         help_text=_("Опишите дедлайны, требования к бартеру или плате."),
     )
+    target_audience = models.CharField(
+        max_length=20,
+        choices=TargetAudience.choices,
+        default=TargetAudience.AUTHORS,
+        verbose_name=_("Кого ищу"),
+        help_text=_("Выберите, кого хотите найти — авторов или блогеров."),
+    )
     is_active = models.BooleanField(default=True, verbose_name=_("Активна"))
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -294,6 +305,14 @@ class BloggerRequest(models.Model):
             " Платформа не является стороной сделки, не осуществляет контроль над условиями и не несёт какой-либо ответственности"
             " за последствия договорённостей."
         )
+    
+    @property
+    def is_for_authors(self) -> bool:
+        return self.target_audience == self.TargetAudience.AUTHORS
+
+    @property
+    def is_for_bloggers(self) -> bool:
+        return self.target_audience == self.TargetAudience.BLOGGERS
     
 
 class BloggerPlatformPresence(models.Model):
@@ -529,8 +548,35 @@ class AuthorOfferResponseComment(models.Model):
         return f"{self.author} → {self.response.offer.title}"
 
 
+class BloggerRequestResponseQuerySet(models.QuerySet):
+    def unread_for(self, user: User) -> "BloggerRequestResponseQuerySet":
+        if user is None or not getattr(user, "is_authenticated", False):
+            return self.none()
+        return (
+            self.filter(last_activity_at__isnull=False)
+            .exclude(last_activity_by=user)
+            .filter(
+                (
+                    Q(request__blogger=user)
+                    & (
+                        Q(blogger_last_read_at__isnull=True)
+                        | Q(blogger_last_read_at__lt=F("last_activity_at"))
+                    )
+                )
+                |
+                (
+                    Q(responder=user)
+                    & (
+                        Q(responder_last_read_at__isnull=True)
+                        | Q(responder_last_read_at__lt=F("last_activity_at"))
+                    )
+                )
+            )
+        )
+    
+
 class BloggerRequestResponse(models.Model):
-    """Отклик автора на заявку блогера."""
+    """Отклик на заявку блогера."""
 
     class Status(models.TextChoices):
         PENDING = "pending", _("На рассмотрении")
@@ -538,15 +584,25 @@ class BloggerRequestResponse(models.Model):
         DECLINED = "declined", _("Отклонено")
         WITHDRAWN = "withdrawn", _("Отозвано")
 
+    class ResponderType(models.TextChoices):
+        AUTHOR = "author", _("Автор")
+        BLOGGER = "blogger", _("Блогер")
+
     request = models.ForeignKey(
         BloggerRequest,
         on_delete=models.CASCADE,
         related_name="responses",
     )
-    author = models.ForeignKey(
+    responder = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name="blogger_request_responses",
+    )
+    responder_type = models.CharField(
+        max_length=20,
+        choices=ResponderType.choices,
+        default=ResponderType.AUTHOR,
+        verbose_name=_("Кто откликнулся"),
     )
     message = models.TextField(blank=True, verbose_name=_("Сообщение"))
     book = models.ForeignKey(
@@ -558,33 +614,136 @@ class BloggerRequestResponse(models.Model):
         verbose_name=_("Книга"),
         help_text=_("Выберите книгу, которую предлагаете блогеру."),
     )
+    platform_link = models.URLField(
+        blank=True,
+        verbose_name=_("Ссылка на площадку"),
+        help_text=_("Добавьте ссылку на блог или социальную сеть."),
+    )
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
         default=Status.PENDING,
         verbose_name=_("Статус"),
     )
+    last_activity_at = models.DateTimeField(null=True, blank=True)
+    last_activity_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="blogger_request_response_updates",
+    )
+    blogger_last_read_at = models.DateTimeField(null=True, blank=True)
+    responder_last_read_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    objects = BloggerRequestResponseQuerySet.as_manager()
+
     class Meta:
-        unique_together = ("request", "author")
+        unique_together = ("request", "responder")
         ordering = ("-created_at",)
-        verbose_name = _("Отклик автора на заявку блогера")
-        verbose_name_plural = _("Отклики авторов на заявки блогеров")
+        verbose_name = _("Отклик на заявку блогера")
+        verbose_name_plural = _("Отклики на заявки блогеров")
 
     def __str__(self) -> str:
-        return f"{self.author} → {self.request} ({self.get_status_display()})"
+        return f"{self.responder} → {self.request} ({self.get_status_display()})"
 
     def allows_discussion(self) -> bool:
         return self.status == self.Status.PENDING
 
     def is_participant(self, user: User) -> bool:
         user_id = getattr(user, "id", None)
-        return user_id in {self.request.blogger_id, self.author_id}
+        return user_id in {self.request.blogger_id, self.responder_id}
 
     def get_participants(self) -> tuple[User, User]:
-        return (self.request.blogger, self.author)
+        return (self.request.blogger, self.responder)
+
+    def register_activity(
+        self,
+        actor: User,
+        timestamp: Optional[datetime] = None,
+    ) -> None:
+        if actor is None or actor.id is None:
+            return
+        timestamp = timestamp or timezone.now()
+        self.last_activity_at = timestamp
+        self.last_activity_by = actor
+        self.updated_at = timestamp
+        update_fields = ["last_activity_at", "last_activity_by", "updated_at"]
+        if actor.id == self.request.blogger_id:
+            self.blogger_last_read_at = timestamp
+            update_fields.append("blogger_last_read_at")
+        if actor.id == self.responder_id:
+            self.responder_last_read_at = timestamp
+            update_fields.append("responder_last_read_at")
+        self.save(update_fields=update_fields)
+
+    def mark_read(
+        self,
+        user: User,
+        timestamp: Optional[datetime] = None,
+    ) -> None:
+        if user is None or user.id is None:
+            return
+        timestamp = timestamp or timezone.now()
+        if user.id == self.request.blogger_id:
+            if self.blogger_last_read_at is None or self.blogger_last_read_at < timestamp:
+                self.blogger_last_read_at = timestamp
+                self.save(update_fields=["blogger_last_read_at"])
+        elif user.id == self.responder_id:
+            if self.responder_last_read_at is None or self.responder_last_read_at < timestamp:
+                self.responder_last_read_at = timestamp
+                self.save(update_fields=["responder_last_read_at"])
+
+    def has_unread_for(self, user: User) -> bool:
+        if user is None or user.id is None or self.last_activity_at is None:
+            return False
+        if self.last_activity_by_id == user.id:
+            return False
+        if user.id == self.request.blogger_id:
+            if self.blogger_last_read_at is None:
+                return True
+            return self.blogger_last_read_at < self.last_activity_at
+        if user.id == self.responder_id:
+            if self.responder_last_read_at is None:
+                return True
+            return self.responder_last_read_at < self.last_activity_at
+        return False
+
+    def move_discussion_to_collaboration(self, collaboration: "Collaboration") -> None:
+        if collaboration is None:
+            return
+
+        messages_to_transfer: list[tuple[User, str, datetime]] = []
+        if self.message and self.message.strip():
+            messages_to_transfer.append(
+                (self.responder, self.message, self.created_at)
+            )
+
+        comments = list(
+            self.comments.select_related("author").order_by("created_at")
+        )
+        for comment in comments:
+            messages_to_transfer.append(
+                (comment.author, comment.text, comment.created_at)
+            )
+
+        if not messages_to_transfer:
+            return
+
+        for author, text, created_at in messages_to_transfer:
+            collaboration_message = collaboration.messages.create(
+                author=author,
+                text=text,
+            )
+            if created_at:
+                collaboration.messages.filter(pk=collaboration_message.pk).update(
+                    created_at=created_at
+                )
+
+        if comments:
+            self.comments.filter(pk__in=[comment.pk for comment in comments]).delete()
 
 
 class BloggerRequestResponseComment(models.Model):

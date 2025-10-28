@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}{% trans "Обсуждение отклика автора" %} · {{ block.super }}{% endblock %}
+{% block title %}{% trans "Обсуждение отклика" %} · {{ block.super }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -134,10 +134,33 @@
             <dd class="col-6">{{ response.created_at|date:"j E Y, H:i" }}</dd>
           </dl>
 
+          <div class="mb-4">
+            <h2 class="h6">{% trans "Кто откликнулся" %}</h2>
+            <p class="mb-1 fw-semibold">
+              {{ response.responder.get_full_name|default:response.responder.username }}
+            </p>
+            <div class="small text-muted">
+              {% if response.responder_type == response.ResponderType.AUTHOR %}
+                {% trans "Автор" %}
+              {% else %}
+                {% trans "Блогер" %}
+              {% endif %}
+            </div>
+          </div>
+
           {% if response.book %}
             <div class="mb-4">
               <h2 class="h6">{% trans "Предлагаемая книга" %}</h2>
               <p class="mb-0">{{ response.book.title }}</p>
+            </div>
+          {% endif %}
+
+          {% if response.platform_link %}
+            <div class="mb-4">
+              <h2 class="h6">{% trans "Ссылка на площадку" %}</h2>
+              <p class="mb-0">
+                <a href="{{ response.platform_link }}" target="_blank" rel="noopener">{{ response.platform_link }}</a>
+              </p>
             </div>
           {% endif %}
 
@@ -168,15 +191,19 @@
           {% if comments %}
             <div class="d-flex flex-column gap-4">
               {% for comment in comments %}
-                {% with is_blogger=comment.author_id == request_obj.blogger_id is_author=comment.author_id == response.author_id %}
-                <div class="comment-bubble border rounded p-3 {% if is_author %}is-author{% elif is_blogger %}is-blogger{% endif %}">
+                {% with is_blogger=comment.author_id == request_obj.blogger_id is_responder=comment.author_id == response.responder_id %}
+                <div class="comment-bubble border rounded p-3 {% if is_responder %}is-author{% elif is_blogger %}is-blogger{% endif %}">
                   <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
                     <div>
                       <strong>{{ comment.author.get_full_name|default:comment.author.username }}</strong>
                       {% if is_blogger %}
                         <span class="badge text-bg-secondary ms-2">{% trans "Блогер" %}</span>
-                      {% elif is_author %}
-                        <span class="badge text-bg-primary ms-2">{% trans "Автор" %}</span>
+                      {% elif is_responder %}
+                        {% if response.responder_type == response.ResponderType.AUTHOR %}
+                          <span class="badge text-bg-primary ms-2">{% trans "Автор" %}</span>
+                        {% else %}
+                          <span class="badge text-bg-secondary ms-2">{% trans "Блогер" %}</span>
+                        {% endif %}
                       {% endif %}
                     </div>
                     <span class="text-muted small">{{ comment.created_at|date:"j E Y, H:i" }}</span>

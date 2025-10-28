@@ -14,6 +14,8 @@ from .models import (
     AuthorOfferResponseComment,
     BloggerPlatformPresence,
     BloggerRequest,
+    BloggerRequestResponse,
+    BloggerRequestResponseComment,
     Collaboration,
     ReviewPlatform,
 )
@@ -158,6 +160,7 @@ class BloggerRequestUpdateViewTests(TestCase):
             "additional_info": "Новые условия сотрудничества",
             "collaboration_type": BloggerRequest.CollaborationType.BARTER_OR_PAID,
             "collaboration_terms": "Свяжитесь для обсуждения",
+            "target_audience": BloggerRequest.TargetAudience.AUTHORS,
             "is_active": "on",
             "bloggerplatformpresence_set-TOTAL_FORMS": "1",
             "bloggerplatformpresence_set-INITIAL_FORMS": "1",
@@ -359,7 +362,7 @@ class OfferResponseViewsTests(TestCase):
         my_responses = list(response.context["my_offer_responses"])
         self.assertFalse(any(item.pk == self.response.pk for item in my_responses))
         self.assertEqual(response.context["pending_response_count"], 0)
-        
+
     def test_non_author_redirected_from_response_list(self):
         self.client.force_login(self.blogger)
         url = reverse("collaborations:offer_responses")
@@ -480,3 +483,187 @@ class OfferResponseViewsTests(TestCase):
         self.client.post(collaboration_url, {"text": "Получил сообщение"})
         response = self.client.get(notifications_url)
         self.assertFalse(response.context["unread_collaborations"])
+
+
+class BloggerRequestResponseWorkflowTests(TestCase):
+    def setUp(self):
+        self.UserModel = get_user_model()
+        self.author_group, _ = Group.objects.get_or_create(name="author")
+        self.blogger_group, _ = Group.objects.get_or_create(name="blogger")
+
+        self.blogger = self.UserModel.objects.create_user(
+            username="owner",
+            password="password123",
+            email="owner@example.com",
+        )
+        self.blogger.groups.add(self.blogger_group)
+
+        self.author = self.UserModel.objects.create_user(
+            username="author_user",
+            password="password123",
+            email="author@example.com",
+        )
+        self.author.groups.add(self.author_group)
+
+        self.other_blogger = self.UserModel.objects.create_user(
+            username="partner_blogger",
+            password="password123",
+            email="partner@example.com",
+        )
+        self.other_blogger.groups.add(self.blogger_group)
+
+        self.book = Book.objects.create(title="Книга для сотрудничества")
+        self.book.contributors.add(self.author)
+
+        self.request = BloggerRequest.objects.create(
+            blogger=self.blogger,
+            title="Ищу новых авторов",
+            collaboration_terms="Обсудим условия",
+        )
+
+    def test_author_response_saves_book_and_activity(self):
+        self.client.force_login(self.author)
+        url = reverse("collaborations:blogger_request_respond", args=[self.request.pk])
+        response = self.client.post(
+            url,
+            {"message": "Готов предложить роман", "book": self.book.pk},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("collaborations:blogger_request_detail", args=[self.request.pk]),
+        )
+
+        response_obj = BloggerRequestResponse.objects.get(
+            request=self.request, responder=self.author
+        )
+        self.assertEqual(response_obj.book, self.book)
+        self.assertEqual(
+            response_obj.responder_type,
+            BloggerRequestResponse.ResponderType.AUTHOR,
+        )
+        self.assertEqual(response_obj.platform_link, "")
+        self.assertEqual(response_obj.last_activity_by, self.author)
+        self.assertIsNotNone(response_obj.responder_last_read_at)
+        self.assertIsNone(response_obj.blogger_last_read_at)
+
+    def test_blogger_can_respond_with_platform_link(self):
+        blogger_request = BloggerRequest.objects.create(
+            blogger=self.blogger,
+            title="Ищу блогеров",
+            target_audience=BloggerRequest.TargetAudience.BLOGGERS,
+        )
+
+        self.client.force_login(self.other_blogger)
+        url = reverse("collaborations:blogger_request_respond", args=[blogger_request.pk])
+        response = self.client.post(
+            url,
+            {
+                "message": "Готов обсудить совместный проект",
+                "platform_link": "https://t.me/example",
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("collaborations:blogger_request_detail", args=[blogger_request.pk]),
+        )
+
+        response_obj = BloggerRequestResponse.objects.get(
+            request=blogger_request, responder=self.other_blogger
+        )
+        self.assertEqual(
+            response_obj.responder_type,
+            BloggerRequestResponse.ResponderType.BLOGGER,
+        )
+        self.assertEqual(response_obj.platform_link, "https://t.me/example")
+        self.assertIsNone(response_obj.book)
+
+    def test_acceptance_creates_collaboration_and_moves_history(self):
+        response_obj = BloggerRequestResponse.objects.create(
+            request=self.request,
+            responder=self.author,
+            responder_type=BloggerRequestResponse.ResponderType.AUTHOR,
+            message="Предлагаю роман месяца",
+            book=self.book,
+        )
+        BloggerRequestResponseComment.objects.create(
+            response=response_obj,
+            author=self.author,
+            text="Готов обсудить дедлайн",
+        )
+        BloggerRequestResponseComment.objects.create(
+            response=response_obj,
+            author=self.blogger,
+            text="Предлагаю до конца месяца",
+        )
+
+        self.client.force_login(self.blogger)
+        url = reverse("collaborations:blogger_request_response_accept", args=[response_obj.pk])
+        deadline = date.today() + timedelta(days=10)
+        response = self.client.post(url, {"deadline": deadline.isoformat()})
+        self.assertRedirects(response, reverse("collaborations:blogger_request_responses"))
+
+        response_obj.refresh_from_db()
+        self.assertEqual(response_obj.status, BloggerRequestResponse.Status.ACCEPTED)
+
+        collaboration = Collaboration.objects.get(request=self.request, author=self.author)
+        self.assertEqual(collaboration.partner, self.blogger)
+        self.assertEqual(collaboration.deadline, deadline)
+        self.assertEqual(collaboration.status, Collaboration.Status.NEGOTIATION)
+
+        messages = list(collaboration.messages.order_by("created_at"))
+        self.assertEqual(len(messages), 3)
+        self.assertEqual(messages[0].author, self.author)
+        self.assertEqual(messages[0].text, "Предлагаю роман месяца")
+        self.assertEqual(messages[1].author, self.author)
+        self.assertEqual(messages[1].text, "Готов обсудить дедлайн")
+        self.assertEqual(messages[2].author, self.blogger)
+        self.assertEqual(messages[2].text, "Предлагаю до конца месяца")
+        self.assertFalse(
+            BloggerRequestResponseComment.objects.filter(response=response_obj).exists()
+        )
+
+    def test_notifications_include_unread_response_threads(self):
+        response_obj = BloggerRequestResponse.objects.create(
+            request=self.request,
+            responder=self.author,
+            responder_type=BloggerRequestResponse.ResponderType.AUTHOR,
+            message="Предлагаю обзор",
+            book=self.book,
+        )
+        BloggerRequestResponseComment.objects.create(
+            response=response_obj,
+            author=self.author,
+            text="Какие сроки вам подходят?",
+        )
+        response_obj.register_activity(self.author)
+
+        self.client.force_login(self.blogger)
+        notifications_url = reverse("collaborations:collaboration_notifications")
+        response = self.client.get(notifications_url)
+        unread_threads = list(response.context["unread_blogger_request_threads"])
+        self.assertTrue(any(item.pk == response_obj.pk for item in unread_threads))
+
+        detail_url = reverse(
+            "collaborations:blogger_request_response_detail", args=[response_obj.pk]
+        )
+        self.client.get(detail_url)
+        response = self.client.get(notifications_url)
+        self.assertFalse(response.context["unread_blogger_request_threads"])
+
+    def test_pending_responses_listed_in_notifications(self):
+        response_obj = BloggerRequestResponse.objects.create(
+            request=self.request,
+            responder=self.author,
+            responder_type=BloggerRequestResponse.ResponderType.AUTHOR,
+            message="Готов принять участие",
+            book=self.book,
+        )
+
+        self.client.force_login(self.blogger)
+        notifications_url = reverse("collaborations:collaboration_notifications")
+        response = self.client.get(notifications_url)
+        pending_responses = list(response.context["pending_blogger_request_responses"])
+        self.assertTrue(any(item.pk == response_obj.pk for item in pending_responses))
+
