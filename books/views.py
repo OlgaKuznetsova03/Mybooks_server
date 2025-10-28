@@ -1575,6 +1575,12 @@ def book_create(request):
         and request.user.groups.filter(name="author").exists()
     )
 
+    genre_suggestions = list(
+        Genre.objects.annotate(book_count=Count("books"))
+        .order_by("-book_count", "name")
+        .values_list("name", flat=True)[:40]
+    )
+
     if request.method == "POST":
         form = BookForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
@@ -1683,6 +1689,7 @@ def book_create(request):
         "duplicate_candidates": duplicate_candidates,
         "duplicate_resolution": duplicate_resolution,
         "prefill_data": prefill_data,
+        "genre_suggestions": genre_suggestions,
     }
     return render(request, "books/book_form.html", context)
 

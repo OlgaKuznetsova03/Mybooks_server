@@ -185,6 +185,23 @@
                 {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
                 {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
               </div>
+              {% elif field.name == "genres" %}
+              <div class="mb-3" data-genre-field>
+                <label class="form-label" id="id_{{ field.name }}_label" for="id_{{ field.name }}">
+                  {{ field.label }}{% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+                </label>
+                {{ field }}
+                {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                {% if genre_suggestions %}
+                  <div class="small text-muted mt-2">Выберите подходящие жанры из списка или введите свои вручную.</div>
+                  <div class="d-flex flex-wrap gap-2 mt-2" data-genre-suggestions>
+                    {% for genre in genre_suggestions %}
+                      <button type="button" class="btn btn-outline-secondary btn-sm" data-genre-suggestion="{{ genre }}">{{ genre }}</button>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+                {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+              </div>
             {% else %}
               <div class="mb-3">
                 <label class="form-label" id="id_{{ field.name }}_label" for="id_{{ field.name }}">
@@ -258,6 +275,55 @@
       const synopsisField = document.getElementById('id_synopsis');
       const isbnField = document.getElementById('id_isbn');
       const metadataField = document.getElementById('id_isbn_metadata');
+      onst genreSuggestionsRoot = document.querySelector('[data-genre-suggestions]');
+
+      if (genreSuggestionsRoot && genresField) {
+        const suggestionButtons = Array.from(genreSuggestionsRoot.querySelectorAll('[data-genre-suggestion]'));
+
+        const getCurrentGenres = () => genresField.value
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+
+        const updateSuggestionStates = () => {
+          const current = new Set(getCurrentGenres());
+          suggestionButtons.forEach((button) => {
+            const value = (button.getAttribute('data-genre-suggestion') || button.textContent || '').trim();
+            if (!value) return;
+            if (current.has(value)) {
+              button.classList.remove('btn-outline-secondary');
+              button.classList.add('btn-secondary');
+            } else {
+              button.classList.add('btn-outline-secondary');
+              button.classList.remove('btn-secondary');
+            }
+          });
+        };
+
+        genreSuggestionsRoot.addEventListener('click', (event) => {
+          const button = event.target.closest('[data-genre-suggestion]');
+          if (!button) return;
+          event.preventDefault();
+
+          const value = button.getAttribute('data-genre-suggestion') || button.textContent || '';
+          const normalized = value.trim();
+          if (!normalized) return;
+
+          const current = getCurrentGenres();
+
+          if (!current.includes(normalized)) {
+            current.push(normalized);
+            genresField.value = current.join(', ');
+            genresField.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+
+          genresField.focus();
+          updateSuggestionStates();
+        });
+
+        genresField.addEventListener('input', updateSuggestionStates);
+        updateSuggestionStates();
+      }
 
       const userAgent = navigator.userAgent || '';
       const isAndroidWebView = /Android/i.test(userAgent) && /\bwv\b/i.test(userAgent);
