@@ -90,6 +90,17 @@ class AuthorOfferForm(BootstrapModelForm):
 
 
 class BloggerRequestForm(BootstrapModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields[
+            "blogger_collaboration_platform_other"
+        ].widget.attrs.setdefault("placeholder", _("Например: TikTok"))
+        self.fields[
+            "blogger_collaboration_goal_other"
+        ].widget.attrs.setdefault(
+            "placeholder", _("Опишите формат совместной активности")
+        )
+
     class Meta:
         model = BloggerRequest
         fields = [
@@ -104,6 +115,10 @@ class BloggerRequestForm(BootstrapModelForm):
             "collaboration_type",
             "collaboration_terms",
             "target_audience",
+            "blogger_collaboration_platform",
+            "blogger_collaboration_platform_other",
+            "blogger_collaboration_goal",
+            "blogger_collaboration_goal_other",
             "is_active",
         ]
         widgets = {
@@ -119,7 +134,51 @@ class BloggerRequestForm(BootstrapModelForm):
             ),
             "collaboration_type": forms.Select(attrs={"class": "form-select"}),
             "target_audience": forms.Select(attrs={"class": "form-select"}),
+            "blogger_collaboration_platform": forms.Select(
+                attrs={"class": "form-select"}
+            ),
+            "blogger_collaboration_goal": forms.Select(attrs={"class": "form-select"}),
         }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        target_audience = cleaned_data.get("target_audience")
+        platform = cleaned_data.get("blogger_collaboration_platform")
+        platform_other = cleaned_data.get("blogger_collaboration_platform_other", "").strip()
+        goal = cleaned_data.get("blogger_collaboration_goal", "")
+        goal_other = cleaned_data.get("blogger_collaboration_goal_other", "").strip()
+
+        if target_audience == BloggerRequest.TargetAudience.BLOGGERS:
+            if platform is None and not platform_other:
+                self.add_error(
+                    "blogger_collaboration_platform",
+                    _("Выберите платформу или укажите свою."),
+                )
+                if not platform_other:
+                    self.add_error(
+                        "blogger_collaboration_platform_other",
+                        _("Укажите площадку, если её нет в списке."),
+                    )
+
+            if not goal:
+                self.add_error(
+                    "blogger_collaboration_goal",
+                    _("Выберите цель сотрудничества."),
+                )
+            elif goal == BloggerRequest.BloggerCollaborationGoal.OTHER and not goal_other:
+                self.add_error(
+                    "blogger_collaboration_goal_other",
+                    _("Опишите формат сотрудничества."),
+                )
+            cleaned_data["blogger_collaboration_platform_other"] = platform_other
+            cleaned_data["blogger_collaboration_goal_other"] = goal_other
+        else:
+            cleaned_data["blogger_collaboration_platform"] = None
+            cleaned_data["blogger_collaboration_platform_other"] = ""
+            cleaned_data["blogger_collaboration_goal"] = ""
+            cleaned_data["blogger_collaboration_goal_other"] = ""
+
+        return cleaned_data
 
     def clean_review_platform_links(self):
         raw = self.cleaned_data.get("review_platform_links", "")

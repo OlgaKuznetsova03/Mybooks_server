@@ -7,7 +7,7 @@ from django.urls import reverse
 
 from books.models import Book
 
-from .forms import AuthorOfferForm
+from .forms import AuthorOfferForm, BloggerRequestForm
 from .models import (
     AuthorOffer,
     AuthorOfferResponse,
@@ -51,6 +51,79 @@ class OfferFormTests(TestCase):
         books = list(form.fields["book"].queryset)
         self.assertEqual(books, [])
 
+
+class BloggerRequestFormTests(TestCase):
+    def setUp(self):
+        self.platform = ReviewPlatform.objects.create(name="Instagram")
+
+    def test_requires_platform_and_goal_for_bloggers(self):
+        form = BloggerRequestForm(
+            data={
+                "title": "Совместный проект",
+                "preferred_genres": [],
+                "accepts_paper": "on",
+                "accepts_electronic": "on",
+                "review_formats": [],
+                "review_platform_links": "",
+                "additional_info": "",
+                "collaboration_type": BloggerRequest.CollaborationType.BARTER,
+                "collaboration_terms": "",
+                "target_audience": BloggerRequest.TargetAudience.BLOGGERS,
+                "blogger_collaboration_platform": "",
+                "blogger_collaboration_platform_other": "",
+                "blogger_collaboration_goal": "",
+                "blogger_collaboration_goal_other": "",
+                "is_active": "on",
+            }
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("blogger_collaboration_platform", form.errors)
+        self.assertIn("blogger_collaboration_goal", form.errors)
+
+    def test_validates_goal_details_for_other_option(self):
+        form = BloggerRequestForm(
+            data={
+                "title": "Совместный проект",
+                "preferred_genres": [],
+                "accepts_paper": "on",
+                "accepts_electronic": "on",
+                "review_formats": [],
+                "review_platform_links": "",
+                "additional_info": "",
+                "collaboration_type": BloggerRequest.CollaborationType.BARTER,
+                "collaboration_terms": "",
+                "target_audience": BloggerRequest.TargetAudience.BLOGGERS,
+                "blogger_collaboration_platform": str(self.platform.pk),
+                "blogger_collaboration_platform_other": "",
+                "blogger_collaboration_goal": BloggerRequest.BloggerCollaborationGoal.OTHER,
+                "blogger_collaboration_goal_other": "",
+                "is_active": "on",
+            }
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("blogger_collaboration_goal_other", form.errors)
+
+    def test_accepts_known_goal_with_platform(self):
+        form = BloggerRequestForm(
+            data={
+                "title": "Совместный проект",
+                "preferred_genres": [],
+                "accepts_paper": "on",
+                "accepts_electronic": "on",
+                "review_formats": [],
+                "review_platform_links": "",
+                "additional_info": "",
+                "collaboration_type": BloggerRequest.CollaborationType.BARTER,
+                "collaboration_terms": "",
+                "target_audience": BloggerRequest.TargetAudience.BLOGGERS,
+                "blogger_collaboration_platform": str(self.platform.pk),
+                "blogger_collaboration_platform_other": "",
+                "blogger_collaboration_goal": BloggerRequest.BloggerCollaborationGoal.GIVEAWAY,
+                "blogger_collaboration_goal_other": "",
+                "is_active": "on",
+            }
+        )
+        self.assertTrue(form.is_valid())
 
 
 class OfferUpdateViewTests(TestCase):

@@ -215,6 +215,11 @@ class BloggerRequest(models.Model):
         AUTHORS = "authors", _("Авторов")
         BLOGGERS = "bloggers", _("Блогеров")
 
+    class BloggerCollaborationGoal(models.TextChoices):
+        GIVEAWAY = "giveaway", _("Совместный розыгрыш")
+        CROSS_PROMO = "cross_promo", _("Взаимореклама")
+        OTHER = "other", _("Другое")
+
     blogger = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -269,6 +274,37 @@ class BloggerRequest(models.Model):
         default=TargetAudience.AUTHORS,
         verbose_name=_("Кого ищу"),
         help_text=_("Выберите, кого хотите найти — авторов или блогеров."),
+    )
+    blogger_collaboration_platform = models.ForeignKey(
+        ReviewPlatform,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="blogger_collaboration_requests",
+        verbose_name=_("Платформа для сотрудничества"),
+        help_text=_("Выберите площадку, где хотите провести совместный проект."),
+    )
+    blogger_collaboration_platform_other = models.CharField(
+        max_length=150,
+        blank=True,
+        default="",
+        verbose_name=_("Другая платформа"),
+        help_text=_("Если нужной площадки нет в списке, укажите её вручную."),
+    )
+    blogger_collaboration_goal = models.CharField(
+        max_length=20,
+        choices=BloggerCollaborationGoal.choices,
+        blank=True,
+        default="",
+        verbose_name=_("Цель поиска блогера"),
+        help_text=_("Уточните формат сотрудничества с другим блогером."),
+    )
+    blogger_collaboration_goal_other = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        verbose_name=_("Другая цель"),
+        help_text=_("Если выбрали 'Другое', опишите формат сотрудничества."),
     )
     is_active = models.BooleanField(default=True, verbose_name=_("Активна"))
     created_at = models.DateTimeField(auto_now_add=True)

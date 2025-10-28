@@ -1392,15 +1392,24 @@ class BloggerRequestRespondView(LoginRequiredMixin, FormView):
 
     def dispatch(self, request, *args, **kwargs):
         self.request_obj = get_object_or_404(BloggerRequest, pk=kwargs["pk"])
-        if self.request_obj.is_for_authors and not _user_is_author(request.user):
-            messages.error(request, _("Откликаться на эту заявку могут только авторы."))
-            return redirect("collaborations:blogger_request_detail", pk=self.request_obj.pk)
-        if self.request_obj.is_for_bloggers and not _user_is_blogger(request.user):
-            messages.error(request, _("Откликаться на эту заявку могут только блогеры."))
-            return redirect("collaborations:blogger_request_detail", pk=self.request_obj.pk)
-        if not _user_is_author(request.user):
-            messages.error(request, _("Откликаться на заявки могут только авторы."))
-            return redirect("collaborations:blogger_request_detail", pk=self.request_obj.pk)
+        if self.request_obj.is_for_authors:
+            if not _user_is_author(request.user):
+                messages.error(request, _("Откликаться на эту заявку могут только авторы."))
+                return redirect(
+                    "collaborations:blogger_request_detail", pk=self.request_obj.pk
+                )
+        elif self.request_obj.is_for_bloggers:
+            if not _user_is_blogger(request.user):
+                messages.error(request, _("Откликаться на эту заявку могут только блогеры."))
+                return redirect(
+                    "collaborations:blogger_request_detail", pk=self.request_obj.pk
+                )
+        else:
+            if not _user_is_author(request.user):
+                messages.error(request, _("Откликаться на заявки могут только авторы."))
+                return redirect(
+                    "collaborations:blogger_request_detail", pk=self.request_obj.pk
+                )
         return super().dispatch(request, *args, **kwargs)
 
     def get_form_kwargs(self):

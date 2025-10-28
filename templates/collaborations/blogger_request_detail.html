@@ -204,6 +204,46 @@
             </div>
           {% endif %}
 
+          {% if request_obj.is_for_bloggers %}
+            {% if request_obj.blogger_collaboration_platform or request_obj.blogger_collaboration_platform_other or request_obj.blogger_collaboration_goal %}
+              <div class="mt-4">
+                <h2 class="h6">{% trans "Совместный проект с блогером" %}</h2>
+                <dl class="mb-0">
+                  {% if request_obj.blogger_collaboration_platform %}
+                    <div class="mb-2">
+                      <dt class="text-muted small">{% trans "Платформа" %}</dt>
+                      <dd class="mb-0">{{ request_obj.blogger_collaboration_platform.name }}</dd>
+                    </div>
+                  {% elif request_obj.blogger_collaboration_platform_other %}
+                    <div class="mb-2">
+                      <dt class="text-muted small">{% trans "Платформа" %}</dt>
+                      <dd class="mb-0">{{ request_obj.blogger_collaboration_platform_other }}</dd>
+                    </div>
+                  {% endif %}
+
+                  {% if request_obj.blogger_collaboration_goal %}
+                    <div>
+                      <dt class="text-muted small">{% trans "Цель сотрудничества" %}</dt>
+                      <dd class="mb-0">
+                        {{ request_obj.get_blogger_collaboration_goal_display }}
+                        {% if request_obj.blogger_collaboration_goal == "other" and request_obj.blogger_collaboration_goal_other %}
+                          · {{ request_obj.blogger_collaboration_goal_other }}
+                        {% elif request_obj.blogger_collaboration_goal_other %}
+                          · {{ request_obj.blogger_collaboration_goal_other }}
+                        {% endif %}
+                      </dd>
+                    </div>
+                  {% elif request_obj.blogger_collaboration_goal_other %}
+                    <div>
+                      <dt class="text-muted small">{% trans "Цель сотрудничества" %}</dt>
+                      <dd class="mb-0">{{ request_obj.blogger_collaboration_goal_other }}</dd>
+                    </div>
+                  {% endif %}
+                </dl>
+              </div>
+            {% endif %}
+          {% endif %}
+          
           {% if request_obj.review_platform_links %}
             <div class="mt-4">
               <h2 class="h6">{% trans "Ссылки на площадки" %}</h2>
