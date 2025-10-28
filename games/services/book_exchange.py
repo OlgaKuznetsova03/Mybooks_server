@@ -68,7 +68,7 @@ class BookExchangeGame:
                 user=user,
                 status=BookExchangeChallenge.Status.ACTIVE,
             )
-            .select_related("shelf")
+            .select_related("user", "user__profile", "shelf")
             .prefetch_related("genres")
             .first()
         )
@@ -80,7 +80,7 @@ class BookExchangeGame:
                 user=user,
                 status=BookExchangeChallenge.Status.COMPLETED,
             )
-            .select_related("shelf")
+            .select_related("user", "user__profile", "shelf")
             .prefetch_related("genres")
             .order_by("-completed_at", "-round_number")
         )
@@ -89,9 +89,13 @@ class BookExchangeGame:
     def get_public_active_challenges(
         cls, *, exclude_user: User | None = None
     ) -> Iterable[BookExchangeChallenge]:
-        qs = BookExchangeChallenge.objects.filter(
-            status=BookExchangeChallenge.Status.ACTIVE
-        ).select_related("user", "shelf").prefetch_related("accepted_books")
+        qs = (
+            BookExchangeChallenge.objects.filter(
+                status=BookExchangeChallenge.Status.ACTIVE
+            )
+            .select_related("user", "user__profile", "shelf")
+            .prefetch_related("accepted_books")
+        )
         if exclude_user is not None:
             qs = qs.exclude(user=exclude_user)
         return qs.order_by("user__username")
@@ -105,7 +109,7 @@ class BookExchangeGame:
                 user__username=username,
                 round_number=round_number,
             )
-            .select_related("user", "shelf")
+            .select_related("user", "user__profile", "shelf")
             .prefetch_related("genres")
             .first()
         )
@@ -156,7 +160,9 @@ class BookExchangeGame:
         cls, challenge: BookExchangeChallenge
     ) -> OfferBundle:
         offers = list(
-            challenge.offers.select_related("book", "offered_by", "accepted_entry")
+            challenge.offers.select_related(
+                "book", "offered_by", "offered_by__profile", "accepted_entry"
+            )
             .prefetch_related("book__authors")
             .order_by("-created_at")
         )

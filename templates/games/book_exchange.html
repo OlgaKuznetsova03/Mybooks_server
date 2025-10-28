@@ -274,12 +274,29 @@
           <div class="col-12 col-md-6 col-xl-4">
             <article class="card h-100 border-0 bg-light">
               <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                  <div>
-                    <h3 class="h6 mb-1">{{ challenge_data.challenge.user.username }}</h3>
+                <div class="d-flex align-items-center gap-3 mb-3">
+                  <div class="flex-shrink-0">
+                    {% if challenge_data.challenge.user.profile.avatar %}
+                    <img
+                      src="{{ challenge_data.challenge.user.profile.avatar.url }}"
+                      alt="Аватар {{ challenge_data.challenge.user.username }}"
+                      class="rounded-circle border"
+                      style="width:56px;height:56px;object-fit:cover;"
+                    >
+                    {% else %}
+                    <div
+                      class="rounded-circle bg-light border d-flex align-items-center justify-content-center text-uppercase fw-semibold text-muted"
+                      style="width:56px;height:56px;"
+                    >
+                      {{ challenge_data.challenge.user.username|first|upper }}
+                    </div>
+                    {% endif %}
+                  </div>
+                  <div class="flex-grow-1">
+                    <h3 class="h6 mb-1 mb-md-0">{{ challenge_data.challenge.user.username }}</h3>
                     <div class="small text-muted">Раунд № {{ challenge_data.challenge.round_number }}</div>
                   </div>
-                  <span class="badge bg-primary text-white">Ваша полка</span>
+                  <span class="badge bg-primary text-white ms-auto">Ваша полка</span>
                 </div>
                 <p class="small text-muted mb-3">Принято книг: {{ challenge_data.accepted_count }}</p>
                 <a class="btn btn-sm btn-primary" href="{{ challenge_data.challenge.get_absolute_url }}">Открыть полку</a>
@@ -291,12 +308,29 @@
           <div class="col-12 col-md-6 col-xl-4">
             <article class="card h-100 border-0">
               <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                  <div>
+                <div class="d-flex align-items-center gap-3 mb-3">
+                  <div class="flex-shrink-0">
+                    {% if foreign.challenge.user.profile.avatar %}
+                    <img
+                      src="{{ foreign.challenge.user.profile.avatar.url }}"
+                      alt="Аватар {{ foreign.challenge.user.username }}"
+                      class="rounded-circle border"
+                      style="width:56px;height:56px;object-fit:cover;"
+                    >
+                    {% else %}
+                    <div
+                      class="rounded-circle bg-light border d-flex align-items-center justify-content-center text-uppercase fw-semibold text-muted"
+                      style="width:56px;height:56px;"
+                    >
+                      {{ foreign.challenge.user.username|first|upper }}
+                    </div>
+                    {% endif %}
+                  </div>
+                  <div class="flex-grow-1">
                     <h3 class="h6 mb-1">{{ foreign.challenge.user.username }}</h3>
                     <div class="small text-muted">Раунд № {{ foreign.challenge.round_number }}</div>
                   </div>
-                  <span class="badge bg-light text-dark">Цель: {{ foreign.challenge.target_books }}</span>
+                  <span class="badge bg-light text-dark ms-auto">Цель: {{ foreign.challenge.target_books }}</span>
                 </div>
                 <p class="small text-muted mb-3">Принято книг: {{ foreign.accepted_count }}</p>
                 <a class="btn btn-sm btn-outline-primary" href="{{ foreign.challenge.get_absolute_url }}">Открыть полку</a>
