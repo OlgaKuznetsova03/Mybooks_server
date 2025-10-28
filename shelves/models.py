@@ -16,6 +16,10 @@ class Shelf(models.Model):
     name = models.CharField(max_length=100)
     is_default = models.BooleanField(default=False)
     is_public  = models.BooleanField(default=True)
+    is_managed = models.BooleanField(
+        default=False,
+        help_text="Полка создаётся и поддерживается системой и скрыта из пользовательских списков.",
+    )
 
     class Meta:
         unique_together = ("user", "name")

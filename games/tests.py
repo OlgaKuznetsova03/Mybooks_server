@@ -433,17 +433,39 @@ class BookExchangeChallengeTests(TestCase):
         ShelfItem.objects.create(shelf=self.read_shelf, book=self.second_book)
         ShelfItem.objects.create(shelf=self.read_shelf, book=self.third_book)
 
-    def test_start_new_challenge_creates_public_shelf(self):
+    def test_start_new_challenge_creates_managed_shelf(self):
         challenge = BookExchangeGame.start_new_challenge(
             self.user,
             target_books=3,
             genres=[self.genre],
         )
         self.assertEqual(challenge.round_number, 1)
-        self.assertTrue(challenge.shelf.is_public)
+        self.assertFalse(challenge.shelf.is_public)
+        self.assertTrue(challenge.shelf.is_managed)
+        self.assertEqual(challenge.shelf.name, BookExchangeGame.SHELF_NAME)
         self.assertEqual(challenge.genres.count(), 1)
         self.assertTrue(BookExchangeGame.has_active_challenge(self.user))
 
+    def test_start_new_challenge_reuses_managed_shelf(self):
+        first = BookExchangeGame.start_new_challenge(
+            self.user,
+            target_books=1,
+            genres=[self.genre],
+        )
+        first.shelf.refresh_from_db()
+        self.assertTrue(first.shelf.is_managed)
+        BookExchangeChallenge.objects.filter(pk=first.pk).update(
+            status=BookExchangeChallenge.Status.COMPLETED
+        )
+
+        second = BookExchangeGame.start_new_challenge(
+            self.user,
+            target_books=2,
+            genres=[],
+        )
+        self.assertEqual(second.round_number, 2)
+        self.assertEqual(second.shelf_id, first.shelf_id)
+        
     def test_decline_limit_enforced(self):
         challenge = BookExchangeGame.start_new_challenge(
             self.user, target_books=3, genres=[self.genre]

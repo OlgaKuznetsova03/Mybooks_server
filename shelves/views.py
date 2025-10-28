@@ -85,7 +85,7 @@ def my_shelves(request):
     """Список полок текущего пользователя с книгами."""
     shelves = (
         Shelf.objects
-        .filter(user=request.user)
+        .filter(user=request.user, is_managed=False)
         .select_related("user")
         .prefetch_related("items__book")
         .order_by("-is_default", "name")
@@ -604,6 +604,12 @@ def add_book_to_shelf(request, book_id):
             if shelf.user_id != request.user.id:
                 messages.error(request, "Нельзя добавлять книги в чужую полку.")
                 return redirect("book_detail", pk=book.pk)
+            if getattr(shelf, "is_managed", False):
+                messages.error(
+                    request,
+                    "Книги на эту полку можно добавлять только в рамках игровой механики.",
+                )
+                return redirect("book_detail", pk=book.pk)
             if shelf.name == DEFAULT_READ_SHELF:
                 move_book_to_read_shelf(request.user, book)
                 messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")
@@ -681,6 +687,12 @@ def quick_add_default_shelf(request, book_id, code):
             return redirect(next_url)
         return redirect("book_detail", pk=book.pk)
     
+    if getattr(shelf, "is_managed", False):
+        messages.error(
+            request,
+            "Книги на эту полку можно добавлять только в рамках игровой механики.",
+        )
+        return _redirect_default()
     if code == "read":
         move_book_to_read_shelf(request.user, book)
         messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")

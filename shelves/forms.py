@@ -34,8 +34,12 @@ class AddToShelfForm(forms.Form):
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
-        # показываем только полки текущего пользователя
-        self.fields["shelf"].queryset = Shelf.objects.filter(user=user).order_by("-is_default", "name")
+        # показываем только пользовательские полки, которыми он управляет вручную
+        self.fields["shelf"].queryset = (
+            Shelf.objects
+            .filter(user=user, is_managed=False)
+            .order_by("-is_default", "name")
+        )
 
 
 class QuickAddShelfForm(AddToShelfForm):

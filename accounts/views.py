@@ -643,6 +643,7 @@ def profile(request, username=None):
 
     user_shelves = (
         user_obj.shelves
+        .filter(is_managed=False)
         .select_related("user")
         .prefetch_related("items__book__authors")
         .order_by("-is_default", "name")

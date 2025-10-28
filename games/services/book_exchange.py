@@ -40,7 +40,7 @@ class BookExchangeGame:
         "Выберите, сколько новых книг готовы принять, укажите предпочтительные жанры и "
         "позвольте другим игрокам пополнять вашу игровую полку прочитанными историями."
     )
-    SHELF_NAME_TEMPLATE = "Игровой обмен — Раунд {number}"
+    SHELF_NAME = "Игровой обмен — Игровая полка"
 
     @classmethod
     def get_game(cls) -> Game:
@@ -53,6 +53,44 @@ class BookExchangeGame:
         )
         return game
 
+    @classmethod
+    def _ensure_game_shelf(cls, user: User) -> Shelf:
+        latest_challenge = (
+            BookExchangeChallenge.objects.filter(user=user)
+            .select_related("shelf")
+            .order_by("-round_number")
+            .first()
+        )
+        shelf = latest_challenge.shelf if latest_challenge else None
+        if shelf is None:
+            shelf, _ = Shelf.objects.get_or_create(
+                user=user,
+                name=cls.SHELF_NAME,
+                defaults={
+                    "is_default": False,
+                    "is_public": False,
+                    "is_managed": True,
+                },
+            )
+        updates: dict[str, object] = {}
+        if not getattr(shelf, "is_managed", False):
+            updates["is_managed"] = True
+        if shelf.is_public:
+            updates["is_public"] = False
+        desired_name = cls.SHELF_NAME
+        if (
+            shelf.name != desired_name
+            and not Shelf.objects.filter(user=user, name=desired_name)
+            .exclude(pk=shelf.pk)
+            .exists()
+        ):
+            updates["name"] = desired_name
+        if updates:
+            for field, value in updates.items():
+                setattr(shelf, field, value)
+            shelf.save(update_fields=list(updates.keys()))
+        return shelf
+    
     # --- challenge lifecycle -------------------------------------------------
     @classmethod
     def has_active_challenge(cls, user: User) -> bool:
@@ -136,13 +174,7 @@ class BookExchangeGame:
                 or 0
             )
             round_number = next_number + 1
-            shelf_name = cls.SHELF_NAME_TEMPLATE.format(number=round_number)
-            shelf = Shelf.objects.create(
-                user=user,
-                name=shelf_name,
-                is_default=False,
-                is_public=True,
-            )
+            shelf = cls._ensure_game_shelf(user)
             challenge = BookExchangeChallenge.objects.create(
                 game=game,
                 user=user,
