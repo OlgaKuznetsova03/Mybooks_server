@@ -235,16 +235,18 @@
 <!-- Offcanvas: ПОЛНОЕ меню -->
 <div class="offcanvas offcanvas-start" tabindex="-1" id="mainOffcanvas" aria-labelledby="mainOffcanvasLabel">
   <div class="offcanvas-header">
-    <h5 class="offcanvas-title" id="mainOffcanvasLabel">Меню</h5>
+    <form class="d-flex" method="get" action="{% url 'book_list' %}">
+      <input class="form-control me-2" name="q" value="{{ q|default:'' }}" placeholder="Название, автор, жанр">
+      <button class="btn" type="submit"><i class="bi bi-search"></i></button>
+    </form>
     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Закрыть"></button>
   </div>
   <div class="offcanvas-body d-flex flex-column gap-3">
 
     <!-- Поиск -->
-    <form class="d-flex" method="get" action="{% url 'book_list' %}">
-      <input class="form-control me-2" name="q" value="{{ q|default:'' }}" placeholder="Название, автор, жанр">
-      <button class="btn" type="submit"><i class="bi bi-search"></i></button>
-    </form>
+    <a class="offcanvas-title btn btn-primary" id="mainOffcanvasLabel" href="{% url 'book_create' %}">
+      <i class="bi bi-plus-lg me-2"></i>Добавить книгу
+    </a>
 
     <ul class="navbar-nav" id="offcanvasLinks">
       <li class="nav-item"><a class="nav-link" href="{% url 'book_list' %}">Книги</a></li>
