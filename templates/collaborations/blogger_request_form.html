@@ -77,6 +77,17 @@
 .blogger-request-form-theme .delete-checkbox {
   margin-top: 1.75rem;
 }
+
+.blogger-request-form-theme .audience-section {
+  background: rgba(255, 255, 255, .75);
+  border: 1px solid var(--br-soft-16);
+  border-radius: .75rem;
+  padding: 1.5rem 1.25rem;
+}
+
+.blogger-request-form-theme .audience-section + .audience-section {
+  margin-top: 1.5rem;
+}
 </style>
 {% endblock %}
 
@@ -99,27 +110,52 @@
           {% csrf_token %}
           {{ form.non_field_errors }}
 
-          {% for field in form %}
-            <div class="mb-3">
-              {% if field.field.widget.input_type == "checkbox" %}
-                <div class="form-check">
-                  {{ field }}
-                  <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                </div>
-              {% else %}
-                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {{ field }}
-              {% endif %}
-              {% if field.help_text %}
-                <div class="form-text">{{ field.help_text }}</div>
-              {% endif %}
-              {% for error in field.errors %}
-                <div class="invalid-feedback d-block">{{ error }}</div>
-              {% endfor %}
-            </div>
-          {% endfor %}
+          <div class="mb-4">
+            <h2 class="h5 mb-3">{% trans "Основная информация" %}</h2>
+            {% include "collaborations/includes/form_field.html" with field=form.target_audience %}
+            {% include "collaborations/includes/form_field.html" with field=form.title %}
+            {% include "collaborations/includes/form_field.html" with field=form.collaboration_type %}
+            {% include "collaborations/includes/form_field.html" with field=form.collaboration_terms %}
+          </div>
 
-            <hr class="my-4">
+          <div class="audience-section mb-4" data-audience="authors">
+            <h2 class="h5 mb-3">{% trans "Что важно для авторов" %}</h2>
+            <p class="text-muted small mb-3">
+              {% trans "Поделитесь предпочтениями по книгам и форматам, чтобы авторы понимали, что вам интересно." %}
+            </p>
+            {% include "collaborations/includes/form_field.html" with field=form.preferred_genres %}
+            <div class="row g-3">
+              <div class="col-md-4">
+                {% include "collaborations/includes/form_field.html" with field=form.accepts_paper %}
+              </div>
+              <div class="col-md-4">
+                {% include "collaborations/includes/form_field.html" with field=form.accepts_electronic %}
+              </div>
+              <div class="col-md-4">
+                {% include "collaborations/includes/form_field.html" with field=form.accepts_audio %}
+              </div>
+
+            {% include "collaborations/includes/form_field.html" with field=form.review_formats %}
+            {% include "collaborations/includes/form_field.html" with field=form.review_platform_links %}
+          </div>
+
+          <div class="audience-section mb-4" data-audience="bloggers">
+            <h2 class="h5 mb-3">{% trans "Что важно для блогеров" %}</h2>
+            <p class="text-muted small mb-3">
+              {% trans "Опишите формат совместной активности и площадки, на которых хотите сотрудничать." %}
+            </p>
+            {% include "collaborations/includes/form_field.html" with field=form.blogger_collaboration_platform %}
+            {% include "collaborations/includes/form_field.html" with field=form.blogger_collaboration_platform_other %}
+            {% include "collaborations/includes/form_field.html" with field=form.blogger_collaboration_goal %}
+            {% include "collaborations/includes/form_field.html" with field=form.blogger_collaboration_goal_other %}
+          </div>
+
+          <div class="mb-4">
+            {% include "collaborations/includes/form_field.html" with field=form.additional_info %}
+            {% include "collaborations/includes/form_field.html" with field=form.is_active %}
+          </div>
+
+          <hr class="my-4">
 
           <h2 class="h5 mb-3">{% trans "Площадки и охват" %}</h2>
           <p class="text-muted small mb-3">
@@ -179,4 +215,33 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const audienceField = document.getElementById('{{ form.target_audience.auto_id }}');
+    if (!audienceField) {
+      return;
+    }
+
+    const sections = document.querySelectorAll('.audience-section');
+
+    function toggleSections() {
+      const value = audienceField.value;
+      sections.forEach(function (section) {
+        const audience = section.getAttribute('data-audience');
+        if (!audience) {
+          return;
+        }
+        const hasErrors = section.querySelector('.invalid-feedback');
+        const shouldShow = value === audience || Boolean(hasErrors);
+        section.classList.toggle('d-none', !shouldShow);
+      });
+    }
+
+    audienceField.addEventListener('change', toggleSections);
+    toggleSections();
+  });
+</script>
 {% endblock %}
