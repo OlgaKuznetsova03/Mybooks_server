@@ -118,7 +118,8 @@
             {% include "collaborations/includes/form_field.html" with field=form.collaboration_terms %}
           </div>
 
-          <div class="audience-section mb-4" data-audience="authors">
+          {% with current_target=form.target_audience.value %}
+          <div class="audience-section mb-4{% if current_target != 'authors' %} d-none{% endif %}" data-audience="authors">
             <h2 class="h5 mb-3">{% trans "Что важно для авторов" %}</h2>
             <p class="text-muted small mb-3">
               {% trans "Поделитесь предпочтениями по книгам и форматам, чтобы авторы понимали, что вам интересно." %}
@@ -134,12 +135,13 @@
               <div class="col-md-4">
                 {% include "collaborations/includes/form_field.html" with field=form.accepts_audio %}
               </div>
+            </div>
 
             {% include "collaborations/includes/form_field.html" with field=form.review_formats %}
             {% include "collaborations/includes/form_field.html" with field=form.review_platform_links %}
           </div>
 
-          <div class="audience-section mb-4" data-audience="bloggers">
+          <div class="audience-section mb-4{% if current_target != 'bloggers' %} d-none{% endif %}" data-audience="bloggers">
             <h2 class="h5 mb-3">{% trans "Что важно для блогеров" %}</h2>
             <p class="text-muted small mb-3">
               {% trans "Опишите формат совместной активности и площадки, на которых хотите сотрудничать." %}
@@ -149,6 +151,7 @@
             {% include "collaborations/includes/form_field.html" with field=form.blogger_collaboration_goal %}
             {% include "collaborations/includes/form_field.html" with field=form.blogger_collaboration_goal_other %}
           </div>
+          {% endwith %}
 
           <div class="mb-4">
             {% include "collaborations/includes/form_field.html" with field=form.additional_info %}
@@ -165,7 +168,7 @@
           {{ formset.management_form }}
           {{ formset.non_form_errors }}
 
-    {% for platform_form in formset %}
+          {% for platform_form in formset %}
             <div class="platform-form">
               {% for hidden in platform_form.hidden_fields %}
                 {{ hidden }}
