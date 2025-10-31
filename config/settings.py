@@ -78,11 +78,11 @@ CSRF_TRUSTED_ORIGINS = [
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO","https")
 # Application definition
 # Всегда принудительно на HTTPS (работает за Nginx благодаря SECURE_PROXY_SSL_HEADER)
-SECURE_SSL_REDIRECT = False
+SECURE_SSL_REDIRECT = True
 
 # Куки только по HTTPS
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
 
 # HTTP Strict Transport Security (HSTS) — 180 дней
 SECURE_HSTS_SECONDS = 15552000
