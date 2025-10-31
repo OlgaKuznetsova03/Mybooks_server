@@ -18,6 +18,7 @@ from django.db.models import (
     Count,
     Value,
     IntegerField,
+    Window,
 )
 from django.db.models.functions import Coalesce
 from typing import Iterable, Optional
@@ -451,12 +452,12 @@ def book_list(request):
 
     rating_stats_subquery = (
         Rating.objects.filter(book=OuterRef("pk"))
-        .order_by()
         .values("book")
         .annotate(
-            avg_score=Avg("score"),
-            score_count=Count("score"),
+           avg_score=Avg("score"),
+           score_count=Count("score")
         )
+        .values("avg_score", "score_count")
     )
 
     annotated_books = (
@@ -749,15 +750,16 @@ def book_list(request):
 
         popular_genres = list(
             Genre.objects.annotate(
-                recent_reader_count=Count(
-                    "books__bookprogress__user",
-                    filter=Q(books__bookprogress__updated_at__gte=popular_window),
-                    distinct=True,
-                )
+            recent_reader_count=Count(
+                "books__bookprogress__user",
+                filter=Q(books__bookprogress__updated_at__gte=popular_window),
+                distinct=True,
             )
-            .filter(recent_reader_count__gt=0)
-            .order_by("-recent_reader_count", "name")[:4]
         )
+        .filter(recent_reader_count__gt=0)
+        .order_by("-recent_reader_count", "name")[:4]
+        .values("id", "name", "slug", "recent_reader_count")  # Добавьте эту строку
+    )
 
         for genre in popular_genres:
             top_books = list(
@@ -1847,7 +1849,7 @@ def book_review_print(request, pk):
     }
 
     html = render_to_string("books/review_print.html", context)
-    filename = slugify(book.title) or "book-review"
+    filename = slugify(books_book.title) or "book-review"
     response = HttpResponse(html, content_type="text/html; charset=utf-8")
     response["Content-Disposition"] = f'attachment; filename="{filename}-review.html"'
     return response

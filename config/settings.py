@@ -78,11 +78,11 @@ CSRF_TRUSTED_ORIGINS = [
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO","https")
 # Application definition
 # Всегда принудительно на HTTPS (работает за Nginx благодаря SECURE_PROXY_SSL_HEADER)
-SECURE_SSL_REDIRECT = True
+SECURE_SSL_REDIRECT = False
 
 # Куки только по HTTPS
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
 
 # HTTP Strict Transport Security (HSTS) — 180 дней
 SECURE_HSTS_SECONDS = 15552000
@@ -209,12 +209,22 @@ RUNNING_TESTS = (
     os.getenv("RUNNING_TESTS", "").lower() in {"1", "true", "yes"}
 )
 
+# Основная конфигурация DATABASES
+DATABASES = {
+    "default": DEFAULT_DATABASE
+}
+
+# Для PostgreSQL добавляем опции чтобы решить проблему с GROUP BY
+DATABASES["default"]["OPTIONS"] = {
+    **DATABASES["default"].get("OPTIONS", {}),
+    "sslmode": env("PG_SSLMODE", "DB_SSLMODE", default="require"),
+}
+
+# Если запущены тесты и не используется PostgreSQL для тестов
 if RUNNING_TESTS and os.getenv("USE_POSTGRES_FOR_TESTS", "").lower() not in {"1", "true", "yes"}:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": env("PG_NAME", "DB_NAME", default="mybooks"),
-        }
+    DATABASES["default"] = {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": ":memory:",
     }
 else:
     DATABASES = {"default": DEFAULT_DATABASE}
@@ -330,3 +340,20 @@ else:
         print(
             "⚠️  AWS credentials are incomplete – falling back to local media storage"
         )
+        
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django.db.backends': {
+            'level': 'DEBUG',
+            'handlers': ['console'],
+        }
+    }
+}
