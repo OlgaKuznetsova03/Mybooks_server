@@ -1,0 +1,196 @@
+[
+  {
+    "model": "games.game",
+    "pk": 2,
+    "fields": {
+      "slug": "forgotten-books-12",
+      "title": "12 забытых книг",
+      "description": "Соберите двенадцать книг из своей домашней библиотеки и каждый месяц читайте одну новую. Первый день месяца выбирает следующую книгу случайным образом — у вас есть целый месяц, чтобы прочитать её и написать отзыв.",
+      "is_active": true,
+      "created_at": "2025-10-24T11:08:23.163447+00:00",
+      "updated_at": "2025-10-24T11:08:23.163447+00:00"
+    }
+  },
+  {
+    "model": "games.game",
+    "pk": 3,
+    "fields": {
+      "slug": "book-exchange-challenge",
+      "title": "Обмен читательскими вызовами",
+      "description": "Выберите, сколько новых книг готовы принять, укажите предпочтительные жанры и позвольте другим игрокам пополнять вашу игровую полку прочитанными историями.",
+      "is_active": true,
+      "created_at": "2025-10-25T11:00:42.428843+00:00",
+      "updated_at": "2025-10-25T11:00:42.428843+00:00"
+    }
+  },
+  {
+    "model": "games.game",
+    "pk": 1,
+    "fields": {
+      "slug": "read-before-buy",
+      "title": "Читай прежде чем покупать",
+      "description": "Получайте по одному баллу за каждую прочитанную страницу и дополнительные бонусы за большие книги. Накапливайте 1300 баллов, чтобы добавить новую книгу на полку.",
+      "is_active": true,
+      "created_at": "2025-10-24T11:08:23.154907+00:00",
+      "updated_at": "2025-10-24T11:08:23.154907+00:00"
+    }
+  },
+  {
+    "model": "games.gameshelfstate",
+    "pk": 1,
+    "fields": {
+      "game": 1,
+      "shelf": 53,
+      "user": 12,
+      "points_balance": 0,
+      "total_points_earned": 0,
+      "books_purchased": 0,
+      "books_reviewed": 0,
+      "started_at": "2025-10-27T15:21:19.115011+00:00",
+      "created_at": "2025-10-27T15:21:19.115011+00:00",
+      "updated_at": "2025-10-27T15:21:19.115011+00:00"
+    }
+  },
+  {
+    "model": "games.bookjourneyassignment",
+    "pk": 1,
+    "fields": {
+      "user": 12,
+      "stage_number": 1,
+      "book": 35,
+      "status": "in_progress",
+      "started_at": "2025-10-27T20:36:06.730861+00:00",
+      "completed_at": null,
+      "created_at": "2025-10-27T20:36:06.719858+00:00",
+      "updated_at": "2025-10-27T20:36:06.730861+00:00"
+    }
+  },
+  {
+    "model": "games.bookexchangechallenge",
+    "pk": 4,
+    "fields": {
+      "game": 3,
+      "user": 11,
+      "round_number": 1,
+      "target_books": 2,
+      "shelf": 54,
+      "status": "active",
+      "locked_at": null,
+      "deadline_at": null,
+      "completed_at": null,
+      "started_at": "2025-10-28T14:05:21.428120+00:00",
+      "created_at": "2025-10-28T14:05:21.428120+00:00",
+      "updated_at": "2025-10-28T14:05:21.428120+00:00"
+    }
+  },
+  {
+    "model": "games.bookexchangechallenge",
+    "pk": 3,
+    "fields": {
+      "game": 3,
+      "user": 7,
+      "round_number": 1,
+      "target_books": 1,
+      "shelf": 49,
+      "status": "active",
+      "locked_at": null,
+      "deadline_at": null,
+      "completed_at": null,
+      "started_at": "2025-10-27T10:38:44.399306+00:00",
+      "created_at": "2025-10-27T10:38:44.399306+00:00",
+      "updated_at": "2025-10-27T10:38:44.399306+00:00"
+    }
+  },
+  {
+    "model": "games.bookexchangechallenge",
+    "pk": 2,
+    "fields": {
+      "game": 3,
+      "user": 2,
+      "round_number": 1,
+      "target_books": 1,
+      "shelf": 30,
+      "status": "active",
+      "locked_at": null,
+      "deadline_at": null,
+      "completed_at": null,
+      "started_at": "2025-10-25T15:28:09.666544+00:00",
+      "created_at": "2025-10-25T15:28:09.666544+00:00",
+      "updated_at": "2025-10-25T15:28:09.666544+00:00"
+    }
+  },
+  {
+    "model": "games.bookexchangechallenge",
+    "pk": 1,
+    "fields": {
+      "game": 3,
+      "user": 3,
+      "round_number": 1,
+      "target_books": 5,
+      "shelf": 25,
+      "status": "active",
+      "locked_at": null,
+      "deadline_at": null,
+      "completed_at": null,
+      "started_at": "2025-10-25T11:01:56.866622+00:00",
+      "created_at": "2025-10-25T11:01:56.866622+00:00",
+      "updated_at": "2025-10-25T11:01:56.866622+00:00"
+    }
+  },
+  {
+    "model": "games.bookexchangeoffer",
+    "pk": 3,
+    "fields": {
+      "challenge": 4,
+      "offered_by": 3,
+      "book": 34,
+      "status": "accepted",
+      "note": "",
+      "created_at": "2025-10-28T14:06:13.465436+00:00",
+      "responded_at": "2025-10-28T14:09:25.567224+00:00",
+      "updated_at": "2025-10-28T14:09:25.567224+00:00"
+    }
+  },
+  {
+    "model": "games.bookexchangeoffer",
+    "pk": 2,
+    "fields": {
+      "challenge": 3,
+      "offered_by": 3,
+      "book": 27,
+      "status": "pending",
+      "note": "",
+      "created_at": "2025-10-27T19:55:51.982690+00:00",
+      "responded_at": null,
+      "updated_at": "2025-10-27T19:55:51.982690+00:00"
+    }
+  },
+  {
+    "model": "games.bookexchangeoffer",
+    "pk": 1,
+    "fields": {
+      "challenge": 2,
+      "offered_by": 3,
+      "book": 8,
+      "status": "pending",
+      "note": "",
+      "created_at": "2025-10-25T20:34:21.247839+00:00",
+      "responded_at": null,
+      "updated_at": "2025-10-25T20:34:21.247839+00:00"
+    }
+  },
+  {
+    "model": "games.bookexchangeacceptedbook",
+    "pk": 1,
+    "fields": {
+      "challenge": 4,
+      "offer": 3,
+      "book": 34,
+      "accepted_at": "2025-10-28T14:09:25.577221+00:00",
+      "finished_at": "2025-10-28T14:11:25.685864+00:00",
+      "review_submitted_at": "2025-10-28T14:12:49.247215+00:00",
+      "completed_at": "2025-10-28T14:12:49.247215+00:00",
+      "updated_at": "2025-10-28T14:12:49.287679+00:00"
+    }
+  }
+]

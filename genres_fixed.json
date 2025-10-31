@@ -1,0 +1,394 @@
+[
+  {
+    "model": "books.genre",
+    "pk": 1,
+    "fields": {
+      "name": "Художественная литература",
+      "slug": "khudozhestvennaya-literatura"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 2,
+    "fields": {
+      "name": "Фэнтези",
+      "slug": "fentezi"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 3,
+    "fields": {
+      "name": "Роман",
+      "slug": "roman"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 4,
+    "fields": {
+      "name": "Исторический роман",
+      "slug": "istoricheskiy-roman"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 5,
+    "fields": {
+      "name": "Проза",
+      "slug": "proza"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 6,
+    "fields": {
+      "name": "Детектив",
+      "slug": "detektiv"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 7,
+    "fields": {
+      "name": "Современная литература",
+      "slug": "sovremennaya-literatura"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 8,
+    "fields": {
+      "name": "Приключения",
+      "slug": "priklyucheniya"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 9,
+    "fields": {
+      "name": "Зарубежная литература",
+      "slug": "zarubezhnaya-literatura"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 10,
+    "fields": {
+      "name": "Триллер",
+      "slug": "triller"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 11,
+    "fields": {
+      "name": "Триллеры",
+      "slug": "trillery"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 12,
+    "fields": {
+      "name": "Детективы",
+      "slug": "detektivy"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 13,
+    "fields": {
+      "name": "Современная проза",
+      "slug": "sovremennaya-proza"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 14,
+    "fields": {
+      "name": "Классическая литература",
+      "slug": "klassicheskaya-literatura"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 15,
+    "fields": {
+      "name": "Любовные романы",
+      "slug": "lyubovnye-romany"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 18,
+    "fields": {
+      "name": "Мистика",
+      "slug": "mistika-2"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 19,
+    "fields": {
+      "name": "Ужасы",
+      "slug": "uzhasy"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 20,
+    "fields": {
+      "name": "Контуркультура",
+      "slug": "konturkultura"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 23,
+    "fields": {
+      "name": "Городское Фэнтези",
+      "slug": "gorodskoe-fentezi-2"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 24,
+    "fields": {
+      "name": "Реализм",
+      "slug": "realizm"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 25,
+    "fields": {
+      "name": "Саспенс",
+      "slug": "saspens"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 26,
+    "fields": {
+      "name": "Контркультура",
+      "slug": "kontrkultura"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 27,
+    "fields": {
+      "name": "Славянское фэнтези",
+      "slug": "slavyanskoe-fentezi"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 28,
+    "fields": {
+      "name": "Романтика",
+      "slug": "romantika"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 29,
+    "fields": {
+      "name": "Семейная Сага",
+      "slug": "semeynaya-saga"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 30,
+    "fields": {
+      "name": "Dark Romance",
+      "slug": "dark-romance"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 32,
+    "fields": {
+      "name": "Фантастика",
+      "slug": "fantastika"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 33,
+    "fields": {
+      "name": "Постапокалипсис",
+      "slug": "postapokalipsis"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 34,
+    "fields": {
+      "name": "Антиутопия",
+      "slug": "antiutopiya"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 37,
+    "fields": {
+      "name": "Проза жизни",
+      "slug": "proza-zhizni"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 38,
+    "fields": {
+      "name": "Исторический любовный роман",
+      "slug": "istoricheskiy-lyubovnyy-roman"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 39,
+    "fields": {
+      "name": "Современный любовный роман",
+      "slug": "sovremennyy-lyubovnyy-roman"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 40,
+    "fields": {
+      "name": "Корейская Мифология",
+      "slug": "koreyskaya-mifologiya"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 41,
+    "fields": {
+      "name": "Дорама",
+      "slug": "dorama"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 42,
+    "fields": {
+      "name": "Фикшн",
+      "slug": "fikshn"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 43,
+    "fields": {
+      "name": "Древние артефакты",
+      "slug": "drevnie-artefakty"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 44,
+    "fields": {
+      "name": "Историческая литература",
+      "slug": "istoricheskaya-literatura"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 45,
+    "fields": {
+      "name": "Сентиментальные романы",
+      "slug": "sentimentalnye-romany"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 46,
+    "fields": {
+      "name": "Современная зарубежная литература",
+      "slug": "sovremennaya-zarubezhnaya-literatura"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 48,
+    "fields": {
+      "name": "Азиатское магическое фэнтези",
+      "slug": "aziatskoe-magicheskoe-fentezi"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 49,
+    "fields": {
+      "name": "Славянское Фэнтези",
+      "slug": "slavyanskoe-fentezi-2"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 51,
+    "fields": {
+      "name": "Романтическое фэнтези",
+      "slug": "romanticheskoe-fentezi"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 53,
+    "fields": {
+      "name": "Нонфикшн астрофизика",
+      "slug": "nonfikshn-astrofizika"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 54,
+    "fields": {
+      "name": "Подростковая литература",
+      "slug": "podrostkovaya-literatura"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 55,
+    "fields": {
+      "name": "История",
+      "slug": "istoriya"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 56,
+    "fields": {
+      "name": "Советская литература",
+      "slug": "sovetskaya-literatura"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 57,
+    "fields": {
+      "name": "Публицистика",
+      "slug": "publitsistika"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 59,
+    "fields": {
+      "name": "Комиксы и графические романы",
+      "slug": "komiksy-i-graficheskie-romany"
+    }
+  },
+  {
+    "model": "books.genre",
+    "pk": 60,
+    "fields": {
+      "name": "Магический реализм",
+      "slug": "magicheskiy-realizm"
+    }
+  }
+]

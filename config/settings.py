@@ -17,8 +17,8 @@ from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env")
 
+load_dotenv(BASE_DIR / ".env")
 
 def env_bool(name: str, default: bool = False) -> bool:
     value = os.getenv(name)
@@ -57,14 +57,33 @@ SECRET_KEY = 'django-insecure-l(91%(h@2ns6c^zl@sy)(#y50&nkase0^d%1k*jmyqgi6o!_k*
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    ".ngrok-free.dev",
+    "kalejdoskopknig.ru",           # твой домен
+    ".kalejdoskopknig.ru",
+    '212.67.9.205', 
+    'localhost', 
+    '127.0.0.1'# на всякий случай поддомены (www и т.п.)
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://*.ngrok-free.dev",
+    "https://kalejdoskopknig.ru",
+    "https://www.kalejdoskopknig.ru",
 ]
 
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO","https")
 # Application definition
+# Всегда принудительно на HTTPS (работает за Nginx благодаря SECURE_PROXY_SSL_HEADER)
+SECURE_SSL_REDIRECT = True
+
+# Куки только по HTTPS
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
+# HTTP Strict Transport Security (HSTS) — 180 дней
+SECURE_HSTS_SECONDS = 15552000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -119,26 +138,37 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
+def env(*names, default=None):
+    for n in names:
+        v = os.getenv(n)
+        if v not in (None, ""):
+            return v
+    return default
+
+# БАЗОВОЕ подключение к Postgres (Beget)
 DEFAULT_DATABASE = {
     "ENGINE": "django.db.backends.postgresql",
-    "NAME": os.getenv("DB_NAME", "postgres"),
-    "USER": os.getenv("DB_USER", "postgres"),
-    "PASSWORD": os.getenv("DB_PASSWORD", ""),
-    "HOST": os.getenv("DB_HOST", "127.0.0.1"),
-    "PORT": os.getenv("DB_PORT", "5432"),
-    "CONN_MAX_AGE": 60,
+    "NAME": env("PG_NAME", "DB_NAME", default="mybooks"),
+    "USER": env("PG_USER", "DB_USER", default="cloud_user"),
+    "PASSWORD": env("PG_PASSWORD", "DB_PASSWORD", default=""),
+    "HOST": env("PG_HOST", "DB_HOST", default="10.16.0.1"),
+    "PORT": env("PG_PORT", "DB_PORT", default="5432"),
+    "OPTIONS": {
+        "sslmode": env("PG_SSLMODE", "DB_SSLMODE", default="disable"),
+    },
+    "CONN_MAX_AGE": int(env("PG_CONN_MAX_AGE", default="60")),
 }
 
 RUNNING_TESTS = (
-    os.getenv("PYTEST_CURRENT_TEST") is not None
-    or any(arg in {"test", "pytest"} for arg in sys.argv)
+    "test" in sys.argv or
+    os.getenv("RUNNING_TESTS", "").lower() in {"1", "true", "yes"}
 )
 
 if RUNNING_TESTS and os.getenv("USE_POSTGRES_FOR_TESTS", "").lower() not in {"1", "true", "yes"}:
     DATABASES = {
         "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": env("PG_NAME", "DB_NAME", default="mybooks"),
         }
     }
 else:
@@ -242,5 +272,8 @@ if AWS_STORAGE_BUCKET_NAME:
     AWS_QUERYSTRING_AUTH = env_bool("AWS_QUERYSTRING_AUTH", False)
     AWS_DEFAULT_ACL = os.getenv("AWS_DEFAULT_ACL", "public-read")
     AWS_S3_FILE_OVERWRITE = env_bool("AWS_S3_FILE_OVERWRITE", False)
+    AWS_S3_SIGNATURE_VERSION = os.getenv("AWS_S3_SIGNATURE_VERSION", "s3v4")
+    AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "ru-1")
+
 
     MEDIA_URL = f"{AWS_S3_ENDPOINT_URL.rstrip('/')}/{AWS_STORAGE_BUCKET_NAME}/"

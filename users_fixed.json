@@ -1,0 +1,285 @@
+[
+  {
+    "model": "auth.user",
+    "pk": 12,
+    "fields": {
+      "password": "pbkdf2_sha256$600000$ttIMy9lxNE50LkcSViqySE$5jAUUOesS5tlMz8JN7E/XCJB2bwAbIFAoONtiXffU1w=",
+      "last_login": "2025-10-27T10:52:09.840083+00:00",
+      "is_superuser": false,
+      "username": "Мурбусенок",
+      "first_name": "",
+      "last_name": "",
+      "email": "murbusenok@gmail.com",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2025-10-27T10:52:09.291397+00:00",
+      "groups": [
+        1
+      ],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "auth.user",
+    "pk": 11,
+    "fields": {
+      "password": "pbkdf2_sha256$600000$vOfGCmu6erBecNzPl2WGBU$GBKlihr1vHRsvxQUFW31mVS+Irw3IiAEdfJ1aVcRRR8=",
+      "last_login": "2025-10-27T11:36:13.194894+00:00",
+      "is_superuser": false,
+      "username": "Любитель_книг",
+      "first_name": "",
+      "last_name": "",
+      "email": "chitaemknigi77@gmail.com",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2025-10-26T18:57:23.938847+00:00",
+      "groups": [
+        3
+      ],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "auth.user",
+    "pk": 7,
+    "fields": {
+      "password": "pbkdf2_sha256$600000$JWVrDnDoZkcY49iOQua40t$9iGJrf0VeSnUY9Z9o+xwPuw+W6dvL8zCZxF+s5OsopY=",
+      "last_login": "2025-10-28T16:21:57.493784+00:00",
+      "is_superuser": false,
+      "username": "Александра",
+      "first_name": "",
+      "last_name": "",
+      "email": "asehina996@gmail.com",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2025-10-25T11:30:46.495682+00:00",
+      "groups": [
+        1,
+        3
+      ],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "auth.user",
+    "pk": 13,
+    "fields": {
+      "password": "pbkdf2_sha256$600000$XDCAhwhrq413zCdIpYIlTX$51+hyHxB690RHYgMkE6heb4xxISJbgzNS5jmzgMgtoQ=",
+      "last_login": "2025-10-28T22:02:23.034751+00:00",
+      "is_superuser": false,
+      "username": "Евгения",
+      "first_name": "",
+      "last_name": "",
+      "email": "evgenya.chegrintseva@yandex.ru",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2025-10-28T22:02:22.714527+00:00",
+      "groups": [
+        1
+      ],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "auth.user",
+    "pk": 6,
+    "fields": {
+      "password": "pbkdf2_sha256$600000$r1eFK7kJdl38xJiZUTOfXr$RZ4c7ZR8q3KiTFEeSWt/PIxSZlBR7ZysoWlKGagwYIY=",
+      "last_login": "2025-10-24T13:23:54.912340+00:00",
+      "is_superuser": false,
+      "username": "Dark_girl",
+      "first_name": "",
+      "last_name": "",
+      "email": "chiernykh97@bk.ru",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2025-10-24T13:23:54.463973+00:00",
+      "groups": [
+        1
+      ],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "auth.user",
+    "pk": 4,
+    "fields": {
+      "password": "pbkdf2_sha256$600000$kPawnlOWqwQRBPerKrUylr$R4rZw8vS9J0IoksA+xk2plhO3sLnzREnFXk33g2uwUc=",
+      "last_login": "2025-10-24T14:11:47.774584+00:00",
+      "is_superuser": false,
+      "username": "Litgourmet",
+      "first_name": "",
+      "last_name": "",
+      "email": "inna.tan.online@gmail.com",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2025-10-24T11:55:55.884822+00:00",
+      "groups": [
+        1,
+        2,
+        3
+      ],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "auth.user",
+    "pk": 14,
+    "fields": {
+      "password": "pbkdf2_sha256$600000$D8CSwxPD1Ag8ebQmlUz8GT$3YW+jSg6uC3TJEnOk4LMi1ey79ARLfkHalYu54aAfzs=",
+      "last_login": "2025-10-29T09:16:07.913925+00:00",
+      "is_superuser": false,
+      "username": "Katya_bookworld",
+      "first_name": "",
+      "last_name": "",
+      "email": "e.soloviova.bh@mail.ru",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2025-10-29T09:16:07.571404+00:00",
+      "groups": [
+        1,
+        3
+      ],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "auth.user",
+    "pk": 5,
+    "fields": {
+      "password": "pbkdf2_sha256$600000$NtW57PBZXdW1Lhf7RnJyHh$LbebC1IEtajpz9KGaK3xAjkq3eyOzqIWFM7IcQ5eq8Q=",
+      "last_login": "2025-10-24T16:45:46.924243+00:00",
+      "is_superuser": false,
+      "username": "Марина",
+      "first_name": "",
+      "last_name": "",
+      "email": "marinchen28@yandex.ru",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2025-10-24T12:44:50.451598+00:00",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "auth.user",
+    "pk": 1,
+    "fields": {
+      "password": "pbkdf2_sha256$600000$s8lXkXYgnmZBEDZTsSuqdZ$aoXJuCs4apYC4vjwbX8KF6ACY50q/Q0QFamr/2s6MXQ=",
+      "last_login": "2025-10-24T17:14:15.400243+00:00",
+      "is_superuser": true,
+      "username": "Olga",
+      "first_name": "",
+      "last_name": "",
+      "email": "ya.ameno@yandex.ru",
+      "is_staff": true,
+      "is_active": true,
+      "date_joined": "2025-10-24T11:06:49.158795+00:00",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "auth.user",
+    "pk": 2,
+    "fields": {
+      "password": "pbkdf2_sha256$600000$MEHNjVwjdOcXYOxRANJrFz$1+HFeE04eWsAGVE70kaIps9Z603bYZrmiBXlcYqlaCU=",
+      "last_login": "2025-10-25T15:27:42.820446+00:00",
+      "is_superuser": false,
+      "username": "ArtPie",
+      "first_name": "",
+      "last_name": "",
+      "email": "litnistel@mail.ru",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2025-10-24T11:11:28.160050+00:00",
+      "groups": [
+        1
+      ],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "auth.user",
+    "pk": 8,
+    "fields": {
+      "password": "pbkdf2_sha256$600000$saYcwSjbLQZkAbt8XX9hrj$fsjcNTWIW5DSIW/qeym6eN741nA1CMlcgUjkGbQeoC8=",
+      "last_login": "2025-10-25T16:40:42.717588+00:00",
+      "is_superuser": false,
+      "username": "TarAleksin",
+      "first_name": "",
+      "last_name": "",
+      "email": "aleksintar@gmail.com",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2025-10-25T16:40:42.373217+00:00",
+      "groups": [
+        2
+      ],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "auth.user",
+    "pk": 9,
+    "fields": {
+      "password": "pbkdf2_sha256$600000$4xxaC2q8SkbnBnuGRIvTE8$1Lrvv897aHvK7zWidPooLiNIe67sh9j52ViY/t8EhYs=",
+      "last_login": "2025-10-25T17:30:48.893949+00:00",
+      "is_superuser": false,
+      "username": "Mamolya",
+      "first_name": "",
+      "last_name": "",
+      "email": "novtseva84@mail.ru",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2025-10-25T17:04:20.617924+00:00",
+      "groups": [
+        1,
+        3
+      ],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "auth.user",
+    "pk": 10,
+    "fields": {
+      "password": "pbkdf2_sha256$600000$n6wZxCrM5pn1f8bvxJgBm1$yofhoYPRBkefjajXSbx+1HjVrexft/bN99zknBtmS50=",
+      "last_login": "2025-10-26T06:15:33.939249+00:00",
+      "is_superuser": false,
+      "username": "Mermaid",
+      "first_name": "",
+      "last_name": "",
+      "email": "ta_nyusha74@live.ru",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2025-10-26T06:12:04.177804+00:00",
+      "groups": [
+        1
+      ],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "auth.user",
+    "pk": 3,
+    "fields": {
+      "password": "pbkdf2_sha256$600000$W5n5LLxPpXkt631EfP25Kr$JvuwCVeOk8UZrrHsWwv61ri6EyKx+8T7DsrKAnsk8w0=",
+      "last_login": "2025-10-26T18:58:39.266101+00:00",
+      "is_superuser": false,
+      "username": "Живу_в_библиотеке",
+      "first_name": "",
+      "last_name": "",
+      "email": "kuznetsova1986olga@gmail.com",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2025-10-24T11:12:33.281589+00:00",
+      "groups": [
+        1,
+        2,
+        3
+      ],
+      "user_permissions": []
+    }
+  }
+]

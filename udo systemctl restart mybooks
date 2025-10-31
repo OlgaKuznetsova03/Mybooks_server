@@ -1,0 +1,55 @@
+Oct 30 00:33:47 nlxawsjlmp systemd[1]: Started mybooks.service - Gunicorn service for MyBooks Django project.
+Oct 30 00:33:48 nlxawsjlmp gunicorn[31683]: [2025-10-30 00:33:48 +0000] [31683] [INFO] Starting gunicorn 23.0.0
+Oct 30 00:33:48 nlxawsjlmp gunicorn[31683]: [2025-10-30 00:33:48 +0000] [31683] [INFO] Listening at: http://127.0.0.1:8001 (31683)
+Oct 30 00:33:48 nlxawsjlmp gunicorn[31683]: [2025-10-30 00:33:48 +0000] [31683] [INFO] Using worker: sync
+Oct 30 00:33:48 nlxawsjlmp gunicorn[31688]: [2025-10-30 00:33:48 +0000] [31688] [INFO] Booting worker with pid: 31688
+Oct 30 00:33:48 nlxawsjlmp gunicorn[31689]: [2025-10-30 00:33:48 +0000] [31689] [INFO] Booting worker with pid: 31689
+Oct 30 00:33:48 nlxawsjlmp gunicorn[31690]: [2025-10-30 00:33:48 +0000] [31690] [INFO] Booting worker with pid: 31690
+Oct 30 01:12:16 nlxawsjlmp systemd[1]: Stopping mybooks.service - Gunicorn service for MyBooks Django project...
+Oct 30 01:12:16 nlxawsjlmp gunicorn[31683]: [2025-10-30 01:12:16 +0000] [31683] [INFO] Handling signal: term
+Oct 30 01:12:16 nlxawsjlmp gunicorn[31690]: [2025-10-30 04:12:16 +0300] [31690] [INFO] Worker exiting (pid: 31690)
+Oct 30 01:12:16 nlxawsjlmp gunicorn[31688]: [2025-10-30 04:12:16 +0300] [31688] [INFO] Worker exiting (pid: 31688)
+Oct 30 01:12:16 nlxawsjlmp gunicorn[31689]: [2025-10-30 04:12:16 +0300] [31689] [INFO] Worker exiting (pid: 31689)
+Oct 30 01:12:17 nlxawsjlmp gunicorn[31683]: [2025-10-30 01:12:17 +0000] [31683] [INFO] Shutting down: Master
+Oct 30 01:12:17 nlxawsjlmp systemd[1]: mybooks.service: Deactivated successfully.
+Oct 30 01:12:17 nlxawsjlmp systemd[1]: Stopped mybooks.service - Gunicorn service for MyBooks Django project.
+Oct 30 01:12:17 nlxawsjlmp systemd[1]: mybooks.service: Consumed 2.163s CPU time, 118.0M memory peak, 0B memory swap peak.
+Oct 30 01:12:17 nlxawsjlmp systemd[1]: Started mybooks.service - Gunicorn service for MyBooks Django project.
+Oct 30 01:12:17 nlxawsjlmp gunicorn[32845]: [2025-10-30 01:12:17 +0000] [32845] [INFO] Starting gunicorn 23.0.0
+Oct 30 01:12:17 nlxawsjlmp gunicorn[32845]: [2025-10-30 01:12:17 +0000] [32845] [INFO] Listening at: http://127.0.0.1:8001 (32845)
+Oct 30 01:12:17 nlxawsjlmp gunicorn[32845]: [2025-10-30 01:12:17 +0000] [32845] [INFO] Using worker: sync
+Oct 30 01:12:17 nlxawsjlmp gunicorn[32847]: [2025-10-30 01:12:17 +0000] [32847] [INFO] Booting worker with pid: 32847
+Oct 30 01:12:17 nlxawsjlmp gunicorn[32848]: [2025-10-30 01:12:17 +0000] [32848] [INFO] Booting worker with pid: 32848
+Oct 30 01:12:17 nlxawsjlmp gunicorn[32849]: [2025-10-30 01:12:17 +0000] [32849] [INFO] Booting worker with pid: 32849
+Oct 30 01:14:40 nlxawsjlmp systemd[1]: Stopping mybooks.service - Gunicorn service for MyBooks Django project...
+Oct 30 01:14:40 nlxawsjlmp gunicorn[32847]: [2025-10-30 04:14:40 +0300] [32847] [INFO] Worker exiting (pid: 32847)
+Oct 30 01:14:40 nlxawsjlmp gunicorn[32848]: [2025-10-30 04:14:40 +0300] [32848] [INFO] Worker exiting (pid: 32848)
+Oct 30 01:14:40 nlxawsjlmp gunicorn[32845]: [2025-10-30 01:14:40 +0000] [32845] [INFO] Handling signal: term
+Oct 30 01:14:40 nlxawsjlmp gunicorn[32849]: [2025-10-30 04:14:40 +0300] [32849] [INFO] Worker exiting (pid: 32849)
+Oct 30 01:14:40 nlxawsjlmp gunicorn[32845]: [2025-10-30 01:14:40 +0000] [32845] [INFO] Shutting down: Master
+Oct 30 01:14:40 nlxawsjlmp systemd[1]: mybooks.service: Deactivated successfully.
+Oct 30 01:14:40 nlxawsjlmp systemd[1]: Stopped mybooks.service - Gunicorn service for MyBooks Django project.
+Oct 30 01:14:40 nlxawsjlmp systemd[1]: mybooks.service: Consumed 1.768s CPU time.
+Oct 30 01:14:40 nlxawsjlmp systemd[1]: Started mybooks.service - Gunicorn service for MyBooks Django project.
+Oct 30 01:14:41 nlxawsjlmp gunicorn[32864]: [2025-10-30 01:14:41 +0000] [32864] [INFO] Starting gunicorn 23.0.0
+Oct 30 01:14:41 nlxawsjlmp gunicorn[32864]: [2025-10-30 01:14:41 +0000] [32864] [INFO] Listening at: http://127.0.0.1:8001 (32864)
+Oct 30 01:14:41 nlxawsjlmp gunicorn[32864]: [2025-10-30 01:14:41 +0000] [32864] [INFO] Using worker: sync
+Oct 30 01:14:41 nlxawsjlmp gunicorn[32910]: [2025-10-30 01:14:41 +0000] [32910] [INFO] Booting worker with pid: 32910
+Oct 30 01:14:41 nlxawsjlmp gunicorn[32911]: [2025-10-30 01:14:41 +0000] [32911] [INFO] Booting worker with pid: 32911
+Oct 30 01:14:41 nlxawsjlmp gunicorn[32912]: [2025-10-30 01:14:41 +0000] [32912] [INFO] Booting worker with pid: 32912
+Oct 30 01:39:10 nlxawsjlmp systemd[1]: Stopping mybooks.service - Gunicorn service for MyBooks Django project...
+Oct 30 01:39:10 nlxawsjlmp gunicorn[32911]: [2025-10-30 04:39:10 +0300] [32911] [INFO] Worker exiting (pid: 32911)
+Oct 30 01:39:10 nlxawsjlmp gunicorn[32864]: [2025-10-30 01:39:10 +0000] [32864] [INFO] Handling signal: term
+Oct 30 01:39:10 nlxawsjlmp gunicorn[32910]: [2025-10-30 04:39:10 +0300] [32910] [INFO] Worker exiting (pid: 32910)
+Oct 30 01:39:10 nlxawsjlmp gunicorn[32912]: [2025-10-30 04:39:10 +0300] [32912] [INFO] Worker exiting (pid: 32912)
+Oct 30 01:39:11 nlxawsjlmp gunicorn[32864]: [2025-10-30 01:39:11 +0000] [32864] [INFO] Shutting down: Master
+Oct 30 01:39:11 nlxawsjlmp systemd[1]: mybooks.service: Deactivated successfully.
+Oct 30 01:39:11 nlxawsjlmp systemd[1]: Stopped mybooks.service - Gunicorn service for MyBooks Django project.
+Oct 30 01:39:11 nlxawsjlmp systemd[1]: mybooks.service: Consumed 2.205s CPU time, 50.6M memory peak, 0B memory swap peak.
+Oct 30 01:39:11 nlxawsjlmp systemd[1]: Started mybooks.service - Gunicorn service for MyBooks Django project.
+Oct 30 01:39:11 nlxawsjlmp gunicorn[33851]: [2025-10-30 01:39:11 +0000] [33851] [INFO] Starting gunicorn 23.0.0
+Oct 30 01:39:11 nlxawsjlmp gunicorn[33851]: [2025-10-30 01:39:11 +0000] [33851] [INFO] Listening at: http://127.0.0.1:8001 (33851)
+Oct 30 01:39:11 nlxawsjlmp gunicorn[33851]: [2025-10-30 01:39:11 +0000] [33851] [INFO] Using worker: sync
+Oct 30 01:39:11 nlxawsjlmp gunicorn[33897]: [2025-10-30 01:39:11 +0000] [33897] [INFO] Booting worker with pid: 33897
+Oct 30 01:39:11 nlxawsjlmp gunicorn[33898]: [2025-10-30 01:39:11 +0000] [33898] [INFO] Booting worker with pid: 33898
+Oct 30 01:39:11 nlxawsjlmp gunicorn[33899]: [2025-10-30 01:39:11 +0000] [33899] [INFO] Booting worker with pid: 33899

@@ -1,0 +1,194 @@
+[
+  {
+    "model": "books.publisher",
+    "pk": 1,
+    "fields": {
+      "name": "Азбука-Аттикус",
+      "address": null
+    }
+  },
+  {
+    "model": "books.publisher",
+    "pk": 2,
+    "fields": {
+      "name": "АСТ",
+      "address": null
+    }
+  },
+  {
+    "model": "books.publisher",
+    "pk": 3,
+    "fields": {
+      "name": "РИПОЛ классик",
+      "address": null
+    }
+  },
+  {
+    "model": "books.publisher",
+    "pk": 4,
+    "fields": {
+      "name": "Корпус",
+      "address": null
+    }
+  },
+  {
+    "model": "books.publisher",
+    "pk": 5,
+    "fields": {
+      "name": "М",
+      "address": null
+    }
+  },
+  {
+    "model": "books.publisher",
+    "pk": 6,
+    "fields": {
+      "name": "Азбука",
+      "address": null
+    }
+  },
+  {
+    "model": "books.publisher",
+    "pk": 7,
+    "fields": {
+      "name": "Иностранка",
+      "address": null
+    }
+  },
+  {
+    "model": "books.publisher",
+    "pk": 8,
+    "fields": {
+      "name": "Изд-во \"АСТ\"",
+      "address": null
+    }
+  },
+  {
+    "model": "books.publisher",
+    "pk": 9,
+    "fields": {
+      "name": "Эксмо",
+      "address": null
+    }
+  },
+  {
+    "model": "books.publisher",
+    "pk": 10,
+    "fields": {
+      "name": "Инспиря",
+      "address": null
+    }
+  },
+  {
+    "model": "books.publisher",
+    "pk": 11,
+    "fields": {
+      "name": "Инспирия",
+      "address": null
+    }
+  },
+  {
+    "model": "books.publisher",
+    "pk": 12,
+    "fields": {
+      "name": "Ридеро",
+      "address": null
+    }
+  },
+  {
+    "model": "books.publisher",
+    "pk": 13,
+    "fields": {
+      "name": "Литрес",
+      "address": null
+    }
+  },
+  {
+    "model": "books.publisher",
+    "pk": 14,
+    "fields": {
+      "name": "Аст",
+      "address": null
+    }
+  },
+  {
+    "model": "books.publisher",
+    "pk": 15,
+    "fields": {
+      "name": "Бель Летр",
+      "address": null
+    }
+  },
+  {
+    "model": "books.publisher",
+    "pk": 16,
+    "fields": {
+      "name": "Самиздат",
+      "address": null
+    }
+  },
+  {
+    "model": "books.publisher",
+    "pk": 17,
+    "fields": {
+      "name": "Синдбад",
+      "address": null
+    }
+  },
+  {
+    "model": "books.publisher",
+    "pk": 18,
+    "fields": {
+      "name": "Фреедом",
+      "address": null
+    }
+  },
+  {
+    "model": "books.publisher",
+    "pk": 19,
+    "fields": {
+      "name": "КЛЕВЕР",
+      "address": null
+    }
+  },
+  {
+    "model": "books.publisher",
+    "pk": 20,
+    "fields": {
+      "name": "Лике боок",
+      "address": null
+    }
+  },
+  {
+    "model": "books.publisher",
+    "pk": 21,
+    "fields": {
+      "name": "Бомбора",
+      "address": null
+    }
+  },
+  {
+    "model": "books.publisher",
+    "pk": 22,
+    "fields": {
+      "name": "Кислород",
+      "address": null
+    }
+  },
+  {
+    "model": "books.publisher",
+    "pk": 23,
+    "fields": {
+      "name": "Попкорн Боокс",
+      "address": null
+    }
+  },
+  {
+    "model": "books.publisher",
+    "pk": 24,
+    "fields": {
+      "name": "Маракуйя",
+      "address": null
+    }
+  }
+]
