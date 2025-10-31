@@ -753,8 +753,7 @@ def book_list(request):
                         distinct=True,
                     )
                 )
-                .order_by("-recent_reader_count", "-rating_count", "title")
-                .distinct()[:SHELF_BOOKS_LIMIT]
+                .order_by("-recent_reader_count", "-rating_count", "title")[:SHELF_BOOKS_LIMIT]
             )
             if not top_books:
                 continue
