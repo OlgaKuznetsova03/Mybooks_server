@@ -16,7 +16,9 @@ from django.db.models import (
     Subquery,
     Avg,
     Count,
+    Value,
 )
+from django.db.models.functions import Coalesce
 from typing import Iterable, Optional
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
@@ -446,14 +448,31 @@ def book_list(request):
         .values("pk")[:1]
     )
 
-    annotated_books = base_qs.annotate(
-        edition_leader=Case(
-            When(edition_group_key="", then=F("pk")),
-            default=Subquery(group_leader_subquery),
-        ),
-        average_rating=Avg("ratings__score"),
-        rating_count=Count("ratings__score"),
-    ).filter(pk=F("edition_leader"))
+    rating_stats_subquery = (
+        Rating.objects.filter(book=OuterRef("pk"))
+        .order_by()
+        .values("book")
+        .annotate(
+            avg_score=Avg("score"),
+            score_count=Count("score"),
+        )
+    )
+
+    annotated_books = (
+        base_qs.annotate(
+            edition_leader=Case(
+                When(edition_group_key="", then=F("pk")),
+                default=Subquery(group_leader_subquery),
+            ),
+            average_rating=Subquery(
+                rating_stats_subquery.values("avg_score")[:1]
+            ),
+            rating_count=Coalesce(
+                Subquery(rating_stats_subquery.values("score_count")[:1]),
+                Value(0),
+            ),
+        ).filter(pk=F("edition_leader"))
+    )
 
     total_books = annotated_books.count()
 
