@@ -313,6 +313,7 @@ def read_before_buy_dashboard(request):
     game = ReadBeforeBuyGame.get_game()
     total_books_subquery = Subquery(
         ShelfItem.objects.filter(shelf=OuterRef("shelf"))
+        .order_by()
         .values("shelf")
         .annotate(item_count=Count("pk", distinct=True))
         .values("shelf", "item_count")

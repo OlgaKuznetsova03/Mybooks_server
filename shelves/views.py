@@ -148,6 +148,7 @@ def home_library(request):
     entries_qs = (
         HomeLibraryEntry.objects
         .filter(shelf_item__shelf=shelf)
+        .order_by()
         .select_related("shelf_item__book")
         .prefetch_related("shelf_item__book__authors", "custom_genres")
     )
@@ -931,6 +932,7 @@ def _build_reading_track_context(
     }
     for entry in (
         progress.logs
+        .order_by()
         .values("medium")
         .annotate(total_pages=Sum("pages_equivalent"))
         .values("medium", "total_pages")
@@ -1810,6 +1812,7 @@ def reading_leaderboard(request):
                     log_date__lte=today,
                     pages_equivalent__gt=0,
                 )
+                .order_by()
                 .values("progress__user")
                 .annotate(total_pages=Sum("pages_equivalent"))
                 .values("progress__user", "total_pages")

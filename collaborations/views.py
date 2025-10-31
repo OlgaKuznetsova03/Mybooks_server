@@ -524,7 +524,8 @@ class OfferResponseListView(LoginRequiredMixin, ListView):
         status_counts = {
             item["status"]: item["total"]
             for item in (
-                qs.values("status")
+                qs.order_by()
+                .values("status")
                 .annotate(total=Count("id"))
                 .values("status", "total")
             )
@@ -825,7 +826,8 @@ class BloggerRequestResponseListView(LoginRequiredMixin, ListView):
         status_counts = {
             item["status"]: item["total"]
             for item in (
-                qs.values("status")
+                qs.order_by()
+                .values("status")
                 .annotate(total=Count("id"))
                 .values("status", "total")
             )

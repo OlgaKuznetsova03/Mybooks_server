@@ -286,7 +286,10 @@ def _collect_home_library_summary(user: User):
     if not shelf:
         return summary
 
-    entries_qs = HomeLibraryEntry.objects.filter(shelf_item__shelf=shelf)
+    entries_qs = (
+        HomeLibraryEntry.objects.filter(shelf_item__shelf=shelf)
+        .order_by()
+    )
     active_entries = entries_qs.filter(is_disposed=False)
     disposed_total = entries_qs.filter(is_disposed=True).count()
 
@@ -449,6 +452,7 @@ def _collect_profile_stats(user: User, params):
             log_date__gte=start,
             log_date__lte=end,
         )
+        .order_by()
         .values("medium")
         .annotate(
             pages_total=Sum("pages_equivalent"),
