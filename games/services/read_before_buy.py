@@ -341,7 +341,6 @@ class ReadBeforeBuyGame:
     def iter_participating_shelves(cls, user: User) -> Iterable[GameShelfState]:
         game = cls.get_game()
         home_shelf = get_home_library_shelf(user)
-        return (
-            GameShelfState.objects.filter(game=game, user=user, shelf=home_shelf)
-            .select_related("shelf")
-        )
+        return GameShelfState.objects.filter(
+            game=game, user=user, shelf=home_shelf
+        ).select_related("shelf")

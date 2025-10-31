@@ -2,13 +2,15 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count
+from django.db.models import Count, IntegerField, OuterRef, Subquery, Value
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET
 
+from django.db.models.functions import Coalesce
+
 from books.models import Rating
-from shelves.models import BookProgress
+from shelves.models import BookProgress, ShelfItem
 from shelves.services import move_book_to_reading_shelf
 
 from .catalog import get_game_cards
@@ -309,10 +311,22 @@ def book_exchange_detail(request, username, round_number):
 @login_required
 def read_before_buy_dashboard(request):
     game = ReadBeforeBuyGame.get_game()
+    total_books_subquery = Subquery(
+        ShelfItem.objects.filter(shelf=OuterRef("shelf"))
+        .values("shelf")
+        .annotate(item_count=Count("pk", distinct=True))
+        .values("item_count")[:1]
+    )
     states_qs = (
         ReadBeforeBuyGame.iter_participating_shelves(request.user)
         .prefetch_related("shelf__items__book", "books__book", "purchases__book")
-        .annotate(total_books=Count("shelf__items", distinct=True))
+        .annotate(
+            total_books=Coalesce(
+                total_books_subquery,
+                Value(0),
+                output_field=IntegerField(),
+            )
+        )
         .order_by("-points_balance", "shelf__name")
     )
     states = list(states_qs)

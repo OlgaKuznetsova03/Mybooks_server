@@ -4,22 +4,22 @@ import json
 import logging
 from datetime import timedelta
 
-from django.db.models import (
-    Q,
-    F,
-    Min,
-    Max,
-    Prefetch,
-    Case,
-    When,
-    OuterRef,
-    Subquery,
-    Avg,
-    Count,
-    Value,
-    IntegerField,
-    Window,
-)
+from django.db.models import (␊
+    Q,␊
+    F,␊
+    Min,␊
+    Max,␊
+    Prefetch,␊
+    Case,␊
+    When,␊
+    OuterRef,␊
+    Subquery,␊
+    Avg,␊
+    Count,␊
+    Value,␊
+    IntegerField,␊
+    Window,␊
+)␊
 from django.db.models.functions import Coalesce
 from typing import Iterable, Optional
 from django.core.exceptions import PermissionDenied
@@ -59,6 +59,35 @@ from .utils import normalize_isbn
 logger = logging.getLogger(__name__)
 
 ISBNDB_MISSING_KEY_ERROR = "Поиск через ISBNdb временно недоступен: API-ключ не настроен."
+
+
+def _with_rating_stats(queryset):
+    rating_stats = (
+        Rating.objects.filter(book=OuterRef("pk"))
+        .values("book")
+        .annotate(
+            avg_score=Avg("score"),
+            score_count=Count("score"),
+        )
+    )
+
+    return queryset.annotate(
+        average_rating=Subquery(rating_stats.values("avg_score")[:1]),
+        rating_count=Coalesce(
+            Subquery(rating_stats.values("score_count")[:1]),
+            Value(0),
+            output_field=IntegerField(),
+        ),
+    )
+
+
+def _genre_book_count_subquery():
+    return (
+        Book.genres.through.objects.filter(genre_id=OuterRef("pk"))
+        .values("genre_id")
+        .annotate(total=Count("book_id", distinct=True))
+        .values("total")
+    )
 
 
 def _isbn_query(value: Optional[str]) -> str:
@@ -450,29 +479,12 @@ def book_list(request):
         .values("pk")[:1]
     )
 
-    rating_stats_subquery = (
-        Rating.objects.filter(book=OuterRef("pk"))
-        .values("book")
-        .annotate(
-           avg_score=Avg("score"),
-           score_count=Count("score")
-        )
-        .values("avg_score", "score_count")
-    )
-
-    annotated_books = (
+    annotated_books = _with_rating_stats(
         base_qs.annotate(
             edition_leader=Case(
                 When(edition_group_key="", then=F("pk")),
                 default=Subquery(group_leader_subquery),
-            ),
-            average_rating=Subquery(
-                rating_stats_subquery.values("avg_score")[:1]
-            ),
-            rating_count=Coalesce(
-                Subquery(rating_stats_subquery.values("score_count")[:1]),
-                Value(0),
-            ),
+            )
         ).filter(pk=F("edition_leader"))
     )
 
@@ -748,27 +760,39 @@ def book_list(request):
                     )
 
 
+        genre_reader_count_queryset = (
+            BookProgress.objects.filter(
+                book__genres=OuterRef("pk"),
+                updated_at__gte=popular_window,
+            )
+            .values("book__genres")
+            .annotate(reader_count=Count("user", distinct=True))
+            .values("reader_count")
+        )
+        genre_reader_count_subquery = Subquery(
+            genre_reader_count_queryset[:1]
+        )
+
         popular_genres = list(
             Genre.objects.annotate(
-            recent_reader_count=Count(
-                "books__bookprogress__user",
-                filter=Q(books__bookprogress__updated_at__gte=popular_window),
-                distinct=True,
+                recent_reader_count=Coalesce(
+                    genre_reader_count_subquery,
+                    Value(0),
+                    output_field=IntegerField(),
+                )
             )
+            .filter(recent_reader_count__gt=0)
+            .order_by("-recent_reader_count", "name")[:4]
         )
-        .filter(recent_reader_count__gt=0)
-        .order_by("-recent_reader_count", "name")[:4]
-        .values("id", "name", "slug", "recent_reader_count")  # Добавьте эту строку
-    )
 
         for genre in popular_genres:
             top_books = list(
                 annotated_books.filter(genres=genre)
                 .annotate(
-                    recent_reader_count=Count(
-                        "bookprogress__user",
-                        filter=Q(bookprogress__updated_at__gte=popular_window),
-                        distinct=True,
+                    recent_reader_count=Coalesce(
+                        recent_reader_count_subquery,
+                        Value(0),
+                        output_field=IntegerField(),
                     )
                 )
                 .order_by("-recent_reader_count", "-rating_count", "title")[:SHELF_BOOKS_LIMIT]
@@ -847,13 +871,9 @@ def book_list(request):
 def genre_detail(request, slug):
     genre = get_object_or_404(Genre, slug=slug)
 
-    base_qs = (
+    base_qs = _with_rating_stats(
         genre.books.prefetch_related(
             Prefetch("authors", queryset=Author.objects.order_by("name"))
-        )
-        .annotate(
-            average_rating=Avg("ratings__score"),
-            rating_count=Count("ratings__score"),
         )
     )
 
@@ -928,9 +948,19 @@ def genre_detail(request, slug):
             }
         )
 
+    genre_book_count_subquery = Subquery(
+        _genre_book_count_subquery()[:1]
+    )
+
     other_genres = (
         Genre.objects.exclude(pk=genre.pk)
-        .annotate(book_count=Count("books", distinct=True))
+        .annotate(
+            book_count=Coalesce(
+                genre_book_count_subquery,
+                Value(0),
+                output_field=IntegerField(),
+            )
+        )
         .filter(book_count__gt=0)
         .order_by("-book_count", "name")[:12]
     )
@@ -1512,13 +1542,11 @@ def book_detail(request, pk):
     genre_shelves: list[dict[str, object]] = []
     for genre in book.genres.all():
         related_qs = (
-            genre.books.exclude(pk=book.pk)
-            .prefetch_related(
-                Prefetch("authors", queryset=Author.objects.order_by("name"))
-            )
-            .annotate(
-                average_rating=Avg("ratings__score"),
-                rating_count=Count("ratings__score"),
+            _with_rating_stats(
+                genre.books.exclude(pk=book.pk)
+                .prefetch_related(
+                    Prefetch("authors", queryset=Author.objects.order_by("name"))
+                )
             )
         )
 
@@ -1611,8 +1639,17 @@ def book_create(request):
         and request.user.groups.filter(name="author").exists()
     )
 
+    genre_book_count_subquery = Subquery(
+        _genre_book_count_subquery()[:1]
+    )
     genre_suggestions = list(
-        Genre.objects.annotate(book_count=Count("books"))
+        Genre.objects.annotate(
+            book_count=Coalesce(
+                genre_book_count_subquery,
+                Value(0),
+                output_field=IntegerField(),
+            )
+        )
         .order_by("-book_count", "name")
         .values_list("name", flat=True)[:40]
     )
@@ -1849,7 +1886,7 @@ def book_review_print(request, pk):
     }
 
     html = render_to_string("books/review_print.html", context)
-    filename = slugify(books_book.title) or "book-review"
+    filename = slugify(book.title) or "book-review"
     response = HttpResponse(html, content_type="text/html; charset=utf-8")
     response["Content-Disposition"] = f'attachment; filename="{filename}-review.html"'
     return response
