@@ -17,6 +17,7 @@ from django.db.models import (
     Avg,
     Count,
     Value,
+    IntegerField,
 )
 from django.db.models.functions import Coalesce
 from typing import Iterable, Optional
@@ -676,15 +677,29 @@ def book_list(request):
             .order_by("-reader_count", "book")[: SHELF_BOOKS_LIMIT * 3]
         )
 
+        recent_reader_count_queryset = (
+            BookProgress.objects.filter(
+                book=OuterRef("pk"),
+                updated_at__gte=popular_window,
+            )
+            .values("book")
+            .annotate(reader_count=Count("user", distinct=True))
+            .values("reader_count")
+        )
+        recent_reader_count_subquery = Subquery(
+            recent_reader_count_queryset[:1]
+        )
+
         popular_ids = [entry["book"] for entry in popular_stats if entry["book"]]
         if popular_ids:
+
             popular_books_qs = (
                 annotated_books.filter(pk__in=popular_ids)
                 .annotate(
-                    recent_reader_count=Count(
-                        "bookprogress__user",
-                        filter=Q(bookprogress__updated_at__gte=popular_window),
-                        distinct=True,
+                    recent_reader_count=Coalesce(
+                        recent_reader_count_subquery,
+                        Value(0),
+                        output_field=IntegerField(),
                     )
                 )
             )
@@ -730,6 +745,7 @@ def book_list(request):
                             "books": popular_serialized_books,
                         }
                     )
+
 
         popular_genres = list(
             Genre.objects.annotate(
