@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse, unquote
 import sys
 import os
 from dotenv import load_dotenv
@@ -50,18 +51,22 @@ except Exception:  # pragma: no cover
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-l(91%(h@2ns6c^zl@sy)(#y50&nkase0^d%1k*jmyqgi6o!_k*'
+
+SECRET_KEY = os.getenv(
+    "DJANGO_SECRET_KEY",
+    'django-insecure-l(91%(h@2ns6c^zl@sy)(#y50&nkase0^d%1k*jmyqgi6o!_k*',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_bool("DJANGO_DEBUG", True)
 
 ALLOWED_HOSTS = [
-    "kalejdoskopknig.ru",           # твой домен
-    ".kalejdoskopknig.ru",
-    '212.67.9.205', 
-    'localhost', 
-    '127.0.0.1'# на всякий случай поддомены (www и т.п.)
+    host.strip()
+    for host in os.getenv(
+        "DJANGO_ALLOWED_HOSTS",
+        "kalejdoskopknig.ru,.kalejdoskopknig.ru,212.67.9.205,localhost,127.0.0.1",
+    ).split(",")
+    if host.strip()
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -145,19 +150,59 @@ def env(*names, default=None):
             return v
     return default
 
-# БАЗОВОЕ подключение к Postgres (Beget)
-DEFAULT_DATABASE = {
-    "ENGINE": "django.db.backends.postgresql",
-    "NAME": env("PG_NAME", "DB_NAME", default="mybooks"),
-    "USER": env("PG_USER", "DB_USER", default="cloud_user"),
-    "PASSWORD": env("PG_PASSWORD", "DB_PASSWORD", default=""),
-    "HOST": env("PG_HOST", "DB_HOST", default="10.16.0.1"),
-    "PORT": env("PG_PORT", "DB_PORT", default="5432"),
-    "OPTIONS": {
-        "sslmode": env("PG_SSLMODE", "DB_SSLMODE", default="disable"),
-    },
-    "CONN_MAX_AGE": int(env("PG_CONN_MAX_AGE", default="60")),
-}
+def _database_from_url(url: str) -> dict:
+    parsed = urlparse(url)
+    if parsed.scheme not in {"postgres", "postgresql"}:
+        raise ValueError("Unsupported database scheme")
+
+    db_name = unquote(parsed.path.lstrip("/")) or "postgres"
+    options = parse_qs(parsed.query)
+
+    def _pop_option(name: str, default=None):
+        values = options.pop(name, None)
+        if not values:
+            return default
+        return values[-1]
+
+    return {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": db_name,
+        "USER": unquote(parsed.username or ""),
+        "PASSWORD": unquote(parsed.password or ""),
+        "HOST": parsed.hostname or "",
+        "PORT": str(parsed.port) if parsed.port is not None else "",
+        "OPTIONS": {
+            **{k: v[-1] for k, v in options.items()},
+            "sslmode": _pop_option("sslmode", env("PG_SSLMODE", "DB_SSLMODE", default="disable")),
+        },
+        "CONN_MAX_AGE": int(env("PG_CONN_MAX_AGE", default="60")),
+    }
+
+
+database_url = env("DATABASE_URL", "POSTGRES_URL")
+
+DEFAULT_DATABASE = None
+
+if database_url:
+    try:
+        DEFAULT_DATABASE = _database_from_url(database_url)
+    except ValueError:
+        print("⚠️  DATABASE_URL has unsupported scheme – falling back to discrete settings")
+
+if DEFAULT_DATABASE is None:
+    # БАЗОВОЕ подключение к Postgres (Beget)
+    DEFAULT_DATABASE = {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": env("PG_NAME", "DB_NAME", default="mybooks"),
+        "USER": env("PG_USER", "DB_USER", default="cloud_user"),
+        "PASSWORD": env("PG_PASSWORD", "DB_PASSWORD", default=""),
+        "HOST": env("PG_HOST", "DB_HOST", default="10.16.0.1"),
+        "PORT": env("PG_PORT", "DB_PORT", default="5432"),
+        "OPTIONS": {
+            "sslmode": env("PG_SSLMODE", "DB_SSLMODE", default="disable"),
+        },
+        "CONN_MAX_AGE": int(env("PG_CONN_MAX_AGE", default="60")),
+    }
 
 RUNNING_TESTS = (
     "test" in sys.argv or
@@ -257,7 +302,11 @@ MEDIA_ROOT = BASE_DIR / "media"
 MEDIA_URL = "/media/"
 
 AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME")
-if AWS_STORAGE_BUCKET_NAME:
+if (
+    AWS_STORAGE_BUCKET_NAME
+    and os.getenv("AWS_ACCESS_KEY_ID")
+    and os.getenv("AWS_SECRET_ACCESS_KEY")
+):
     INSTALLED_APPS += ["storages"]
 
     DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
@@ -273,7 +322,11 @@ if AWS_STORAGE_BUCKET_NAME:
     AWS_DEFAULT_ACL = os.getenv("AWS_DEFAULT_ACL", "public-read")
     AWS_S3_FILE_OVERWRITE = env_bool("AWS_S3_FILE_OVERWRITE", False)
     AWS_S3_SIGNATURE_VERSION = os.getenv("AWS_S3_SIGNATURE_VERSION", "s3v4")
-    AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "ru-1")
-
+    AWS_S3_REGION_NAME = AWS_S3_REGION_NAME or os.getenv("AWS_S3_REGION", "ru-1")
 
     MEDIA_URL = f"{AWS_S3_ENDPOINT_URL.rstrip('/')}/{AWS_STORAGE_BUCKET_NAME}/"
+else:
+    if AWS_STORAGE_BUCKET_NAME:
+        print(
+            "⚠️  AWS credentials are incomplete – falling back to local media storage"
+        )
