@@ -315,6 +315,7 @@ def read_before_buy_dashboard(request):
         ShelfItem.objects.filter(shelf=OuterRef("shelf"))
         .values("shelf")
         .annotate(item_count=Count("pk", distinct=True))
+        .values("shelf", "item_count")
         .values("item_count")[:1]
     )
     states_qs = (

@@ -302,6 +302,7 @@ def _collect_home_library_summary(user: User):
         .exclude(series_name="")
         .values("series_name")
         .annotate(total=Count("id"))
+        .values("series_name", "total")
         .order_by("-total", "series_name")[:5]
     )
     summary["genre_counts"] = [
@@ -313,6 +314,7 @@ def _collect_home_library_summary(user: User):
             active_entries
             .values("custom_genres__name")
             .annotate(total=Count("custom_genres"))
+            .values("custom_genres__name", "total")
             .exclude(custom_genres__name__isnull=True)
             .order_by("-total", "custom_genres__name")[:5]
         )
@@ -323,6 +325,7 @@ def _collect_home_library_summary(user: User):
         .exclude(location="")
         .values("location")
         .annotate(total=Count("id"))
+        .values("location", "total")
         .order_by("-total", "location")[:5]
     )
     summary["top_statuses"] = list(
@@ -330,6 +333,7 @@ def _collect_home_library_summary(user: User):
         .exclude(status="")
         .values("status")
         .annotate(total=Count("id"))
+        .values("status", "total")
         .order_by("-total", "status")[:5]
     )
 
@@ -432,6 +436,7 @@ def _collect_profile_stats(user: User, params):
     genre_stats = (
         books.values("genres__name")
         .annotate(total=Count("genres__id", distinct=True))
+        .values("genres__name", "total")
         .exclude(genres__name__isnull=True)
         .order_by("-total")
     )
@@ -449,6 +454,7 @@ def _collect_profile_stats(user: User, params):
             pages_total=Sum("pages_equivalent"),
             audio_total=Sum("audio_seconds"),
         )
+        .values("medium", "pages_total", "audio_total")
     )
     format_totals = {
         code: Decimal("0")

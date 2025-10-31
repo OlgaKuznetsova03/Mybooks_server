@@ -523,7 +523,11 @@ class OfferResponseListView(LoginRequiredMixin, ListView):
         qs = AuthorOfferResponse.objects.filter(offer__author=self.request.user)
         status_counts = {
             item["status"]: item["total"]
-            for item in qs.values("status").annotate(total=Count("id"))
+            for item in (
+                qs.values("status")
+                .annotate(total=Count("id"))
+                .values("status", "total")
+            )
         }
         context.update(
             {
@@ -820,7 +824,11 @@ class BloggerRequestResponseListView(LoginRequiredMixin, ListView):
         qs = BloggerRequestResponse.objects.filter(request__blogger=self.request.user)
         status_counts = {
             item["status"]: item["total"]
-            for item in qs.values("status").annotate(total=Count("id"))
+            for item in (
+                qs.values("status")
+                .annotate(total=Count("id"))
+                .values("status", "total")
+            )
         }
         unread_ids = set(
             BloggerRequestResponse.objects.unread_for(self.request.user).values_list(

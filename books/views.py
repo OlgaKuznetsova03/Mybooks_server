@@ -4,22 +4,22 @@ import json
 import logging
 from datetime import timedelta
 
-from django.db.models import (␊
-    Q,␊
-    F,␊
-    Min,␊
-    Max,␊
-    Prefetch,␊
-    Case,␊
-    When,␊
-    OuterRef,␊
-    Subquery,␊
-    Avg,␊
-    Count,␊
-    Value,␊
-    IntegerField,␊
-    Window,␊
-)␊
+from django.db.models import (
+    Q,
+    F,
+    Min,
+    Max,
+    Prefetch,
+    Case,
+    When,
+    OuterRef,
+    Subquery,
+    Avg,
+    Count,
+    Value,
+    IntegerField,
+    Window,
+)
 from django.db.models.functions import Coalesce
 from typing import Iterable, Optional
 from django.core.exceptions import PermissionDenied
@@ -69,6 +69,7 @@ def _with_rating_stats(queryset):
             avg_score=Avg("score"),
             score_count=Count("score"),
         )
+        .values("book", "avg_score", "score_count")
     )
 
     return queryset.annotate(
@@ -86,6 +87,7 @@ def _genre_book_count_subquery():
         Book.genres.through.objects.filter(genre_id=OuterRef("pk"))
         .values("genre_id")
         .annotate(total=Count("book_id", distinct=True))
+        .values("genre_id", "total")
         .values("total")
     )
 
@@ -687,6 +689,7 @@ def book_list(request):
             BookProgress.objects.filter(updated_at__gte=popular_window)
             .values("book")
             .annotate(reader_count=Count("user", distinct=True))
+            .values("book", "reader_count")
             .order_by("-reader_count", "book")[: SHELF_BOOKS_LIMIT * 3]
         )
 
@@ -697,6 +700,7 @@ def book_list(request):
             )
             .values("book")
             .annotate(reader_count=Count("user", distinct=True))
+            .values("book", "reader_count")
             .values("reader_count")
         )
         recent_reader_count_subquery = Subquery(
@@ -767,6 +771,7 @@ def book_list(request):
             )
             .values("book__genres")
             .annotate(reader_count=Count("user", distinct=True))
+            .values("book__genres", "reader_count")
             .values("reader_count")
         )
         genre_reader_count_subquery = Subquery(

@@ -163,6 +163,7 @@ class UserPointEvent(models.Model):
         aggregated = (
             qs.values("user")
             .annotate(total_points=Sum("points"))
+            .values("user", "total_points")
             .order_by("-total_points", "user")
         )
         if limit is not None:

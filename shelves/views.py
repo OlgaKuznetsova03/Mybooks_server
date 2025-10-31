@@ -160,6 +160,7 @@ def home_library(request):
         .exclude(location="")
         .values("location")
         .annotate(total=Count("id"))
+        .values("location", "total")
         .order_by("-total", "location")[:5]
     )
     status_counts = list(
@@ -167,6 +168,7 @@ def home_library(request):
         .exclude(status="")
         .values("status")
         .annotate(total=Count("id"))
+        .values("status", "total")
         .order_by("-total", "status")[:5]
     )
 
@@ -179,6 +181,7 @@ def home_library(request):
         .exclude(series_name="")
         .values("series_name")
         .annotate(total=Count("id"))
+        .values("series_name", "total")
         .order_by("-total", "series_name")[:5]
     )
     genre_counts = [
@@ -190,6 +193,7 @@ def home_library(request):
             active_entries_qs
             .values("custom_genres__name")
             .annotate(total=Count("custom_genres"))
+            .values("custom_genres__name", "total")
             .exclude(custom_genres__name__isnull=True)
             .order_by("-total", "custom_genres__name")[:5]
         )
@@ -929,6 +933,7 @@ def _build_reading_track_context(
         progress.logs
         .values("medium")
         .annotate(total_pages=Sum("pages_equivalent"))
+        .values("medium", "total_pages")
     ):
         medium_code = entry.get("medium")
         if medium_code not in format_totals:
@@ -1807,6 +1812,7 @@ def reading_leaderboard(request):
                 )
                 .values("progress__user")
                 .annotate(total_pages=Sum("pages_equivalent"))
+                .values("progress__user", "total_pages")
                 .order_by("-total_pages", "progress__user")
             )
             top_rows = list(aggregates[:10])
