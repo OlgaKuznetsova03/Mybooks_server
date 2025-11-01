@@ -1001,6 +1001,7 @@ def book_detail(request, pk):
     home_library_edit_url: str | None = None
     default_shelf_status: dict[str, object] | None = None
     quick_add_form: QuickAddShelfForm | None = None
+    quick_add_is_read_shelf_selected = False
     read_shelf_ids: list[int] = []
     read_shelf_ids_str: list[str] = []
     read_shelf_name_tokens: list[str] = []
@@ -1216,6 +1217,17 @@ def book_detail(request, pk):
 
         if quick_add_form is None:
             quick_add_form = QuickAddShelfForm(user=request.user)
+
+        if quick_add_form is not None:
+            selected_shelf_value = quick_add_form["shelf"].value()
+            if selected_shelf_value is None and quick_add_form.is_bound:
+                selected_shelf_value = quick_add_form.data.get(
+                    quick_add_form.add_prefix("shelf")
+                )
+            if selected_shelf_value is not None:
+                quick_add_is_read_shelf_selected = (
+                    str(selected_shelf_value) in read_shelf_ids_str
+                )
 
     form = RatingForm(
         user=request.user if request.user.is_authenticated else None,
@@ -1636,6 +1648,7 @@ def book_detail(request, pk):
         "home_library_edit_url": home_library_edit_url,
         "default_shelf_status": default_shelf_status,
         "quick_add_form": quick_add_form,
+        "quick_add_is_read_shelf_selected": quick_add_is_read_shelf_selected,
         "read_shelf_ids": read_shelf_ids,
         "read_shelf_ids_str": read_shelf_ids_str,
         "read_shelf_name_tokens": read_shelf_name_tokens,

@@ -435,11 +435,10 @@
                       <div class="invalid-feedback d-block small">{{ quick_add_form.shelf.errors|join:', ' }}</div>
                     {% endif %}
                   </div>
-                  {% with is_read_shelf_selected=quick_add_form.shelf.value in read_shelf_ids_str %}
-                    <div class="col-12 col-lg-6 book-detail-shelf-form__extras{% if not is_read_shelf_selected %} d-none{% endif %}"
-                         data-role="read-fields"
-                         aria-hidden="{% if is_read_shelf_selected %}false{% else %}true{% endif %}"
-                         {% if not is_read_shelf_selected %}hidden{% endif %}>
+                  <div class="col-12 col-lg-6 book-detail-shelf-form__extras{% if not quick_add_is_read_shelf_selected %} d-none{% endif %}"
+                       data-role="read-fields"
+                       aria-hidden="{% if quick_add_is_read_shelf_selected %}false{% else %}true{% endif %}"
+                       {% if not quick_add_is_read_shelf_selected %}hidden{% endif %}>
                       <div class="row g-3">
                         <div class="col-12 col-md-6">
                           <label class="form-label small" for="{{ quick_add_form.read_at.id_for_label }}">{{ quick_add_form.read_at.label }}</label>
@@ -464,12 +463,11 @@
                         </div>
                       </div>
                     </div>
-                  {% endwith %}
-                  <div class="col-12 col-md-auto align-self-end">
-                    <button class="btn btn-outline-primary btn-sm" type="submit">Добавить</button>
+                    <div class="col-12 col-md-auto align-self-end">
+                      <button class="btn btn-outline-primary btn-sm" type="submit">Добавить</button>
+                    </div>
                   </div>
-                </div>
-              </form>
+                </form>
             {% endif %}
           {% endif %}
         </div>
