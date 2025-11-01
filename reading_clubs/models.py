@@ -105,7 +105,10 @@ class ReadingClub(models.Model):
 
     def save(self, *args, **kwargs) -> None:
         if not self.slug:
-            base_slug = slugify(self.title) or "reading"
+            base_slug = slugify(self.title) or f"reading-club-{self.pk or 'new'}"
+            if not base_slug:
+    # Если slugify вернул пустую строку, используем комбинацию
+                base_slug = f"reading-{self.id}" if self.id else "reading-new"
             slug = base_slug
             suffix = 1
             while ReadingClub.objects.filter(slug=slug).exclude(pk=self.pk).exists():

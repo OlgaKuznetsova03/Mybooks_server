@@ -7,13 +7,15 @@ from typing import Iterable
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Count, Prefetch
+from django.db.models import Count, IntegerField, OuterRef, Prefetch, Subquery
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.generic import DetailView, FormView, ListView
+
+from django.db.models.functions import Coalesce
 
 from user_ratings.services import award_for_discussion_post
 
@@ -148,9 +150,7 @@ class ReadingClubDetailView(DetailView):
             .prefetch_related(
                 Prefetch(
                     "topics",
-                    queryset=ReadingNorm.objects.order_by("order", "discussion_opens_at").annotate(
-                        post_count=Count("posts")
-                    ),
+                    queryset=self._topics_with_post_count(),
                 ),
                 Prefetch(
                     "participants",
@@ -184,6 +184,20 @@ class ReadingClubDetailView(DetailView):
                 status=ReadingParticipant.Status.APPROVED,
             ).exists()
         return context
+
+    def _topics_with_post_count(self):
+        post_count_subquery = Subquery(
+            DiscussionPost.objects.filter(topic=OuterRef("pk"))
+            .order_by()
+            .values("topic")
+            .annotate(total=Count("pk"))
+            .values("total")[:1],
+            output_field=IntegerField(),
+        )
+        return (
+            ReadingNorm.objects.order_by("order", "discussion_opens_at")
+            .annotate(post_count=Coalesce(post_count_subquery, 0))
+        )
 
     def _attach_progress(
         self,
