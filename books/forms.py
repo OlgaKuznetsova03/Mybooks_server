@@ -1,15 +1,94 @@
 # apps/books/forms.py
+import imghdr
 import json
 
 from django import forms
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
 from .models import (
-    Author, Publisher, Genre, ISBNModel,
-    AudioBook, Book, Rating, RatingComment
+    Author,
+    Publisher,
+    Genre,
+    ISBNModel,
+    AudioBook,
+    Book,
+    Rating,
+    RatingComment,
 )
 from .utils import normalize_genre_name, normalize_isbn
 from .api_clients import transliterate_to_cyrillic
+
+
+try:  # pragma: no cover - Pillow may be unavailable on Beget
+    from PIL import Image  # type: ignore
+except Exception:  # pragma: no cover - fallback to pure-python detection
+    Image = None  # type: ignore
+
+
+class LenientImageField(forms.FileField):
+    """Image upload field that works even when Pillow is missing on the server."""
+
+    default_error_messages = {
+        "invalid_image": (
+            "Загрузите правильное изображение. Файл, который вы загрузили, поврежден или не "
+            "является изображением."
+        ),
+        "invalid_format": (
+            "Этот формат изображения не поддерживается. Используйте JPG, PNG, GIF или WebP."
+        ),
+    }
+
+    def __init__(self, *, allowed_formats: set[str] | None = None, **kwargs):
+        super().__init__(**kwargs)
+        self.allowed_formats = {fmt.lower() for fmt in (allowed_formats or {
+            "jpeg",
+            "jpg",
+            "png",
+            "gif",
+            "webp",
+        })}
+
+    def to_python(self, data):
+        uploaded = super().to_python(data)
+        if uploaded is None:
+            return None
+
+        file_obj = getattr(uploaded, "file", uploaded)
+        reset = getattr(file_obj, "seek", None)
+        if callable(reset):
+            file_obj.seek(0)
+
+        detected_format: str | None = None
+
+        if Image is not None and hasattr(Image, "open"):
+            try:
+                image = Image.open(file_obj)  # type: ignore[call-arg]
+                detected_format = (getattr(image, "format", "") or "").lower()
+                image.verify()
+            except Exception:
+                if callable(reset):
+                    file_obj.seek(0)
+                raise ValidationError(self.error_messages["invalid_image"], code="invalid_image") from None
+            else:
+                if callable(reset):
+                    file_obj.seek(0)
+
+        if not detected_format:
+            header = file_obj.read(512)
+            if callable(reset):
+                file_obj.seek(0)
+            detected_format = (imghdr.what(None, header) or "").lower()
+
+        if detected_format in {"jpg", "jpe"}:
+            detected_format = "jpeg"
+
+        if not detected_format:
+            raise ValidationError(self.error_messages["invalid_image"], code="invalid_image")
+
+        if self.allowed_formats and detected_format not in self.allowed_formats:
+            raise ValidationError(self.error_messages["invalid_format"], code="invalid_image")
+
+        return uploaded
 
 
 def _isbn_digits(value: str) -> str:
@@ -112,6 +191,13 @@ class AudioBookForm(forms.ModelForm):
 
 
 class BookForm(forms.ModelForm):
+    cover = LenientImageField(
+        label="Обложка",
+        required=False,
+        widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
+        help_text="Загрузите изображение в формате JPG, PNG, GIF или WebP.",
+    )
+
     authors = forms.CharField(
         label="Авторы",
         help_text="Укажите имена через запятую.",
@@ -162,7 +248,6 @@ class BookForm(forms.ModelForm):
         }
         widgets = {
             "synopsis": forms.Textarea(attrs={"rows": 6}),
-            "cover": forms.ClearableFileInput(),   # виджет для загрузки файла
         }
 
     def __init__(self, *args, user=None, **kwargs):
