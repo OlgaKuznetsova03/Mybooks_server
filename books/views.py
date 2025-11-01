@@ -1887,7 +1887,15 @@ def book_review_print(request, pk):
             progress.annotations.filter(kind=ProgressAnnotation.KIND_NOTE)
         )
 
-    cover_url = request.build_absolute_uri(book.cover.url) if book.cover else None
+    cover_url = book.get_cover_url()
+    if cover_url:
+        cover_url = str(cover_url).strip()
+        if cover_url.startswith("//"):
+            cover_url = f"{request.scheme}:{cover_url}"
+        elif cover_url.startswith("/"):
+            cover_url = request.build_absolute_uri(cover_url)
+    else:
+        cover_url = None
 
     context = {
         "book": book,
