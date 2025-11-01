@@ -60,18 +60,21 @@ class LenientImageField(forms.FileField):
 
         detected_format: str | None = None
 
+        pillow_error: Exception | None = None
+
         if Image is not None and hasattr(Image, "open"):
             try:
                 image = Image.open(file_obj)  # type: ignore[call-arg]
                 detected_format = (getattr(image, "format", "") or "").lower()
                 image.verify()
-            except Exception:
+            except Exception as exc:
+                pillow_error = exc
+            finally:
                 if callable(reset):
                     file_obj.seek(0)
-                raise ValidationError(self.error_messages["invalid_image"], code="invalid_image") from None
-            else:
-                if callable(reset):
-                    file_obj.seek(0)
+
+        if pillow_error and detected_format:
+            pillow_error = None
 
         if not detected_format:
             header = file_obj.read(512)
@@ -83,7 +86,7 @@ class LenientImageField(forms.FileField):
             detected_format = "jpeg"
 
         if not detected_format:
-            raise ValidationError(self.error_messages["invalid_image"], code="invalid_image")
+            raise ValidationError(self.error_messages["invalid_image"], code="invalid_image") from pillow_error
 
         if self.allowed_formats and detected_format not in self.allowed_formats:
             raise ValidationError(self.error_messages["invalid_format"], code="invalid_image")

@@ -1660,6 +1660,18 @@ def book_create(request):
     )
 
     if request.method == "POST":
+        print("=== DEBUG book_create ===")
+        print("POST data:", dict(request.POST))
+        print("FILES data:", dict(request.FILES))
+        print("Files in request:", list(request.FILES.keys()))
+        
+        if 'cover' in request.FILES:
+            cover_file = request.FILES['cover']
+            print(f"Cover file details:")
+            print(f" - Name: {cover_file.name}")
+            print(f" - Size: {cover_file.size}")
+            print(f" - Content type: {cover_file.content_type}")
+            
         form = BookForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             isbn_metadata = form.cleaned_data.get("isbn_metadata") or {}
