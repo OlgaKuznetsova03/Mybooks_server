@@ -31,8 +31,8 @@
 
   .hero-highlight {
     display: grid;
-    gap: 1rem;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
 
   .hero-highlight__card {
@@ -41,25 +41,6 @@
     border-radius: 1.25rem;
     padding: 1.2rem;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
-  }
-
-  .btn-amber {
-    background-color: #ab7843;
-    border-color: #ab7843;
-    color: #fff;
-  }
-
-  .btn-amber:hover,
-  .btn-amber:focus {
-    background-color: #8f6234;
-    border-color: #8f6234;
-    color: #fff;
-  }
-
-  .btn-amber:active,
-  .btn-amber.active {
-    background-color: #734f2a !important;
-    border-color: #734f2a !important;
   }
 
   .home-section {
@@ -108,20 +89,6 @@
   .featured-book:hover {
     transform: translateY(-6px);
     box-shadow: 0 1.75rem 3.25rem rgba(43, 29, 19, 0.14);
-  }
-
-  .pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    border-radius: 999px;
-    padding: 0.4rem 0.85rem;
-    background: rgba(171, 120, 67, 0.12);
-    color: #80522b;
-    font-size: 0.875rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
   }
 
   .timeline-card {
@@ -194,7 +161,7 @@
     }
 
     .hero-highlight {
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
     }
 
     .featured-shelf {
@@ -207,54 +174,37 @@
 {% block content %}
 
 <section class="hero-section mb-5">
-  <div class="row g-4 align-items-center">
-    <div class="col-lg-6">
-      <span class="pill"><i class="bi bi-stars"></i> Вдохновляем на чтение</span>
-      <h1 class="display-5 fw-bold mt-3 mb-3">Окунитесь в мир совместного чтения и литературных приключений</h1>
-      <p class="lead mb-4">Присоединяйтесь к клубам, создавайте марафоны и настраивайте свою идеальную книжную полку. У нас всегда найдётся компания для обсуждения любимых историй.</p>
-      <div class="d-flex flex-wrap gap-2">
-        <a class="btn btn-amber btn-lg px-4" href="/reading/create/"><i class="bi bi-people-fill me-2"></i>Запустить чтение</a>
-        <a class="btn btn-outline-light btn-lg px-4" href="{% url 'book_list' %}"><i class="bi bi-book-half me-2"></i>Найти идеальную книгу</a>
+  <div class="hero-highlight">
+    <div class="hero-highlight__card h-100">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <i class="bi bi-house-heart fs-4" style="color:#ab7843"></i>
+        <h3 class="h5 fw-semibold mb-0">Домашняя библиотека</h3>
       </div>
+      <p class="mb-0">Всегда знайте, сколько книг стоит на ваших полках, какие ещё ждут прочтения и что вы делаете чаще — читаете или пополняете коллекцию.</p>
     </div>
-    <div class="col-lg-6">
-      <div class="hero-highlight">
-        <div class="hero-highlight__card">
-          <div class="d-flex align-items-center justify-content-between mb-3">
-            <span class="pill"><i class="bi bi-collection-play"></i> Чтения</span>
-            <i class="bi bi-arrow-right-circle text-amber fs-4" style="color:#ab7843"></i>
-          </div>
-          <h3 class="h5 fw-semibold mb-2">Встречи каждый день</h3>
-          <p class="mb-0">Сотни обсуждений романов, нон-фикшена и комиксов.</p>
-        </div>
-        <div class="hero-highlight__card">
-          <div class="d-flex align-items-center justify-content-between mb-3">
-            <span class="pill"><i class="bi bi-trophy"></i> Марафоны</span>
-            <i class="bi bi-lightning-charge-fill" style="color:#ab7843"></i>
-          </div>
-          <h3 class="h5 fw-semibold mb-2">Прокачайте привычку</h3>
-          <p class="mb-0">Игровые механики, чек-листы и награды за стабильность.</p>
-        </div>
-        <div class="hero-highlight__card">
-          <div class="d-flex align-items-center justify-content-between mb-3">
-            <span class="pill"><i class="bi bi-controller"></i> Игры</span>
-            <i class="bi bi-joystick" style="color:#ab7843"></i>
-          </div>
-          <h3 class="h5 fw-semibold mb-2">Задания</h3>
-          <p class="mb-0">Весёлые испытания и соревнования для друзей и клубов.</p>
-        </div>
-        <div class="hero-highlight__card">
-          <div class="d-flex align-items-center justify-content-between mb-3">
-            <span class="pill"><i class="bi bi-people"></i> Коллаборации</span>
-            <i class="bi bi-heart-fill" style="color:#ab7843"></i>
-          </div>
-          <h3 class="h5 fw-semibold mb-2">Находим </h3>
-          <p class="mb-0">Книги, авторы и блогеры в одном месте.</p>
-        </div>
+    <div class="hero-highlight__card h-100">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <i class="bi bi-people-fill fs-4" style="color:#ab7843"></i>
+        <h3 class="h5 fw-semibold mb-0">Совместные чтения</h3>
       </div>
+      <p class="mb-0">Вступайте в существующие совместные чтения или создавайте свои и наслаждайтесь книгами в компании единомышленников.</p>
+    </div>
+    <div class="hero-highlight__card h-100">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <i class="bi bi-controller fs-4" style="color:#ab7843"></i>
+        <h3 class="h5 fw-semibold mb-0">Игры</h3>
+      </div>
+      <p class="mb-0">Бросьте себе вызов, познакомьтесь с новыми авторами или отправьтесь в книжное путешествие с нашими игровыми форматами.</p>
+    </div>
+    <div class="hero-highlight__card h-100">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <i class="bi bi-heart-fill fs-4" style="color:#ab7843"></i>
+        <h3 class="h5 fw-semibold mb-0">Сотрудничество</h3>
+      </div>
+      <p class="mb-0">Авторы ищут читателей и блогеров: отправьте заявку и получите книгу бесплатно, чтобы поделиться впечатлениями.</p>
     </div>
   </div>
-  </section>
+</section>
 
 <section class="home-section">
   <div class="section-heading">
@@ -292,5 +242,4 @@
     </div>
 </section>
 </div>
-
 {% endblock %}
