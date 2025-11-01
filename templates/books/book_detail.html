@@ -418,7 +418,8 @@
                     action="{% url 'book_detail' book.pk %}"
                     class="book-detail-shelf-form card border-0 shadow-sm p-3 flex-grow-1"
                     data-role="book-shelf-form"
-                    data-read-shelf-ids="{{ read_shelf_ids_str|join:',' }}">
+                    data-read-shelf-ids="{{ read_shelf_ids_str|join:',' }}"
+                    data-read-shelf-names="{{ read_shelf_name_tokens|join:'|' }}">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="quick-add-shelf">
                 {% if quick_add_form.non_field_errors %}
@@ -434,31 +435,36 @@
                       <div class="invalid-feedback d-block small">{{ quick_add_form.shelf.errors|join:', ' }}</div>
                     {% endif %}
                   </div>
-                  <div class="col-12 col-lg-6 book-detail-shelf-form__extras{% if quick_add_form.shelf.value not in read_shelf_ids_str %} d-none{% endif %}" data-role="read-fields">
-                    <div class="row g-3">
-                      <div class="col-12 col-md-6">
-                        <label class="form-label small" for="{{ quick_add_form.read_at.id_for_label }}">{{ quick_add_form.read_at.label }}</label>
-                        {{ quick_add_form.read_at }}
-                        {% if quick_add_form.read_at.errors %}
-                          <div class="invalid-feedback d-block small">{{ quick_add_form.read_at.errors|join:', ' }}</div>
-                        {% endif %}
-                      </div>
-                      <div class="col-12">
-                        <label class="form-label small" for="{{ quick_add_form.quote.id_for_label }}">{{ quick_add_form.quote.label }} <span class="text-muted">(необязательно)</span></label>
-                        {{ quick_add_form.quote }}
-                        {% if quick_add_form.quote.errors %}
-                          <div class="invalid-feedback d-block small">{{ quick_add_form.quote.errors|join:', ' }}</div>
-                        {% endif %}
-                      </div>
-                      <div class="col-12">
-                        <label class="form-label small" for="{{ quick_add_form.note.id_for_label }}">{{ quick_add_form.note.label }} <span class="text-muted">(необязательно)</span></label>
-                        {{ quick_add_form.note }}
-                        {% if quick_add_form.note.errors %}
-                          <div class="invalid-feedback d-block small">{{ quick_add_form.note.errors|join:', ' }}</div>
-                        {% endif %}
+                  {% with is_read_shelf_selected=quick_add_form.shelf.value in read_shelf_ids_str %}
+                    <div class="col-12 col-lg-6 book-detail-shelf-form__extras{% if not is_read_shelf_selected %} d-none{% endif %}"
+                         data-role="read-fields"
+                         aria-hidden="{% if is_read_shelf_selected %}false{% else %}true{% endif %}"
+                         {% if not is_read_shelf_selected %}hidden{% endif %}>
+                      <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                          <label class="form-label small" for="{{ quick_add_form.read_at.id_for_label }}">{{ quick_add_form.read_at.label }}</label>
+                          {{ quick_add_form.read_at }}
+                          {% if quick_add_form.read_at.errors %}
+                            <div class="invalid-feedback d-block small">{{ quick_add_form.read_at.errors|join:', ' }}</div>
+                          {% endif %}
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label small" for="{{ quick_add_form.quote.id_for_label }}">{{ quick_add_form.quote.label }} <span class="text-muted">(необязательно)</span></label>
+                          {{ quick_add_form.quote }}
+                          {% if quick_add_form.quote.errors %}
+                            <div class="invalid-feedback d-block small">{{ quick_add_form.quote.errors|join:', ' }}</div>
+                          {% endif %}
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label small" for="{{ quick_add_form.note.id_for_label }}">{{ quick_add_form.note.label }} <span class="text-muted">(необязательно)</span></label>
+                          {{ quick_add_form.note }}
+                          {% if quick_add_form.note.errors %}
+                            <div class="invalid-feedback d-block small">{{ quick_add_form.note.errors|join:', ' }}</div>
+                          {% endif %}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  {% endwith %}
                   <div class="col-12 col-md-auto align-self-end">
                     <button class="btn btn-outline-primary btn-sm" type="submit">Добавить</button>
                   </div>
@@ -701,6 +707,53 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-role="book-shelf-form"]').forEach((form) => {
+      const select = form.querySelector('[data-role="shelf-select"]') || form.querySelector('select[name="shelf"]');
+      const extras = form.querySelector('[data-role="read-fields"]');
+      if (!select || !extras) return;
+
+      const readShelfIds = (form.dataset.readShelfIds || '')
+        .split(',')
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0);
+
+      const readShelfNames = (form.dataset.readShelfNames || '')
+        .split('|')
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0);
+
+      const getSelectedOptionText = () => {
+        const option = select.options[select.selectedIndex];
+        if (!option) return '';
+        return (option.textContent || option.innerText || '').trim();
+      };
+
+      const isReadShelfByText = () => {
+        const optionText = getSelectedOptionText();
+        if (!optionText) return false;
+        const normalized = optionText.toLowerCase();
+        if (normalized.includes('прочит')) return true;
+        return readShelfNames.some((name) => normalized.includes(name));
+      };
+
+      const toggleExtras = () => {
+        const selectedShelfId = (select.value || '').trim();
+        const matchesById = selectedShelfId && readShelfIds.includes(selectedShelfId);
+        const shouldShow = Boolean(matchesById || isReadShelfByText());
+        extras.classList.toggle('d-none', !shouldShow);
+        if (shouldShow) {
+          extras.removeAttribute('hidden');
+          extras.setAttribute('aria-hidden', 'false');
+        } else {
+          extras.setAttribute('hidden', 'true');
+          extras.setAttribute('aria-hidden', 'true');
+        }
+      };
+
+      toggleExtras();
+      select.addEventListener('change', toggleExtras);
+    });
+
     const homeLibraryMarkRead = document.querySelector('[data-role="home-library-mark-read"]');
     const homeLibraryReadDate = document.querySelector('[data-role="home-library-read-date"]');
     if (homeLibraryMarkRead && homeLibraryReadDate) {

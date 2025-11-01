@@ -1003,6 +1003,7 @@ def book_detail(request, pk):
     quick_add_form: QuickAddShelfForm | None = None
     read_shelf_ids: list[int] = []
     read_shelf_ids_str: list[str] = []
+    read_shelf_name_tokens: list[str] = []
 
     if request.user.is_authenticated:
         home_library_shelf = get_home_library_shelf(request.user)
@@ -1159,6 +1160,13 @@ def book_detail(request, pk):
             .values_list("id", flat=True)
         )
         read_shelf_ids_str = [str(pk) for pk in read_shelf_ids]
+
+        seen_tokens: set[str] = set()
+        for shelf_name in ALL_DEFAULT_READ_SHELF_NAMES:
+            token = (shelf_name or "").strip().lower()
+            if token and token not in seen_tokens:
+                read_shelf_name_tokens.append(token)
+                seen_tokens.add(token)
 
         default_shelf_items = (
             ShelfItem.objects
@@ -1630,6 +1638,7 @@ def book_detail(request, pk):
         "quick_add_form": quick_add_form,
         "read_shelf_ids": read_shelf_ids,
         "read_shelf_ids_str": read_shelf_ids_str,
+        "read_shelf_name_tokens": read_shelf_name_tokens,
         "genre_shelves": genre_shelves,
         "reading_clubs_by_status": reading_clubs_by_status,
     })
