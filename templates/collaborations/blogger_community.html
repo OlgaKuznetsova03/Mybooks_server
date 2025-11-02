@@ -150,9 +150,24 @@
       <!-- Приглашения -->
       <div class="tab-pane fade{% if active_tab == 'invitations' %} show active{% endif %}" id="invites" role="tabpanel" aria-labelledby="invites-tab">
         <div class="mb-4">
-          <h2 class="h4 mb-3">{% trans "Поделитесь своим книжным пространством" %}</h2>
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+            <h2 class="h4 mb-0">{% trans "Поделитесь своим книжным пространством" %}</h2>
+            {% if can_share_blogger_content %}
+              <button
+                class="btn btn-outline-primary"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#communityInvitationForm"
+                aria-expanded="{% if invitation_form.errors %}true{% else %}false{% endif %}"
+                aria-controls="communityInvitationForm"
+              >
+                <i class="bi bi-broadcast-pin me-1"></i>{% trans "Добавить приглашение" %}
+              </button>
+            {% endif %}
+          </div>
           {% if can_share_blogger_content %}
-            <form method="post" class="card hub-card shadow-sm">
+            <div class="collapse{% if invitation_form.errors %} show{% endif %}" id="communityInvitationForm">
+              <form method="post" class="card hub-card shadow-sm">
               {% csrf_token %}
               <input type="hidden" name="section" value="invitations">
               <div class="card-body">
@@ -202,7 +217,8 @@
                   <i class="bi bi-send-fill me-1"></i>{% trans "Опубликовать приглашение" %}
                 </button>
               </div>
-            </form>
+              </form>
+            </div>
           {% else %}
             <div class="alert alert-info" role="alert">
               <i class="bi bi-info-circle-fill me-2"></i>{% trans "Войдите как блогер, чтобы делиться своими ссылками." %}
@@ -260,9 +276,24 @@
       </div>
 
       <div class="mb-4">
-        <h2 class="h4 mb-3">{% trans "Актуальные розыгрыши" %}</h2>
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+          <h2 class="h4 mb-0">{% trans "Актуальные розыгрыши" %}</h2>
+          {% if can_share_blogger_content %}
+            <button
+              class="btn btn-outline-primary"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#communityGiveawayForm"
+              aria-expanded="{% if giveaway_form.errors %}true{% else %}false{% endif %}"
+              aria-controls="communityGiveawayForm"
+            >
+              <i class="bi bi-megaphone me-1"></i>{% trans "Добавить розыгрыш" %}
+            </button>
+          {% endif %}
+        </div>
         {% if can_share_blogger_content %}
-          <form method="post" class="card hub-card shadow-sm">
+          <div class="collapse{% if giveaway_form.errors %} show{% endif %}" id="communityGiveawayForm">
+            <form method="post" class="card hub-card shadow-sm">
             {% csrf_token %}
             <input type="hidden" name="section" value="giveaways">
             <div class="card-body">
@@ -315,7 +346,8 @@
                 <i class="bi bi-megaphone-fill me-1"></i>{% trans "Опубликовать розыгрыш" %}
               </button>
             </div>
-          </form>
+            </form>
+          </div>
         {% else %}
           <div class="alert alert-info" role="alert">
             <i class="bi bi-info-circle-fill me-2"></i>{% trans "Только блогеры могут публиковать информацию о розыгрышах." %}

@@ -36,9 +36,12 @@ class LenientImageField(forms.FileField):
         "invalid_format": (
             "Этот формат изображения не поддерживается. Используйте JPG, PNG, GIF или WebP."
         ),
+        "file_too_large": (
+            "Размер файла слишком большой. Максимальный размер: %(max_size)s MB."
+        ),
     }
 
-    def __init__(self, *, allowed_formats: set[str] | None = None, **kwargs):
+    def __init__(self, *, allowed_formats: set[str] | None = None, max_size: int = 5, **kwargs):
         super().__init__(**kwargs)
         self.allowed_formats = {fmt.lower() for fmt in (allowed_formats or {
             "jpeg",
@@ -47,6 +50,18 @@ class LenientImageField(forms.FileField):
             "gif",
             "webp",
         })}
+        self.max_size = max_size  # в мегабайтах
+
+    def clean(self, data, initial=None):
+        # Проверяем размер файла перед основной валидацией
+        if data and hasattr(data, 'size'):
+            if data.size > self.max_size * 1024 * 1024:  # Convert MB to bytes
+                raise ValidationError(
+                    self.error_messages['file_too_large'],
+                    code='file_too_large',
+                    params={'max_size': self.max_size}
+                )
+        return super().clean(data, initial)  # в мегабайтах
 
     def to_python(self, data):
         uploaded = super().to_python(data)
@@ -197,8 +212,9 @@ class BookForm(forms.ModelForm):
     cover = LenientImageField(
         label="Обложка",
         required=False,
+        max_size=10,  # 10 MB максимум
         widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
-        help_text="Загрузите изображение в формате JPG, PNG, GIF или WebP.",
+        help_text="Загрузите изображение в формате JPG, PNG, GIF или WebP. Максимальный размер: 10 MB.",
     )
 
     authors = forms.CharField(
