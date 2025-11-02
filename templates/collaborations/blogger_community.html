@@ -260,40 +260,44 @@
           </div>
         {% endif %}
       </div>
-
       <!-- Розыгрыши -->
-      <div class="tab-pane fade{% if active_tab == 'giveaways' %} show active{% endif %}" id="giveaways" role="tabpanel" aria-labelledby="giveaways-tab"></div>
-    </div>
-
-    <!-- Розыгрыши -->
-    <div class="tab-pane fade{% if active_tab == 'giveaways' %} show active{% endif %}" id="giveaways" role="tabpanel" aria-labelledby="giveaways-tab">
-      <div class="alert alert-warning d-flex" role="alert">
-        <i class="bi bi-shield-lock-fill me-2 fs-4"></i>
-        <div>
-          <p class="mb-1 fw-semibold">{% trans "Будьте осторожны!" %}</p>
-          <p class="mb-0">{% trans "Не вводите личные данные, не переводите деньги и не сообщайте реквизиты банковских карт. Официальные конкурсы не требуют предоплаты или конфиденциальной информации." %}</p>
+      <div class="tab-pane fade{% if active_tab == 'giveaways' %} show active{% endif %}" id="giveaways" role="tabpanel" aria-labelledby="giveaways-tab">
+        <div class="alert alert-warning d-flex" role="alert">
+          <i class="bi bi-shield-lock-fill me-2 fs-4"></i>
+          <div>
+            <p class="mb-1 fw-semibold">{% trans "Важно: проверьте условия" %}</p>
+            <p class="mb-1">{% trans "Все розыгрыши бесплатные и не требуют ввода личных данных пользователей." %}</p>
+            <p class="mb-0">{% trans "Платформа Калейдоскоп книг не несёт ответственности за выбор победителей, условия, проведение и доставку призов." %}</p>
+          </div>
         </div>
-      </div>
 
-      <div class="mb-4">
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
-          <h2 class="h4 mb-0">{% trans "Актуальные розыгрыши" %}</h2>
+        <div class="mb-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+            <h2 class="h4 mb-0">{% trans "Актуальные розыгрыши" %}</h2>
+            {% if can_share_blogger_content %}
+              <div class="d-flex flex-column flex-sm-row gap-2">
+                <a
+                  class="btn btn-outline-secondary"
+                  href="{% url 'collaborations:blogger_request_create' %}?source=giveaways"
+                >
+                  <i class="bi bi-layout-text-sidebar-reverse me-1"></i>{% trans "Создать рекламный блок" %}
+                </a>
+                <button
+                  class="btn btn-outline-primary"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#communityGiveawayForm"
+                  aria-expanded="{% if giveaway_form.errors %}true{% else %}false{% endif %}"
+                  aria-controls="communityGiveawayForm"
+                >
+                  <i class="bi bi-megaphone me-1"></i>{% trans "Добавить розыгрыш" %}
+                </button>
+              </div>
+            {% endif %}
+          </div>
           {% if can_share_blogger_content %}
-            <button
-              class="btn btn-outline-primary"
-              type="button"
-              data-bs-toggle="collapse"
-              data-bs-target="#communityGiveawayForm"
-              aria-expanded="{% if giveaway_form.errors %}true{% else %}false{% endif %}"
-              aria-controls="communityGiveawayForm"
-            >
-              <i class="bi bi-megaphone me-1"></i>{% trans "Добавить розыгрыш" %}
-            </button>
-          {% endif %}
-        </div>
-        {% if can_share_blogger_content %}
-          <div class="collapse{% if giveaway_form.errors %} show{% endif %}" id="communityGiveawayForm">
-            <form method="post" class="card hub-card shadow-sm">
+            <div class="collapse{% if giveaway_form.errors %} show{% endif %}" id="communityGiveawayForm">
+              <form method="post" class="card hub-card shadow-sm">
             {% csrf_token %}
             <input type="hidden" name="section" value="giveaways">
             <div class="card-body">
@@ -394,14 +398,14 @@
           {% endif %}
         </div>
       {% endif %}
-    </div>
-
-    <!-- Клубы -->
-    <div class="tab-pane fade{% if active_tab == 'clubs' %} show active{% endif %}" id="clubs" role="tabpanel" aria-labelledby="clubs-tab">
-      <div class="mb-4">
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
-          <h2 class="h4 mb-0">{% trans "Поделитесь книжным клубом" %}</h2>
-          {% if can_share_book_clubs %}
+      </div>
+␊
+      <!-- Клубы -->
+      <div class="tab-pane fade{% if active_tab == 'clubs' %} show active{% endif %}" id="clubs" role="tabpanel" aria-labelledby="clubs-tab">
+        <div class="mb-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+            <h2 class="h4 mb-0">{% trans "Поделитесь книжным клубом" %}</h2>
+            {% if can_share_book_clubs %}
             <button
               class="btn btn-outline-primary"
               type="button"
@@ -539,6 +543,7 @@
           {% endif %}
         </div>
       {% endif %}
+    </div>
     </div>
 
   </div>

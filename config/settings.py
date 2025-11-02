@@ -279,18 +279,20 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 EMAIL_BACKEND = os.getenv(
-    "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
+    "EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend"
 )
-EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.yandex.ru")
+EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.beget.com")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", "465"))
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "info@kalejdoskopknig.ru")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "Email_passwort", default="")
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", False)
 EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", True)
 EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "10"))
 DEFAULT_FROM_EMAIL = os.getenv(
-    "DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "noreply@mybooks.local"
+    "DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "info@kalejdoskopknig.ru"
 )
+
+SERVER_EMAIL = os.getenv("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
 
 if EMAIL_USE_TLS and EMAIL_USE_SSL:
     EMAIL_USE_SSL = False
