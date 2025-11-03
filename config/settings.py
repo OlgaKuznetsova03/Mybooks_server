@@ -286,7 +286,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 EMAIL_BACKEND = env(
     "EMAIL_BACKEND",
     "SMTP_BACKEND",
-    default="django.core.mail.backends.console.EmailBackend",
+    default=None,
 )
 EMAIL_HOST = env("EMAIL_HOST", "SMTP_HOST", default="smtp.yandex.ru")
 EMAIL_PORT = int(env("EMAIL_PORT", "SMTP_PORT", default="465"))
@@ -306,6 +306,13 @@ SERVER_EMAIL = os.getenv("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
 
 if EMAIL_USE_TLS and EMAIL_USE_SSL:
     EMAIL_USE_SSL = False
+
+if not EMAIL_BACKEND:
+    # Используем SMTP-бэкенд, когда заданы учетные данные почтового ящика.
+    if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+        EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    else:
+        EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
     
 LOGIN_REDIRECT_URL = 'book_list'
 LOGOUT_REDIRECT_URL = 'home'
