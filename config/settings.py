@@ -21,11 +21,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / ".env")
 
-def env_bool(name: str, default: bool = False) -> bool:
-    value = os.getenv(name)
-    if value is None:
-        return default
-    return value.lower() in {"1", "true", "yes"}
+def env_bool(*names: str, default: bool = False) -> bool:
+    if not names:
+        raise ValueError("At least one environment variable name must be provided")
+
+    for name in names:
+        value = os.getenv(name)
+        if value is not None:
+            return value.lower() in {"1", "true", "yes"}
+
+    return default
 
 
 # Provide a minimal Pillow stub for environments where the library is unavailable
@@ -278,19 +283,24 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-EMAIL_BACKEND = os.getenv(
-    "EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_BACKEND = env(
+    "EMAIL_BACKEND",
+    "SMTP_BACKEND",
+    default="django.core.mail.backends.console.EmailBackend",
 )
-EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.beget.com")
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", "465"))
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "info@kalejdoskopknig.ru")
-EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "Email_passwort", default="")
-EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", False)
-EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", True)
-EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "10"))
-DEFAULT_FROM_EMAIL = os.getenv(
-    "DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "info@kalejdoskopknig.ru"
+EMAIL_HOST = env("EMAIL_HOST", "SMTP_HOST", default="smtp.yandex.ru")
+EMAIL_PORT = int(env("EMAIL_PORT", "SMTP_PORT", default="465"))
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", "SMTP_LOGIN", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "SMTP_PASSWORD", default="")
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", "SMTP_USE_TLS", default=False)
+EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", "SMTP_USE_SSL", default=True)
+EMAIL_TIMEOUT = int(env("EMAIL_TIMEOUT", "SMTP_TIMEOUT", default="10"))
+DEFAULT_FROM_EMAIL = env(
+    "DEFAULT_FROM_EMAIL",
+    "SMTP_FROM_EMAIL",
+    default=EMAIL_HOST_USER or "noreply@mybooks.local",
 )
+SERVER_EMAIL = env("SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
 
 SERVER_EMAIL = os.getenv("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
 
@@ -330,9 +340,9 @@ if (
     )
     AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME")
     AWS_S3_ADDRESSING_STYLE = os.getenv("AWS_S3_ADDRESSING_STYLE", "path")
-    AWS_QUERYSTRING_AUTH = env_bool("AWS_QUERYSTRING_AUTH", False)
+    AWS_QUERYSTRING_AUTH = env_bool("AWS_QUERYSTRING_AUTH", default=False)
     AWS_DEFAULT_ACL = os.getenv("AWS_DEFAULT_ACL", "public-read")
-    AWS_S3_FILE_OVERWRITE = env_bool("AWS_S3_FILE_OVERWRITE", False)
+    AWS_S3_FILE_OVERWRITE = env_bool("AWS_S3_FILE_OVERWRITE", default=False)
     AWS_S3_SIGNATURE_VERSION = os.getenv("AWS_S3_SIGNATURE_VERSION", "s3v4")
     AWS_S3_REGION_NAME = AWS_S3_REGION_NAME or os.getenv("AWS_S3_REGION", "ru-1")
 
