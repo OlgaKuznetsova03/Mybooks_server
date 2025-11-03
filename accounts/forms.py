@@ -1,4 +1,4 @@
-from typing import Optional, Set
+from typing import Set
 
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
@@ -27,10 +27,9 @@ class SignUpForm(UserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._pending_role_names: Optional[Set[str]] = None
         self._apply_widget_styles()
         self.fields["password1"].help_text = _(
-            "Пароль должен состоять минимум из 8 знаков, содержать хотя бы одну букву и один символ."
+            "Пароль должен состоять минимум из 8 символов, хотя бы одну букву и один символ."
         )
 
     class Meta:
@@ -100,24 +99,21 @@ class SignUpForm(UserCreationForm):
         user = super().save(commit=False)
         user.username = self.cleaned_data["username"]
         user.email = self.cleaned_data["email"]
+        selected_roles = set(self.cleaned_data.get("roles", []))
+        self._ensure_role_groups()
+
+        original_save_m2m = self.save_m2m
+
+        def save_m2m_wrapper():
+            original_save_m2m()
+            self._assign_roles(self.instance, selected_roles)
+
+        self.save_m2m = save_m2m_wrapper  # type: ignore[assignment]
+
         if commit:
             user.save()
-
-        selected = set(self.cleaned_data.get("roles", []))
-        self._ensure_role_groups()
-        if commit:
-            self._assign_roles(user, selected)
-            self._pending_role_names = None
-        else:
-            self._pending_role_names = selected
+            self.save_m2m()
         return user
-
-    def save_m2m(self):
-        super().save_m2m()
-        if self._pending_role_names is not None:
-            self._ensure_role_groups()
-            self._assign_roles(self.instance, self._pending_role_names)
-            self._pending_role_names = None
 
 
 class EmailAuthenticationForm(AuthenticationForm):

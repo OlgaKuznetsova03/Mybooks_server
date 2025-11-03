@@ -9,10 +9,10 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from .forms import SignUpForm, ProfileForm, RoleForm, PremiumPurchaseForm
 from django.db.models import Count, Sum
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 
 from shelves.models import Shelf, ShelfItem, BookProgress, HomeLibraryEntry, ReadingLog
@@ -27,6 +27,7 @@ from books.models import Rating, Book
 from user_ratings.models import UserPointEvent
 
 from .forms import SignUpForm, ProfileForm, RoleForm, PremiumPurchaseForm
+from .models import YANDEX_AD_REWARD_COINS
 
 MONTH_NAMES = [
     "",
@@ -644,6 +645,7 @@ def profile(request, username=None):
         User.objects.select_related("profile").prefetch_related("groups"),
         username=username or request.user.username
     )
+    profile_obj = user_obj.profile
     stats_payload = _collect_profile_stats(user_obj, request.GET)
     active_tab = request.GET.get("tab", "overview")
     if active_tab == "shelves":
@@ -686,7 +688,7 @@ def profile(request, username=None):
         or Decimal("0")
     )
 
-    active_premium = getattr(user_obj.profile, "active_premium", None)
+    active_premium = getattr(profile_obj, "active_premium", None)
     premium_payments = (
         user_obj.premium_payments.select_related("subscription").order_by("-created_at")[:5]
         if request.user == user_obj
@@ -695,6 +697,7 @@ def profile(request, username=None):
 
     context = {
         "u": user_obj,
+        "profile_obj": profile_obj,
         "is_blogger": user_obj.groups.filter(name="blogger").exists(),
         "is_author": is_author,
         "is_reader": user_obj.groups.filter(name="reader").exists(),
@@ -718,6 +721,10 @@ def profile(request, username=None):
         "active_premium": active_premium,
         "premium_payments": premium_payments,
         "premium_is_self": request.user == user_obj,
+        "show_coin_balance": request.user == user_obj,
+        "coin_balance": profile_obj.coin_balance,
+        "has_unlimited_coins": profile_obj.has_unlimited_coins,
+        "yandex_ad_reward_amount": YANDEX_AD_REWARD_COINS,
     }
     return render(request, "accounts/profile.html", context)
 
@@ -740,3 +747,18 @@ def profile_edit(request):
         "form": form,
         "role_form": role_form,
     })
+
+
+@login_required
+@require_POST
+def claim_yandex_ad_reward(request):
+    profile = request.user.profile
+    profile.reward_ad_view(
+        YANDEX_AD_REWARD_COINS,
+        description="Вознаграждение от Яндекс за просмотр рекламы",
+    )
+    messages.success(
+        request,
+        f"Спасибо за просмотр! На ваш счёт начислено {YANDEX_AD_REWARD_COINS} монет.",
+    )
+    return redirect("profile", username=request.user.username)

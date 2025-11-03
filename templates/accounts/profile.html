@@ -334,6 +334,37 @@
       </div>
       {% endif %}
 
+      {% if show_coin_balance %}
+      <div class="mb-3">
+        <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-2 mb-2">
+          <span class="badge text-bg-light text-dark">
+            <i class="bi bi-coin me-1"></i>
+            {% if has_unlimited_coins %}
+              Безлимитные монеты
+            {% else %}
+              Баланс: {{ coin_balance }}
+            {% endif %}
+          </span>
+          {% if not has_unlimited_coins %}
+            <form method="post" action="{% url 'claim_yandex_ad_reward' %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-play-circle me-1"></i>
+                Смотреть рекламу Яндекс (+{{ yandex_ad_reward_amount }})
+              </button>
+            </form>
+          {% endif %}
+        </div>
+        <!-- 
+        {% if not has_unlimited_coins %}
+          <p class="small text-muted mb-0">
+            За каждый просмотр специальной рекламы от Яндекс начисляется {{ yandex_ad_reward_amount }} монет.
+          </p>
+        {% endif %}
+        -->
+      </div>
+      {% endif %}
+
       <!-- Био и сайт -->
       <div class="mb-3">
         <p class="mb-1">{{ u.profile.bio|default:"Пока без описания." }}</p>

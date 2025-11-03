@@ -12,6 +12,11 @@ from django.db.models import F
 from django.utils import timezone
 
 
+WELCOME_BONUS_COINS = 100
+DAILY_LOGIN_REWARD_COINS = 10
+YANDEX_AD_REWARD_COINS = 20
+
+
 @dataclass(frozen=True)
 class PremiumPlan:
     code: str
@@ -26,6 +31,7 @@ class Profile(models.Model):
     bio = models.TextField(blank=True)
     website = models.URLField(blank=True)
     coins = models.PositiveIntegerField(default=0)
+    last_daily_reward_at = models.DateField(blank=True, null=True)
 
     def __str__(self):
         return f"Profile({self.user.username})"
@@ -107,6 +113,27 @@ class Profile(models.Model):
             description=description or "Награда за просмотр рекламы",
         )
 
+    def grant_daily_login_reward(
+        self,
+        amount: int = DAILY_LOGIN_REWARD_COINS,
+        description: str = "",
+    ) -> "CoinTransaction | None":
+        today = timezone.localdate()
+        with transaction.atomic():
+            profile = Profile.objects.select_for_update().get(pk=self.pk)
+            if profile.last_daily_reward_at == today:
+                return None
+            profile.last_daily_reward_at = today
+            profile.save(update_fields=["last_daily_reward_at"])
+            tx = profile.credit_coins(
+                amount,
+                transaction_type=CoinTransaction.Type.DAILY_LOGIN,
+                description=description or "Ежедневный бонус за вход",
+            )
+
+        self.refresh_from_db(fields=["coins", "last_daily_reward_at"])
+        return tx
+
     def spend_coins(
         self,
         amount: int,
@@ -147,6 +174,8 @@ class Profile(models.Model):
 class CoinTransaction(models.Model):
     class Type(models.TextChoices):
         AD_REWARD = ("ad_reward", "Награда за просмотр рекламы")
+        DAILY_LOGIN = ("daily_login", "Бонус за ежедневный вход")
+        SIGNUP_BONUS = ("signup_bonus", "Приветственный бонус")
         ADMIN_ADJUSTMENT = ("admin_adjustment", "Корректировка администратором")
         FEATURE_PURCHASE = ("feature_purchase", "Трата на функцию")
 

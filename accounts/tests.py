@@ -12,11 +12,28 @@ from datetime import timedelta
 from django.utils import timezone
 
 from accounts.forms import SignUpForm
-from accounts.models import CoinTransaction, PremiumSubscription
+from accounts.models import (
+    DAILY_LOGIN_REWARD_COINS,
+    WELCOME_BONUS_COINS,
+    CoinTransaction,
+    PremiumSubscription,
+    Profile,
+    YANDEX_AD_REWARD_COINS,
+)
 from books.models import Author, Book
 
 
+@override_settings(
+    SECURE_SSL_REDIRECT=False,
+    SESSION_COOKIE_SECURE=False,
+    CSRF_COOKIE_SECURE=False,
+)
 class SignUpPageTests(TestCase):
+    def setUp(self):
+        self.client.defaults["HTTP_HOST"] = "localhost"
+        self.client.defaults["wsgi.url_scheme"] = "https"
+        self.client.defaults["HTTP_X_FORWARDED_PROTO"] = "https"
+
     def test_signup_page_renders(self):
         response = self.client.get(reverse("signup"))
         self.assertEqual(response.status_code, 200)
@@ -42,8 +59,16 @@ class SignUpPageTests(TestCase):
         self.assertTrue(response.context["user"].is_authenticated)
 
 
+@override_settings(
+    SECURE_SSL_REDIRECT=False,
+    SESSION_COOKIE_SECURE=False,
+    CSRF_COOKIE_SECURE=False,
+)
 class PasswordResetFlowTests(TestCase):
     def setUp(self):
+        self.client.defaults["HTTP_HOST"] = "localhost"
+        self.client.defaults["wsgi.url_scheme"] = "https"
+        self.client.defaults["HTTP_X_FORWARDED_PROTO"] = "https"
         self.user = get_user_model().objects.create_user(
             username="reader",
             email="reader@example.com",
@@ -71,12 +96,23 @@ class PasswordResetFlowTests(TestCase):
         token = default_token_generator.make_token(self.user)
         url = reverse("password_reset_confirm", kwargs={"uidb64": uid, "token": token})
 
-        response = self.client.get(url)
+        response = self.client.get(url, follow=True)
         self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(
+            response, "accounts/password_reset_confirm.html"
+        )
+        # Django redirects to a "set-password" URL once the token is validated.
+        redirect_chain = response.redirect_chain
+        if redirect_chain:
+            self.assertTrue(
+                any(chain_url.endswith("/set-password/") for chain_url, _ in redirect_chain),
+                msg=f"Redirect chain did not include set-password URL: {redirect_chain}",
+            )
 
+        post_url = response.request.get("PATH_INFO", url)
         new_password = "NewPass123!"
         response = self.client.post(
-            url,
+            post_url,
             {
                 "new_password1": new_password,
                 "new_password2": new_password,
@@ -87,8 +123,16 @@ class PasswordResetFlowTests(TestCase):
         self.assertTrue(self.user.check_password(new_password))
 
 
+@override_settings(
+    SECURE_SSL_REDIRECT=False,
+    SESSION_COOKIE_SECURE=False,
+    CSRF_COOKIE_SECURE=False,
+)
 class AuthorProfileBooksTests(TestCase):
     def setUp(self):
+        self.client.defaults["HTTP_HOST"] = "localhost"
+        self.client.defaults["wsgi.url_scheme"] = "https"
+        self.client.defaults["HTTP_X_FORWARDED_PROTO"] = "https"
         self.password = "AuthorPass123!"
         self.user = get_user_model().objects.create_user(
             username="author",
@@ -163,6 +207,7 @@ class CoinEconomyTests(TestCase):
             password="CoinsPass123!",
         )
         self.profile = self.user.profile
+        self.initial_balance = self.profile.coins
 
     def test_credit_coins_records_transaction(self):
         tx = self.profile.credit_coins(
@@ -172,8 +217,8 @@ class CoinEconomyTests(TestCase):
         )
 
         self.profile.refresh_from_db()
-        self.assertEqual(self.profile.coins, 15)
-        self.assertEqual(tx.balance_after, 15)
+        self.assertEqual(self.profile.coins, self.initial_balance + 15)
+        self.assertEqual(tx.balance_after, self.initial_balance + 15)
         self.assertEqual(tx.change, 15)
         self.assertFalse(tx.unlimited)
 
@@ -190,11 +235,13 @@ class CoinEconomyTests(TestCase):
         )
 
         self.profile.refresh_from_db()
-        self.assertEqual(self.profile.coins, 15)
+        self.assertEqual(self.profile.coins, self.initial_balance + 15)
         self.assertEqual(tx.change, -5)
-        self.assertEqual(tx.balance_after, 15)
+        self.assertEqual(tx.balance_after, self.initial_balance + 15)
 
     def test_spend_coins_raises_when_insufficient(self):
+        Profile.objects.filter(pk=self.profile.pk).update(coins=0)
+        self.profile.refresh_from_db()
         with self.assertRaisesMessage(ValueError, "Недостаточно монет"):
             self.profile.spend_coins(
                 1,
@@ -217,14 +264,44 @@ class CoinEconomyTests(TestCase):
         )
 
         self.profile.refresh_from_db()
-        self.assertEqual(self.profile.coins, 0)
+        self.assertEqual(self.profile.coins, self.initial_balance)
         self.assertTrue(tx.unlimited)
         self.assertIsNone(tx.balance_after)
 
     def test_reward_ad_view_credits_coins(self):
-        tx = self.profile.reward_ad_view(7)
+        tx = self.profile.reward_ad_view(YANDEX_AD_REWARD_COINS)
 
         self.profile.refresh_from_db()
-        self.assertEqual(self.profile.coins, 7)
+        self.assertEqual(
+            self.profile.coins,
+            self.initial_balance + YANDEX_AD_REWARD_COINS,
+        )
         self.assertEqual(tx.transaction_type, CoinTransaction.Type.AD_REWARD)
         self.assertGreater(len(tx.description), 0)
+
+    def test_new_user_receives_welcome_bonus(self):
+        self.assertEqual(self.initial_balance, WELCOME_BONUS_COINS)
+        signup_tx = self.profile.coin_transactions.filter(
+            transaction_type=CoinTransaction.Type.SIGNUP_BONUS
+        ).first()
+        self.assertIsNotNone(signup_tx)
+        self.assertEqual(signup_tx.change, WELCOME_BONUS_COINS)
+        self.assertEqual(signup_tx.balance_after, WELCOME_BONUS_COINS)
+
+    def test_daily_login_reward_granted_once_per_day(self):
+        tx = self.profile.grant_daily_login_reward()
+        self.assertIsNotNone(tx)
+        self.profile.refresh_from_db()
+        self.assertEqual(
+            self.profile.coins,
+            self.initial_balance + DAILY_LOGIN_REWARD_COINS,
+        )
+        self.assertEqual(self.profile.last_daily_reward_at, timezone.localdate())
+
+        second_attempt = self.profile.grant_daily_login_reward()
+        self.assertIsNone(second_attempt)
+        self.profile.refresh_from_db()
+        self.assertEqual(
+            self.profile.coins,
+            self.initial_balance + DAILY_LOGIN_REWARD_COINS,
+        )

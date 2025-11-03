@@ -376,3 +376,6 @@ LOGGING = {
         }
     }
 }
+
+if RUNNING_TESTS:
+    LOGGING['loggers']['django.db.backends']['level'] = 'ERROR'
