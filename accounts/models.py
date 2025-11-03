@@ -7,7 +7,8 @@ from decimal import Decimal
 
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
-from django.db import models
+from django.db import models, transaction
+from django.db.models import F
 from django.utils import timezone
 
 
@@ -24,6 +25,7 @@ class Profile(models.Model):
     avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
     bio = models.TextField(blank=True)
     website = models.URLField(blank=True)
+    coins = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return f"Profile({self.user.username})"
@@ -64,6 +66,109 @@ class Profile(models.Model):
     def premium_expires_at(self):
         subscription = self.active_premium
         return subscription.end_at if subscription else None
+
+    @property
+    def has_unlimited_coins(self) -> bool:
+        return self.has_active_premium
+
+    @property
+    def coin_balance(self) -> int | None:
+        return None if self.has_unlimited_coins else self.coins
+
+    @property
+    def available_coins(self) -> float:
+        return float("inf") if self.has_unlimited_coins else self.coins
+
+    def credit_coins(
+        self,
+        amount: int,
+        *,
+        transaction_type: "CoinTransaction.Type",
+        description: str = "",
+    ) -> "CoinTransaction":
+        if amount <= 0:
+            raise ValueError("Coin credit amount must be positive")
+
+        with transaction.atomic():
+            Profile.objects.filter(pk=self.pk).update(coins=F("coins") + amount)
+            self.refresh_from_db(fields=["coins"])
+            return CoinTransaction.objects.create(
+                profile=self,
+                change=amount,
+                transaction_type=transaction_type,
+                balance_after=self.coins,
+                description=description,
+            )
+
+    def reward_ad_view(self, amount: int, description: str = "") -> "CoinTransaction":
+        return self.credit_coins(
+            amount,
+            transaction_type=CoinTransaction.Type.AD_REWARD,
+            description=description or "Награда за просмотр рекламы",
+        )
+
+    def spend_coins(
+        self,
+        amount: int,
+        *,
+        transaction_type: "CoinTransaction.Type",
+        description: str = "",
+    ) -> "CoinTransaction":
+        if amount <= 0:
+            raise ValueError("Coin spending amount must be positive")
+
+        if self.has_unlimited_coins:
+            return CoinTransaction.objects.create(
+                profile=self,
+                change=-amount,
+                transaction_type=transaction_type,
+                balance_after=None,
+                description=description or "Трата монет при активной подписке",
+                unlimited=True,
+            )
+
+        with transaction.atomic():
+            updated = (
+                Profile.objects.filter(pk=self.pk, coins__gte=amount)
+                .update(coins=F("coins") - amount)
+            )
+            if not updated:
+                raise ValueError("Недостаточно монет")
+            self.refresh_from_db(fields=["coins"])
+            return CoinTransaction.objects.create(
+                profile=self,
+                change=-amount,
+                transaction_type=transaction_type,
+                balance_after=self.coins,
+                description=description,
+            )
+
+
+class CoinTransaction(models.Model):
+    class Type(models.TextChoices):
+        AD_REWARD = ("ad_reward", "Награда за просмотр рекламы")
+        ADMIN_ADJUSTMENT = ("admin_adjustment", "Корректировка администратором")
+        FEATURE_PURCHASE = ("feature_purchase", "Трата на функцию")
+
+    profile = models.ForeignKey(
+        Profile,
+        on_delete=models.CASCADE,
+        related_name="coin_transactions",
+    )
+    change = models.IntegerField()
+    transaction_type = models.CharField(max_length=40, choices=Type.choices)
+    description = models.CharField(max_length=255, blank=True)
+    balance_after = models.PositiveIntegerField(null=True, blank=True)
+    unlimited = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return (
+            f"CoinTransaction({self.profile.user.username}, {self.transaction_type}, {self.change})"
+        )
 
 
 class PremiumPayment(models.Model):

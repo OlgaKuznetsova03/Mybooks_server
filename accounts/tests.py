@@ -7,7 +7,12 @@ from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
+from datetime import timedelta
+
+from django.utils import timezone
+
 from accounts.forms import SignUpForm
+from accounts.models import CoinTransaction, PremiumSubscription
 from books.models import Author, Book
 
 
@@ -148,3 +153,78 @@ class SignUpRoleAssignmentTests(TestCase):
             set(user.groups.values_list("name", flat=True)),
             {"reader", "author"},
         )
+
+
+class CoinEconomyTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="coins_user",
+            email="coins@example.com",
+            password="CoinsPass123!",
+        )
+        self.profile = self.user.profile
+
+    def test_credit_coins_records_transaction(self):
+        tx = self.profile.credit_coins(
+            15,
+            transaction_type=CoinTransaction.Type.ADMIN_ADJUSTMENT,
+            description="Начисление",
+        )
+
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.coins, 15)
+        self.assertEqual(tx.balance_after, 15)
+        self.assertEqual(tx.change, 15)
+        self.assertFalse(tx.unlimited)
+
+    def test_spend_coins_decreases_balance(self):
+        self.profile.credit_coins(
+            20,
+            transaction_type=CoinTransaction.Type.ADMIN_ADJUSTMENT,
+        )
+
+        tx = self.profile.spend_coins(
+            5,
+            transaction_type=CoinTransaction.Type.FEATURE_PURCHASE,
+            description="Трата",
+        )
+
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.coins, 15)
+        self.assertEqual(tx.change, -5)
+        self.assertEqual(tx.balance_after, 15)
+
+    def test_spend_coins_raises_when_insufficient(self):
+        with self.assertRaisesMessage(ValueError, "Недостаточно монет"):
+            self.profile.spend_coins(
+                1,
+                transaction_type=CoinTransaction.Type.FEATURE_PURCHASE,
+            )
+
+    def test_premium_users_have_unlimited_coins(self):
+        now = timezone.now()
+        PremiumSubscription.objects.create(
+            user=self.user,
+            start_at=now - timedelta(days=1),
+            end_at=now + timedelta(days=30),
+            source=PremiumSubscription.Source.ADMIN,
+        )
+
+        tx = self.profile.spend_coins(
+            999,
+            transaction_type=CoinTransaction.Type.FEATURE_PURCHASE,
+            description="Премиум трата",
+        )
+
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.coins, 0)
+        self.assertTrue(tx.unlimited)
+        self.assertIsNone(tx.balance_after)
+
+    def test_reward_ad_view_credits_coins(self):
+        tx = self.profile.reward_ad_view(7)
+
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.coins, 7)
+        self.assertEqual(tx.transaction_type, CoinTransaction.Type.AD_REWARD)
+        self.assertGreater(len(tx.description), 0)

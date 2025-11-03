@@ -1,14 +1,27 @@
 from django.contrib import admin
 from django.utils import timezone
 
-from .models import Profile, PremiumPayment, PremiumSubscription
+from .models import CoinTransaction, PremiumPayment, PremiumSubscription, Profile
 
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
-    list_display = ("user", "is_reader", "is_author", "is_blogger", "has_active_premium")
+    list_display = (
+        "user",
+        "is_reader",
+        "is_author",
+        "is_blogger",
+        "has_active_premium",
+        "coin_balance_display",
+    )
     search_fields = ("user__username", "user__email")
     list_select_related = ("user",)
+
+    @admin.display(description="Монеты")
+    def coin_balance_display(self, obj):
+        if obj.has_unlimited_coins:
+            return "∞"
+        return obj.coins
 
 
 @admin.register(PremiumPayment)
@@ -55,3 +68,23 @@ class PremiumSubscriptionAdmin(admin.ModelAdmin):
     @admin.display(boolean=True, description="Активна")
     def is_active_display(self, obj):
         return obj.is_active
+
+
+@admin.register(CoinTransaction)
+class CoinTransactionAdmin(admin.ModelAdmin):
+    list_display = (
+        "profile",
+        "transaction_type",
+        "change",
+        "balance_after",
+        "unlimited",
+        "created_at",
+    )
+    list_filter = ("transaction_type", "unlimited")
+    search_fields = (
+        "profile__user__username",
+        "profile__user__email",
+        "description",
+    )
+    autocomplete_fields = ("profile",)
+    readonly_fields = ("created_at",)
