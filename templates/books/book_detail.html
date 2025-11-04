@@ -705,6 +705,115 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', () => {
+    const parseRatingValue = (value) => {
+      if (value === null || value === undefined) return null;
+      const numeric = Number.parseInt(value, 10);
+      return Number.isNaN(numeric) ? null : numeric;
+    };
+
+    document.querySelectorAll('[data-rating-field]').forEach((root) => {
+      const input = root.querySelector('input[data-role="rating-value"], input[type="hidden"]');
+      const buttons = Array.from(root.querySelectorAll('[data-rating-value]'));
+      if (!input || !buttons.length) return;
+
+      const display = root.querySelector('[data-rating-display]');
+      const clear = root.querySelector('[data-rating-clear]');
+      const defaultDisplayText = display ? (display.dataset.defaultText || display.textContent || '').trim() : '';
+      if (display && !display.dataset.defaultText) {
+        display.dataset.defaultText = defaultDisplayText;
+      }
+
+      const maxValue = buttons.reduce((max, button) => {
+        const buttonValue = parseRatingValue(button.dataset.ratingValue);
+        return buttonValue !== null && buttonValue > max ? buttonValue : max;
+      }, 0);
+
+      let currentValue = parseRatingValue(input.value);
+
+      const updateButtons = (highlightValue = null) => {
+        const activeValue = highlightValue !== null ? highlightValue : currentValue;
+        buttons.forEach((button) => {
+          const buttonValue = parseRatingValue(button.dataset.ratingValue);
+          const isHighlighted = activeValue !== null && buttonValue !== null && buttonValue <= activeValue;
+          button.classList.toggle('is-active', Boolean(isHighlighted));
+          button.setAttribute('aria-checked', currentValue !== null && buttonValue === currentValue ? 'true' : 'false');
+        });
+      };
+
+      const updateDisplay = () => {
+        if (!display) return;
+        if (currentValue === null) {
+          display.textContent = display.dataset.defaultText || 'Нет оценки';
+        } else if (maxValue > 0) {
+          display.textContent = `${currentValue} из ${maxValue}`;
+        } else {
+          display.textContent = `${currentValue}`;
+        }
+      };
+
+      const commitValue = (value) => {
+        currentValue = value;
+        input.value = value === null ? '' : String(value);
+        updateButtons();
+        updateDisplay();
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      };
+
+      updateButtons();
+      updateDisplay();
+
+      const orderedButtons = buttons
+        .map((btn) => ({ btn, value: parseRatingValue(btn.dataset.ratingValue) }))
+        .filter((item) => item.value !== null)
+        .sort((a, b) => a.value - b.value);
+
+      buttons.forEach((button) => {
+        const buttonValue = parseRatingValue(button.dataset.ratingValue);
+        if (buttonValue === null) return;
+
+        button.addEventListener('mouseenter', () => updateButtons(buttonValue));
+        button.addEventListener('mouseleave', () => updateButtons());
+        button.addEventListener('focus', () => updateButtons(buttonValue));
+        button.addEventListener('blur', () => updateButtons());
+        button.addEventListener('click', (event) => {
+          event.preventDefault();
+          if (currentValue !== buttonValue) {
+            commitValue(buttonValue);
+          }
+        });
+        button.addEventListener('keydown', (event) => {
+          if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight' && event.key !== 'ArrowUp' && event.key !== 'ArrowDown') {
+            return;
+          }
+          event.preventDefault();
+          const direction = event.key === 'ArrowLeft' || event.key === 'ArrowDown' ? -1 : 1;
+          const currentIndex = orderedButtons.findIndex((item) => item.value === (currentValue ?? buttonValue));
+          const targetIndex = currentIndex === -1 ? (direction > 0 ? 0 : orderedButtons.length - 1) : Math.min(Math.max(currentIndex + direction, 0), orderedButtons.length - 1);
+          const target = orderedButtons[targetIndex];
+          if (target) {
+            target.btn.focus();
+            commitValue(target.value);
+          }
+        });
+      });
+
+      if (clear) {
+        clear.addEventListener('click', (event) => {
+          event.preventDefault();
+          if (currentValue !== null) {
+            commitValue(null);
+          }
+        });
+      }
+
+      input.addEventListener('change', () => {
+        currentValue = parseRatingValue(input.value);
+        updateButtons();
+        updateDisplay();
+      });
+    });
+
     document.querySelectorAll('[data-role="book-shelf-form"]').forEach((form) => {
       const select = form.querySelector('[data-role="shelf-select"]') || form.querySelector('select[name="shelf"]');
       const extras = form.querySelector('[data-role="read-fields"]');
