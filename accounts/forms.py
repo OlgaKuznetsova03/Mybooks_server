@@ -1,9 +1,12 @@
 from typing import Set
 
 from django import forms
+from django.conf import settings
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import Group, User
 from django.utils.translation import gettext_lazy as _
+
+from books.forms import LenientImageField
 
 from .models import Profile, PremiumPayment
 
@@ -153,6 +156,20 @@ class EmailAuthenticationForm(AuthenticationForm):
 
 
 class ProfileForm(forms.ModelForm):
+    _avatar_max_mb = getattr(
+        settings,
+        "MAX_AVATAR_UPLOAD_MB",
+        getattr(settings, "MAX_IMAGE_UPLOAD_MB", 10),
+    )
+
+    avatar = LenientImageField(
+        label="Аватар",
+        required=False,
+        max_size=_avatar_max_mb,
+        widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
+        help_text=f"Максимальный размер файла: {_avatar_max_mb} MB.",
+    )
+
     class Meta:
         model = Profile
         fields = ("avatar", "bio", "website")

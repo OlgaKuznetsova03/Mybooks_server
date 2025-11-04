@@ -33,6 +33,35 @@ def env_bool(*names: str, default: bool = False) -> bool:
     return default
 
 
+def env_int(*names: str, default: int = 0, min_value: int | None = None) -> int:
+    if not names:
+        raise ValueError("At least one environment variable name must be provided")
+
+    for name in names:
+        value = os.getenv(name)
+        if value is None:
+            continue
+
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            print(
+                f"⚠️  Invalid integer for {name}={value!r} – using default {default}",
+            )
+            return max(default, min_value or default)
+
+        if min_value is not None and parsed < min_value:
+            print(
+                f"⚠️  {name} is below the minimum of {min_value}; "
+                f"using {max(default, min_value)} instead",
+            )
+            return max(default, min_value)
+
+        return parsed
+
+    return default
+
+
 # Provide a minimal Pillow stub for environments where the library is unavailable
 try:  # pragma: no cover - executed conditionally when Pillow is missing
     import PIL.Image  # type: ignore
@@ -330,6 +359,28 @@ if not ISBNDB_API_KEY:
 MEDIA_ROOT = BASE_DIR / "media"
 MEDIA_URL = "/media/"
 
+MAX_IMAGE_UPLOAD_MB = env_int("MAX_IMAGE_UPLOAD_MB", default=10, min_value=1)
+MAX_AVATAR_UPLOAD_MB = env_int(
+    "MAX_AVATAR_UPLOAD_MB",
+    default=MAX_IMAGE_UPLOAD_MB,
+    min_value=1,
+)
+
+_file_upload_default_mb = max(MAX_IMAGE_UPLOAD_MB, MAX_AVATAR_UPLOAD_MB)
+FILE_UPLOAD_MAX_MEMORY_SIZE_MB = env_int(
+    "FILE_UPLOAD_MAX_MEMORY_SIZE_MB",
+    default=_file_upload_default_mb,
+    min_value=_file_upload_default_mb,
+)
+FILE_UPLOAD_MAX_MEMORY_SIZE = FILE_UPLOAD_MAX_MEMORY_SIZE_MB * 1024 * 1024
+
+DATA_UPLOAD_MAX_MEMORY_SIZE_MB = env_int(
+    "DATA_UPLOAD_MAX_MEMORY_SIZE_MB",
+    default=max(FILE_UPLOAD_MAX_MEMORY_SIZE_MB, _file_upload_default_mb),
+    min_value=max(FILE_UPLOAD_MAX_MEMORY_SIZE_MB, _file_upload_default_mb),
+)
+DATA_UPLOAD_MAX_MEMORY_SIZE = DATA_UPLOAD_MAX_MEMORY_SIZE_MB * 1024 * 1024
+
 AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME")
 if (
     AWS_STORAGE_BUCKET_NAME
@@ -352,6 +403,12 @@ if (
     AWS_S3_FILE_OVERWRITE = env_bool("AWS_S3_FILE_OVERWRITE", default=False)
     AWS_S3_SIGNATURE_VERSION = os.getenv("AWS_S3_SIGNATURE_VERSION", "s3v4")
     AWS_S3_REGION_NAME = AWS_S3_REGION_NAME or os.getenv("AWS_S3_REGION", "ru-1")
+    AWS_S3_MAX_MEMORY_SIZE_MB = env_int(
+        "AWS_S3_MAX_MEMORY_SIZE_MB",
+        default=max(FILE_UPLOAD_MAX_MEMORY_SIZE_MB, _file_upload_default_mb),
+        min_value=_file_upload_default_mb,
+    )
+    AWS_S3_MAX_MEMORY_SIZE = AWS_S3_MAX_MEMORY_SIZE_MB * 1024 * 1024
 
     MEDIA_URL = f"{AWS_S3_ENDPOINT_URL.rstrip('/')}/{AWS_STORAGE_BUCKET_NAME}/"
 else:

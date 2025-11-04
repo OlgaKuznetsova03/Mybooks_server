@@ -3,6 +3,7 @@ import imghdr
 import json
 
 from django import forms
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
 from .models import (
@@ -209,12 +210,17 @@ class AudioBookForm(forms.ModelForm):
 
 
 class BookForm(forms.ModelForm):
+    _cover_max_mb = getattr(settings, "MAX_IMAGE_UPLOAD_MB", 10)
+
     cover = LenientImageField(
         label="Обложка",
         required=False,
-        max_size=10,  # 10 MB максимум
+        max_size=_cover_max_mb,
         widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
-        help_text="Загрузите изображение в формате JPG, PNG, GIF или WebP. Максимальный размер: 10 MB.",
+        help_text=(
+            "Загрузите изображение в формате JPG, PNG, GIF или WebP. Максимальный размер: "
+            f"{_cover_max_mb} MB."
+        ),
     )
 
     authors = forms.CharField(
