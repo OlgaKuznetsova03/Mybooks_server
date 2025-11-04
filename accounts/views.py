@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 import calendar
+import json
 
 from django.shortcuts import render, redirect, get_object_or_404
 
@@ -10,9 +11,11 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.db.models import Count, Sum
+from django.http import JsonResponse, Http404
 from django.urls import reverse
 from django.utils import timezone
-from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST, require_GET
 
 
 from shelves.models import Shelf, ShelfItem, BookProgress, HomeLibraryEntry, ReadingLog
@@ -55,6 +58,18 @@ WEEKDAY_LABELS = [
     "Сб",
     "Вс",
 ]
+
+
+def _is_mobile_app_request(request) -> bool:
+    header_name = getattr(settings, "MOBILE_APP_CLIENT_HEADER", "X-MyBooks-Client")
+    allowed_clients = getattr(settings, "MOBILE_APP_ALLOWED_CLIENTS", [])
+    client_id = request.headers.get(header_name, "")
+    return client_id.lower() in allowed_clients
+
+
+def _ensure_mobile_app_request(request):
+    if not _is_mobile_app_request(request):
+        raise Http404()
 
 
 def _parse_int(value, default):
@@ -724,7 +739,6 @@ def profile(request, username=None):
         "show_coin_balance": request.user == user_obj,
         "coin_balance": profile_obj.coin_balance,
         "has_unlimited_coins": profile_obj.has_unlimited_coins,
-        "yandex_ad_reward_amount": YANDEX_AD_REWARD_COINS,
     }
     return render(request, "accounts/profile.html", context)
 
@@ -749,16 +763,63 @@ def profile_edit(request):
     })
 
 
+@require_GET
+def reward_ad_config(request):
+    """Expose reward-ad settings for the mobile application."""
+
+    _ensure_mobile_app_request(request)
+
+    placement_id = getattr(settings, "YANDEX_REWARDED_AD_UNIT_ID", "")
+    payload = {
+        "provider": "yandex",
+        "placement_id": placement_id,
+        "reward_amount": YANDEX_AD_REWARD_COINS,
+        "currency": "coins",
+        "enabled": bool(placement_id),
+        "requires_authentication": True,
+    }
+    return JsonResponse(payload)
+
+
+@csrf_exempt
 @login_required
 @require_POST
-def claim_yandex_ad_reward(request):
+def claim_reward_ad_api(request):
+    """Allow authenticated app users to claim a rewarded-ad bonus."""
+
+    _ensure_mobile_app_request(request)
+
+    placement_id = getattr(settings, "YANDEX_REWARDED_AD_UNIT_ID", "")
+    if not placement_id:
+        return JsonResponse({"error": "reward_unavailable"}, status=503)
+
+    try:
+        payload = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "invalid_payload"}, status=400)
+
+    ad_unit_id = (payload.get("ad_unit_id") or "").strip()
+    if ad_unit_id and ad_unit_id != placement_id:
+        return JsonResponse({"error": "ad_unit_mismatch"}, status=400)
+
+    reward_id = (payload.get("reward_id") or "").strip()
+    description = "Вознаграждение от Яндекс за просмотр рекламы через приложение"
+    if reward_id:
+        description = f"{description} (reward_id={reward_id})"
+
     profile = request.user.profile
-    profile.reward_ad_view(
+    tx = profile.reward_ad_view(
         YANDEX_AD_REWARD_COINS,
-        description="Вознаграждение от Яндекс за просмотр рекламы",
+        description=description,
     )
-    messages.success(
-        request,
-        f"Спасибо за просмотр! На ваш счёт начислено {YANDEX_AD_REWARD_COINS} монет.",
-    )
-    return redirect("profile", username=request.user.username)
+
+    response_payload = {
+        "coins_awarded": YANDEX_AD_REWARD_COINS,
+        "transaction_id": tx.pk,
+        "balance_after": tx.balance_after,
+        "reward_id": reward_id or None,
+        "unlimited_balance": profile.has_unlimited_coins,
+    }
+
+    status_code = 201
+    return JsonResponse(response_payload, status=status_code)

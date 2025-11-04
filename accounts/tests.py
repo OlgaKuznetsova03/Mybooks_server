@@ -1,3 +1,6 @@
+import json
+
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.tokens import default_token_generator
@@ -305,3 +308,91 @@ class CoinEconomyTests(TestCase):
             self.profile.coins,
             self.initial_balance + DAILY_LOGIN_REWARD_COINS,
         )
+
+
+@override_settings(
+    SECURE_SSL_REDIRECT=False,
+    SESSION_COOKIE_SECURE=False,
+    CSRF_COOKIE_SECURE=False,
+    MOBILE_APP_CLIENT_HEADER="X-Test-App",
+    MOBILE_APP_ALLOWED_CLIENTS=["flutter-test"],
+    YANDEX_REWARDED_AD_UNIT_ID="demo-yandex-unit",
+)
+class RewardAdApiTests(TestCase):
+    def setUp(self):
+        self.client.defaults["HTTP_HOST"] = "localhost"
+        self.client.defaults["wsgi.url_scheme"] = "https"
+        self.client.defaults["HTTP_X_FORWARDED_PROTO"] = "https"
+
+        header_key = "HTTP_" + settings.MOBILE_APP_CLIENT_HEADER.upper().replace("-", "_")
+        self.client.defaults[header_key] = "flutter-test"
+        self.app_header_key = header_key
+
+        self.user = get_user_model().objects.create_user(
+            username="reward_user",
+            email="reward@example.com",
+            password="RewardPass123!",
+        )
+        self.profile = self.user.profile
+        self.initial_balance = self.profile.coins
+
+    def test_config_requires_mobile_client_header(self):
+        self.client.defaults.pop(self.app_header_key, None)
+        response = self.client.get(reverse("reward_ad_config"))
+        self.assertEqual(response.status_code, 404)
+
+    def test_config_returns_expected_payload(self):
+        response = self.client.get(reverse("reward_ad_config"))
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["enabled"])
+        self.assertEqual(payload["placement_id"], "demo-yandex-unit")
+        self.assertEqual(payload["reward_amount"], YANDEX_AD_REWARD_COINS)
+        self.assertTrue(payload["requires_authentication"])
+
+    def test_claim_requires_authentication(self):
+        response = self.client.post(
+            reverse("reward_ad_claim"),
+            data=json.dumps({"ad_unit_id": "demo-yandex-unit"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login/", response["Location"])
+
+    def test_claim_awards_coins_via_api(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("reward_ad_claim"),
+            data=json.dumps({"ad_unit_id": "demo-yandex-unit", "reward_id": "abc-123"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.coins, self.initial_balance + YANDEX_AD_REWARD_COINS)
+        self.assertEqual(data["coins_awarded"], YANDEX_AD_REWARD_COINS)
+        self.assertEqual(data["balance_after"], self.profile.coins)
+        self.assertEqual(data["reward_id"], "abc-123")
+
+    def test_claim_rejects_unknown_ad_unit(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("reward_ad_claim"),
+            data=json.dumps({"ad_unit_id": "wrong"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.coins, self.initial_balance)
+
+    @override_settings(YANDEX_REWARDED_AD_UNIT_ID="")
+    def test_claim_returns_service_unavailable_when_disabled(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("reward_ad_claim"),
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["error"], "reward_unavailable")

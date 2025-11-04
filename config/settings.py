@@ -359,6 +359,15 @@ else:
         print(
             "⚠️  AWS credentials are incomplete – falling back to local media storage"
         )
+
+# === Mobile app & advertising integration ===
+YANDEX_REWARDED_AD_UNIT_ID = os.getenv("YANDEX_REWARDED_AD_UNIT_ID", "").strip()
+MOBILE_APP_CLIENT_HEADER = os.getenv("MOBILE_APP_CLIENT_HEADER", "X-MyBooks-Client")
+MOBILE_APP_ALLOWED_CLIENTS = [
+    client.strip().lower()
+    for client in os.getenv("MOBILE_APP_ALLOWED_CLIENTS", "mybooks-flutter").split(",")
+    if client.strip()
+]
         
 LOGGING = {
     'version': 1,

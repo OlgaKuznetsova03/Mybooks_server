@@ -48,7 +48,8 @@ urlpatterns = [
         name="password_reset_complete",
     ),
     path("me/", views.profile, name="my_profile"),
-    path("me/reward-ad/", views.claim_yandex_ad_reward, name="claim_yandex_ad_reward"),
     path("u/<str:username>/", views.profile, name="profile"),
     path("me/edit/", views.profile_edit, name="profile_edit"),
+    path("api/reward-ads/config/", views.reward_ad_config, name="reward_ad_config"),
+    path("api/reward-ads/claim/", views.claim_reward_ad_api, name="reward_ad_claim"),
 ]
