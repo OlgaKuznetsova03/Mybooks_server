@@ -657,8 +657,6 @@ def book_list(request):
             recent_serialized_books = []
             for book in recent_books:
                 cover_url = _book_cover_url(book)
-                if not cover_url:
-                    continue
                 recent_serialized_books.append(
                     _serialize_book_for_shelf(
                         book,
@@ -734,8 +732,6 @@ def book_list(request):
                 popular_serialized_books: list[dict[str, object]] = []
                 for book in ordered_popular_books:
                     cover_url = _book_cover_url(book)
-                    if not cover_url:
-                        continue
                     popular_serialized_books.append(
                         _serialize_book_for_shelf(
                             book,
@@ -821,8 +817,6 @@ def book_list(request):
             serialized_genre_books: list[dict[str, object]] = []
             for book in top_books:
                 cover_url = _book_cover_url(book)
-                if not cover_url:
-                    continue
                 serialized_genre_books.append(
                     _serialize_book_for_shelf(
                         book,
