@@ -186,13 +186,53 @@
       gap: .5rem;
     }
 
+    .books-page [data-animate]{
+      --rt-animate-offset: 0px;
+      --rt-animate-delay: 0ms;
+      --rt-animate-duration: .8s;
+      --rt-animate-easing: cubic-bezier(.22, 1, .36, 1);
+      opacity: 0;
+      transform: translate3d(var(--rt-animate-offset), 0, 0);
+      transition:
+        opacity .6s ease-out var(--rt-animate-delay),
+        transform var(--rt-animate-duration) var(--rt-animate-easing) var(--rt-animate-delay);
+    }
+    .books-page [data-animate="left"]{ --rt-animate-offset: -80px; }
+    .books-page [data-animate="right"]{ --rt-animate-offset: 80px; }
+    .books-page [data-animate].is-visible{
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+
+    .books-page .book-item--animated,
+    .books-page .genre-shelf-card__book--animated{
+      opacity: 0;
+      transform: translate3d(0, 18px, 0);
+      transition: opacity .45s ease-out var(--rt-book-delay, 0ms), transform .6s cubic-bezier(.22, 1, .36, 1) var(--rt-book-delay, 0ms);
+    }
+    .books-page .book-item--animated.is-visible,
+    .books-page .genre-shelf-card__book--animated.is-visible{
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .books-page [data-animate],
+      .books-page .book-item--animated,
+      .books-page .genre-shelf-card__book--animated{
+        transition: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+    }
+    
   </style>
 {% endblock %}
 
 {% block content %}
 
 
-<section class="books-hero mb-4">
+<section class="books-hero mb-4" data-animate="left">
   <div class="books-hero__body">
     <div>
       <h1 class="books-hero__title">Подберите книгу под настроение</h1>
@@ -267,7 +307,7 @@
 </section>
 
 {% if view_mode == 'discover' %}
-  <section class="mt-5">
+  <section class="mt-5" data-animate="right">
     {% if discovery_shelves %}
       <div class="genre-shelf-collection">
         {% for shelf in discovery_shelves %}
@@ -298,7 +338,7 @@
       </div>
     </nav>
 
-    <section class="books-shelf-card mt-4">
+    <section class="books-shelf-card mt-4" data-animate="right">
       <div class="books-shelf-card__body" style="--books-shelf-texture: url('{{ MEDIA_URL }}book_list/bookshelfhell.PNG')">
         <div class="book-shelf-wrapper">
           <button class="book-shelf__nav book-shelf__nav--prev" type="button" aria-label="Прокрутить каталог назад">
@@ -492,10 +532,112 @@
       });
     };
 
-    if (document.readyState === 'loading'){
-      document.addEventListener('DOMContentLoaded', initCatalogShelfNavigation, { once: true });
-    } else {
+    const prefersReducedMotion = () => Boolean(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+    const prepareShelfAnimations = () => {
+      const hero = document.querySelector('.books-hero[data-animate]');
+      if (hero && !hero.dataset.animateDelay) {
+        hero.dataset.animateDelay = '0';
+      }
+      const discoverSection = document.querySelector('section.mt-5[data-animate]');
+      if (discoverSection && !discoverSection.dataset.animateDelay) {
+        discoverSection.dataset.animateDelay = '140';
+      }
+      const mainShelf = document.querySelector('.books-shelf-card[data-animate]');
+      if (mainShelf && !mainShelf.dataset.animateDelay) {
+        mainShelf.dataset.animateDelay = '220';
+      }
+      const cards = Array.from(document.querySelectorAll('.genre-shelf-card'));
+      cards.forEach((card, index) => {
+        if (!card.dataset.animate) {
+          card.dataset.animate = index % 2 === 0 ? 'right' : 'left';
+        }
+        if (!card.dataset.animateDelay) {
+          card.dataset.animateDelay = String(260 + index * 140);
+        }
+      });
+    };
+
+    const initRandomizedBookReveal = () => {
+      const reduceMotion = prefersReducedMotion();
+      const applyRandomReveal = (items, animatedClass, step) => {
+        if (!items.length) {
+          return;
+        }
+        if (reduceMotion) {
+          items.forEach((item) => {
+            item.classList.add(animatedClass, 'is-visible');
+            item.style.removeProperty('--rt-book-delay');
+          });
+          return;
+        }
+        const order = items.map((_, index) => index);
+        for (let i = order.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [order[i], order[j]] = [order[j], order[i]];
+        }
+        items.forEach((item, index) => {
+          item.classList.add(animatedClass);
+          item.style.setProperty('--rt-book-delay', `${order[index] * step}ms`);
+        });
+        requestAnimationFrame(() => {
+          items.forEach((item) => item.classList.add('is-visible'));
+        });
+      };
+      document.querySelectorAll('.book-shelf').forEach((shelf) => {
+        applyRandomReveal(Array.from(shelf.querySelectorAll('.book-item')), 'book-item--animated', 90);
+      });
+      document.querySelectorAll('.genre-shelf-card__list').forEach((list) => {
+        applyRandomReveal(Array.from(list.querySelectorAll('.genre-shelf-card__book')), 'genre-shelf-card__book--animated', 110);
+      });
+    };
+
+    const initPageAnimations = () => {
+      const elements = Array.from(document.querySelectorAll('[data-animate]'));
+      if (!elements.length) {
+        return;
+      }
+      const reduceMotion = prefersReducedMotion();
+      elements.forEach((el, index) => {
+        const parsed = Number(el.dataset.animateDelay);
+        const delay = Number.isFinite(parsed) && parsed >= 0 ? parsed : index * 120;
+        el.style.setProperty('--rt-animate-delay', `${delay}ms`);
+        if (reduceMotion) {
+          el.classList.add('is-visible');
+        }
+      });
+      if (reduceMotion) {
+        return;
+      }
+      const reveal = (el) => {
+        requestAnimationFrame(() => el.classList.add('is-visible'));
+      };
+      if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              reveal(entry.target);
+              observer.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.2 });
+        elements.forEach((el) => observer.observe(el));
+      } else {
+        elements.forEach(reveal);
+      }
+    };
+
+    const runBooksPageEnhancements = () => {
+      prepareShelfAnimations();
+      initRandomizedBookReveal();
       initCatalogShelfNavigation();
+      initPageAnimations();
+    };
+
+    if (document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', runBooksPageEnhancements, { once: true });
+    } else {
+      runBooksPageEnhancements();
     }
   </script>
   <!-- Yandex.RTB R-A-17641153-1 -->
