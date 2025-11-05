@@ -298,12 +298,16 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = "/static/"
-STATICFILES_DIRS = [
-    BASE_DIR / "static",   # если у тебя есть папка static/ с исходниками
-]
+# Для MEDIA файлов (УЖЕ РАБОТАЕТ)
+DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
 
-# куда collectstatic будет складывать СБОРНУЮ статику
+# Для STATIC файлов (ДОБАВИЛИ СЕЙЧАС)
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
+# Локальные настройки (ОСТАВИТЬ БЕЗ ИЗМЕНЕНИЙ)
+# Статика - используем S3 если настроено
+STATIC_URL = "/static/"
+STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Default primary key field type

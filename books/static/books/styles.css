@@ -10,15 +10,15 @@
   --journey-haze:rgba(95,92,59,.12);
 }
 
-[data-bs-theme="dark"]{
-  --journey-ink:#f4eddd;
-  --journey-olive:#d6caa8;
-  --journey-fern:#b1a779;
-  --journey-gold:#d8ca92;
-  --journey-sand:#4b4635;
-  --journey-cream:#3a3426;
-  --journey-mist:rgba(181,166,120,.25);
-  --journey-haze:rgba(214,202,167,.18);
+[data-bs-theme="dark"]{␊
+  --journey-ink:#f8d794;
+  --journey-olive:#e6c782;
+  --journey-fern:#d6b36c;
+  --journey-gold:#c39a57;
+  --journey-sand:#1b2624;
+  --journey-cream:#15201f;
+  --journey-mist:rgba(248,215,148,.18);
+  --journey-haze:rgba(248,215,148,.12);
 }
 .card{border:0;box-shadow:var(--rt-card-shadow);}
 .hover-raise{transition:.12s transform,.12s box-shadow}
