@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Совместные чтения · ReadTogether{% endblock %}
+{% block title %}Совместные чтения · Калейдоскоп Книг{% endblock %}
 
 {% block extra_css %}
   {{ block.super }}
-  <link rel="stylesheet" href="{% static 'reading_clubs/style.css?v=1762270644' %}">
+  <link rel="stylesheet" href="{% static 'reading_clubs/style.css' %}?v={{ STATIC_VERSION }}">
 
   <style>
     /* ======= Палитра страницы ======= */

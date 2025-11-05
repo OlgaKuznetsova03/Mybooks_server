@@ -1,0 +1,21 @@
+<div class="star-rating-field" data-rating-field>
+  {{ field }}
+  <div class="star-rating" role="radiogroup" aria-label="{{ field.label }}"{% if label_id %} aria-labelledby="{{ label_id }}"{% endif %}>
+    {% for value in scale %}
+      <button type="button"
+              class="star-rating-btn"
+              data-rating-value="{{ value }}"
+              role="radio"
+              aria-checked="false"
+              aria-label="{{ value }} из {{ scale|length }}">
+        <i class="bi bi-star-fill" aria-hidden="true"></i>
+      </button>
+    {% endfor %}
+  </div>
+  <div class="d-flex align-items-center gap-2 mt-1 small text-muted">
+    <span data-rating-display>Нет оценки</span>
+    {% if not field.field.required %}
+      <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" data-rating-clear>Сбросить</button>
+    {% endif %}
+  </div>
+</div>

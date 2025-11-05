@@ -1,1 +1,704 @@
-/srv/kalejdoskop/Mybooks/games/static/games/game-pages.css
+:root {
+  --journey-ink: #2b3e34;
+  --journey-olive: #546a50;
+  --journey-fern: #6f8973;
+  --journey-gold: #9fb5a4;
+  --journey-sand: #e7efe9;
+  --journey-cream: #f5faf6;
+  --journey-mist: rgba(84, 106, 80, 0.18);
+  --journey-haze: rgba(43, 62, 52, 0.12);
+}
+
+.game-hero {
+  position: relative;
+  border-radius: 1.75rem;
+  overflow: hidden;
+  color: var(--journey-ink);
+  background: linear-gradient(140deg, rgba(245, 250, 246, 0.96), rgba(217, 228, 219, 0.9));
+  border: 1px solid rgba(84, 106, 80, 0.24);
+  box-shadow: 0 20px 45px rgba(43, 62, 52, 0.08);
+}
+
+.game-hero::before,
+.game-hero::after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  background: radial-gradient(circle at center, rgba(84, 106, 80, 0.25), transparent 70%);
+  pointer-events: none;
+}
+
+.game-hero::before {
+  inset: -35% -20% auto auto;
+  width: clamp(220px, 40vw, 340px);
+  aspect-ratio: 1 / 1;
+}
+
+.game-hero::after {
+  inset: auto auto -40% -25%;
+  width: clamp(240px, 44vw, 360px);
+  aspect-ratio: 1 / 1;
+  background: radial-gradient(circle at center, rgba(43, 62, 52, 0.28), transparent 70%);
+}
+
+.game-hero .card-body {
+  position: relative;
+  padding: clamp(1.75rem, 2vw + 1.2rem, 2.75rem);
+}
+
+.game-hero-heading {
+  font-size: clamp(1.75rem, 2.5vw + 1.35rem, 2.65rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.game-hero-description {
+  max-width: 44rem;
+  color: rgba(43, 62, 52, 0.75);
+}
+
+.game-hero-meta {
+  max-width: 18rem;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(84, 106, 80, 0.28);
+  border-radius: 1.2rem;
+  padding: 1rem 1.35rem;
+  border: 1px solid rgba(84, 106, 80, 0.28);
+}
+
+.game-hero-meta .badge,
+.game-hero-meta .small {
+  letter-spacing: 0.02em;
+  color: rgba(43, 62, 52, 0.6);
+}
+
+.game-hero .text-muted,
+.game-hero .text-body-secondary {
+  color: rgba(43, 62, 52, 0.6) !important;
+}
+
+.game-hero-meta .fs-4 {
+  color: var(--journey-olive);
+}
+
+.game-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.game-hero-actions .btn {
+  border-radius: 0.95rem;
+}
+
+.btn-journey-outline {
+  border-radius: 999px;
+  border: 1px solid rgba(84, 106, 80, 0.32);
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--journey-ink);
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-journey-outline:hover,
+.btn-journey-outline:focus-visible {
+  background: var(--journey-olive);
+  color: #fff;
+  border-color: var(--journey-olive);
+  border: 1px solid rgba(84, 106, 80, 0.32);
+}
+
+.btn-journey-primary {
+  border-radius: 0.95rem;
+  border: 1px solid rgba(43, 62, 52, 0.45);
+  background: linear-gradient(140deg, var(--journey-olive), var(--journey-ink));
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 16px 28px rgba(43, 62, 52, 0.12);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-journey-primary:hover,
+.btn-journey-primary:focus-visible {
+  background: linear-gradient(140deg, var(--journey-ink), #1c2a23);
+  border-color: rgba(43, 62, 52, 0.6);
+  box-shadow: 0 18px 32px rgba(43, 62, 52, 0.15);
+  color: #fff;
+}
+
+.btn-journey-ghost {
+  border-radius: 0.9rem;
+  border: 1px solid rgba(84, 106, 80, 0.3);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--journey-olive);
+  font-weight: 600;
+  box-shadow: 0 12px 24px rgba(43, 62, 52, 0.08);
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-journey-ghost:hover,
+.btn-journey-ghost:focus-visible {
+  background: rgba(84, 106, 80, 0.16);
+  color: var(--journey-ink);
+  border-color: rgba(43, 62, 52, 0.32);
+  box-shadow: 0 14px 30px rgba(43, 62, 52, 0.12);
+}
+
+.btn-journey-success {
+  border-radius: 0.9rem;
+  border: 1px solid rgba(84, 106, 80, 0.32);
+  background: linear-gradient(140deg, rgba(155, 182, 162, 0.65), rgba(84, 106, 80, 0.85));
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 14px 26px rgba(43, 62, 52, 0.12);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-journey-success:hover,
+.btn-journey-success:focus-visible {
+  background: linear-gradient(140deg, rgba(84, 106, 80, 0.95), rgba(43, 62, 52, 0.9));
+  border-color: rgba(43, 62, 52, 0.55);
+  box-shadow: 0 18px 32px rgba(43, 62, 52, 0.15);
+  color: #fff;
+}
+
+.btn-journey-soft {
+  border-radius: 999px;
+  border: 1px solid rgba(84, 106, 80, 0.28);
+  background: rgba(231, 239, 233, 0.85);
+  color: var(--journey-olive);
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-journey-soft:hover,
+.btn-journey-soft:focus-visible {
+  background: var(--journey-olive);
+  color: #fff;
+  border-color: var(--journey-olive);
+  box-shadow: 0 0 0 0.2rem rgba(84, 106, 80, 0.18);
+}
+
+.badge-journey-warning {
+  background: rgba(231, 239, 233, 0.9);
+  color: var(--journey-ink);
+  border: 1px solid rgba(84, 106, 80, 0.3);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+.badge-journey-success {
+  background: linear-gradient(140deg, rgba(155, 182, 162, 0.85), rgba(84, 106, 80, 0.8));
+  color: #fff;
+  border: 1px solid rgba(43, 62, 52, 0.45);
+  box-shadow: 0 10px 20px rgba(43, 62, 52, 0.15);
+}
+
+.game-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.85rem;
+  margin-top: clamp(1.25rem, 2vw, 1.75rem);
+}
+
+.game-hero-stat {
+  background: rgba(255, 255, 255, 0.88);
+  border-radius: 1.1rem;
+  padding: 0.85rem 1.05rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  border: 1px solid rgba(84, 106, 80, 0.26);
+  box-shadow: 0 8px 18px rgba(43, 62, 52, 0.06);
+}
+
+.game-hero-stat .label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(43, 62, 52, 0.6);
+}
+
+.game-hero-stat .value {
+  font-size: clamp(1.45rem, 2vw + 1rem, 2.05rem);
+  font-weight: 700;
+  color: var(--journey-olive);
+}
+
+.game-hero-stat .hint {
+  font-size: 0.8rem;
+  color: rgba(43, 62, 52, 0.65);
+}
+
+.game-progress {
+  margin-top: 1.35rem;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--journey-mist);
+  overflow: hidden;
+}
+
+.game-progress-bar {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--journey-olive) 0%, var(--journey-ink) 90%);
+  border-radius: inherit;
+  transition: width 0.4s ease;
+}
+
+.game-panel {
+  border-radius: 1.35rem;
+  border: 1px solid rgba(84, 106, 80, 0.24);
+  background: linear-gradient(170deg, rgba(245, 250, 246, 0.95), rgba(217, 228, 219, 0.82));
+  box-shadow: 0 16px 32px rgba(43, 62, 52, 0.07);
+}
+
+.game-panel .card-header,
+.game-panel .card-footer {
+  border: none;
+  background: transparent;
+}
+
+.game-panel .card-body {
+  padding: clamp(1.35rem, 2vw + 1rem, 1.85rem);
+}
+
+.game-panel--soft {
+  background: linear-gradient(170deg, rgba(245, 250, 246, 0.95), rgba(217, 228, 219, 0.8));
+}
+
+.game-panel-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.45rem;
+  color: var(--journey-ink);
+}
+
+.game-checklist {
+  counter-reset: checklist;
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 0;
+}
+
+.game-checklist li {
+  position: relative;
+  padding-left: 2rem;
+  margin-bottom: 0.75rem;
+  color: rgba(43, 62, 52, 0.8);
+}
+
+.game-checklist li::before {
+  counter-increment: checklist;
+  content: counter(checklist, decimal-leading-zero);
+  position: absolute;
+  left: 0;
+  top: 0.05rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 0.6rem;
+  display: grid;
+  place-items: center;
+  background: rgba(84, 106, 80, 0.18);
+  color: var(--journey-ink);
+  font-weight: 600;
+  font-size: 0.8rem;
+  box-shadow: inset 0 0 0 1px rgba(84, 106, 80, 0.22);
+}
+
+.game-hint {
+  border-radius: 1.1rem;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.9), rgba(231, 239, 233, 0.85));
+  border: 1px solid rgba(84, 106, 80, 0.26);
+  color: rgba(43, 62, 52, 0.75);
+}
+
+.game-hint strong {
+  color: var(--journey-olive);
+}
+
+.journey-map-card {
+  border-radius: 1.5rem;
+  overflow: hidden;
+  background: linear-gradient(170deg, rgba(245, 250, 246, 0.96), rgba(217, 228, 219, 0.84));
+  border: 1px solid rgba(84, 106, 80, 0.24);
+  box-shadow: 0 18px 36px rgba(43, 62, 52, 0.07);
+}
+
+.journey-map-card .card-header {
+  padding: clamp(1.35rem, 2vw + 1rem, 1.85rem) clamp(1.35rem, 2vw + 1rem, 1.85rem) 0;
+}
+
+.journey-map-card .card-body {
+  padding: clamp(1.25rem, 2vw + 1rem, 1.75rem);
+}
+
+.journey-map-card .card-footer {
+  padding: 1.1rem clamp(1.35rem, 2vw + 1rem, 1.75rem) clamp(1.5rem, 2vw + 1.4rem, 1.9rem);
+  border-top: 1px solid rgba(84, 106, 80, 0.2);
+  background: rgba(84, 106, 80, 0.08);
+}
+
+.journey-map-card .journey-map__canvas {
+  border-radius: 1.35rem;
+  border: none;
+  box-shadow: inset 0 0 0 1px rgba(84, 106, 80, 0.18);
+  background: linear-gradient(180deg, rgba(231, 239, 233, 0.75), rgba(255, 255, 255, 0.9));
+}
+
+.journey-map-card .journey-map__canvas::before {
+  border-radius: inherit;
+}
+
+.journey-legend-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+
+.journey-legend-hints {
+  margin-bottom: 0;
+  padding-left: 1rem;
+  color: rgba(43, 62, 52, 0.65);
+}
+
+.journey-stage-list__item {
+  padding: 0.95rem 1.15rem;
+  border: none;
+  border-bottom: 1px solid rgba(84, 106, 80, 0.14);
+  background: transparent;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.journey-stage-list__item:hover {
+  background: rgba(217, 228, 219, 0.38);
+}
+
+.journey-stage-list__status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+}
+
+.journey-stage-list__status--available {
+  background: rgba(84, 106, 80, 0.18);
+  color: var(--journey-olive);
+  box-shadow: inset 0 0 0 1px rgba(84, 106, 80, 0.22);
+}
+
+.journey-stage-list__status--in_progress {
+  background: rgba(122, 149, 124, 0.18);
+  color: var(--journey-ink);
+}
+
+.journey-stage-list__status--completed {
+  background: rgba(43, 62, 52, 0.25);
+  color: #fff;
+}
+
+.journey-stage-panel {
+  --bs-offcanvas-width: min(420px, 100vw);
+  background: linear-gradient(180deg, rgba(231, 239, 233, 0.85), rgba(255, 255, 255, 0.95));
+  color: var(--journey-ink);
+}
+
+.journey-stage-panel .offcanvas-header {
+  padding: 1.35rem 1.6rem;
+}
+
+.journey-stage-panel .offcanvas-body {
+  padding: 1.6rem;
+}
+
+.journey-stage-panel__status {
+  background: rgba(84, 106, 80, 0.16);
+  color: var(--journey-ink);
+  font-weight: 600;
+}
+
+.journey-stage-panel__status--available {
+  background: rgba(84, 106, 80, 0.22);
+  color: var(--journey-olive);
+}
+
+.journey-stage-panel__status--in_progress {
+  background: rgba(122, 149, 124, 0.22);
+  color: var(--journey-ink);
+}
+
+.journey-stage-panel__status--completed {
+  background: var(--journey-olive);
+  color: #fff;
+}
+
+.journey-stage-panel__form {
+  border-radius: 1.1rem;
+  border: 1px solid rgba(84, 106, 80, 0.24);
+  padding: 1.1rem;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 10px 24px rgba(43, 62, 52, 0.06);
+}
+
+.journey-stage-panel__form + .journey-stage-panel__form {
+  margin-top: 1rem;
+}
+
+.journey-alert {
+  border-radius: 1.1rem;
+  border: 1px solid rgba(84, 106, 80, 0.28);
+  background: linear-gradient(150deg, rgba(245, 250, 246, 0.94), rgba(217, 228, 219, 0.82));
+  color: rgba(43, 62, 52, 0.75);
+  box-shadow: 0 12px 24px rgba(43, 62, 52, 0.08);
+}
+
+.journey-alert--active {
+  background: linear-gradient(150deg, rgba(155, 182, 162, 0.32), rgba(84, 106, 80, 0.2));
+  border-color: rgba(84, 106, 80, 0.32);
+  color: var(--journey-ink);
+}
+
+.journey-alert--info {
+  background: linear-gradient(150deg, rgba(245, 250, 246, 0.92), rgba(217, 228, 219, 0.28));
+}
+
+.journey-badge {
+  background: rgba(84, 106, 80, 0.18);
+  color: var(--journey-olive);
+  box-shadow: inset 0 0 0 1px rgba(84, 106, 80, 0.22);
+  font-weight: 600;
+}
+
+
+.game-promo {
+  border-radius: 1.4rem;
+  background: linear-gradient(150deg, rgba(245, 250, 246, 0.92), rgba(255, 255, 255, 0.96));
+  border: 1px solid rgba(84, 106, 80, 0.24);
+  box-shadow: 0 16px 30px rgba(43, 62, 52, 0.07);
+}
+
+.game-promo .card-body {
+  padding: clamp(1.35rem, 2vw + 1rem, 1.7rem);
+}
+
+.read-before-buy-grid {
+  display: grid;
+  gap: 1.35rem;
+}
+
+.read-before-buy-card {
+  border-radius: 1.4rem;
+  border: 1px solid rgba(84, 106, 80, 0.24);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 38px rgba(43, 62, 52, 0.07);
+}
+
+.read-before-buy-card .card-body {
+  padding: clamp(1.35rem, 2vw + 1.1rem, 1.8rem);
+}
+
+.read-before-buy-card__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.85rem;
+  text-align: center;
+}
+
+.read-before-buy-card__meta .value {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--journey-olive);
+}
+
+.shelf-card .game-progress {
+  margin-top: 1.1rem;
+  background: rgba(84, 106, 80, 0.18);
+}
+
+.shelf-card .game-progress-bar {
+  background: linear-gradient(90deg, var(--journey-olive), var(--journey-ink));
+}
+
+.shelf-card__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.85rem;
+  text-align: center;
+}
+
+.shelf-card__meta .value {
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--journey-ink);
+}
+
+.shelf-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.shelf-card__list {
+  border-top: 1px dashed rgba(84, 106, 80, 0.22);
+  margin-top: 1.15rem;
+  padding-top: 1.15rem;
+}
+
+.shelf-card__list-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(43, 62, 52, 0.6);
+}
+
+.game-empty-card {
+  border-radius: 1.4rem;
+  border: 1px dashed rgba(84, 106, 80, 0.32);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.94), rgba(217, 228, 219, 0.82));
+  color: rgba(43, 62, 52, 0.65);
+}
+
+.game-empty-card .card-body {
+  padding: 2.5rem 1.75rem;
+  text-align: center;
+}
+
+@media (max-width: 991.98px) {
+  .game-hero {
+    border-radius: 1.25rem;
+  }
+
+  .game-hero .card-body {
+    padding: 1.6rem;
+  }
+
+  .game-hero-meta {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .game-panel,
+  .read-before-buy-card,
+  .game-promo,
+  .journey-map-card {
+    border-radius: 1.25rem;
+  }
+
+  .journey-map-card .card-body,
+  .game-panel .card-body,
+  .game-promo .card-body,
+  .read-before-buy-card .card-body {
+    padding: 1.35rem;
+  }
+
+  .journey-map-card .card-header {
+    padding: 1.35rem 1.35rem 0;
+  }
+
+  .journey-map-card .card-footer {
+    padding-left: 1.35rem;
+    padding-right: 1.35rem;
+  }
+
+  .journey-stage-panel {
+    --bs-offcanvas-width: 100vw;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .game-hero .card-body {
+    padding: 1.45rem 1.3rem;
+  }
+
+  .game-hero-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .game-hero-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .journey-map-card .card-footer {
+    padding-top: 1.2rem;
+  }
+
+  .journey-stage-list__item {
+    padding: 0.85rem 1rem;
+  }
+
+  .journey-stage-list__status {
+    font-size: 0.7rem;
+  }
+
+  .read-before-buy-grid {
+    gap: 1.1rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .game-hero {
+    border-radius: 1rem;
+  }
+
+  .game-hero .card-body {
+    padding: 1.35rem 1.15rem;
+  }
+
+  .game-hero-actions {
+    gap: 0.5rem;
+  }
+
+  .game-hero-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .game-hero-stats {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.65rem;
+  }
+
+  .game-hero-stat {
+    padding: 0.75rem 0.95rem;
+  }
+
+  .game-progress {
+    height: 8px;
+  }
+
+  .game-panel,
+  .read-before-buy-card,
+  .game-promo,
+  .journey-map-card {
+    border-radius: 1rem;
+  }
+
+  .game-panel .card-body,
+  .game-promo .card-body,
+  .read-before-buy-card .card-body,
+  .journey-map-card .card-body {
+    padding: 1.15rem;
+  }
+
+  .journey-map-card .card-header {
+    padding: 1.15rem 1.05rem 0;
+  }
+
+  .journey-map-card .card-footer {
+    padding: 1rem 1.05rem 1.4rem;
+  }
+
+  .journey-legend-hints {
+    padding-left: 0.75rem;
+  }
+
+  .journey-legend-badges {
+    gap: 0.35rem;
+  }
+
+  .game-checklist li {
+    padding-left: 1.75rem;
+  }
+}

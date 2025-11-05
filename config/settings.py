@@ -21,6 +21,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / ".env")
 
+
+STATIC_VERSION = os.getenv("STATIC_VERSION", "20241105")
+
 def env_bool(*names: str, default: bool = False) -> bool:
     if not names:
         raise ValueError("At least one environment variable name must be provided")
@@ -166,6 +169,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 "django.template.context_processors.media",
                 "collaborations.context_processors.collaboration_notifications",
+                "config.context_processors.static_version",
             ],
         },
     },
