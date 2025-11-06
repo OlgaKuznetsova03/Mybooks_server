@@ -210,6 +210,10 @@ class PremiumPurchaseForm(forms.Form):
         choices=PremiumPayment.PaymentMethod.choices,
         widget=forms.RadioSelect,
     )
+    agree_offer = forms.BooleanField(
+        label="Я принимаю условия публичной оферты",
+        required=True,
+    )
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -217,6 +221,7 @@ class PremiumPurchaseForm(forms.Form):
         self.fields["plan"].choices = list(PremiumPayment.get_plan_choices_with_price())
         self.fields["plan"].widget = forms.Select(attrs={"class": "form-select"})
         self.fields["payment_method"].widget.attrs.update({"class": "form-check-input"})
+        self.fields["agree_offer"].widget.attrs.update({"class": "form-check-input"})
 
     def clean_plan(self):
         plan_code = self.cleaned_data["plan"]

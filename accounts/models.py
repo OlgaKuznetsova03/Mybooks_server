@@ -32,6 +32,7 @@ class Profile(models.Model):
     website = models.URLField(blank=True)
     coins = models.PositiveIntegerField(default=0)
     last_daily_reward_at = models.DateField(blank=True, null=True)
+    premium_auto_renew = models.BooleanField(default=True)
 
     def __str__(self):
         return f"Profile({self.user.username})"
@@ -202,10 +203,7 @@ class CoinTransaction(models.Model):
 
 class PremiumPayment(models.Model):
     class PaymentMethod(models.TextChoices):
-        MIR = ("mir", "Банковская карта МИР")
-        SBP = ("sbp", "СБП (Система быстрых платежей)")
         YOOMONEY = ("yoomoney", "ЮMoney кошелёк")
-        QIWI = ("qiwi", "QIWI Кошелёк")
 
     class Status(models.TextChoices):
         PENDING = ("pending", "Ожидает оплаты")
@@ -214,27 +212,13 @@ class PremiumPayment(models.Model):
 
     class Plan(models.TextChoices):
         MONTH = ("month", "1 месяц")
-        QUARTER = ("quarter", "3 месяца")
-        YEAR = ("year", "12 месяцев")
 
     PLAN_CONFIGURATION: dict[str, PremiumPlan] = {
         Plan.MONTH: PremiumPlan(
             code=Plan.MONTH,
             label="1 месяц",
             duration=timedelta(days=30),
-            price=Decimal("299.00"),
-        ),
-        Plan.QUARTER: PremiumPlan(
-            code=Plan.QUARTER,
-            label="3 месяца",
-            duration=timedelta(days=90),
-            price=Decimal("749.00"),
-        ),
-        Plan.YEAR: PremiumPlan(
-            code=Plan.YEAR,
-            label="12 месяцев",
-            duration=timedelta(days=365),
-            price=Decimal("2490.00"),
+            price=Decimal("300.00"),
         ),
     }
 

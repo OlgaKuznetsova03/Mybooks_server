@@ -590,8 +590,34 @@ def signup(request):
 def premium_overview(request):
     profile = request.user.profile
     active_subscription = profile.active_premium
+    
+    form = PremiumPurchaseForm(user=request.user)
 
     if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "disable_auto_renew":
+            if profile.premium_auto_renew:
+                profile.premium_auto_renew = False
+                profile.save(update_fields=["premium_auto_renew"])
+                messages.success(
+                    request,
+                    "Автопродление отключено. Вы можете включить его в любой момент на этой странице.",
+                )
+            else:
+                messages.info(request, "Автопродление уже отключено.")
+            return redirect("premium_overview")
+        if action == "enable_auto_renew":
+            if not profile.premium_auto_renew:
+                profile.premium_auto_renew = True
+                profile.save(update_fields=["premium_auto_renew"])
+                messages.success(
+                    request,
+                    "Автопродление включено. Подписка будет продлеваться каждый месяц автоматически.",
+                )
+            else:
+                messages.info(request, "Автопродление уже включено.")
+            return redirect("premium_overview")
+
         form = PremiumPurchaseForm(request.POST, user=request.user)
         if form.is_valid():
             payment = form.save()
@@ -604,8 +630,6 @@ def premium_overview(request):
                 ),
             )
             return redirect("premium_overview")
-    else:
-        form = PremiumPurchaseForm(user=request.user)
 
     recent_payments = (
         request.user.premium_payments.select_related("subscription").order_by("-created_at")[:10]
@@ -615,21 +639,9 @@ def premium_overview(request):
     )
 
     payment_instructions = {
-        PremiumPayment.PaymentMethod.MIR: (
-            "Переведите сумму на карту «Мир». Реквизиты придут на вашу почту сразу после создания счёта. "
-            "После оплаты ответьте на письмо или напишите в поддержку, чтобы мы подтвердили перевод."
-        ),
-        PremiumPayment.PaymentMethod.SBP: (
-            "Используйте систему быстрых платежей (СБП) в вашем мобильном банке. Мы пришлём QR-код или ссылку "
-            "для оплаты, а вы сообщите нам, когда перевод будет выполнен."
-        ),
         PremiumPayment.PaymentMethod.YOOMONEY: (
             "Оплатите счёт из приложения или веб-версии ЮMoney. Сохраните чек и отправьте его в поддержку, чтобы мы "
             "активировали подписку."
-        ),
-        PremiumPayment.PaymentMethod.QIWI: (
-            "Переведите сумму на наш QIWI-кошелёк. Реквизиты придут на почту. После оплаты приложите чек в ответном "
-            "письме или чате поддержки."
         ),
     }
 
