@@ -2,6 +2,7 @@ from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 import calendar
 import json
+import math
 
 from django.shortcuts import render, redirect, get_object_or_404
 
@@ -188,6 +189,7 @@ def _build_reading_calendar(user: User, params, read_items_qs, period_meta):
             pages_total = Decimal("0")
             audio_seconds = 0
             reading_sessions = 0
+            audio_minutes = None
             if record and day.month == calendar_month:
                 completion_ids = record["completed_ids"]
                 books = sorted(
@@ -208,6 +210,7 @@ def _build_reading_calendar(user: User, params, read_items_qs, period_meta):
                 has_activity = True
                 pages_total = record.get("pages_equivalent") or Decimal("0")
                 audio_seconds = record.get("audio_seconds") or 0
+                audio_minutes = math.ceil(audio_seconds / 60) if audio_seconds else None
                 reading_sessions = record.get("reading_sessions") or 0
                 if pages_total > 0:
                     month_pages_total += pages_total
@@ -223,6 +226,7 @@ def _build_reading_calendar(user: User, params, read_items_qs, period_meta):
                     "is_completion_day": is_completion_day,
                     "pages_total": _decimal_to_number(pages_total),
                     "books_count": len(books),
+                    "audio_minutes": audio_minutes,
                     "audio_display": _format_duration(timedelta(seconds=audio_seconds))
                     if audio_seconds
                     else None,
@@ -236,6 +240,7 @@ def _build_reading_calendar(user: User, params, read_items_qs, period_meta):
                     "date_display": day.strftime("%d.%m.%Y"),
                     "pages_total": _decimal_to_number(pages_total),
                     "books_count": len(books),
+                    "audio_minutes": audio_minutes,
                     "audio_display": _format_duration(timedelta(seconds=audio_seconds))
                     if audio_seconds
                     else None,

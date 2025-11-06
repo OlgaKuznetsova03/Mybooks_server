@@ -337,8 +337,13 @@
       margin-inline: auto;
     }
 
-    .calendar-day__meta-item strong {
+    .calendar-day__meta-value {
       font-weight: 700;
+      line-height: 1;
+    }
+
+    .calendar-day__meta-label {
+      color: var(--bs-secondary-color);
     }
 
     .calendar-day__meta-audio {
@@ -413,6 +418,11 @@
       .reading-calendar__header{ font-size:.75rem; }
       .reading-calendar__books{ gap:.25rem; }
       .reading-calendar__book-cover,.reading-calendar__book-placeholder{ width:32px; height:48px; }
+      .calendar-day__stats{ font-size:.7rem; gap:.2rem; }
+      .calendar-day__meta-item{ gap:.2rem; padding:.1rem .35rem; }
+      .calendar-day__meta-item i{ font-size:.85rem; }
+      .calendar-day__meta-value{ font-size:.85rem; }
+      .calendar-day__meta-label{ display:none; }
     }
 
     /* === ЖЁСТКОЕ ПЕРЕОПРЕДЕЛЕНИЕ Bootstrap — только внутри .profile-theme === */
@@ -1178,24 +1188,25 @@
                               <div class="calendar-day__stats">
                                 {% if day.pages_total %}
                                   <div class="calendar-day__meta-item">
-                                    <strong>{{ day.pages_total }}</strong>
-                                    {{ day.pages_total|ru_pluralize:"страница,страницы,страниц" }}
+                                    <strong class="calendar-day__meta-value">{{ day.pages_total }}</strong>
+                                    <span class="calendar-day__meta-label">{{ day.pages_total|ru_pluralize:"страница,страницы,страниц" }}</span>
                                   </div>
                                 {% endif %}
                                 {% if day.books_count %}
                                   <div class="calendar-day__meta-item">
                                     <i class="bi bi-book"></i>
-                                    <strong>{{ day.books_count }}</strong>
-                                    {{ day.books_count|ru_pluralize:"книга,книги,книг" }}
+                                    <strong class="calendar-day__meta-value">{{ day.books_count }}</strong>
+                                    <span class="calendar-day__meta-label">{{ day.books_count|ru_pluralize:"книга,книги,книг" }}</span>
                                   </div>
                                 {% endif %}
-                                {% if day.audio_display %}
+                                {% if day.audio_minutes %}
                                   <div class="calendar-day__meta-item calendar-day__meta-audio">
                                     <i class="bi bi-headphones"></i>
-                                    {{ day.audio_display }}
+                                    <strong class="calendar-day__meta-value">{{ day.audio_minutes }}</strong>
+                                    <span class="calendar-day__meta-label">{{ day.audio_minutes|ru_pluralize:"минута,минуты,минут" }}</span>
                                   </div>
                                 {% endif %}
-                                {% if not day.books_count and not day.pages_total and not day.audio_display and day.in_month %}
+                                {% if not day.books_count and not day.pages_total and not day.audio_minutes and day.in_month %}
                                   <div class="calendar-day__meta-empty">Нет записей</div>
                                 {% endif %}
                               </div>
