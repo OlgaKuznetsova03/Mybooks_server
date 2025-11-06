@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.messages import get_messages
 from django.contrib.auth.models import Group
 from django.contrib.auth.tokens import default_token_generator
 from django.core import mail
@@ -375,6 +376,55 @@ class CoinEconomyTests(TestCase):
             self.profile.coins,
             self.initial_balance + DAILY_LOGIN_REWARD_COINS,
         )
+
+
+@override_settings(
+    SECURE_SSL_REDIRECT=False,
+    SESSION_COOKIE_SECURE=False,
+    CSRF_COOKIE_SECURE=False,
+)
+class DailyLoginRewardMiddlewareTests(TestCase):
+    def setUp(self):
+        self.client.defaults["HTTP_HOST"] = "localhost"
+        self.client.defaults["wsgi.url_scheme"] = "https"
+        self.client.defaults["HTTP_X_FORWARDED_PROTO"] = "https"
+
+        self.user = get_user_model().objects.create_user(
+            username="daily_user",
+            email="daily@example.com",
+            password="DailyPass123!",
+        )
+        self.profile = self.user.profile
+        Profile.objects.filter(pk=self.profile.pk).update(
+            coins=0,
+            last_daily_reward_at=None,
+        )
+        self.profile.refresh_from_db()
+
+    def test_daily_reward_granted_on_first_request(self):
+        self.client.force_login(self.user)
+
+        first_response = self.client.get(reverse("my_profile"))
+        self.assertEqual(first_response.status_code, 200)
+
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.coins, DAILY_LOGIN_REWARD_COINS)
+        self.assertEqual(self.profile.last_daily_reward_at, timezone.localdate())
+
+        messages = [message.message for message in get_messages(first_response.wsgi_request)]
+        self.assertTrue(
+            any(
+                f"Вы получили {DAILY_LOGIN_REWARD_COINS} монет" in message
+                for message in messages
+            ),
+            msg="Daily reward success message was not added to the request",
+        )
+
+        second_response = self.client.get(reverse("my_profile"))
+        self.assertEqual(second_response.status_code, 200)
+
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.coins, DAILY_LOGIN_REWARD_COINS)
 
 
 @override_settings(
