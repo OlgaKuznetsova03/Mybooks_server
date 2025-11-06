@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -24,6 +25,10 @@ from accounts.models import (
     YANDEX_AD_REWARD_COINS,
 )
 from books.models import Author, Book
+from shelves.models import BookProgress, Shelf, ShelfItem, ReadingLog
+from shelves.services import DEFAULT_READ_SHELF
+
+from accounts.views import _collect_profile_stats
 
 
 @override_settings(
@@ -200,6 +205,68 @@ class SignUpRoleAssignmentTests(TestCase):
             set(user.groups.values_list("name", flat=True)),
             {"reader", "author"},
         )
+
+
+class ProfileStatsAggregationTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="statsuser",
+            email="stats@example.com",
+            password="StatsPass123!",
+        )
+        self.read_shelf = Shelf.objects.create(
+            user=self.user,
+            name=DEFAULT_READ_SHELF,
+            is_default=True,
+        )
+
+    def test_pages_total_uses_tracked_logs(self):
+        book = Book.objects.create(title="Журнал чтения")
+        ShelfItem.objects.create(shelf=self.read_shelf, book=book)
+        progress = BookProgress.objects.create(
+            user=self.user,
+            book=book,
+            format=BookProgress.FORMAT_PAPER,
+        )
+        ReadingLog.objects.create(
+            progress=progress,
+            log_date=timezone.localdate(),
+            medium=BookProgress.FORMAT_PAPER,
+            pages_equivalent=Decimal("120.50"),
+        )
+
+        payload = _collect_profile_stats(self.user, {})
+        stats = payload["stats"]
+
+        expected_average = (
+            Decimal("120.50") / Decimal("7")
+        ).quantize(Decimal("0.01"))
+
+        self.assertEqual(stats["pages_total"], 120.5)
+        self.assertEqual(stats["pages_average"], float(expected_average))
+
+    def test_audio_totals_fall_back_to_tracked_seconds(self):
+        book = Book.objects.create(title="Аудио статистика")
+        ShelfItem.objects.create(shelf=self.read_shelf, book=book)
+        progress = BookProgress.objects.create(
+            user=self.user,
+            book=book,
+            format=BookProgress.FORMAT_AUDIO,
+        )
+        ReadingLog.objects.create(
+            progress=progress,
+            log_date=timezone.localdate(),
+            medium=BookProgress.FORMAT_AUDIO,
+            pages_equivalent=Decimal("0"),
+            audio_seconds=5400,
+        )
+
+        payload = _collect_profile_stats(self.user, {})
+        stats = payload["stats"]
+
+        self.assertEqual(stats["audio_tracked_display"], "01:30:00")
+        self.assertEqual(stats["audio_total_display"], "01:30:00")
+        self.assertEqual(stats["audio_adjusted_display"], "01:30:00")
 
 
 class CoinEconomyTests(TestCase):

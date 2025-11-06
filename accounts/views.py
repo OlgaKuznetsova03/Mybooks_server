@@ -221,6 +221,16 @@ def _format_duration(value):
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
 
+def _decimal_to_number(value):
+    if value is None:
+        return None
+    if not isinstance(value, Decimal):
+        return value
+    if value == value.to_integral_value():
+        return int(value)
+    return float(value)
+
+
 def _resolve_cover(book: Book) -> str:
     return book.get_cover_url()
 
@@ -470,7 +480,7 @@ def _collect_profile_stats(user: User, params):
     }
 
     book_entries = []
-    total_pages = 0
+    total_pages = Decimal("0")
     for item in filtered_items.order_by("-added_at"):
         book = item.book
         progress = progress_map.get(book.id)
@@ -497,7 +507,8 @@ def _collect_profile_stats(user: User, params):
             pages = progress.get_effective_total_pages() or 0
         else:
             pages = book.get_total_pages() or 0
-        total_pages += pages
+        if pages:
+            total_pages += Decimal(str(pages))
 
     genre_stats = (
         books.values("genres__name")
@@ -528,18 +539,22 @@ def _collect_profile_stats(user: User, params):
         for code, _ in BookProgress.FORMAT_CHOICES
     }
     audio_tracked_seconds = 0
+    logged_pages_total = Decimal("0")
     for entry in logs_aggregate:
         medium = entry.get("medium")
         pages_total = entry.get("pages_total") or Decimal("0")
         if not isinstance(pages_total, Decimal):
             pages_total = Decimal(str(pages_total))
+        logged_pages_total += pages_total
         if medium in format_totals:
             format_totals[medium] += pages_total
-        if (
-            medium == BookProgress.FORMAT_AUDIO
-            and entry.get("audio_total")
-        ):
-            audio_tracked_seconds += int(entry["audio_total"] or 0)
+        if medium == BookProgress.FORMAT_AUDIO:
+            audio_total_seconds = entry.get("audio_total")
+            if audio_total_seconds:
+                audio_tracked_seconds += int(audio_total_seconds)
+
+    if logged_pages_total > 0:
+        total_pages = logged_pages_total
 
     audio_total = timedelta()
     audio_adjusted = timedelta()
@@ -583,14 +598,20 @@ def _collect_profile_stats(user: User, params):
 
     audio_tracked_display = None
     if audio_tracked_seconds > 0:
-        audio_tracked_display = _format_duration(
-            timedelta(seconds=audio_tracked_seconds)
-        )
+        tracked_duration = timedelta(seconds=audio_tracked_seconds)
+        audio_tracked_display = _format_duration(tracked_duration)
+        if audio_total.total_seconds() == 0:
+            audio_total = tracked_duration
+        if audio_adjusted.total_seconds() == 0:
+            audio_adjusted = tracked_duration
 
     days_count = max(1, (end - start).days + 1)
     pages_average = None
-    if total_pages:
-        pages_average = round(total_pages / days_count, 2)
+    if total_pages > 0:
+        pages_average = (
+            total_pages
+            / Decimal(days_count)
+        ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
     stats = {
         "books": book_entries,
@@ -599,8 +620,8 @@ def _collect_profile_stats(user: User, params):
         "format_labels": format_labels,
         "format_values": format_values,
         "format_palette": format_palette,
-        "pages_total": total_pages,
-        "pages_average": pages_average,
+        "pages_total": _decimal_to_number(total_pages),
+        "pages_average": _decimal_to_number(pages_average),
         "audio_total_display": _format_duration(audio_total),
         "audio_adjusted_display": _format_duration(audio_adjusted),
         "audio_tracked_display": audio_tracked_display,
