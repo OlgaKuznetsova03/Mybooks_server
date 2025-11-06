@@ -15,23 +15,112 @@
     }
 
     .books-page .books-hero{
-      background: #e3c9a4 !important;          /* новый фон */
-      border-color: #e3c9a4;                   /* мягкая рамка */
+      background: #e3c9a4 !important;
+      border-color: #e3c9a4;
       box-shadow: 0 12px 28px rgba(154,104,82,.18);
-      color: #2b1a0f;                          /* контрастный текст */
+      color: #2b1a0f;
+      position: relative;
+      overflow: hidden;
     }
-    .books-page .books-hero__title{ color:#2b1a0f; }
-    .books-page .books-hero__subtitle{ color: rgba(43,26,15,.85); }
+
+    /* Анимированный фон с частицами */
+    .hero-particles {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      background: 
+        radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%);
+      animation: floatParticles 8s ease-in-out infinite;
+    }
+
+    @keyframes floatParticles {
+      0%, 100% { 
+        transform: translateY(0px) rotate(0deg);
+        opacity: 0.7;
+      }
+      33% { 
+        transform: translateY(-10px) rotate(120deg);
+        opacity: 0.9;
+      }
+      66% { 
+        transform: translateY(5px) rotate(240deg);
+        opacity: 0.5;
+      }
+    }
+
+    .books-page .books-hero__title{ 
+      color:#2b1a0f; 
+      opacity: 0;
+      transform: translateY(30px);
+      animation: titleWave 0.8s ease-out 0.1s forwards;
+    }
+
+    @keyframes titleWave {
+      0% {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      60% {
+        opacity: 1;
+        transform: translateY(-5px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .books-page .books-hero__subtitle{ 
+      color: rgba(43,26,15,.85); 
+      opacity: 0;
+      animation: fadeInUp 0.6s ease-out 0.3s forwards;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Пульсирующий поиск */
+    .books-hero__search {
+      opacity: 0;
+      animation: fadeInUp 0.6s ease-out 0.4s forwards;
+    }
+
+    .books-page .books-hero__search .input-group {
+      animation: pulseGlow 3s ease-in-out 1s infinite;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { 
+        box-shadow: 0 0 20px rgba(155, 125, 97, 0.3);
+      }
+      50% { 
+        box-shadow: 0 0 35px rgba(155, 125, 97, 0.6);
+      }
+    }
 
     /* Кнопка "Найти" (btn-primary в инпут-группе) */
     .books-page .books-hero .btn-primary{
       background:#9b7d61 !important;
       border-color:#9b7d61 !important;
+      transition: all 0.3s ease;
     }
     .books-page .books-hero .btn-primary:hover,
     .books-page .books-hero .btn-primary:focus{
-      background:#85694f !important;           /* на тон темнее */
+      background:#85694f !important;
       border-color:#85694f !important;
+      transform: translateY(-2px);
     }
 
     /* Левая кнопка(и) «Добавить книгу»/«Смотреть все книги» */
@@ -40,23 +129,78 @@
       background:#9b7d61 !important;
       border-color:#9b7d61 !important;
       color:#fff !important;
+      opacity: 0;
+      animation: bounceIn 0.5s ease-out 0.5s forwards;
+      transition: all 0.3s ease;
     }
+
+    @keyframes bounceIn {
+      0% {
+        opacity: 0;
+        transform: scale(0.3);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.05);
+      }
+      70% {
+        transform: scale(0.9);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
     .books-page .books-hero .btn-light:hover,
     .books-page .books-hero .btn-outline-light:hover{
       background:#85694f !important;
       border-color:#85694f !important;
       color:#fff !important;
+      transform: translateY(-2px) scale(1.05);
     }
 
     /* Небольшой твик поля поиска, чтобы вписалось в фон */
     .books-page .books-hero__search .input-group-text{
-      background:#f2e9e5;                      /* иконка лупы */
+      background:#f2e9e5;
       border:0;
+      transition: all 0.3s ease;
     }
+
+    .books-page .books-hero__search .input-group-text:hover {
+      background: #e8dcd5;
+      transform: scale(1.05);
+    }
+
     .books-page .books-hero__search .form-control{
       background:#f7f1ee;
       border:0;
       color:#2b1a0f;
+      transition: all 0.3s ease;
+    }
+
+    .books-page .books-hero__search .form-control:focus {
+      background: #fff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(155, 125, 97, 0.2);
+    }
+
+    /* Анимация счетчика книг */
+    .book-count-animated {
+      display: inline-block;
+      opacity: 0;
+      animation: countUp 1.5s ease-out 0.2s forwards;
+    }
+
+    @keyframes countUp {
+      from {
+        opacity: 0;
+        transform: scale(0.5) rotate(-10deg);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+      }
     }
 
     /* Темная тема: чуть затемним фон, кнопки остаются теми же */
@@ -110,6 +254,7 @@
       background: var(--rt-btn-bg) !important;
       border-color: var(--rt-btn-bg) !important;
       color: #fff !important;
+      transition: all 0.3s ease;
     }
 
     /* Ховеры/фокусы/активные */
@@ -122,6 +267,7 @@
       background: var(--rt-btn-bg-hover) !important;
       border-color: var(--rt-btn-bg-hover) !important;
       color: #fff !important;
+      transform: translateY(-2px);
     }
 
     /* Убрать синий фокус Bootstrap, дать мягкий коричневый */
@@ -143,9 +289,9 @@
     .books-page .book-item__actions .btn-primary:focus {
       background: var(--rt-btn-bg-hover) !important;
       border-color: var(--rt-btn-bg-hover) !important;
-}
+    }
 
-.books-page .book-item__content {
+    .books-page .book-item__content {
       display: flex;
       flex-direction: column;
       gap: .75rem;
@@ -186,58 +332,141 @@
       gap: .5rem;
     }
 
-    .books-page [data-animate]{
-      --rt-animate-offset: 0px;
-      --rt-animate-delay: 0ms;
-      --rt-animate-duration: .8s;
-      --rt-animate-easing: cubic-bezier(.22, 1, .36, 1);
+    /* Анимации для карточек книг */
+    .book-item {
       opacity: 0;
-      transform: translate3d(var(--rt-animate-offset), 0, 0);
-      transition:
-        opacity .6s ease-out var(--rt-animate-delay),
-        transform var(--rt-animate-duration) var(--rt-animate-easing) var(--rt-animate-delay);
-    }
-    .books-page [data-animate="left"]{ --rt-animate-offset: -80px; }
-    .books-page [data-animate="right"]{ --rt-animate-offset: 80px; }
-    .books-page [data-animate].is-visible{
-      opacity: 1;
-      transform: translate3d(0, 0, 0);
+      transform: translateY(20px) scale(0.95);
+      animation: bookCardAppear 0.5s ease-out forwards;
     }
 
-    .books-page .book-item--animated,
-    .books-page .genre-shelf-card__book--animated{
-      opacity: 0;
-      transform: translate3d(0, 18px, 0);
-      transition: opacity .45s ease-out var(--rt-book-delay, 0ms), transform .6s cubic-bezier(.22, 1, .36, 1) var(--rt-book-delay, 0ms);
-    }
-    .books-page .book-item--animated.is-visible,
-    .books-page .genre-shelf-card__book--animated.is-visible{
-      opacity: 1;
-      transform: translate3d(0, 0, 0);
-    }
-
-    @media (prefers-reduced-motion: reduce){
-      .books-page [data-animate],
-      .books-page .book-item--animated,
-      .books-page .genre-shelf-card__book--animated{
-        transition: none !important;
-        opacity: 1 !important;
-        transform: none !important;
+    @keyframes bookCardAppear {
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
       }
     }
-    
+
+    /* Создаем задержки для последовательного появления карточек */
+    .book-item:nth-child(1) { animation-delay: 0.05s; }
+    .book-item:nth-child(2) { animation-delay: 0.1s; }
+    .book-item:nth-child(3) { animation-delay: 0.15s; }
+    .book-item:nth-child(4) { animation-delay: 0.2s; }
+    .book-item:nth-child(5) { animation-delay: 0.25s; }
+    .book-item:nth-child(6) { animation-delay: 0.3s; }
+    .book-item:nth-child(7) { animation-delay: 0.35s; }
+    .book-item:nth-child(8) { animation-delay: 0.4s; }
+
+    /* Hover эффекты для карточек */
+    .book-item {
+      transition: all 0.3s ease;
+    }
+
+    .book-item:hover {
+      transform: translateY(-5px) scale(1.02);
+    }
+
+    .book-item__cover {
+      transition: all 0.3s ease;
+      transform-style: preserve-3d;
+    }
+
+    .book-item:hover .book-item__cover {
+      transform: perspective(1000px) rotateY(5deg) scale(1.05);
+      box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+    }
+
+    /* Анимация для полок - БЫСТРАЯ */
+    .genre-shelf-collection {
+      opacity: 1;
+      transform: translateX(0);
+      /* Убрана анимация задержки для мгновенного появления */
+    }
+
+    /* Анимация для пустого состояния */
+    .books-empty-state {
+      opacity: 0;
+      animation: fadeInScale 0.6s ease-out 0.2s forwards;
+    }
+
+    @keyframes fadeInScale {
+      from {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    /* Микро-анимации для интерактивных элементов */
+    .bi-search {
+      animation: searchPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes searchPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    /* Анимация для пагинации */
+    .pagination .page-link {
+      transition: all 0.3s ease;
+    }
+
+    .pagination .page-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(155, 125, 97, 0.2);
+    }
+
+    /* Дыхание для разделителей */
+    .books-hero__subtitle::after {
+      content: "·";
+      animation: breath 3s ease-in-out infinite;
+      display: inline-block;
+      margin: 0 8px;
+    }
+
+    @keyframes breath {
+      0%, 100% { opacity: 0.3; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+
+    /* Быстрая анимация для навигации по сортировке */
+    .books-sort {
+      opacity: 0;
+      animation: fadeInUp 0.4s ease-out 0.3s forwards;
+    }
+
+    /* Ускоренная анимация для всей страницы */
+    * {
+      animation-duration: 0.5s !important;
+    }
+
+    /* Отключаем анимации для пользователей, которые их не любят */
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01s !important;
+        animation-delay: 0.01s !important;
+        transition-duration: 0.01s !important;
+      }
+    }
+
   </style>
 {% endblock %}
 
 {% block content %}
 
-
-<section class="books-hero mb-4" data-animate="left">
+<section class="books-hero mb-4">
+  <!-- Анимированный фон -->
+  <div class="hero-particles"></div>
+  
   <div class="books-hero__body">
     <div>
       <h1 class="books-hero__title">Подберите книгу под настроение</h1>
       <p class="books-hero__subtitle">
-        {{ total_books }} {{ total_books|pluralize:"книга,книги,книг" }} в каталоге · обновлено сообществом ReadTogether
+        <span class="book-count-animated">{{ total_books }}</span> 
+        {{ total_books|pluralize:"книга,книги,книг" }} в каталоге · обновлено сообществом ReadTogether
       </p>
     </div>
     <div class="books-hero__actions">
@@ -307,7 +536,7 @@
 </section>
 
 {% if view_mode == 'discover' %}
-  <section class="mt-5" data-animate="right">
+  <section class="mt-5">
     {% if discovery_shelves %}
       <div class="genre-shelf-collection">
         {% for shelf in discovery_shelves %}
@@ -338,7 +567,7 @@
       </div>
     </nav>
 
-    <section class="books-shelf-card mt-4" data-animate="right">
+    <section class="books-shelf-card mt-4">
       <div class="books-shelf-card__body" style="--books-shelf-texture: url('{{ MEDIA_URL }}book_list/bookshelfhell.PNG')">
         <div class="book-shelf-wrapper">
           <button class="book-shelf__nav book-shelf__nav--prev" type="button" aria-label="Прокрутить каталог назад">
@@ -348,7 +577,7 @@
 
           <div class="book-shelf">
             {% for b in page_obj.object_list %}
-              <article class="book-item">
+              <article class="book-item" style="animation-delay: {{ forloop.counter0|add:1 }}0ms">
                 <div class="book-item__media">
                   {% with cover_url=b.get_cover_url %}
                     <a class="book-item__cover-link" href="{% url 'book_detail' b.pk %}">
@@ -479,6 +708,7 @@
 {% block extra_js %}
   {{ block.super }}
   <script>
+    // Очистка поиска
     document.querySelector('[data-clear-search]')?.addEventListener('click', (event) => {
       event.preventDefault();
       const form = event.currentTarget.closest('form');
@@ -487,6 +717,75 @@
       if (input) { input.value = ''; form.submit(); }
     });
 
+    // Анимация счетчика книг - БЫСТРАЯ
+    function animateBookCount() {
+      const countElement = document.querySelector('.book-count-animated');
+      if (!countElement) return;
+      
+      const finalCount = parseInt(countElement.textContent);
+      let currentCount = 0;
+      const duration = 1000; // Уменьшено с 2000 до 1000
+      const startTime = performance.now();
+      
+      function updateCount(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // easing function
+        const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+        currentCount = Math.floor(finalCount * easeOutQuart);
+        
+        countElement.textContent = currentCount;
+        
+        if (progress < 1) {
+          requestAnimationFrame(updateCount);
+        }
+      }
+      
+      requestAnimationFrame(updateCount);
+    }
+
+    // Инициализация анимаций при загрузке
+    document.addEventListener('DOMContentLoaded', function() {
+      // Запускаем анимацию счетчика сразу
+      animateBookCount();
+      
+      // Добавляем микро-анимации для интерактивных элементов
+      const interactiveElements = document.querySelectorAll('.btn, .nav-link, .book-item');
+      interactiveElements.forEach(element => {
+        element.addEventListener('mouseenter', function() {
+          this.style.transform = 'translateY(-2px)';
+        });
+        element.addEventListener('mouseleave', function() {
+          this.style.transform = 'translateY(0)';
+        });
+      });
+
+      // Анимация появления при скролле - БЫСТРАЯ
+      const observerOptions = {
+        threshold: 0.05, // Более чувствительный порог
+        rootMargin: '0px 0px -30px 0px' // Меньший отступ
+      };
+
+      const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.style.animationPlayState = 'running';
+            observer.unobserve(entry.target);
+          }
+        });
+      }, observerOptions);
+
+      // Наблюдаем за всеми анимированными элементами
+      document.querySelectorAll('.book-item, .books-empty-state').forEach(element => {
+        if (element.style.animationPlayState) {
+          element.style.animationPlayState = 'paused';
+          observer.observe(element);
+        }
+      });
+    });
+
+    // Навигация по полке книг
     const initCatalogShelfNavigation = () => {
       document.querySelectorAll('.book-shelf-wrapper').forEach((wrapper) => {
         if (wrapper.dataset.shelfNavBound === 'true') return;
@@ -514,8 +813,20 @@
           requestUpdate();
         };
 
-        prev.addEventListener('click', (e) => { e.preventDefault(); scrollShelf(-1); });
-        next.addEventListener('click', (e) => { e.preventDefault(); scrollShelf(1); });
+        prev.addEventListener('click', (e) => { 
+          e.preventDefault(); 
+          prev.style.transform = 'scale(0.9)';
+          setTimeout(() => prev.style.transform = 'scale(1)', 150);
+          scrollShelf(-1); 
+        });
+        
+        next.addEventListener('click', (e) => { 
+          e.preventDefault(); 
+          next.style.transform = 'scale(0.9)';
+          setTimeout(() => next.style.transform = 'scale(1)', 150);
+          scrollShelf(1); 
+        });
+        
         shelf.addEventListener('scroll', requestUpdate, { passive: true });
 
         if (typeof ResizeObserver !== 'undefined') {
@@ -532,113 +843,37 @@
       });
     };
 
-    const prefersReducedMotion = () => Boolean(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-
-    const prepareShelfAnimations = () => {
-      const hero = document.querySelector('.books-hero[data-animate]');
-      if (hero && !hero.dataset.animateDelay) {
-        hero.dataset.animateDelay = '0';
-      }
-      const discoverSection = document.querySelector('section.mt-5[data-animate]');
-      if (discoverSection && !discoverSection.dataset.animateDelay) {
-        discoverSection.dataset.animateDelay = '140';
-      }
-      const mainShelf = document.querySelector('.books-shelf-card[data-animate]');
-      if (mainShelf && !mainShelf.dataset.animateDelay) {
-        mainShelf.dataset.animateDelay = '220';
-      }
-      const cards = Array.from(document.querySelectorAll('.genre-shelf-card'));
-      cards.forEach((card, index) => {
-        if (!card.dataset.animate) {
-          card.dataset.animate = index % 2 === 0 ? 'right' : 'left';
-        }
-        if (!card.dataset.animateDelay) {
-          card.dataset.animateDelay = String(260 + index * 140);
-        }
-      });
-    };
-
-    const initRandomizedBookReveal = () => {
-      const reduceMotion = prefersReducedMotion();
-      const applyRandomReveal = (items, animatedClass, step) => {
-        if (!items.length) {
-          return;
-        }
-        if (reduceMotion) {
-          items.forEach((item) => {
-            item.classList.add(animatedClass, 'is-visible');
-            item.style.removeProperty('--rt-book-delay');
-          });
-          return;
-        }
-        const order = items.map((_, index) => index);
-        for (let i = order.length - 1; i > 0; i -= 1) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [order[i], order[j]] = [order[j], order[i]];
-        }
-        items.forEach((item, index) => {
-          item.classList.add(animatedClass);
-          item.style.setProperty('--rt-book-delay', `${order[index] * step}ms`);
-        });
-        requestAnimationFrame(() => {
-          items.forEach((item) => item.classList.add('is-visible'));
-        });
-      };
-      document.querySelectorAll('.book-shelf').forEach((shelf) => {
-        applyRandomReveal(Array.from(shelf.querySelectorAll('.book-item')), 'book-item--animated', 90);
-      });
-      document.querySelectorAll('.genre-shelf-card__list').forEach((list) => {
-        applyRandomReveal(Array.from(list.querySelectorAll('.genre-shelf-card__book')), 'genre-shelf-card__book--animated', 110);
-      });
-    };
-
-    const initPageAnimations = () => {
-      const elements = Array.from(document.querySelectorAll('[data-animate]'));
-      if (!elements.length) {
-        return;
-      }
-      const reduceMotion = prefersReducedMotion();
-      elements.forEach((el, index) => {
-        const parsed = Number(el.dataset.animateDelay);
-        const delay = Number.isFinite(parsed) && parsed >= 0 ? parsed : index * 120;
-        el.style.setProperty('--rt-animate-delay', `${delay}ms`);
-        if (reduceMotion) {
-          el.classList.add('is-visible');
-        }
-      });
-      if (reduceMotion) {
-        return;
-      }
-      const reveal = (el) => {
-        requestAnimationFrame(() => el.classList.add('is-visible'));
-      };
-      if ('IntersectionObserver' in window) {
-        const observer = new IntersectionObserver((entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              reveal(entry.target);
-              observer.unobserve(entry.target);
-            }
-          });
-        }, { threshold: 0.2 });
-        elements.forEach((el) => observer.observe(el));
-      } else {
-        elements.forEach(reveal);
-      }
-    };
-
-    const runBooksPageEnhancements = () => {
-      prepareShelfAnimations();
-      initRandomizedBookReveal();
-      initCatalogShelfNavigation();
-      initPageAnimations();
-    };
-
     if (document.readyState === 'loading'){
-      document.addEventListener('DOMContentLoaded', runBooksPageEnhancements, { once: true });
+      document.addEventListener('DOMContentLoaded', initCatalogShelfNavigation, { once: true });
     } else {
-      runBooksPageEnhancements();
+      initCatalogShelfNavigation();
     }
+
+    // Дополнительные интерактивные эффекты
+    document.addEventListener('DOMContentLoaded', function() {
+      // Эффект параллакса для героя
+      document.addEventListener('mousemove', function(e) {
+        const hero = document.querySelector('.books-hero');
+        if (!hero) return;
+        
+        const x = (e.clientX / window.innerWidth - 0.5) * 10; // Уменьшена интенсивность
+        const y = (e.clientY / window.innerHeight - 0.5) * 10;
+        
+        hero.style.transform = `translate(${x}px, ${y}px)`;
+      });
+
+      // Анимация при наведении на карточки книг
+      const bookItems = document.querySelectorAll('.book-item');
+      bookItems.forEach(item => {
+        item.addEventListener('mouseenter', function() {
+          this.style.zIndex = '10';
+        });
+        item.addEventListener('mouseleave', function() {
+          this.style.zIndex = '1';
+        });
+      });
+    });
+
   </script>
   <!-- Yandex.RTB R-A-17641153-1 -->
 <script>

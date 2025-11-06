@@ -6,33 +6,118 @@
 {% block extra_css %}
   {{ block.super }}
   <style>
-    /* Базовая стилистика профиля (как у тебя была) */
+    /* Базовая стилистика профиля */
     :root {
       --profile-accent-color: #9e8185;
       --profile-accent-color-dark: #b07c63;
       --profile-accent-color-text: #011627;
+      --profile-glow: rgba(194, 150, 129, 0.3);
     }
+
+    /* Анимации */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @keyframes glow {
+      0%, 100% { box-shadow: 0 0 20px var(--profile-glow); }
+      50% { box-shadow: 0 0 30px var(--profile-glow); }
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(-100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .animate-fade-in { animation: fadeInUp 0.8s ease-out forwards; }
+    .animate-pulse { animation: pulse 2s ease-in-out infinite; }
+    .animate-float { animation: float 3s ease-in-out infinite; }
+    .animate-glow { animation: glow 2s ease-in-out infinite; }
+    .animate-slide-in { animation: slideIn 0.6s ease-out forwards; }
 
     .profile-header {
       background: linear-gradient(135deg, rgba(194, 150, 129, 0.18), rgba(194, 150, 129, 0.05));
       border: 1px solid rgba(194, 150, 129, 0.3);
       border-radius: 1.25rem;
       padding: 1.75rem;
+      opacity: 0;
+      animation: fadeInUp 0.8s ease-out 0.2s forwards;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .profile-header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(194, 150, 129, 0.1) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+
+    .profile-header:hover::before {
+      opacity: 1;
     }
 
     .profile-username {
       color: var(--profile-accent-color-text);
       font-weight: 700;
+      position: relative;
+      display: inline-block;
+    }
+
+    .profile-username::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: var(--profile-accent-color);
+      transition: width 0.3s ease;
+    }
+
+    .profile-username:hover::after {
+      width: 100%;
     }
 
     .profile-avatar {
       border: 4px solid rgba(194, 150, 129, 0.35);
       padding: 0.25rem;
       background: #fff;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .profile-avatar:hover {
+      transform: scale(1.05);
+      border-color: var(--profile-accent-color);
+      box-shadow: 0 8px 25px rgba(194, 150, 129, 0.3);
     }
 
     .profile-avatar-placeholder {
       border: 4px solid rgba(194, 150, 129, 0.15);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .profile-avatar-placeholder:hover {
+      border-color: var(--profile-accent-color);
+      background: rgba(194, 150, 129, 0.1);
     }
 
     .profile-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
@@ -41,12 +126,32 @@
       border-color: rgba(194, 150, 129, 0.6);
       color: var(--profile-accent-color-text);
       font-weight: 600;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
     }
+
+    .profile-action-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(194, 150, 129, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .profile-action-button:hover::before {
+      left: 100%;
+    }
+
     .profile-action-button:hover,
     .profile-action-button:focus {
       background-color: rgba(194, 150, 129, 0.12);
       border-color: var(--profile-accent-color);
       color: var(--profile-accent-color-text);
+      transform: translateY(-2px);
     }
 
     .profile-rating-link { display:flex; flex-direction:column; align-items:flex-start; gap:.5rem; margin-top:1.5rem; }
@@ -55,28 +160,127 @@
     .profile-rating-pill{
       display:inline-flex; align-items:center; gap:.4rem; padding:.35rem .85rem; border-radius:999px;
       background:rgba(194,150,129,.15); color:var(--profile-accent-color-text); font-size:.875rem; font-weight:600;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    .profile-rating-pill:hover {
+      transform: translateY(-2px) scale(1.05);
+      background: rgba(194,150,129,.25);
     }
     .profile-rating-pill i{ color:var(--profile-accent-color); }
 
     .profile-rating-button{
       background-color:var(--profile-accent-color); border-color:var(--profile-accent-color); color:#fff; font-weight:600; padding-inline:1.25rem;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .profile-rating-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+    }
+    .profile-rating-button:hover::before {
+      left: 100%;
     }
     .profile-rating-button:hover,.profile-rating-button:focus{
       background-color:var(--profile-accent-color-dark); border-color:var(--profile-accent-color-dark); color:#fff;
+      transform: translateY(-2px);
     }
 
-    .reading-calendar-wrapper { border-radius: var(--bs-border-radius-lg); border:1px solid var(--bs-border-color); overflow:hidden; }
+    /* Интерактивный календарь чтения */
+    .reading-calendar-wrapper { 
+      border-radius: var(--bs-border-radius-lg); 
+      border:1px solid var(--bs-border-color); 
+      overflow:hidden;
+      opacity: 0;
+      animation: fadeInUp 0.8s ease-out 0.6s forwards;
+    }
+    
     .reading-calendar { width:100%; border-collapse:collapse; table-layout:fixed; }
     .reading-calendar thead th,
-    .reading-calendar tbody td { border:1px solid var(--bs-border-color); background-color:var(--bs-body-bg); padding:.75rem; vertical-align:top; width:14.2857142857%; }
-    .reading-calendar thead th { text-align:center; font-weight:600; font-size:.75rem; letter-spacing:.04em; }
-    .reading-calendar__cell{ display:flex; flex-direction:column; gap:.5rem; min-height:140px; }
-    .reading-calendar__header{ display:flex; align-items:flex-start; justify-content:space-between; font-size:.875rem; font-weight:600; }
+    .reading-calendar tbody td { 
+      border:1px solid var(--bs-border-color); 
+      background-color:var(--bs-body-bg); 
+      padding:.75rem; 
+      vertical-align:top; 
+      width:14.2857142857%; 
+      transition: all 0.3s ease;
+    }
+
+    .reading-calendar thead th { 
+      text-align:center; 
+      font-weight:600; 
+      font-size:.75rem; 
+      letter-spacing:.04em;
+      cursor: pointer;
+    }
+
+    .reading-calendar thead th:hover {
+      background: rgba(194, 150, 129, 0.1);
+    }
+
+    .reading-calendar__cell{ 
+      display:flex; 
+      flex-direction:column; 
+      gap:.5rem; 
+      min-height:140px;
+      transition: all 0.3s ease;
+    }
+
+    .reading-calendar__cell:hover {
+      transform: scale(1.02);
+    }
+
+    .reading-calendar__header{ 
+      display:flex; 
+      align-items:flex-start; 
+      justify-content:space-between; 
+      font-size:.875rem; 
+      font-weight:600; 
+    }
     .reading-calendar__header .text-muted{ color:var(--bs-secondary-color)!important; }
     .reading-calendar__books{ display:flex; flex-wrap:wrap; gap:.35rem; }
-    .reading-calendar__book-cover,.reading-calendar__book-placeholder{ width:40px; height:60px; border-radius:var(--bs-border-radius-sm); box-shadow:0 .125rem .25rem rgba(15,23,42,.12); flex:0 0 auto; }
+    .reading-calendar__book-cover,.reading-calendar__book-placeholder{ 
+      width:40px; 
+      height:60px; 
+      border-radius:var(--bs-border-radius-sm); 
+      box-shadow:0 .125rem .25rem rgba(15,23,42,.12); 
+      flex:0 0 auto;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    .reading-calendar__book-cover:hover,
+    .reading-calendar__book-placeholder:hover {
+      transform: scale(1.1) rotate(2deg);
+      box-shadow: 0 4px 12px rgba(15,23,42,.2);
+    }
     .reading-calendar__book-cover{ object-fit:cover; }
-    .reading-calendar__book-placeholder{ background:var(--bs-tertiary-bg); border:1px dashed var(--bs-border-color); color:var(--bs-secondary-color); display:flex; align-items:center; justify-content:center; font-size:.75rem; }
+    .reading-calendar__book-placeholder{ 
+      background:var(--bs-tertiary-bg); 
+      border:1px dashed var(--bs-border-color); 
+      color:var(--bs-secondary-color); 
+      display:flex; 
+      align-items:center; 
+      justify-content:center; 
+      font-size:.75rem; 
+    }
+
+    /* Анимированные ячейки календаря */
+    .calendar-day-active {
+      background: linear-gradient(135deg, rgba(194, 150, 129, 0.2), rgba(194, 150, 129, 0.1));
+      border: 1px solid rgba(194, 150, 129, 0.3) !important;
+    }
+
+    .calendar-day-active:hover {
+      background: linear-gradient(135deg, rgba(194, 150, 129, 0.3), rgba(194, 150, 129, 0.2));
+    }
+
     @media (max-width:991.98px){ .reading-calendar__cell{ min-height:120px; } }
     @media (max-width:575.98px){
       .reading-calendar thead th{ font-size:.65rem; }
@@ -90,7 +294,7 @@
     .profile-theme{ --profile-accent-color:#c29681; --profile-accent-color-dark:#b07c63; }
 
     /* ссылки */
-    .profile-theme a{ color:var(--profile-accent-color) !important; }
+    .profile-theme a{ color:var(--profile-accent-color) !important; transition: color 0.3s ease; }
     .profile-theme a:hover, .profile-theme a:focus{ color:var(--profile-accent-color-dark) !important; }
 
     /* кнопки */
@@ -98,29 +302,54 @@
       background-color:var(--profile-accent-color) !important;
       border-color:var(--profile-accent-color) !important;
       color: #011627 !important;
+      transition: all 0.3s ease;
     }
     .profile-theme .btn-primary:hover,
     .profile-theme .btn-primary:focus{
       background-color:var(--profile-accent-color-dark) !important;
       border-color:var(--profile-accent-color-dark) !important;
+      transform: translateY(-2px);
     }
     .profile-theme .btn-outline-primary{
       color: #011627 !important;
       border-color:var(--profile-accent-color) !important;
+      transition: all 0.3s ease;
     }
     .profile-theme .btn-outline-primary:hover,
     .profile-theme .btn-outline-primary:focus{
       background-color:var(--profile-accent-color) !important;
       border-color:var(--profile-accent-color) !important;
       color:#011627 !important;
+      transform: translateY(-2px);
     }
 
     /* вкладки */
-    .profile-theme #profileTabs .nav-link{ color: #011627 !important; }
+    .profile-theme #profileTabs .nav-link{ 
+      color: #011627 !important; 
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    .profile-theme #profileTabs .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 50%;
+      width: 0;
+      height: 2px;
+      background: var(--profile-accent-color);
+      transition: all 0.3s ease;
+      transform: translateX(-50%);
+    }
+    .profile-theme #profileTabs .nav-link:hover::after {
+      width: 80%;
+    }
     .profile-theme #profileTabs .nav-link:hover{ color:var(--profile-accent-color-dark) !important; }
     .profile-theme #profileTabs .nav-link.active{
       color:#011627 !important;
       border-color:var(--profile-accent-color) var(--profile-accent-color) #011627 !important;
+    }
+    .profile-theme #profileTabs .nav-link.active::after {
+      width: 100%;
     }
 
     /* чекбоксы/радио и пагинация, если появятся */
@@ -134,7 +363,7 @@
       color: #011627 !important;
     }
 
-      /* Белый текст в плашке баллов и на кнопке рейтинга */
+    /* Белый текст в плашке баллов и на кнопке рейтинга */
     .profile-theme .profile-rating-pill{
       background-color: var(--profile-accent-color);
       color: #011627 !important;
@@ -151,151 +380,383 @@
       color: #011627 !important;
     }
 
-
     /* тёмная тема */
     [data-bs-theme="dark"] .profile-theme #profileTabs .nav-link,
     [data-bs-theme="dark"] .profile-theme a{ color:var(--profile-accent-color) !important; }
     [data-bs-theme="dark"] .profile-theme .btn-outline-primary:hover{ color:#fff !important; }
     .profile-theme a.btn.profile-action-button { color:#011627 !important; }
+
+    /* Анимированные карточки статистики */
+    .stat-card {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.6s ease;
+      border: none !important;
+      background: linear-gradient(135deg, #fff, #f8f9fa) !important;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(194, 150, 129, 0.1), transparent);
+      transition: left 0.6s ease;
+    }
+
+    .stat-card:hover::before {
+      left: 100%;
+    }
+
+    .stat-card.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;
+    }
+
+    /* Анимированные числа */
+    .animated-number {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Прогресс-бары */
+    .reading-progress {
+      height: 8px;
+      border-radius: 10px;
+      overflow: hidden;
+      background: rgba(0,0,0,0.1);
+      margin: 10px 0;
+    }
+
+    .progress-bar-animated {
+      background: linear-gradient(90deg, var(--profile-accent-color), var(--profile-accent-color-dark));
+      transition: width 1s ease-in-out;
+    }
+
+    /* Анимированные книги */
+    .book-card {
+      transition: all 0.4s ease;
+      border: none !important;
+      overflow: hidden;
+    }
+
+    .book-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      transition: left 0.6s ease;
+    }
+
+    .book-card:hover::before {
+      left: 100%;
+    }
+
+    .book-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.15) !important;
+    }
+
+    .book-cover {
+      transition: all 0.4s ease;
+    }
+
+    .book-card:hover .book-cover {
+      transform: scale(1.05);
+    }
+
+    /* Анимированные отзывы */
+    .review-card {
+      opacity: 0;
+      transform: translateX(-50px);
+      transition: all 0.6s ease;
+      border: none !important;
+    }
+
+    .review-card.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .review-card:hover {
+      transform: translateX(10px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+    }
+
+    /* Пульсирующие бейджи */
+    .badge-pulse {
+      animation: pulse 2s infinite;
+    }
+
+    /* Анимация появления контента вкладок */
+    .tab-pane {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.5s ease;
+    }
+
+    .tab-pane.show.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Уведомления */
+    .profile-notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--profile-accent-color);
+      color: #011627;
+      padding: 1rem 1.5rem;
+      border-radius: 10px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+      z-index: 1060;
+      transform: translateX(400px);
+      opacity: 0;
+      transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    .profile-notification.show {
+      transform: translateX(0);
+      opacity: 1;
+    }
+
     :root { --book-info-min-h: 120px; }
-@media (max-width: 575.98px){ :root { --book-info-min-h: 110px; } }
+    @media (max-width: 575.98px){ :root { --book-info-min-h: 110px; } }
 
-/* каждая книжка — вертикальная колонка */
-.book-item{
-  display:flex;
-  flex-direction:column;
-  align-items:center;            /* обложка остаётся по центру */
-}
+    /* каждая книжка — вертикальная колонка */
+    .book-item{
+      display:flex;
+      flex-direction:column;
+      align-items:center;            /* обложка остаётся по центру */
+      transition: all 0.3s ease;
+    }
 
-/* инфоблок с подложкой */
-.book-info{
-  width:100%;
-  margin-top:.6rem;
-  padding:.6rem .6rem .65rem;
-  background: rgba(255,255,255,.88);            /* светлая подложка */
-  border: 1px solid rgba(0,0,0,.06);
-  border-radius: .75rem;
-  box-shadow: 0 .35rem .85rem rgba(0,0,0,.06);
-  display:flex;
-  flex-direction:column;
-  min-height: var(--book-info-min-h);           /* ВАЖНО: одинаковая высота */
-}
+    .book-item:hover {
+      transform: translateY(-5px);
+    }
 
-/* название и автор — ограничим кол-во строк, чтобы не «гуляло» */
-.book-title{
-  margin:0;
-  font-size:.9rem;
-  font-weight:600;
-  line-height:1.3;
-  display:-webkit-box;
-  -webkit-line-clamp:2;
-  -webkit-box-orient:vertical;
-  overflow:hidden;
-}
-.book-author{
-  margin-top:.15rem;
-  font-size:.75rem;
-  color:rgba(33,37,41,.65);
-  display:-webkit-box;
-  -webkit-line-clamp:2;
-  -webkit-box-orient:vertical;
-  overflow:hidden;
-}
+    /* инфоблок с подложкой */
+    .book-info{
+      width:100%;
+      margin-top:.6rem;
+      padding:.6rem .6rem .65rem;
+      background: rgba(255,255,255,.88);            /* светлая подложка */
+      border: 1px solid rgba(0,0,0,.06);
+      border-radius: .75rem;
+      box-shadow: 0 .35rem .85rem rgba(0,0,0,.06);
+      display:flex;
+      flex-direction:column;
+      min-height: var(--book-info-min-h);           /* ВАЖНО: одинаковая высота */
+      transition: all 0.3s ease;
+    }
 
-/* нижняя зона (кнопка/подпись) всегда прижата вниз */
-.book-actions{
-  margin-top:auto;               /* магия выравнивания по одной линии */
-  width:100%;
-}
+    .book-item:hover .book-info {
+      box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.1);
+      border-color: rgba(194, 150, 129, 0.3);
+    }
 
-/* мелкая косметика под твою гамму */
-.book-actions__button{
-  border-color: #9d6f51;
-  color:#9d6f51;
-}
-.book-actions__button:hover,
-.book-actions__button:focus{
-  background:#9d6f51;
-  border-color:#9d6f51;
-  color:#fff;
-}
+    /* название и автор — ограничим кол-во строк, чтобы не «гуляло» */
+    .book-title{
+      margin:0;
+      font-size:.9rem;
+      font-weight:600;
+      line-height:1.3;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+      transition: color 0.3s ease;
+    }
 
-/* чуть мягче фон «полки» для читаемости поверх картинки */
-.shelf-card__body::before{
-  background:
-    linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.35)) !important;
-}
-.shelf-card .book-info{
-  position: relative;
-  z-index: 2;                                /* выше декоративных слоёв полки */
-  width: 100%;
-  margin-top: .6rem;
-  padding: .6rem .6rem .65rem;
-  background: rgba(255,255,255,.96) !important; /* была слишком прозрачной */
-  border: 1px solid rgba(157,111,81,.25);
-  border-radius: .75rem;
-  box-shadow: 0 .35rem .85rem rgba(0,0,0,.06);
-  display: flex;
-  flex-direction: column;
-  min-height: var(--book-info-min-h, 120px);
-  text-align: left;                           /* читаемее на узкой карточке */
-  backdrop-filter: saturate(120%) blur(1.5px);
-  -webkit-backdrop-filter: blur(1.5px);
-}
+    .book-item:hover .book-title {
+      color: var(--profile-accent-color);
+    }
 
-/* заголовок/автор по плашке, с обрезкой строк */
-.shelf-card .book-info .book-title{
-  margin: 0;
-  font-size: .9rem;
-  font-weight: 600;
-  line-height: 1.3;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.shelf-card .book-info .book-author{
-  margin-top: .15rem;
-  font-size: .75rem;
-  color: rgba(33,37,41,.65);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
+    .book-author{
+      margin-top:.15rem;
+      font-size:.75rem;
+      color:rgba(33,37,41,.65);
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+    }
 
-/* кнопка/подпись всегда на одной линии внизу */
-.shelf-card .book-info .book-actions{
-  margin-top: auto;
-  width: 100%;
-}
+    /* нижняя зона (кнопка/подпись) всегда прижата вниз */
+    .book-actions{
+      margin-top:auto;               /* магия выравнивания по одной линии */
+      width:100%;
+    }
 
-/* на всякий случай поднимем z-index у текста внутри тела полки */
-.shelf-card__body > *{ position: relative; z-index: 1; }
+    /* мелкая косметика под твою гамму */
+    .book-actions__button{
+      border-color: #9d6f51;
+      color:#9d6f51;
+      transition: all 0.3s ease;
+    }
+    .book-actions__button:hover,
+    .book-actions__button:focus{
+      background:#9d6f51;
+      border-color:#9d6f51;
+      color:#fff;
+      transform: translateY(-2px);
+    }
 
-/* если «брусок» полки перекрывает, опустим его слой */
-.shelf-card__body::after{ z-index: 0 !important; }
+    /* чуть мягче фон «полки» для читаемости поверх картинки */
+    .shelf-card__body::before{
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.35)) !important;
+    }
+    .shelf-card .book-info{
+      position: relative;
+      z-index: 2;                                /* выше декоративных слоёв полки */
+      width: 100%;
+      margin-top: .6rem;
+      padding: .6rem .6rem .65rem;
+      background: rgba(255,255,255,.96) !important; /* была слишком прозрачной */
+      border: 1px solid rgba(157,111,81,.25);
+      border-radius: .75rem;
+      box-shadow: 0 .35rem .85rem rgba(0,0,0,.06);
+      display: flex;
+      flex-direction: column;
+      min-height: var(--book-info-min-h, 120px);
+      text-align: left;                           /* читаемее на узкой карточке */
+      backdrop-filter: saturate(120%) blur(1.5px);
+      -webkit-backdrop-filter: blur(1.5px);
+      transition: all 0.3s ease;
+    }
 
-@media (max-width:575.98px){
-  :root{ --book-info-min-h: 110px; }
-}
+    .shelf-card:hover .book-info {
+      border-color: rgba(157,111,81,.5);
+      box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.1);
+    }
+
+    /* заголовок/автор по плашке, с обрезкой строк */
+    .shelf-card .book-info .book-title{
+      margin: 0;
+      font-size: .9rem;
+      font-weight: 600;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .shelf-card .book-info .book-author{
+      margin-top: .15rem;
+      font-size: .75rem;
+      color: rgba(33,37,41,.65);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* кнопка/подпись всегда на одной линии внизу */
+    .shelf-card .book-info .book-actions{
+      margin-top: auto;
+      width: 100%;
+    }
+
+    /* на всякий случай поднимем z-index у текста внутри тела полки */
+    .shelf-card__body > *{ position: relative; z-index: 1; }
+
+    /* если «брусок» полки перекрывает, опустим его слой */
+    .shelf-card__body::after{ z-index: 0 !important; }
+
+    @media (max-width:575.98px){
+      :root{ --book-info-min-h: 110px; }
+    }
+
+    /* Анимация загрузки */
+    .loading-skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: loading 1.5s infinite;
+    }
+
+    @keyframes loading {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* Эффект параллакса для заголовков */
+    .parallax-header {
+      transform: translateY(0);
+      transition: transform 0.3s ease-out;
+    }
+
+    /* Интерактивные графики */
+    .chart-container {
+      position: relative;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.6s ease;
+    }
+
+    .chart-container.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* Анимированный фон */
+    .animated-bg {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .animated-bg::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: conic-gradient(from 0deg, transparent, rgba(194, 150, 129, 0.1), transparent);
+      animation: rotate 10s linear infinite;
+      z-index: 0;
+    }
+
+    @keyframes rotate {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .animated-bg > * {
+      position: relative;
+      z-index: 1;
+    }
   </style>
 {% endblock %}
 
 {% block content %}
 <div class="profile-theme"><!-- ВАЖНО: всё содержимое страницы внутри этой обёртки -->
 
-  <div class="profile-header d-flex flex-column flex-md-row gap-4 align-items-start">
+  <div class="profile-header d-flex flex-column flex-md-row gap-4 align-items-start animated-bg">
     <!-- Аватар -->
     <div>
       {% if u.profile.avatar %}
         <img src="{{ u.profile.avatar.url }}"
-             class="rounded-circle shadow-sm profile-avatar"
+             class="rounded-circle shadow-sm profile-avatar animate-float"
              style="width:140px;height:140px;object-fit:cover"
-             alt="Аватар {{ u.username }}">
+             alt="Аватар {{ u.username }}"
+             onclick="showProfileNotification('Это ваш аватар! 🎨')">
       {% else %}
-        <div class="rounded-circle bg-secondary-subtle d-flex align-items-center justify-content-center shadow-sm profile-avatar-placeholder"
-             style="width:140px;height:140px">
+        <div class="rounded-circle bg-secondary-subtle d-flex align-items-center justify-content-center shadow-sm profile-avatar-placeholder animate-pulse"
+             style="width:140px;height:140px"
+             onclick="showProfileNotification('Добавьте аватар для полного профиля! 📸')">
           <span class="text-muted small">Нет аватара</span>
         </div>
       {% endif %}
@@ -303,7 +764,7 @@
 
     <!-- Основная информация -->
     <div class="flex-grow-1">
-      <h1 class="h4 mb-1 profile-username">@{{ u.username }}</h1>
+      <h1 class="h4 mb-1 profile-username animate-glow">@{{ u.username }}</h1>
       {% if u.get_full_name %}
         <div class="text-muted mb-2">{{ u.get_full_name }}</div>
       {% endif %}
@@ -311,7 +772,7 @@
       <!-- Роли -->
       <div class="mt-2 mb-3">
         {% for g in u.groups.all %}
-          <span class="badge text-bg-light me-1">{{ g.name|role_display }}</span>
+          <span class="badge text-bg-light me-1 badge-pulse">{{ g.name|role_display }}</span>
         {% empty %}
           <span class="badge text-bg-light">Без роли</span>
         {% endfor %}
@@ -319,7 +780,7 @@
 
       {% if active_premium %}
       <div class="mb-3">
-        <span class="badge text-bg-warning text-dark">
+        <span class="badge text-bg-warning text-dark animate-pulse">
           <i class="bi bi-gem-fill me-1"></i>Премиум до {{ active_premium.end_at|date:"d.m.Y" }}
         </span>
         {% if premium_is_self %}
@@ -328,7 +789,7 @@
       </div>
       {% elif premium_is_self %}
       <div class="mb-3">
-        <a class="btn btn-sm btn-primary" href="{% url 'premium_overview' %}">
+        <a class="btn btn-sm btn-primary animate-glow" href="{% url 'premium_overview' %}">
           <i class="bi bi-gem me-1"></i>Оформить премиум
         </a>
       </div>
@@ -341,7 +802,7 @@
           {% if has_unlimited_coins %}
             Безлимитные монеты
           {% else %}
-            Баланс: {{ coin_balance }}
+            Баланс: <span class="animated-number" data-target="{{ coin_balance }}">0</span>
           {% endif %}
         </span>
       </div>
@@ -371,13 +832,13 @@
       </div>
 
       <div class="profile-rating-link">
-        <span class="profile-rating-pill">
+        <span class="profile-rating-pill" onclick="showProfileNotification('Ваши читательские баллы! 📚')">
           <i class="bi bi-stars"></i>
-          {{ rating_points_total }} {{ rating_points_total|ru_pluralize:"балл,балла,баллов" }}
+          <span class="animated-number" data-target="{{ rating_points_total }}">0</span> {{ rating_points_total|ru_pluralize:"балл,балла,баллов" }}
         </span>
-        <span class="profile-rating-pill">
+        <span class="profile-rating-pill" onclick="showProfileNotification('Общее количество прочитанных страниц! 📖')">
           <i class="bi bi-book"></i>
-          {{ reading_pages_total|floatformat:-2 }} {{ reading_pages_total|ru_pluralize:"страница,страницы,страниц" }}
+          <span class="animated-number" data-target="{{ reading_pages_total }}">0</span> {{ reading_pages_total|ru_pluralize:"страница,страницы,страниц" }}
         </span>
         <a class="btn btn-sm profile-rating-button" href="{% url 'shelves:reading_leaderboard' %}">
           Рейтинг читателей
@@ -392,25 +853,25 @@
     <li class="nav-item" role="presentation">
       <button class="nav-link{% if current_tab == 'overview' %} active{% endif %}" id="overview-tab" data-bs-toggle="tab"
               data-bs-target="#overview" type="button" role="tab" aria-selected="{% if current_tab == 'overview' %}true{% else %}false{% endif %}">
-        Обзор
+        <i class="bi bi-house me-1"></i>Обзор
       </button>
     </li>
     <li class="nav-item" role="presentation">
       <button class="nav-link{% if current_tab == 'stats' %} active{% endif %}" id="stats-tab" data-bs-toggle="tab"
               data-bs-target="#stats" type="button" role="tab" aria-selected="{% if current_tab == 'stats' %}true{% else %}false{% endif %}">
-        Статистика
+        <i class="bi bi-bar-chart me-1"></i>Статистика
       </button>
     </li>
     <li class="nav-item" role="presentation">
       <button class="nav-link{% if current_tab == 'books' %} active{% endif %}" id="books-tab" data-bs-toggle="tab"
               data-bs-target="#books" type="button" role="tab" aria-selected="{% if current_tab == 'books' %}true{% else %}false{% endif %}">
-        Мои книги
+        <i class="bi bi-book me-1"></i>Мои книги
       </button>
     </li>
     <li class="nav-item" role="presentation">
       <button class="nav-link{% if current_tab == 'reviews' %} active{% endif %}" id="reviews-tab" data-bs-toggle="tab"
               data-bs-target="#reviews" type="button" role="tab" aria-selected="{% if current_tab == 'reviews' %}true{% else %}false{% endif %}">
-        Обзоры
+        <i class="bi bi-chat-quote me-1"></i>Обзоры
       </button>
     </li>
   </ul>
@@ -445,7 +906,7 @@
 
     <!-- Статистика -->
     <div class="tab-pane fade{% if current_tab == 'stats' %} show active{% endif %}" id="stats" role="tabpanel">
-      <div class="card border-0 shadow-sm mb-4">
+      <div class="card border-0 shadow-sm mb-4 stat-card" data-delay="0">
         <div class="card-body">
           <form method="get" class="row g-3 align-items-end">
             <input type="hidden" name="tab" value="stats">
@@ -488,7 +949,7 @@
 
       {% with calendar=stats.reading_calendar %}
         {% if calendar %}
-          <div class="card border-0 shadow-sm mb-4">
+          <div class="card border-0 shadow-sm mb-4 stat-card" data-delay="100">
             <div class="card-body">
               <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
                 <div>
@@ -520,7 +981,8 @@
                     {% for week in calendar.weeks %}
                       <tr>
                         {% for day in week %}
-                          <td class="{% if not day.in_month %}opacity-75{% endif %}">
+                          <td class="{% if not day.in_month %}opacity-75{% endif %} {% if day.books %}calendar-day-active{% endif %}" 
+                              onclick="showDayDetails('{{ day.date|date:"d.m.Y" }}', {{ day.books|length }})">
                             <div class="reading-calendar__cell">
                               <div class="reading-calendar__header">
                                 <span class="{% if not day.in_month %}text-muted{% endif %}">{{ day.date.day }}</span>
@@ -560,20 +1022,23 @@
 
       <div class="row g-3 mb-4">
         <div class="col-12 col-lg-6 col-xl-3">
-          <div class="card border-0 shadow-sm h-100">
+          <div class="card border-0 shadow-sm h-100 stat-card" data-delay="200">
             <div class="card-body">
               <h3 class="h6 mb-2">Прочитано страниц</h3>
-              <p class="display-6 mb-0">{{ stats.pages_total }}</p>
+              <p class="display-6 mb-0 animated-number" data-target="{{ stats.pages_total }}">0</p>
               {% if stats.pages_average %}
-                <p class="text-muted mb-0">В среднем {{ stats.pages_average }} стр./день</p>
+                <p class="text-muted mb-0">В среднем <span class="animated-number" data-target="{{ stats.pages_average }}">0</span> стр./день</p>
               {% else %}
                 <p class="text-muted mb-0">Нет данных о страницах в выбранный период.</p>
               {% endif %}
+              <div class="reading-progress mt-2">
+                <div class="progress-bar-animated" style="width: {% widthratio stats.pages_total stats.pages_total|add:1000 100 %}%"></div>
+              </div>
             </div>
           </div>
         </div>
         <div class="col-12 col-lg-6 col-xl-3">
-          <div class="card border-0 shadow-sm h-100">
+          <div class="card border-0 shadow-sm h-100 stat-card" data-delay="300">
             <div class="card-body">
               <h3 class="h6 mb-2">Аудиокниги</h3>
               {% if stats.audio_tracked_display %}
@@ -591,11 +1056,11 @@
           </div>
         </div>
         <div class="col-12 col-lg-6 col-xl-3">
-          <div class="card border-0 shadow-sm h-100">
+          <div class="card border-0 shadow-sm h-100 stat-card" data-delay="400">
             <div class="card-body">
               <h3 class="h6 mb-2">Форматы чтения</h3>
               {% if stats.format_labels %}
-                <div class="ratio ratio-1x1">
+                <div class="ratio ratio-1x1 chart-container">
                   <canvas id="readingFormatChart"></canvas>
                 </div>
               {% else %}
@@ -605,11 +1070,11 @@
           </div>
         </div>
         <div class="col-12 col-lg-6 col-xl-3">
-          <div class="card border-0 shadow-sm h-100">
+          <div class="card border-0 shadow-sm h-100 stat-card" data-delay="500">
             <div class="card-body">
               <h3 class="h6 mb-2">Жанры</h3>
               {% if stats.genre_labels %}
-                <div class="ratio ratio-1x1">
+                <div class="ratio ratio-1x1 chart-container">
                   <canvas id="genreChart"></canvas>
                 </div>
               {% else %}
@@ -621,7 +1086,7 @@
       </div>
 
       {% with home=stats.home_library %}
-        <div class="card border-0 shadow-sm mb-4">
+        <div class="card border-0 shadow-sm mb-4 stat-card" data-delay="600">
           <div class="card-body">
             <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-3">
               <div>
@@ -637,15 +1102,15 @@
                 <div class="col-12 col-md-3">
                   <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
                     <p class="text-muted text-uppercase small mb-1">Всего активных книг</p>
-                    <p class="fs-3 fw-semibold mb-1">{{ home.total }}</p>
-                    <p class="small text-muted mb-0">Передано: {{ home.disposed_total }} {{ home.disposed_total|ru_pluralize:"книга,книги,книг" }}</p>
+                    <p class="fs-3 fw-semibold mb-1 animated-number" data-target="{{ home.total }}">0</p>
+                    <p class="small text-muted mb-0">Передано: <span class="animated-number" data-target="{{ home.disposed_total }}">0</span> {{ home.disposed_total|ru_pluralize:"книга,книги,книг" }}</p>
                   </div>
                 </div>
                 <div class="col-12 col-md-3">
                   <div class="border rounded-3 p-3 h-100 bg-body-tertiary">
                     <p class="text-muted text-uppercase small mb-1">Классика</p>
-                    <p class="fs-3 fw-semibold mb-1">{{ home.classic_count }}</p>
-                    <p class="small text-muted mb-0">Современных книг: {{ home.modern_count }}</p>
+                    <p class="fs-3 fw-semibold mb-1 animated-number" data-target="{{ home.classic_count }}">0</p>
+                    <p class="small text-muted mb-0">Современных книг: <span class="animated-number" data-target="{{ home.modern_count }}">0</span></p>
                   </div>
                 </div>
                 <div class="col-12 col-md-3">
@@ -656,7 +1121,7 @@
                         {% for series in home.series_counts %}
                           <li class="d-flex justify-content-between">
                             <span>{{ series.series_name }}</span>
-                            <span class="fw-semibold">{{ series.total }}</span>
+                            <span class="fw-semibold animated-number" data-target="{{ series.total }}">0</span>
                           </li>
                         {% endfor %}
                       </ul>
@@ -673,7 +1138,7 @@
                         {% for genre in home.genre_counts %}
                           <li class="d-flex justify-content-between">
                             <span>{{ genre.name }}</span>
-                            <span class="fw-semibold">{{ genre.total }}</span>
+                            <span class="fw-semibold animated-number" data-target="{{ genre.total }}">0</span>
                           </li>
                         {% endfor %}
                       </ul>
@@ -688,7 +1153,7 @@
                   <h4 class="h6 mb-2">Статусы экземпляров</h4>
                   <div class="d-flex flex-wrap gap-2">
                     {% for status in home.top_statuses %}
-                      <span class="badge text-bg-light">{{ status.status }} — {{ status.total }}</span>
+                      <span class="badge text-bg-light">{{ status.status }} — <span class="animated-number" data-target="{{ status.total }}">0</span></span>
                     {% endfor %}
                   </div>
                 </div>
@@ -700,7 +1165,7 @@
                     {% for loc in home.top_locations %}
                       <li class="d-flex justify-content-between">
                         <span>{{ loc.location }}</span>
-                        <span class="fw-semibold">{{ loc.total }}</span>
+                        <span class="fw-semibold animated-number" data-target="{{ loc.total }}">0</span>
                       </li>
                     {% endfor %}
                   </ul>
@@ -721,11 +1186,11 @@
           <div class="row g-3">
             {% for entry in stats.books %}
               <div class="col-6 col-md-4 col-lg-3">
-                <div class="card h-100 border-0 shadow-sm">
+                <div class="card h-100 border-0 shadow-sm book-card">
                   {% if entry.cover_url %}
-                    <img src="{{ entry.cover_url }}" class="card-img-top" style="height:180px;object-fit:cover" alt="Обложка книги {{ entry.book.title }}">
+                    <img src="{{ entry.cover_url }}" class="card-img-top book-cover" style="height:180px;object-fit:cover" alt="Обложка книги {{ entry.book.title }}">
                   {% else %}
-                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height:180px;">
+                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center book-cover" style="height:180px;">
                       <span class="text-muted small">Нет обложки</span>
                     </div>
                   {% endif %}
@@ -778,6 +1243,7 @@
                 data:{labels,datasets:[{data:values,backgroundColor:palette,borderColor:'#fff',borderWidth:2}]},
                 options:{responsive:true,plugins:{legend:{position:'bottom'}}}
               });
+              gc.parentElement.classList.add('visible');
             }
 
             const fl=document.getElementById('reading-format-chart-labels');
@@ -793,6 +1259,7 @@
                 data:{labels,datasets:[{data:values,backgroundColor:colors,borderColor:'#fff',borderWidth:2}]},
                 options:{responsive:true,plugins:{legend:{position:'bottom'}}}
               });
+              fcv.parentElement.classList.add('visible');
             }
           })();
         </script>
@@ -817,12 +1284,12 @@
         <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3 mt-3">
           {% for book in author_books %}
             <div class="col">
-              <div class="card h-100 border-0 shadow-sm">
+              <div class="card h-100 border-0 shadow-sm book-card">
                 {% with cover=book.get_cover_url %}
                   {% if cover %}
-                    <img src="{{ cover }}" class="card-img-top" alt="Обложка {{ book.title }}">
+                    <img src="{{ cover }}" class="card-img-top book-cover" alt="Обложка {{ book.title }}">
                   {% else %}
-                    <div class="ratio ratio-2x3 bg-light d-flex align-items-center justify-content-center text-muted fw-semibold">
+                    <div class="ratio ratio-2x3 bg-light d-flex align-items-center justify-content-center text-muted fw-semibold book-cover">
                       Без обложки
                     </div>
                   {% endif %}
@@ -873,7 +1340,7 @@
       {% if user_reviews %}
         <div class="d-flex flex-column gap-3">
           {% for review in user_reviews %}
-            <div class="card border-0 shadow-sm">
+            <div class="card border-0 shadow-sm review-card">
               <div class="card-body">
                 <div class="d-flex flex-column flex-md-row gap-3 align-items-start">
                   <div id="review-print-{{ review.id }}" class="flex-grow-1">
@@ -922,6 +1389,15 @@
   {% endwith %}
 
 </div><!-- /.profile-theme -->
+
+<!-- Уведомление -->
+<div class="profile-notification" id="profileNotification">
+  <div class="d-flex align-items-center">
+    <i class="bi bi-info-circle me-2"></i>
+    <span id="notificationText"></span>
+  </div>
+</div>
+
 <!-- Yandex.RTB R-A-17641153-4 -->
 <script>
 window.yaContextCb.push(() => {
@@ -936,4 +1412,187 @@ window.yaContextCb.push(() => {
 
 {% block extra_js %}
   {{ block.super }}
+  <script>
+    // Анимация чисел
+    function animateValue(element, start, end, duration) {
+      if (!element) return;
+      let startTimestamp = null;
+      const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        const value = Math.floor(progress * (end - start) + start);
+        element.textContent = value.toLocaleString();
+        if (progress < 1) {
+          window.requestAnimationFrame(step);
+        }
+      };
+      window.requestAnimationFrame(step);
+    }
+
+    // Запуск анимации при появлении в viewport
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const el = entry.target;
+          const targetValue = parseInt(el.dataset.target) || 0;
+          animateValue(el, 0, targetValue, 2000);
+          observer.unobserve(el);
+        }
+      });
+    }, { threshold: 0.1 });
+
+    // Инициализация анимации чисел
+    document.querySelectorAll('.animated-number').forEach(el => {
+      if (el.textContent === '0') {
+        observer.observe(el);
+      }
+    });
+
+    // Анимация появления карточек
+    const cardObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const card = entry.target;
+          const delay = parseInt(card.dataset.delay) || 0;
+          setTimeout(() => {
+            card.classList.add('visible');
+          }, delay);
+          cardObserver.unobserve(card);
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.stat-card').forEach(card => {
+      cardObserver.observe(card);
+    });
+
+    // Анимация появления отзывов
+    const reviewObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry, index) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => {
+            entry.target.classList.add('visible');
+          }, index * 200);
+          reviewObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.review-card').forEach(card => {
+      reviewObserver.observe(card);
+    });
+
+    // Система уведомлений
+    function showProfileNotification(message) {
+      const notification = document.getElementById('profileNotification');
+      const text = document.getElementById('notificationText');
+      
+      if (notification && text) {
+        text.textContent = message;
+        notification.classList.add('show');
+        
+        setTimeout(() => {
+          notification.classList.remove('show');
+        }, 3000);
+      }
+    }
+
+    // Детали дня в календаре
+    function showDayDetails(date, bookCount) {
+      if (bookCount > 0) {
+        showProfileNotification(`📖 ${date}: прочитано ${bookCount} ${bookCount === 1 ? 'книга' : bookCount < 5 ? 'книги' : 'книг'}`);
+      } else {
+        showProfileNotification(`📅 ${date}: нет активности чтения`);
+      }
+    }
+
+    // Параллакс эффект для заголовков
+    window.addEventListener('scroll', () => {
+      const scrolled = window.pageYOffset;
+      const parallaxElements = document.querySelectorAll('.parallax-header');
+      
+      parallaxElements.forEach(element => {
+        const speed = 0.5;
+        element.style.transform = `translateY(${scrolled * speed}px)`;
+      });
+    });
+
+    // Интерактивные вкладки с анимацией
+    document.querySelectorAll('#profileTabs .nav-link').forEach(tab => {
+      tab.addEventListener('click', function() {
+        // Анимация переключения вкладок
+        showProfileNotification(`Переключено на: ${this.textContent.trim()}`);
+      });
+    });
+
+    // Анимация при наведении на элементы статистики
+    document.querySelectorAll('.stat-card').forEach(card => {
+      card.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-10px) scale(1.02)';
+      });
+      
+      card.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(-5px) scale(1)';
+      });
+    });
+
+    // Интерактивный прогресс чтения
+    function updateReadingProgress() {
+      const progressBars = document.querySelectorAll('.progress-bar-animated');
+      progressBars.forEach(bar => {
+        const currentWidth = parseFloat(bar.style.width) || 0;
+        const targetWidth = parseFloat(bar.getAttribute('data-target-width')) || 100;
+        
+        if (currentWidth < targetWidth) {
+          bar.style.width = targetWidth + '%';
+        }
+      });
+    }
+
+    // Запуск анимаций при загрузке
+    document.addEventListener('DOMContentLoaded', function() {
+      // Задержка для плавного появления
+      setTimeout(() => {
+        updateReadingProgress();
+        
+        // Анимация графиков
+        const charts = document.querySelectorAll('.chart-container');
+        charts.forEach((chart, index) => {
+          setTimeout(() => {
+            chart.classList.add('visible');
+          }, index * 300);
+        });
+      }, 500);
+
+      // Показать приветственное уведомление
+      setTimeout(() => {
+        showProfileNotification('Добро пожаловать в ваш профиль! 🌟 Исследуйте свою читательскую статистику.');
+      }, 1000);
+    });
+
+    // Эффект печатной машинки для био
+    function typeWriter(element, text, speed = 50) {
+      let i = 0;
+      element.innerHTML = '';
+      
+      function type() {
+        if (i < text.length) {
+          element.innerHTML += text.charAt(i);
+          i++;
+          setTimeout(type, speed);
+        }
+      }
+      type();
+    }
+
+    // Применить эффект печатной машинки к био (если нужно)
+    const bioElement = document.querySelector('.profile-header p.mb-1');
+    if (bioElement && bioElement.textContent !== 'Пока без описания.') {
+      const originalBio = bioElement.textContent;
+      bioElement.textContent = '';
+      setTimeout(() => {
+        typeWriter(bioElement, originalBio, 30);
+      }, 1500);
+    }
+  </script>
 {% endblock %}

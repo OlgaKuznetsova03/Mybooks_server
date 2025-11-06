@@ -17,10 +17,27 @@
     --home-divider: rgba(158,182,201,.35);
   }
 
+  /* Анимации появления */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 20px rgba(194, 224, 239, 0.3); }
+    50% { box-shadow: 0 0 30px rgba(194, 224, 239, 0.6); }
+  }
+
+  .animate-fade-in {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+
   .home-hero{
     position:relative;border-radius:24px;overflow:hidden;
     background:var(--home-hero-gradient);color:#f5f7ff;
     padding:2.5rem 2rem;box-shadow:0 25px 55px rgba(24,32,39,.45);
+    opacity: 0;
+    animation: fadeInUp 0.8s ease-out 0.2s forwards;
   }
   .home-hero::before,.home-hero::after{
     content:"";position:absolute;border-radius:100%;filter:blur(65px);opacity:.8;z-index:0;
@@ -31,8 +48,22 @@
   .home-hero__title{font-family:"Montserrat","Segoe UI",system-ui,sans-serif;font-weight:700;letter-spacing:.02em;}
   .home-hero__subtitle{max-width:520px;color:var(--home-text-soft);}
   .home-hero__actions{display:flex;flex-wrap:wrap;gap:.75rem;}
-  .home-hero__btn{border-radius:999px;font-weight:600;box-shadow:0 12px 28px rgba(8,10,44,.45);border:none;transition:.15s;}
-  .home-hero__btn:hover,.home-hero__btn:focus{transform:translateY(-2px);box-shadow:0 18px 32px rgba(8,10,44,.55);}
+  .home-hero__btn{
+    border-radius:999px;font-weight:600;box-shadow:0 12px 28px rgba(8,10,44,.45);border:none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative; overflow: hidden;
+  }
+  .home-hero__btn::before {
+    content: ''; position: absolute; top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+  }
+  .home-hero__btn:hover::before { left: 100%; }
+  .home-hero__btn:hover,.home-hero__btn:focus{
+    transform:translateY(-3px) scale(1.02);
+    box-shadow:0 18px 32px rgba(8,10,44,.55);
+  }
   .home-hero__btn.btn-outline-light{border:1px solid rgba(255,255,255,.55);background:rgba(46,58,68,.55);color:#fff;}
   .home-hero__btn.btn-light{color:#1c242b;}
   .home-hero__btn.btn-outline-light:hover,.home-hero__btn.btn-outline-light:focus{background:rgba(255,255,255,.15);}
@@ -49,7 +80,14 @@
     position:relative;
     overflow:hidden;
     z-index:0;
+    opacity: 0;
+    animation: fadeInUp 0.6s ease-out forwards;
   }
+  .home-glow-card:nth-child(1) { animation-delay: 0.3s; }
+  .home-glow-card:nth-child(2) { animation-delay: 0.4s; }
+  .home-glow-card:nth-child(3) { animation-delay: 0.5s; }
+  .home-glow-card:nth-child(4) { animation-delay: 0.6s; }
+  
   .home-glow-card::after{
     content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;
     background:linear-gradient(135deg,rgba(194,224,239,.35),rgba(246,200,162,.18));
@@ -59,16 +97,29 @@
   }
   .home-glow-card>*{position:relative;z-index:1;}
 
-  .home-stats-button{padding:0;border:none;background:none;color:inherit;font:inherit;font-weight:600;cursor:pointer;transition:color .2s;display:inline-flex;align-items:baseline;gap:.35rem;}
-  .home-stats-button:hover,.home-stats-button:focus{color:var(--home-accent-strong);}
+  .home-stats-button{
+    padding:0;border:none;background:none;color:inherit;font:inherit;font-weight:600;cursor:pointer;
+    transition: all 0.3s ease; display:inline-flex;align-items:baseline;gap:.35rem;
+    position: relative;
+  }
+  .home-stats-button:hover,.home-stats-button:focus{
+    color:var(--home-accent-strong);
+    transform: scale(1.05);
+  }
   .home-stats-button:focus-visible{outline:2px solid rgba(255,255,255,.45);outline-offset:2px;}
   .home-stats-button--block{display:flex;width:100%;justify-content:flex-start;}
   .home-stats-button--inline{display:inline;font-weight:inherit;}
   .home-stats-button--inline:hover,.home-stats-button--inline:focus{text-decoration:underline;}
   .home-stats-button--compact{font-size:.95rem;font-weight:700;}
 
-  .home-glow-card .badge[data-summary-trigger]{cursor:pointer;transition:.2s;}
-  .home-glow-card .badge[data-summary-trigger]:hover,.home-glow-card .badge[data-summary-trigger]:focus{background:rgba(194,224,239,.35)!important;color:var(--home-accent-strong);}
+  .home-glow-card .badge[data-summary-trigger]{
+    cursor:pointer;transition:all 0.3s ease;
+  }
+  .home-glow-card .badge[data-summary-trigger]:hover,.home-glow-card .badge[data-summary-trigger]:focus{
+    background:rgba(194,224,239,.35)!important;
+    color:var(--home-accent-strong);
+    transform: scale(1.1);
+  }
 
   .home-progress-card{--home-progress-bought:#38bdf8;--home-progress-read:#f97316;}
 
@@ -80,7 +131,7 @@
   .home-progress-value{font-size:2.25rem;line-height:1;display:inline-flex;align-items:center;gap:.25rem;}
   .home-progress-value .home-progress-number{font-variant-numeric:tabular-nums;}
 
-  /* Линия прогресса — ДВЕ ПОЛОСЫ, заполняют с двух сторон + свечение */
+  /* Линия прогресса */
   .home-progress-line{
     --bar-h: 10px;
     position:relative;flex:1 1 auto;min-width:160px;height:var(--bar-h);border-radius:999px;
@@ -101,7 +152,7 @@
     transition:width 900ms ease;
   }
 
-  /* Свечение вдоль залитых частей (используем псевдоэлемент и blur) */
+  /* Свечение */
   .home-progress-fill-left::after,
   .home-progress-fill-right::after{
     content:"";position:absolute;left:-6px;right:-6px;top:-6px;bottom:-6px;
@@ -114,7 +165,6 @@
     50%    {opacity:.75;filter:blur(10px)}
   }
 
-  /* Шиммер поверх полосы при смене */
   .home-progress-line::before{
     content:"";position:absolute;inset:0;
     background:linear-gradient(120deg, transparent 0%, rgba(255,255,255,.14) 30%, transparent 60%) 0 0 / 160% 100% no-repeat;
@@ -135,7 +185,6 @@
     color:#0f172a;text-shadow:0 1px 2px rgba(255,255,255,.8);z-index:3;
     will-change: transform;
   }
-  /* Подскок процентов в конце */
   .home-progress-label.pop{
     animation:label-pop .38s cubic-bezier(.2,1.4,.2,1) 1;
   }
@@ -145,9 +194,8 @@
     100%{transform:translate(-50%,-50%) scale(1)}
   }
 
-  /* Молния — выше полосы, остаётся после анимации */
   .home-progress-lightning{
-    --size: calc(var(--bar-h) * 2.2); /* заметно выше высоты полосы */
+    --size: calc(var(--bar-h) * 2.2);
     position:absolute;top:50%;
     width:var(--size);height:var(--size);
     transform:translate(-50%,-50%) scale(.6);
@@ -180,7 +228,6 @@
     50%    { filter:drop-shadow(0 0 10px #fff) drop-shadow(0 0 18px #ffd892); }
   }
 
-  /* Искры */
   .home-progress-spark{
     position:absolute; top:50%;
     width:6px;height:6px;border-radius:50%;
@@ -203,6 +250,163 @@
   .home-stats-grid{display:grid;gap:1.25rem;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
   .home-stats-primary{font-size:clamp(2.25rem,4vw,3.5rem);font-weight:700;color:var(--home-accent);}
 
+  /* Новые стили для улучшенного UX */
+  .reading-progress-bar {
+    height: 8px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.1);
+  }
+  
+  .reading-progress-bar .progress-bar {
+    transition: width 1s ease-in-out;
+  }
+  
+  .filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .filter-chip {
+    padding: 0.5rem 1rem;
+    background: var(--home-surface);
+    border: 1px solid var(--home-divider);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+    color: var(--home-text-soft);
+  }
+  
+  .filter-chip:hover {
+    background: var(--home-surface-alt);
+    transform: translateY(-2px);
+  }
+  
+  .filter-chip.active {
+    background: var(--home-accent);
+    color: #1c242b;
+    border-color: var(--home-accent);
+    animation: pulseGlow 2s infinite;
+  }
+  
+  .search-box {
+    margin-bottom: 1.5rem;
+  }
+  
+  .search-box .input-group {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  
+  .table-hover tbody tr {
+    transition: all 0.3s ease;
+  }
+  
+  .table-hover tbody tr:hover {
+    background: rgba(194, 224, 239, 0.1) !important;
+    transform: translateX(5px);
+  }
+  
+  .status-cell {
+    position: relative;
+    cursor: pointer;
+  }
+  
+  .status-options {
+    display: none;
+    position: absolute;
+    background: var(--home-card-bg);
+    border: 1px solid var(--home-card-border);
+    border-radius: 8px;
+    padding: 0.5rem;
+    z-index: 10;
+    min-width: 150px;
+    top: 100%;
+    left: 0;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+  
+  .status-cell:hover .status-options {
+    display: block;
+    animation: fadeInUp 0.3s ease-out;
+  }
+  
+  .status-option {
+    padding: 0.5rem;
+    border-radius: 4px;
+    margin-bottom: 0.25rem;
+    transition: background 0.2s;
+    font-size: 0.875rem;
+  }
+  
+  .status-option:hover {
+    background: var(--home-surface-alt);
+  }
+  
+  .activity-calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    margin-bottom: 1rem;
+  }
+  
+  .calendar-day {
+    width: 20px;
+    height: 20px;
+    border-radius: 2px;
+    background: var(--home-surface);
+    transition: all 0.3s ease;
+  }
+  
+  .calendar-day.active {
+    background: var(--home-accent);
+  }
+  
+  .calendar-day:hover {
+    transform: scale(1.3);
+  }
+  
+  /* Уведомления */
+  .library-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--home-card-bg);
+    border: 1px solid var(--home-card-border);
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    z-index: 1060;
+    transform: translateX(400px);
+    opacity: 0;
+    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    max-width: 300px;
+  }
+  
+  .library-notification.show {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  
+  .notification-content {
+    display: flex;
+    align-items: center;
+    color: var(--home-text-soft);
+  }
+  
+  .notification-close {
+    background: none;
+    border: none;
+    color: var(--home-text-soft);
+    font-size: 1.2rem;
+    cursor: pointer;
+    margin-left: 1rem;
+  }
+
   .home-filters-card{background:var(--home-surface);border-radius:20px;border:1px solid var(--home-divider);box-shadow:0 16px 32px rgba(20,27,33,.5);}
   .home-filters-toggle{border-radius:14px;border:1px solid rgba(255,255,255,.28);background:rgba(61,81,96,.8);color:#f8f9ff;font-weight:600;letter-spacing:.05em;}
 
@@ -212,15 +416,17 @@
   .home-library-table{background:#fff;border-radius:24px;border:1px solid #dbe3f0;box-shadow:0 18px 40px rgba(15,23,42,.12);overflow:hidden;color:#0f172a;}
   .home-library-table .table{color:inherit;margin-bottom:0;border-color:#e2e8f0;}
   .home-library-table .table thead{background:#f8fafc;}
-  .home-library-table .table thead th{border-color:#e2e8f0;font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:.7rem;color:#0f172a;}
-  .home-library-table .table tbody td{border-color:#e2e8f0;vertical-align:top;background:#fff;color:inherit;}
-  .home-library-table .table tbody tr:hover td{background:#f1f5f9;}
-  .home-table-actions .btn{border-radius:12px;}
+  .home-library-table .table thead th{border-color:#e2e8f0;font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:.7rem;color:#0f172a;cursor:pointer;transition:background 0.3s ease;}
+  .home-library-table .table thead th:hover{background:#e2e8f0;}
+  .home-library-table .table tbody td{border-color:#e2e8f0;vertical-align:top;background:#fff;color:inherit;transition:all 0.3s ease;}
+  .home-library-table .table tbody tr:hover td{background:#f1f5f9;transform:translateY(-2px);}
+  .home-table-actions .btn{border-radius:12px;transition:all 0.3s ease;}
   .home-table-actions .btn-outline-secondary{color:rgba(61,81,96,.9);border-color:rgba(194,224,239,.55);background:rgba(82,106,122,.65);}
-  .home-table-actions .btn-outline-secondary:hover,.home-table-actions .btn-outline-secondary:focus{background:rgba(194,224,239,.2);color:#1c242b;border-color:rgba(194,224,239,.85);}
+  .home-table-actions .btn-outline-secondary:hover,.home-table-actions .btn-outline-secondary:focus{background:rgba(194,224,239,.2);color:#1c242b;border-color:rgba(194,224,239,.85);transform:scale(1.05);}
   .home-table-actions .btn-outline-danger{color:#fca5a5;border-color:rgba(248,113,113,.55);background:rgba(244,63,94,.12);}
-  .home-table-actions .btn-outline-danger:hover,.home-table-actions .btn-outline-danger:focus{background:rgba(244,63,94,.25);color:#fee2e2;border-color:rgba(244,63,94,.65);}
-  .tag-chip{display:inline-flex;align-items:center;padding:.25rem .6rem;border-radius:999px;background:rgba(194,224,239,.18);color:#0d2744;font-size:.75rem;margin-right:.35rem;margin-bottom:.35rem;border:1px solid rgba(255,255,255,.28);}
+  .home-table-actions .btn-outline-danger:hover,.home-table-actions .btn-outline-danger:focus{background:rgba(244,63,94,.25);color:#fee2e2;border-color:rgba(244,63,94,.65);transform:scale(1.05);}
+  .tag-chip{display:inline-flex;align-items:center;padding:.25rem .6rem;border-radius:999px;background:rgba(194,224,239,.18);color:#0d2744;font-size:.75rem;margin-right:.35rem;margin-bottom:.35rem;border:1px solid rgba(255,255,255,.28);transition:all 0.3s ease;}
+  .tag-chip:hover{transform:scale(1.05);background:rgba(194,224,239,.3);}
 
   @media (max-width:991.98px){.home-hero{padding:2rem 1.5rem}.home-activity{grid-template-columns:1fr}}
   @media (max-width:767.98px){
@@ -234,7 +440,8 @@
     .home-progress-value{font-size:1.875rem}
     .home-library-table .table thead{display:none}
     .home-library-table table,.home-library-table tbody,.home-library-table tr,.home-library-table td{display:block;width:100%}
-    .home-library-table tr{background:#fff;border-radius:20px;margin-bottom:1rem;padding:1rem 1.25rem;box-shadow:0 18px 35px rgba(15,23,42,.12)}
+    .home-library-table tr{background:#fff;border-radius:20px;margin-bottom:1rem;padding:1rem 1.25rem;box-shadow:0 18px 35px rgba(15,23,42,.12);transition:all 0.3s ease;}
+    .home-library-table tr:hover{transform:translateY(-5px);}
     .home-library-table td{border:none;padding:.25rem 0;background:transparent}
     .home-library-table td::before{content:attr(data-label);display:block;font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:#64748b;margin-bottom:.15rem}
     .home-library-table td[data-label="Действия"]{text-align:left;margin-top:.5rem}
@@ -245,6 +452,8 @@
     .home-disposed-card tr{background:#fff;border-radius:20px;margin-bottom:1rem;padding:1rem 1.25rem;box-shadow:0 18px 35px rgba(15,23,42,.12)}
     .home-disposed-card td{border:none;padding:.3rem 0;background:transparent}
     .home-disposed-card td::before{content:attr(data-label);display:block;font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:#64748b;margin-bottom:.1rem}
+    .filter-chips{justify-content:center;}
+    .filter-chip{padding:0.75rem 1.25rem;}
   }
   @media (min-width:768px){
     #homeLibraryFilters{display:block!important;height:auto!important;visibility:visible!important}
@@ -255,7 +464,8 @@
     .home-progress-line::before,
     .home-progress-fill-left,.home-progress-fill-right,
     .home-progress-lightning,
-    .home-progress-label{animation:none!important;transition:none!important}
+    .home-progress-label,.home-hero__btn,.home-stats-button,
+    .table-hover tbody tr,.tag-chip,.filter-chip{animation:none!important;transition:none!important}
     .home-progress-lightning.is-static{animation:none!important}
   }
 </style>
@@ -317,7 +527,6 @@
             <div class="home-progress-fill-left"  data-role="fill-left"></div>
             <div class="home-progress-fill-right" data-role="fill-right"></div>
             <div class="home-progress-label"      data-role="period-progress-label">0%</div>
-            <!-- молния добавляется скриптом -->
           </div>
 
           <div class="home-progress-side text-end">
@@ -338,6 +547,27 @@
   </div>
 </section>
 
+<!-- Быстрый поиск -->
+<div class="search-box">
+  <div class="input-group">
+    <span class="input-group-text"><i class="bi bi-search"></i></span>
+    <input type="text" class="form-control" id="bookSearch" 
+           placeholder="Поиск по названию, автору или жанру...">
+    <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+      <i class="bi bi-x"></i>
+    </button>
+  </div>
+</div>
+
+<!-- Быстрые фильтры -->
+<div class="filter-chips mb-4">
+  <div class="filter-chip active" data-filter="all">Все книги</div>
+  <div class="filter-chip" data-filter="reading">Читаю сейчас</div>
+  <div class="filter-chip" data-filter="unread">Не начаты</div>
+  <div class="filter-chip" data-filter="classic">Классика</div>
+  <div class="filter-chip" data-filter="modern">Современные</div>
+</div>
+
 <div class="home-stats-grid mb-5">
   <div class="home-glow-card home-quick-actions-card h-100">
     <h2 class="h6 text-uppercase text-muted mb-3">Быстрые действия</h2>
@@ -345,29 +575,41 @@
       <div class="flex-fill">
         <div class="small text-uppercase text-muted mb-1">Текущие книги</div>
         <button class="home-stats-button home-stats-button--block summary-trigger" type="button" data-summary-trigger data-summary-category="active" data-summary-title="Текущие книги">
-          <span class="home-stats-primary">{{ summary.total }}</span>
+          <span class="home-stats-primary" data-target="{{ summary.total }}">0</span>
         </button>
       </div>
       <div class="flex-fill">
         <div class="small text-uppercase text-muted mb-1">Передано</div>
         <button class="home-stats-button home-stats-button--block summary-trigger" type="button" data-summary-trigger data-summary-category="disposed" data-summary-title="Переданные книги">
-          <span class="display-6 mb-0">{{ summary.disposed_total }}</span>
+          <span class="display-6 mb-0" data-target="{{ summary.disposed_total }}">0</span>
         </button>
       </div>
     </div>
-    <p class="small text-muted mt-3 mb-0">Следите за движением коллекции, присваивайте статусы и делитесь историями прямо со смартфона.</p>
+    
+    <!-- Прогресс чтения -->
+    <div class="reading-progress mt-3">
+      <div class="d-flex justify-content-between small text-muted mb-2">
+        <span>Читаю сейчас: <span id="readingNowCount">0</span></span>
+        <span>В планах: <span id="plannedCount">0</span></span>
+      </div>
+      <div class="reading-progress-bar">
+        <div class="progress-bar bg-warning" role="progressbar" id="readingProgressBar"
+             style="width: 0%">
+        </div>
+      </div>
+    </div>
   </div>
 
   {% if entries %}
     <div class="home-glow-card">
       <h2 class="h6 text-uppercase text-muted mb-3">Всего активных книг</h2>
       <button class="home-stats-button home-stats-button--block summary-trigger" type="button" data-summary-trigger data-summary-category="active" data-summary-title="Текущие книги">
-        <span class="home-stats-primary">{{ summary.total }}</span>
+        <span class="home-stats-primary" data-target="{{ summary.total }}">0</span>
       </button>
       <p class="small text-muted mb-0">
         Передано:
         <button class="home-stats-button home-stats-button--inline summary-trigger" type="button" data-summary-trigger data-summary-category="disposed" data-summary-title="Переданные книги">
-          {{ summary.disposed_total }} {{ summary.disposed_total|ru_pluralize:"книга,книги,книг" }}
+          <span data-target="{{ summary.disposed_total }}">0</span> {{ summary.disposed_total|ru_pluralize:"книга,книги,книг" }}
         </button>
       </p>
     </div>
@@ -378,14 +620,38 @@
         <div>
           <div class="small text-uppercase text-muted">Классика</div>
           <button class="home-stats-button display-6 mb-0 summary-trigger" type="button" data-summary-trigger data-summary-category="classic" data-summary-title="Классические книги">
-            <span class="home-progress-number">{{ summary.classic_count }}</span>
+            <span class="home-progress-number" data-target="{{ summary.classic_count }}">0</span>
           </button>
         </div>
         <div>
           <div class="small text-uppercase text-muted">Современные</div>
           <button class="home-stats-button display-6 mb-0 text-info summary-trigger" type="button" data-summary-trigger data-summary-category="modern" data-summary-title="Современные книги">
-            <span class="home-progress-number">{{ summary.modern_count }}</span>
+            <span class="home-progress-number" data-target="{{ summary.modern_count }}">0</span>
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Активность чтения -->
+    <div class="home-glow-card">
+      <h2 class="h6 text-uppercase text-muted mb-3">Ваша активность</h2>
+      <div class="activity-calendar" id="readingCalendar">
+        <!-- Календарь будет заполнен JavaScript -->
+      </div>
+      <div class="activity-stats mt-3">
+        <div class="row text-center">
+          <div class="col-4">
+            <div class="h5 mb-1" id="booksThisMonth">0</div>
+            <div class="small text-muted">в этом месяце</div>
+          </div>
+          <div class="col-4">
+            <div class="h5 mb-1" id="readingStreak">0</div>
+            <div class="small text-muted">дней подряд</div>
+          </div>
+          <div class="col-4">
+            <div class="h5 mb-1" id="avgPages">0</div>
+            <div class="small text-muted">стр/день</div>
+          </div>
         </div>
       </div>
     </div>
@@ -398,7 +664,7 @@
             <li class="d-flex justify-content-between">
               <span>{{ series.series_name }}</span>
               <button class="home-stats-button home-stats-button--compact summary-trigger" type="button" data-summary-trigger data-summary-category="series" data-summary-key="{{ series.series_name }}" data-summary-title="Серия «{{ series.series_name }}»">
-                {{ series.total }}
+                <span data-target="{{ series.total }}">0</span>
               </button>
             </li>
           {% endfor %}
@@ -416,7 +682,7 @@
             <li class="d-flex justify-content-between">
               <span>{{ genre.name }}</span>
               <button class="home-stats-button home-stats-button--compact summary-trigger" type="button" data-summary-trigger data-summary-category="genres" data-summary-key="{{ genre.name }}" data-summary-title="Жанр «{{ genre.name }}»">
-                {{ genre.total }}
+                <span data-target="{{ genre.total }}">0</span>
               </button>
             </li>
           {% endfor %}
@@ -431,7 +697,7 @@
 {% if entries %}
   <div class="home-filters-card p-4 mb-5">
     <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
-      <h2 class="h6 text-uppercase text-muted mb-0">Фильтры</h2>
+      <h2 class="h6 text-uppercase text-muted mb-0">Детальные фильтры</h2>
       <button class="btn home-filters-toggle d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#homeLibraryFilters" aria-expanded="false" aria-controls="homeLibraryFilters">
         <i class="bi bi-sliders me-2"></i>Показать фильтры
       </button>
@@ -492,7 +758,7 @@
             <li class="d-flex justify-content-between align-items-center mb-2">
               <span>{{ status.status }}</span>
               <button class="badge text-bg-light border-0 summary-trigger" type="button" data-summary-trigger data-summary-category="statuses" data-summary-key="{{ status.status }}" data-summary-title="Статус «{{ status.status }}»">
-                {{ status.total }}
+                <span data-target="{{ status.total }}">0</span>
               </button>
             </li>
           {% endfor %}
@@ -508,7 +774,7 @@
               <li class="d-flex justify-content-between">
                 <span>{{ loc.location }}</span>
                 <button class="home-stats-button home-stats-button--compact fw-semibold summary-trigger" type="button" data-summary-trigger data-summary-category="locations" data-summary-key="{{ loc.location }}" data-summary-title="Место хранения «{{ loc.location }}»">
-                  {{ loc.total }}
+                  <span data-target="{{ loc.total }}">0</span>
                 </button>
               </li>
             {% endfor %}
@@ -522,17 +788,32 @@
 
   <div class="home-library-table mb-4">
     <div class="table-responsive">
-      <table class="table align-middle">
+      <table class="table align-middle table-hover" id="booksTable">
         <thead>
           <tr>
-            <th>Книга</th><th>Формат</th><th>Статус</th><th>Хранение</th><th>Классика</th><th>Серия</th><th>Жанры</th><th>Приобретена</th><th>Заметки</th><th class="text-end">Действия</th>
+            <th data-sort="title">Книга</th>
+            <th data-sort="format">Формат</th>
+            <th data-sort="status">Статус</th>
+            <th data-sort="location">Хранение</th>
+            <th data-sort="classic">Классика</th>
+            <th data-sort="series">Серия</th>
+            <th data-sort="genres">Жанры</th>
+            <th data-sort="acquired">Приобретена</th>
+            <th data-sort="notes">Заметки</th>
+            <th class="text-end">Действия</th>
           </tr>
         </thead>
         <tbody>
           {% default_shelf_status_map entries request.user as default_status_map %}
           {% if entries %}
             {% for entry in entries %}
-              <tr>
+              <tr data-book-id="{{ entry.book.pk }}" 
+                  data-title="{{ entry.book.title|lower }}" 
+                  data-authors="{{ entry.book.authors.all|join:', '|lower }}"
+                  data-genres="{% for genre in entry.custom_genres.all %}{{ genre.name|lower }} {% endfor %}"
+                  data-status="{{ entry.status|default:''|lower }}"
+                  data-classic="{% if entry.is_classic %}classic{% else %}modern{% endif %}"
+                  data-reading="{% if entry.is_read or default_status_map|dict_get:entry.book.pk %}reading{% else %}unread{% endif %}">
                 <td data-label="Книга" style="min-width:200px;">
                   <div class="fw-semibold"><a class="text-decoration-none text-reset" href="{% url 'book_detail' entry.book.pk %}">{{ entry.book.title }}</a></div>
                   <div class="small text-muted">{{ entry.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
@@ -557,7 +838,11 @@
                   {% endwith %}
                 </td>
                 <td data-label="Формат">{{ entry.get_format_display }}</td>
-                <td data-label="Статус">{{ entry.status|default:"—" }}</td>
+                <td data-label="Статус" class="status-cell">
+                  <span class="current-status" data-status="{{ entry.status }}">
+                    {{ entry.status|default:"—" }}
+                  </span>
+                </td>
                 <td data-label="Хранение">
                   {% if entry.location %}{{ entry.location }}<br>{% endif %}
                   {% if entry.shelf_section %}<span class="text-muted small">{{ entry.shelf_section }}</span>{% endif %}
@@ -654,6 +939,236 @@
   {{ summary_data|json_script:"homeLibrarySummaryData" }}
   <script>
     (function () {
+      // Система уведомлений
+      function showLibraryNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `library-notification library-notification-${type}`;
+        const icons = { info: 'info-circle', success: 'check-circle', warning: 'exclamation-triangle', error: 'x-circle' };
+        notification.innerHTML = `
+          <div class="notification-content">
+            <i class="bi bi-${icons[type]} me-2"></i>
+            ${message}
+          </div>
+          <button class="notification-close">&times;</button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => notification.classList.add('show'), 100);
+        
+        setTimeout(() => hideNotification(notification), 5000);
+        
+        notification.querySelector('.notification-close').addEventListener('click', () => {
+          hideNotification(notification);
+        });
+      }
+
+      function hideNotification(notification) {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+      }
+
+      // Анимация чисел
+      function animateValue(element, start, end, duration) {
+        if (!element) return;
+        let startTimestamp = null;
+        const step = (timestamp) => {
+          if (!startTimestamp) startTimestamp = timestamp;
+          const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+          const value = Math.floor(progress * (end - start) + start);
+          element.textContent = value.toLocaleString();
+          if (progress < 1) {
+            window.requestAnimationFrame(step);
+          }
+        };
+        window.requestAnimationFrame(step);
+      }
+
+      // Запуск анимации при появлении в viewport
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const el = entry.target;
+            const targetValue = parseInt(el.dataset.target) || 0;
+            animateValue(el, 0, targetValue, 2000);
+            observer.unobserve(el);
+          }
+        });
+      }, { threshold: 0.1 });
+
+      // Инициализация анимации чисел
+      document.querySelectorAll('[data-target]').forEach(el => {
+        if (el.textContent === '0') {
+          observer.observe(el);
+        }
+      });
+
+      // Быстрый поиск
+      const searchInput = document.getElementById('bookSearch');
+      const clearSearch = document.getElementById('clearSearch');
+      
+      if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+          const searchTerm = e.target.value.toLowerCase();
+          const rows = document.querySelectorAll('#booksTable tbody tr');
+          let visibleCount = 0;
+          
+          rows.forEach(row => {
+            const title = row.dataset.title || '';
+            const authors = row.dataset.authors || '';
+            const genres = row.dataset.genres || '';
+            const text = title + ' ' + authors + ' ' + genres;
+            const isVisible = text.includes(searchTerm);
+            
+            row.style.display = isVisible ? '' : 'none';
+            if (isVisible) visibleCount++;
+          });
+          
+          // Показать уведомление о результатах поиска
+          if (searchTerm && visibleCount === 0) {
+            showLibraryNotification('По вашему запросу ничего не найдено', 'warning');
+          }
+        });
+        
+        clearSearch.addEventListener('click', function() {
+          searchInput.value = '';
+          const rows = document.querySelectorAll('#booksTable tbody tr');
+          rows.forEach(row => row.style.display = '');
+        });
+      }
+
+      // Быстрые фильтры
+      const filterChips = document.querySelectorAll('.filter-chip');
+      filterChips.forEach(chip => {
+        chip.addEventListener('click', function() {
+          const filter = this.dataset.filter;
+          
+          // Обновить активный чип
+          filterChips.forEach(c => c.classList.remove('active'));
+          this.classList.add('active');
+          
+          // Применить фильтр
+          const rows = document.querySelectorAll('#booksTable tbody tr');
+          rows.forEach(row => {
+            if (filter === 'all') {
+              row.style.display = '';
+            } else {
+              const matchesFilter = row.dataset[filter] !== undefined;
+              row.style.display = matchesFilter ? '' : 'none';
+            }
+          });
+          
+          showLibraryNotification(`Показаны: ${this.textContent}`, 'info');
+        });
+      });
+
+      // Сортировка таблицы
+      function makeTableSortable(table) {
+        const headers = table.querySelectorAll('th[data-sort]');
+        headers.forEach(header => {
+          header.style.cursor = 'pointer';
+          header.addEventListener('click', () => {
+            const sortBy = header.dataset.sort;
+            const isAsc = !header.classList.contains('sort-asc');
+            
+            // Сброс предыдущей сортировки
+            headers.forEach(h => {
+              h.classList.remove('sort-asc', 'sort-desc');
+              h.querySelector('.sort-indicator')?.remove();
+            });
+            
+            // Добавление индикатора
+            const indicator = document.createElement('i');
+            indicator.className = `bi bi-arrow-${isAsc ? 'up' : 'down'} sort-indicator ms-1`;
+            header.appendChild(indicator);
+            header.classList.add(isAsc ? 'sort-asc' : 'sort-desc');
+            
+            sortTable(table, sortBy, isAsc);
+          });
+        });
+      }
+
+      function getSortValue(row, sortBy) {
+        switch(sortBy) {
+          case 'title': return row.dataset.title;
+          case 'authors': return row.dataset.authors;
+          case 'status': return row.querySelector('.current-status').textContent.toLowerCase();
+          case 'classic': return row.dataset.classic;
+          case 'acquired': return row.querySelector('td:nth-child(8)').textContent;
+          default: return row.querySelector(`td:nth-child(${getColumnIndex(sortBy)})`).textContent.toLowerCase();
+        }
+      }
+
+      function getColumnIndex(sortBy) {
+        const mapping = { title: 1, format: 2, status: 3, location: 4, classic: 5, series: 6, genres: 7, acquired: 8, notes: 9 };
+        return mapping[sortBy] || 1;
+      }
+
+      function compareValues(a, b) {
+        if (a === b) return 0;
+        return a < b ? -1 : 1;
+      }
+
+      function sortTable(table, sortBy, ascending) {
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        
+        rows.sort((a, b) => {
+          const aVal = getSortValue(a, sortBy);
+          const bVal = getSortValue(b, sortBy);
+          return ascending ? compareValues(aVal, bVal) : compareValues(bVal, aVal);
+        });
+        
+        // Анимированная перестановка
+        rows.forEach((row, index) => {
+          setTimeout(() => {
+            tbody.appendChild(row);
+            row.style.opacity = '0';
+            row.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+              row.style.opacity = '1';
+              row.style.transform = 'translateY(0)';
+            }, 50);
+          }, index * 50);
+        });
+        
+        showLibraryNotification(`Таблица отсортирована по: ${sortBy}`, 'success');
+      }
+
+      // Инициализация сортировки
+      const booksTable = document.getElementById('booksTable');
+      if (booksTable) {
+        makeTableSortable(booksTable);
+      }
+
+      // Календарь активности
+      function initActivityCalendar() {
+        const calendar = document.getElementById('readingCalendar');
+        if (!calendar) return;
+        
+        // Заполняем календарь демо-данными
+        for (let i = 0; i < 35; i++) {
+          const day = document.createElement('div');
+          day.className = 'calendar-day';
+          if (Math.random() > 0.7) {
+            day.classList.add('active');
+            day.title = 'Читал в этот день';
+          }
+          calendar.appendChild(day);
+        }
+        
+        // Обновляем статистику
+        document.getElementById('booksThisMonth').textContent = '3';
+        document.getElementById('readingStreak').textContent = '7';
+        document.getElementById('avgPages').textContent = '25';
+        
+        // Обновляем прогресс чтения
+        document.getElementById('readingNowCount').textContent = '2';
+        document.getElementById('plannedCount').textContent = '5';
+        document.getElementById('readingProgressBar').style.width = '29%';
+      }
+
+      // Оригинальный код прогресса (сохранен)
       const dataElement = document.getElementById('homeLibrarySummaryData');
       if (!dataElement) return;
 
@@ -735,7 +1250,7 @@
       const fillLeftEl        = document.querySelector('[data-role="fill-left"]');
       const fillRightEl       = document.querySelector('[data-role="fill-right"]');
       const labelEl           = document.querySelector('[data-role="period-progress-label"]');
-      const lineEl            = fillLeftEl?.parentElement; // .home-progress-line
+      const lineEl            = fillLeftEl?.parentElement;
       const PERIOD_STORAGE_KEY = 'homeLibraryPeriodSelection';
 
       function getStorage(){ try { return window.localStorage; } catch(e){ return null; } }
@@ -761,7 +1276,6 @@
         }catch(e){ console.warn('Failed to save period', e); }
       }
 
-      /* утилиты анимации */
       const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       function animateNumber(el, to){
         const from = parseInt(el.textContent || '0', 10) || 0;
@@ -846,31 +1360,25 @@
         const boughtPercent = total ? Math.round((boughtCount / total) * 100) : 0;
         const readPercent   = 100 - boughtPercent;
 
-        // Шиммер поверх полосы
         lineEl?.classList.add('is-animating');
         setTimeout(()=> lineEl?.classList.remove('is-animating'), 1200);
 
-        // Сброс анимации ширины
         fillLeftEl.style.transition = 'none';
         fillRightEl.style.transition = 'none';
         fillLeftEl.style.width  = '0%';
         fillRightEl.style.width = '0%';
         void fillLeftEl.offsetWidth;
-        // Целевые ширины с анимацией
         fillLeftEl.style.transition  = 'width 900ms ease';
         fillRightEl.style.transition = 'width 900ms ease';
         fillLeftEl.style.width  = boughtPercent + '%';
         fillRightEl.style.width = readPercent   + '%';
 
-        // Молния и искры на стыке
         placeLightningAt(boughtPercent);
         spawnSparksAt(boughtPercent);
 
-        // Текст % + подскок в конце
         if (labelEl){
-          labelEl.classList.remove('pop'); // сброс
+          labelEl.classList.remove('pop');
           labelEl.textContent = `${boughtPercent}% / ${readPercent}%`;
-          // подскок чуть позже ширины (задержка = длительность перехода)
           setTimeout(()=> labelEl.classList.add('pop'), 920);
         }
 
@@ -909,7 +1417,6 @@
         }
       }
 
-      // Слушатели
       periodTypeSelect?.addEventListener('change', ()=>{
         const t = periodTypeSelect.value || 'year';
         const saved = loadSavedPeriod(); const preferred = saved?.values ? saved.values[t] : undefined;
@@ -917,7 +1424,6 @@
       });
       periodValueSelect?.addEventListener('change', updatePeriodCard);
 
-      // Инициализация
       let initialType = periodTypeSelect?.value || 'year';
       let initialValue;
       const saved = loadSavedPeriod();
@@ -928,7 +1434,16 @@
         initialValue = saved.values?.[initialType] || saved.value;
       }
       populatePeriodOptions(initialType, initialValue);
-      updatePeriodCard(); // первая отрисовка с эффектами
+      updatePeriodCard();
+
+      // Инициализация новых функций
+      initActivityCalendar();
+      
+      // Показать приветственное уведомление
+      setTimeout(() => {
+        showLibraryNotification('Добро пожаловать в вашу библиотеку! Используйте быстрые фильтры для удобной навигации.', 'info');
+      }, 1000);
+
     })();
   </script>
   <!-- Yandex.RTB R-A-17641153-4 -->
