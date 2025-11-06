@@ -204,13 +204,17 @@
     
     .reading-calendar { width:100%; border-collapse:collapse; table-layout:fixed; }
     .reading-calendar thead th,
-    .reading-calendar tbody td { 
-      border:1px solid var(--bs-border-color); 
-      background-color:var(--bs-body-bg); 
-      padding:.75rem; 
-      vertical-align:top; 
-      width:14.2857142857%; 
+    .reading-calendar tbody td {
+      border:1px solid var(--bs-border-color);
+      background-color:var(--bs-body-bg);
+      padding:.75rem;
+      vertical-align:top;
+      width:14.2857142857%;
       transition: all 0.3s ease;
+    }
+
+    .reading-calendar tbody td {
+      cursor: pointer;
     }
 
     .reading-calendar thead th { 
@@ -1001,8 +1005,8 @@
                     {% for week in calendar.weeks %}
                       <tr>
                         {% for day in week %}
-                          <td class="{% if not day.in_month %}opacity-75{% endif %} {% if day.books %}calendar-day-active{% endif %}" 
-                              onclick="showDayDetails('{{ day.date|date:"d.m.Y" }}', {{ day.books|length }})">
+                          <td class="{% if not day.in_month %}opacity-75{% endif %} {% if day.books %}calendar-day-active{% endif %}"
+                              onclick="showDayDetails('{{ day.date|date:"Y-m-d" }}')">
                             <div class="reading-calendar__cell">
                               <div class="reading-calendar__header">
                                 <span class="{% if not day.in_month %}text-muted{% endif %}">{{ day.date.day }}</span>
@@ -1575,12 +1579,30 @@ window.yaContextCb.push(() => {
     }
 
     // Детали дня в календаре
-    function showDayDetails(date, bookCount) {
-      if (bookCount > 0) {
-        showProfileNotification(`📖 ${date}: прочитано ${bookCount} ${bookCount === 1 ? 'книга' : bookCount < 5 ? 'книги' : 'книг'}`);
-      } else {
-        showProfileNotification(`📅 ${date}: нет активности чтения`);
+    function showDayDetails(isoDate) {
+      if (!isoDate) {
+        return;
       }
+
+      const url = new URL(window.location.href);
+      const [year, month] = isoDate.split('-');
+
+      url.searchParams.set('tab', 'stats');
+      url.searchParams.set('period', 'day');
+      url.searchParams.set('date', isoDate);
+
+      if (year) {
+        url.searchParams.set('year', year);
+        url.searchParams.set('calendar_year', year);
+      }
+
+      if (month) {
+        const monthNumber = String(parseInt(month, 10));
+        url.searchParams.set('month', monthNumber);
+        url.searchParams.set('calendar_month', monthNumber);
+      }
+
+      window.location.assign(url.toString());
     }
 
     // Параллакс эффект для заголовков
