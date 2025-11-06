@@ -938,13 +938,13 @@
                   id="id_date"
                   name="date"
                   value="{{ stats_period.selected_day|date:'Y-m-d' }}"
-                  {% if stats_period.available_days %}
-                    min="{{ stats_period.available_days|last.iso }}"
-                    max="{{ stats_period.available_days|first.iso }}"
+                  {% if stats_period.last_available_day and stats_period.first_available_day %}
+                    min="{{ stats_period.last_available_day.iso }}"
+                    max="{{ stats_period.first_available_day.iso }}"
                   {% endif %}
                 >
-                {% if stats_period.available_days %}
-                  <div class="form-text">Доступные даты с {{ stats_period.available_days|last.display }} по {{ stats_period.available_days|first.display }}.</div>
+                {% if stats_period.last_available_day and stats_period.first_available_day %}
+                  <div class="form-text">Доступные даты с {{ stats_period.last_available_day.display }} по {{ stats_period.first_available_day.display }}.</div>
                 {% endif %}
               </div>
             {% endif %}

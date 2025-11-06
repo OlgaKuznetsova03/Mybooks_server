@@ -315,6 +315,8 @@ def _resolve_stats_period(params, read_items):
         }
         for d in available_days
     ]
+    first_available_day = available_days_meta[0] if available_days_meta else None
+    last_available_day = available_days_meta[-1] if available_days_meta else None
 
     return {
         "period": period,
@@ -324,6 +326,8 @@ def _resolve_stats_period(params, read_items):
         "available_years": available_years,
         "available_months": [(m, MONTH_NAMES[m]) for m in available_months],
         "available_days": available_days_meta,
+        "first_available_day": first_available_day,
+        "last_available_day": last_available_day,
         "selected_year": selected_year,
         "selected_month": selected_month,
         "selected_day": selected_day if period == "day" else None,
