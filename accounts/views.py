@@ -257,6 +257,29 @@ def _resolve_stats_period(params, read_items):
         if selected_month not in available_months and available_months:
             selected_month = available_months[0]
 
+    available_days_all = list(read_items.dates("added_at", "day", order="DESC"))
+    available_days = available_days_all
+    if period == "day" and available_days_all:
+        days_for_year = [d for d in available_days_all if d.year == selected_year]
+        if days_for_year:
+            available_days = days_for_year
+        if params.get("month"):
+            days_for_month = [d for d in available_days if d.month == selected_month]
+            if days_for_month:
+                available_days = days_for_month
+
+    selected_day = today
+    if available_days:
+        selected_day = available_days[0]
+
+    if params.get("date"):
+        try:
+            selected_day = date.fromisoformat(params["date"])
+        except (TypeError, ValueError):
+            selected_day = today
+        if selected_day not in available_days and available_days:
+            selected_day = available_days[0]
+
     if period == "year":
         year = selected_year or today.year
         start = date(year, 1, 1)
@@ -270,11 +293,28 @@ def _resolve_stats_period(params, read_items):
         end = date(year, month, last_day)
         month_name = MONTH_NAMES[month] if 1 <= month < len(MONTH_NAMES) else str(month)
         label = f"{month_name} {year}"
+    elif period == "day":
+        period = "day"
+        day = selected_day or today
+        start = day
+        end = day
+        month_name = MONTH_NAMES[day.month] if 1 <= day.month < len(MONTH_NAMES) else str(day.month)
+        label = f"{day.day} {month_name} {day.year}"
+        selected_year = day.year
+        selected_month = day.month
     else:
         end = today
         start = today - timedelta(days=6)
         label = "Последние 7 дней"
         period = "week"
+
+    available_days_meta = [
+        {
+            "iso": d.isoformat(),
+            "display": d.strftime("%d.%m.%Y"),
+        }
+        for d in available_days
+    ]
 
     return {
         "period": period,
@@ -283,8 +323,10 @@ def _resolve_stats_period(params, read_items):
         "label": label,
         "available_years": available_years,
         "available_months": [(m, MONTH_NAMES[m]) for m in available_months],
+        "available_days": available_days_meta,
         "selected_year": selected_year,
         "selected_month": selected_month,
+        "selected_day": selected_day if period == "day" else None,
     }
 
 

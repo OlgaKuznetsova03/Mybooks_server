@@ -802,7 +802,7 @@
           {% if has_unlimited_coins %}
             Безлимитные монеты
           {% else %}
-            Баланс: <span class="animated-number" data-target="{{ coin_balance }}">0</span>
+            Баланс: <span class="animated-number" data-target="{{ coin_balance|default_if_none:0 }}">0</span>
           {% endif %}
         </span>
       </div>
@@ -834,11 +834,11 @@
       <div class="profile-rating-link">
         <span class="profile-rating-pill" onclick="showProfileNotification('Ваши читательские баллы! 📚')">
           <i class="bi bi-stars"></i>
-          <span class="animated-number" data-target="{{ rating_points_total }}">0</span> {{ rating_points_total|ru_pluralize:"балл,балла,баллов" }}
+          <span class="animated-number" data-target="{{ rating_points_total|default_if_none:0 }}">0</span> {{ rating_points_total|ru_pluralize:"балл,балла,баллов" }}
         </span>
         <span class="profile-rating-pill" onclick="showProfileNotification('Общее количество прочитанных страниц! 📖')">
           <i class="bi bi-book"></i>
-          <span class="animated-number" data-target="{{ reading_pages_total }}">0</span> {{ reading_pages_total|ru_pluralize:"страница,страницы,страниц" }}
+          <span class="animated-number" data-target="{{ reading_pages_total|default_if_none:0 }}">0</span> {{ reading_pages_total|ru_pluralize:"страница,страницы,страниц" }}
         </span>
         <a class="btn btn-sm profile-rating-button" href="{% url 'shelves:reading_leaderboard' %}">
           Рейтинг читателей
@@ -913,12 +913,13 @@
             <div class="col-12 col-md-4">
               <label class="form-label" for="id_period">Период</label>
               <select class="form-select" id="id_period" name="period">
+                <option value="day"{% if stats_period.period == 'day' %} selected{% endif %}>День</option>
                 <option value="week"{% if stats_period.period == 'week' %} selected{% endif %}>Последние 7 дней</option>
                 <option value="month"{% if stats_period.period == 'month' %} selected{% endif %}>Месяц</option>
                 <option value="year"{% if stats_period.period == 'year' %} selected{% endif %}>Год</option>
               </select>
             </div>
-            {% if stats_period.available_years %}
+            {% if stats_period.available_years and stats_period.period != 'day' %}
               <div class="col-6 col-md-4">
                 <label class="form-label" for="id_year">Год</label>
                 <select class="form-select" id="id_year" name="year">
@@ -926,6 +927,25 @@
                     <option value="{{ year }}"{% if year == stats_period.selected_year %} selected{% endif %}>{{ year }}</option>
                   {% endfor %}
                 </select>
+              </div>
+            {% endif %}
+            {% if stats_period.period == 'day' %}
+              <div class="col-12 col-md-4">
+                <label class="form-label" for="id_date">Дата</label>
+                <input
+                  type="date"
+                  class="form-control"
+                  id="id_date"
+                  name="date"
+                  value="{{ stats_period.selected_day|date:'Y-m-d' }}"
+                  {% if stats_period.available_days %}
+                    min="{{ stats_period.available_days|last.iso }}"
+                    max="{{ stats_period.available_days|first.iso }}"
+                  {% endif %}
+                >
+                {% if stats_period.available_days %}
+                  <div class="form-text">Доступные даты с {{ stats_period.available_days|last.display }} по {{ stats_period.available_days|first.display }}.</div>
+                {% endif %}
               </div>
             {% endif %}
             {% if stats_period.period == 'month' and stats_period.available_months %}
@@ -1025,9 +1045,9 @@
           <div class="card border-0 shadow-sm h-100 stat-card" data-delay="200">
             <div class="card-body">
               <h3 class="h6 mb-2">Прочитано страниц</h3>
-              <p class="display-6 mb-0 animated-number" data-target="{{ stats.pages_total }}">0</p>
+              <p class="display-6 mb-0 animated-number" data-target="{{ stats.pages_total|default_if_none:0 }}">0</p>
               {% if stats.pages_average %}
-                <p class="text-muted mb-0">В среднем <span class="animated-number" data-target="{{ stats.pages_average }}">0</span> стр./день</p>
+                <p class="text-muted mb-0">В среднем <span class="animated-number" data-target="{{ stats.pages_average|default_if_none:0 }}" data-decimals="2">0</span> стр./день</p>
               {% else %}
                 <p class="text-muted mb-0">Нет данных о страницах в выбранный период.</p>
               {% endif %}
@@ -1412,41 +1432,98 @@ window.yaContextCb.push(() => {
 
 {% block extra_js %}
   {{ block.super }}
-  <script>
+   <script>
     // Анимация чисел
-    function animateValue(element, start, end, duration) {
-      if (!element) return;
-      let startTimestamp = null;
-      const step = (timestamp) => {
-        if (!startTimestamp) startTimestamp = timestamp;
-        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-        const value = Math.floor(progress * (end - start) + start);
-        element.textContent = value.toLocaleString();
-        if (progress < 1) {
-          window.requestAnimationFrame(step);
+    function setupAnimatedNumbers() {
+      const numberElements = Array.from(document.querySelectorAll('.animated-number'));
+      if (!numberElements.length) {
+        return;
+      }
+
+      const parseTargetValue = (el) => {
+        const raw = (el.dataset.target || '0').toString().replace(',', '.');
+        const parsed = Number.parseFloat(raw);
+        if (!Number.isFinite(parsed)) {
+          return 0;
         }
+        return parsed;
       };
-      window.requestAnimationFrame(step);
+
+      const getDecimals = (el) => {
+        const raw = el.dataset.decimals;
+        const decimals = Number.parseInt(raw || '0', 10);
+        return Number.isFinite(decimals) && decimals > 0 ? decimals : 0;
+      };
+
+      const formatNumber = (value, decimals) => {
+        const formatter = new Intl.NumberFormat('ru-RU', {
+          minimumFractionDigits: decimals,
+          maximumFractionDigits: decimals,
+        });
+        return formatter.format(value);
+      };
+
+      const animateValue = (element, target, duration, decimals) => {
+        const startValue = 0;
+        const delta = target - startValue;
+        const formatter = new Intl.NumberFormat('ru-RU', {
+          minimumFractionDigits: decimals,
+          maximumFractionDigits: decimals,
+        });
+
+        if (!Number.isFinite(delta) || duration <= 0 || Math.abs(delta) < 0.0001) {
+          element.textContent = formatter.format(target);
+          return;
+        }
+
+        let startTimestamp = null;
+        const step = (timestamp) => {
+          if (!startTimestamp) {
+            startTimestamp = timestamp;
+          }
+          const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+          const current = startValue + delta * progress;
+          const valueForDisplay = progress < 1 ? current : target;
+          element.textContent = formatter.format(valueForDisplay);
+          if (progress < 1) {
+            window.requestAnimationFrame(step);
+          }
+        };
+
+        element.textContent = formatter.format(startValue);
+        window.requestAnimationFrame(step);
+      };
+
+      if (!('IntersectionObserver' in window)) {
+        numberElements.forEach((el) => {
+          const decimals = getDecimals(el);
+          const target = parseTargetValue(el);
+          el.textContent = formatNumber(target, decimals);
+        });
+        return;
+      }
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) {
+            return;
+          }
+          const element = entry.target;
+          const decimals = getDecimals(element);
+          const target = parseTargetValue(element);
+          if (Math.abs(target) < 0.0001) {
+            element.textContent = formatNumber(0, decimals);
+          } else {
+            animateValue(element, target, 2000, decimals);
+          }
+          observer.unobserve(element);
+        });
+      }, { threshold: 0.1 });
+
+      numberElements.forEach((el) => observer.observe(el));
     }
 
-    // Запуск анимации при появлении в viewport
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const el = entry.target;
-          const targetValue = parseInt(el.dataset.target) || 0;
-          animateValue(el, 0, targetValue, 2000);
-          observer.unobserve(el);
-        }
-      });
-    }, { threshold: 0.1 });
-
-    // Инициализация анимации чисел
-    document.querySelectorAll('.animated-number').forEach(el => {
-      if (el.textContent === '0') {
-        observer.observe(el);
-      }
-    });
+    setupAnimatedNumbers();
 
     // Анимация появления карточек
     const cardObserver = new IntersectionObserver((entries) => {
