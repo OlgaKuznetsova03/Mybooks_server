@@ -265,14 +265,135 @@
       box-shadow: 0 4px 12px rgba(15,23,42,.2);
     }
     .reading-calendar__book-cover{ object-fit:cover; }
-    .reading-calendar__book-placeholder{ 
-      background:var(--bs-tertiary-bg); 
-      border:1px dashed var(--bs-border-color); 
-      color:var(--bs-secondary-color); 
-      display:flex; 
-      align-items:center; 
-      justify-content:center; 
-      font-size:.75rem; 
+    .reading-calendar__book-placeholder{
+      background:var(--bs-tertiary-bg);
+      border:1px dashed var(--bs-border-color);
+      color:var(--bs-secondary-color);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:.75rem;
+    }
+
+    /* Улучшенные элементы статистики периода */
+    .period-selector {
+      background: linear-gradient(135deg, rgba(194, 150, 129, 0.1), rgba(194, 150, 129, 0.05));
+      border-radius: 1.5rem;
+      padding: 1.5rem;
+    }
+
+    .period-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .period-tab {
+      border: 1px solid transparent;
+      border-radius: 999px;
+      padding: 0.55rem 1.5rem;
+      background: rgba(194, 150, 129, 0.12);
+      color: var(--profile-accent-color-text);
+      font-weight: 600;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .period-tab:hover,
+    .period-tab:focus {
+      background: rgba(194, 150, 129, 0.24);
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    .period-tab.active {
+      background: var(--profile-accent-color);
+      color: #fff;
+      box-shadow: 0 10px 30px rgba(194, 150, 129, 0.25);
+    }
+
+    .calendar-day__stats {
+      margin-top: auto;
+      padding-top: 0.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      font-size: 0.75rem;
+      color: var(--profile-accent-color-text);
+    }
+
+    .calendar-day__meta-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 999px;
+      background: rgba(194, 150, 129, 0.12);
+      width: fit-content;
+      margin-inline: auto;
+    }
+
+    .calendar-day__meta-item strong {
+      font-weight: 700;
+    }
+
+    .calendar-day__meta-audio {
+      color: #6c757d;
+    }
+
+    .calendar-day__meta-empty {
+      opacity: 0.7;
+      color: var(--bs-secondary-color);
+      font-size: 0.7rem;
+    }
+
+    .profile-day-modal .modal-content {
+      border-radius: 1.5rem;
+      border: none;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+
+    .profile-day-modal .modal-header {
+      border-bottom: 1px solid rgba(194, 150, 129, 0.2);
+      background: linear-gradient(135deg, var(--profile-accent-color), var(--profile-accent-color-dark));
+      color: #fff;
+      border-radius: 1.5rem 1.5rem 0 0;
+    }
+
+    .profile-day-modal .modal-body {
+      padding: 2rem;
+    }
+
+    .profile-day-modal .day-book {
+      text-align: left;
+      padding: 1rem;
+      background: rgba(194, 150, 129, 0.08);
+      border-radius: 1rem;
+      transition: all 0.3s ease;
+      height: 100%;
+    }
+
+    .profile-day-modal .day-book:hover {
+      transform: translateY(-4px);
+      background: rgba(194, 150, 129, 0.16);
+    }
+
+    .profile-day-modal .day-book-cover {
+      width: 60px;
+      height: 90px;
+      object-fit: cover;
+      border-radius: 0.5rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+
+    .profile-day-modal .day-books-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem;
     }
 
     /* Анимированные ячейки календаря */
@@ -911,59 +1032,81 @@
     <!-- Статистика -->
     <div class="tab-pane fade{% if current_tab == 'stats' %} show active{% endif %}" id="stats" role="tabpanel">
       <div class="card border-0 shadow-sm mb-4 stat-card" data-delay="0">
-        <div class="card-body">
-          <form method="get" class="row g-3 align-items-end">
+        <div class="card-body period-selector">
+          <form method="get" class="period-form" id="statsFilterForm">
             <input type="hidden" name="tab" value="stats">
-            <div class="col-12 col-md-4">
-              <label class="form-label" for="id_period">Период</label>
-              <select class="form-select" id="id_period" name="period">
-                <option value="day"{% if stats_period.period == 'day' %} selected{% endif %}>День</option>
-                <option value="week"{% if stats_period.period == 'week' %} selected{% endif %}>Последние 7 дней</option>
-                <option value="month"{% if stats_period.period == 'month' %} selected{% endif %}>Месяц</option>
-                <option value="year"{% if stats_period.period == 'year' %} selected{% endif %}>Год</option>
-              </select>
+
+            <div class="period-tabs" role="tablist" aria-label="Выбор периода статистики">
+              <button type="button" class="period-tab{% if stats_period.period == 'day' %} active{% endif %}" data-period="day" aria-pressed="{% if stats_period.period == 'day' %}true{% else %}false{% endif %}">
+                <i class="bi bi-sun"></i>
+                День
+              </button>
+              <button type="button" class="period-tab{% if stats_period.period == 'week' %} active{% endif %}" data-period="week" aria-pressed="{% if stats_period.period == 'week' %}true{% else %}false{% endif %}">
+                <i class="bi bi-calendar-week"></i>
+                Неделя
+              </button>
+              <button type="button" class="period-tab{% if stats_period.period == 'month' %} active{% endif %}" data-period="month" aria-pressed="{% if stats_period.period == 'month' %}true{% else %}false{% endif %}">
+                <i class="bi bi-calendar2-month"></i>
+                Месяц
+              </button>
+              <button type="button" class="period-tab{% if stats_period.period == 'year' %} active{% endif %}" data-period="year" aria-pressed="{% if stats_period.period == 'year' %}true{% else %}false{% endif %}">
+                <i class="bi bi-calendar4"></i>
+                Год
+              </button>
             </div>
-            {% if stats_period.available_years and stats_period.period != 'day' %}
-              <div class="col-6 col-md-4">
-                <label class="form-label" for="id_year">Год</label>
-                <select class="form-select" id="id_year" name="year">
-                  {% for year in stats_period.available_years %}
-                    <option value="{{ year }}"{% if year == stats_period.selected_year %} selected{% endif %}>{{ year }}</option>
-                  {% endfor %}
+
+            <div class="row g-3 align-items-end">
+              <div class="col-12 col-md-4 period-select-fallback">
+                <label class="form-label" for="id_period">Период</label>
+                <select class="form-select" id="id_period" name="period">
+                  <option value="day"{% if stats_period.period == 'day' %} selected{% endif %}>День</option>
+                  <option value="week"{% if stats_period.period == 'week' %} selected{% endif %}>Последние 7 дней</option>
+                  <option value="month"{% if stats_period.period == 'month' %} selected{% endif %}>Месяц</option>
+                  <option value="year"{% if stats_period.period == 'year' %} selected{% endif %}>Год</option>
                 </select>
               </div>
-            {% endif %}
-            {% if stats_period.period == 'day' %}
-              <div class="col-12 col-md-4">
-                <label class="form-label" for="id_date">Дата</label>
-                <input
-                  type="date"
-                  class="form-control"
-                  id="id_date"
-                  name="date"
-                  value="{{ stats_period.selected_day|date:'Y-m-d' }}"
+              {% if stats_period.available_years and stats_period.period != 'day' %}
+                <div class="col-6 col-md-4">
+                  <label class="form-label" for="id_year">Год</label>
+                  <select class="form-select" id="id_year" name="year">
+                    {% for year in stats_period.available_years %}
+                      <option value="{{ year }}"{% if year == stats_period.selected_year %} selected{% endif %}>{{ year }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              {% endif %}
+              {% if stats_period.period == 'day' %}
+                <div class="col-12 col-md-4">
+                  <label class="form-label" for="id_date">Дата</label>
+                  <input
+                    type="date"
+                    class="form-control"
+                    id="id_date"
+                    name="date"
+                    value="{{ stats_period.selected_day|date:'Y-m-d' }}"
+                    {% if stats_period.last_available_day and stats_period.first_available_day %}
+                      min="{{ stats_period.last_available_day.iso }}"
+                      max="{{ stats_period.first_available_day.iso }}"
+                    {% endif %}
+                  >
                   {% if stats_period.last_available_day and stats_period.first_available_day %}
-                    min="{{ stats_period.last_available_day.iso }}"
-                    max="{{ stats_period.first_available_day.iso }}"
+                    <div class="form-text">Доступные даты с {{ stats_period.last_available_day.display }} по {{ stats_period.first_available_day.display }}.</div>
                   {% endif %}
-                >
-                {% if stats_period.last_available_day and stats_period.first_available_day %}
-                  <div class="form-text">Доступные даты с {{ stats_period.last_available_day.display }} по {{ stats_period.first_available_day.display }}.</div>
-                {% endif %}
+                </div>
+              {% endif %}
+              {% if stats_period.period == 'month' and stats_period.available_months %}
+                <div class="col-6 col-md-4">
+                  <label class="form-label" for="id_month">Месяц</label>
+                  <select class="form-select" id="id_month" name="month">
+                    {% for month_value, month_name in stats_period.available_months %}
+                      <option value="{{ month_value }}"{% if month_value == stats_period.selected_month %} selected{% endif %}>{{ month_name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              {% endif %}
+              <div class="col-12 col-md-auto">
+                <button type="submit" class="btn btn-primary">Обновить</button>
               </div>
-            {% endif %}
-            {% if stats_period.period == 'month' and stats_period.available_months %}
-              <div class="col-6 col-md-4">
-                <label class="form-label" for="id_month">Месяц</label>
-                <select class="form-select" id="id_month" name="month">
-                  {% for month_value, month_name in stats_period.available_months %}
-                    <option value="{{ month_value }}"{% if month_value == stats_period.selected_month %} selected{% endif %}>{{ month_name }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-            {% endif %}
-            <div class="col-12 col-md-auto">
-              <button type="submit" class="btn btn-primary">Показать</button>
             </div>
           </form>
         </div>
@@ -1006,6 +1149,10 @@
                       <tr>
                         {% for day in week %}
                           <td class="{% if not day.in_month %}opacity-75{% endif %} {% if day.books %}calendar-day-active{% endif %}"
+                              {% if day.in_month %}data-date="{{ day.date|date:"Y-m-d" }}"{% endif %}
+                              role="button"
+                              tabindex="0"
+                              aria-label="{{ day.date|date:'d E Y' }}{% if day.books_count %}, книг: {{ day.books_count }}{% endif %}{% if day.pages_total %}, страниц: {{ day.pages_total }}{% endif %}"
                               onclick="showDayDetails('{{ day.date|date:"Y-m-d" }}')">
                             <div class="reading-calendar__cell">
                               <div class="reading-calendar__header">
@@ -1028,6 +1175,30 @@
                                   {% endfor %}
                                 </div>
                               {% endif %}
+                              <div class="calendar-day__stats">
+                                {% if day.pages_total %}
+                                  <div class="calendar-day__meta-item">
+                                    <strong>{{ day.pages_total }}</strong>
+                                    {{ day.pages_total|ru_pluralize:"страница,страницы,страниц" }}
+                                  </div>
+                                {% endif %}
+                                {% if day.books_count %}
+                                  <div class="calendar-day__meta-item">
+                                    <i class="bi bi-book"></i>
+                                    <strong>{{ day.books_count }}</strong>
+                                    {{ day.books_count|ru_pluralize:"книга,книги,книг" }}
+                                  </div>
+                                {% endif %}
+                                {% if day.audio_display %}
+                                  <div class="calendar-day__meta-item calendar-day__meta-audio">
+                                    <i class="bi bi-headphones"></i>
+                                    {{ day.audio_display }}
+                                  </div>
+                                {% endif %}
+                                {% if not day.books_count and not day.pages_total and not day.audio_display and day.in_month %}
+                                  <div class="calendar-day__meta-empty">Нет записей</div>
+                                {% endif %}
+                              </div>
                             </div>
                           </td>
                         {% endfor %}
@@ -1041,6 +1212,32 @@
               {% endif %}
             </div>
           </div>
+          {% if calendar.month_totals %}
+            <div class="period-stats mt-4">
+              <h4 class="mb-3">Статистика за {{ calendar.month_name }} {{ calendar.year }}</h4>
+              <div class="stats-grid">
+                <div class="stat-item">
+                  <div class="stat-value animated-number" data-target="{{ calendar.month_totals.pages_total|default_if_none:0 }}">0</div>
+                  <div class="stat-label">Прочитано страниц</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value animated-number" data-target="{{ calendar.month_totals.books_count|default_if_none:0 }}">0</div>
+                  <div class="stat-label">Прочитано книг</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value animated-number" data-target="{{ calendar.month_totals.reading_days|default_if_none:0 }}">0</div>
+                  <div class="stat-label">Дней с чтением</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value animated-number" data-target="{{ calendar.month_totals.avg_pages|default_if_none:0 }}" data-decimals="1">0</div>
+                  <div class="stat-label">Среднее страниц в день</div>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+          {% if calendar.day_payloads %}
+            {{ calendar.day_payloads|json_script:"profile-calendar-day-data" }}
+          {% endif %}
         {% endif %}
       {% endwith %}
 
@@ -1414,6 +1611,52 @@
 
 </div><!-- /.profile-theme -->
 
+<!-- Модальное окно с деталями дня -->
+<div class="modal fade profile-day-modal" id="readingDayModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="dayModalTitle">Статистика за день</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-md-4">
+            <div class="stat-item">
+              <div class="stat-value" id="dayModalPages">0</div>
+              <div class="stat-label">Прочитано страниц</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="stat-item">
+              <div class="stat-value" id="dayModalBooks">0</div>
+              <div class="stat-label">Книги дня</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="stat-item">
+              <div class="stat-value" id="dayModalSessions">0</div>
+              <div class="stat-label">Записей чтения</div>
+            </div>
+          </div>
+        </div>
+        <div class="mb-3" id="dayModalAudioWrapper" hidden>
+          <span class="badge text-bg-light text-dark"><i class="bi bi-headphones me-1"></i><span id="dayModalAudio"></span></span>
+        </div>
+        <div class="mb-3">
+          <h6 class="mb-2">Прочитанные книги</h6>
+          <div class="day-books-grid" id="dayModalBooksList"></div>
+          <p class="text-muted small mb-0" id="dayModalEmptyMessage" hidden>В этот день пока нет записей чтения.</p>
+        </div>
+        <div class="d-flex justify-content-end gap-2 mt-4">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Закрыть</button>
+          <a href="#" class="btn btn-primary" id="dayModalDetailLink" target="_self">Открыть подробную статистику</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Уведомление -->
 <div class="profile-notification" id="profileNotification">
   <div class="d-flex align-items-center">
@@ -1529,6 +1772,19 @@ window.yaContextCb.push(() => {
 
     setupAnimatedNumbers();
 
+    let calendarDayData = {};
+    const calendarDayDataElement = document.getElementById('profile-calendar-day-data');
+    if (calendarDayDataElement) {
+      try {
+        calendarDayData = JSON.parse(calendarDayDataElement.textContent || '{}');
+      } catch (error) {
+        console.warn('Не удалось разобрать данные календаря', error);
+        calendarDayData = {};
+      }
+    }
+
+    const numberFormatter = new Intl.NumberFormat('ru-RU');
+
     // Анимация появления карточек
     const cardObserver = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
@@ -1578,14 +1834,10 @@ window.yaContextCb.push(() => {
       }
     }
 
-    // Детали дня в календаре
-    function showDayDetails(isoDate) {
-      if (!isoDate) {
-        return;
-      }
-
+     // Формирование ссылки на подробную статистику дня
+    function buildDayDetailUrl(isoDate) {
       const url = new URL(window.location.href);
-      const [year, month] = isoDate.split('-');
+      const [year, month] = (isoDate || '').split('-');
 
       url.searchParams.set('tab', 'stats');
       url.searchParams.set('period', 'day');
@@ -1597,12 +1849,127 @@ window.yaContextCb.push(() => {
       }
 
       if (month) {
-        const monthNumber = String(parseInt(month, 10));
+        const monthNumber = String(Number.parseInt(month, 10));
         url.searchParams.set('month', monthNumber);
         url.searchParams.set('calendar_month', monthNumber);
       }
 
-      window.location.assign(url.toString());
+      return url.toString();
+    }
+
+    function renderDayBooks(listElement, books) {
+      listElement.innerHTML = '';
+      if (!books || !books.length) {
+        return;
+      }
+
+      books.forEach((book) => {
+        const card = document.createElement('div');
+        card.className = 'day-book';
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'd-flex gap-3 align-items-start';
+
+        if (book.cover_url) {
+          const cover = document.createElement('img');
+          cover.src = book.cover_url;
+          cover.alt = `Обложка ${book.title}`;
+          cover.className = 'day-book-cover flex-shrink-0';
+          wrapper.appendChild(cover);
+        }
+
+        const textContainer = document.createElement('div');
+        textContainer.className = 'flex-grow-1';
+
+        const titleEl = document.createElement('div');
+        titleEl.className = 'fw-semibold mb-1';
+        if (book.detail_url) {
+          const link = document.createElement('a');
+          link.href = book.detail_url;
+          link.textContent = book.title;
+          link.className = 'text-decoration-none';
+          titleEl.appendChild(link);
+        } else {
+          titleEl.textContent = book.title;
+        }
+        textContainer.appendChild(titleEl);
+
+        if (book.authors && book.authors.length) {
+          const authorsEl = document.createElement('div');
+          authorsEl.className = 'small text-muted';
+          authorsEl.textContent = book.authors.join(', ');
+          textContainer.appendChild(authorsEl);
+        }
+
+        if (book.is_completion) {
+          const badge = document.createElement('span');
+          badge.className = 'badge text-bg-success mt-2';
+          badge.textContent = 'Завершена';
+          textContainer.appendChild(badge);
+        }
+
+        wrapper.appendChild(textContainer);
+        card.appendChild(wrapper);
+        listElement.appendChild(card);
+      });
+    }
+
+    function openDayModal(isoDate) {
+      const payload = calendarDayData[isoDate];
+      if (!payload) {
+        window.location.assign(buildDayDetailUrl(isoDate));
+        return;
+      }
+
+      const modalElement = document.getElementById('readingDayModal');
+      const titleElement = document.getElementById('dayModalTitle');
+      const pagesElement = document.getElementById('dayModalPages');
+      const booksElement = document.getElementById('dayModalBooks');
+      const sessionsElement = document.getElementById('dayModalSessions');
+      const audioWrapper = document.getElementById('dayModalAudioWrapper');
+      const audioElement = document.getElementById('dayModalAudio');
+      const listElement = document.getElementById('dayModalBooksList');
+      const emptyMessage = document.getElementById('dayModalEmptyMessage');
+      const detailLink = document.getElementById('dayModalDetailLink');
+
+      if (!modalElement || !titleElement || !pagesElement || !booksElement || !sessionsElement || !listElement || !emptyMessage || !detailLink) {
+        window.location.assign(buildDayDetailUrl(isoDate));
+        return;
+      }
+
+      titleElement.textContent = `Статистика за ${payload.date_display || isoDate}`;
+      pagesElement.textContent = numberFormatter.format(payload.pages_total || 0);
+      booksElement.textContent = numberFormatter.format(payload.books_count || 0);
+      sessionsElement.textContent = numberFormatter.format(payload.reading_sessions || 0);
+
+      if (payload.audio_display) {
+        audioElement.textContent = payload.audio_display;
+        audioWrapper.hidden = false;
+      } else {
+        audioWrapper.hidden = true;
+      }
+
+      renderDayBooks(listElement, payload.books || []);
+      const hasBooks = Boolean(payload.books && payload.books.length);
+      emptyMessage.hidden = hasBooks;
+      detailLink.href = buildDayDetailUrl(isoDate);
+
+      const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+      modal.show();
+    }
+
+    // Детали дня в календаре
+    function showDayDetails(isoDate) {
+      if (!isoDate) {
+        return;
+      }
+
+      if (calendarDayData && Object.prototype.hasOwnProperty.call(calendarDayData, isoDate)) {
+        openDayModal(isoDate);
+        return;
+      }
+
+      window.location.assign(buildDayDetailUrl(isoDate));
     }
 
     // Параллакс эффект для заголовков
@@ -1650,10 +2017,49 @@ window.yaContextCb.push(() => {
 
     // Запуск анимаций при загрузке
     document.addEventListener('DOMContentLoaded', function() {
+      const periodFallbacks = document.querySelectorAll('.period-select-fallback');
+      periodFallbacks.forEach(el => el.classList.add('d-none'));
+
+      const periodTabs = document.querySelectorAll('.period-tab');
+      const periodSelect = document.getElementById('id_period');
+      const periodForm = document.getElementById('statsFilterForm');
+
+      periodTabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+          if (!periodSelect) {
+            return;
+          }
+          const targetPeriod = tab.dataset.period;
+          if (!targetPeriod) {
+            return;
+          }
+          const shouldSubmit = periodSelect.value !== targetPeriod;
+          periodSelect.value = targetPeriod;
+          periodTabs.forEach((btn) => {
+            const isActive = btn === tab;
+            btn.classList.toggle('active', isActive);
+            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+          });
+          if (shouldSubmit && periodForm) {
+            periodForm.submit();
+          }
+        });
+      });
+
+      document.querySelectorAll('td[data-date]').forEach((cell) => {
+        cell.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            const isoDate = cell.dataset.date;
+            showDayDetails(isoDate);
+          }
+        });
+      });
+
       // Задержка для плавного появления
       setTimeout(() => {
         updateReadingProgress();
-        
+
         // Анимация графиков
         const charts = document.querySelectorAll('.chart-container');
         charts.forEach((chart, index) => {

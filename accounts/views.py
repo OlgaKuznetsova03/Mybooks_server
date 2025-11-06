@@ -112,6 +112,9 @@ def _build_reading_calendar(user: User, params, read_items_qs, period_meta):
             {
                 "books": {},
                 "completed_ids": set(),
+                "pages_equivalent": Decimal("0"),
+                "audio_seconds": 0,
+                "reading_sessions": 0,
             },
         )
 
@@ -122,17 +125,25 @@ def _build_reading_calendar(user: User, params, read_items_qs, period_meta):
             log_date__lte=last_day,
         )
         .select_related("progress__book")
+        .prefetch_related("progress__book__authors")
         .order_by("log_date", "progress__book__title")
     )
     for log in logs:
         book = log.progress.book
         record = ensure_day(log.log_date)
         books_map = record["books"]
+        record["reading_sessions"] = (record.get("reading_sessions") or 0) + 1
+        if log.pages_equivalent:
+            record["pages_equivalent"] = record.get("pages_equivalent") + log.pages_equivalent
+        if log.audio_seconds:
+            record["audio_seconds"] = (record.get("audio_seconds") or 0) + log.audio_seconds
         if book.id not in books_map:
             books_map[book.id] = {
                 "id": book.id,
                 "title": book.title,
                 "cover_url": _resolve_cover(book),
+                "authors": [author.name for author in book.authors.all()],
+                "detail_url": reverse("book_detail", args=[book.id]),
             }
 
     if read_items_qs is not None:
@@ -142,6 +153,7 @@ def _build_reading_calendar(user: User, params, read_items_qs, period_meta):
                 added_at__date__lte=last_day,
             )
             .select_related("book")
+            .prefetch_related("book__authors")
             .order_by("added_at")
         )
         for item in completed_items:
@@ -155,18 +167,27 @@ def _build_reading_calendar(user: User, params, read_items_qs, period_meta):
                     "id": book.id,
                     "title": book.title,
                     "cover_url": _resolve_cover(book),
+                    "authors": [author.name for author in book.authors.all()],
+                    "detail_url": reverse("book_detail", args=[book.id]),
                 }
             record["completed_ids"].add(book.id)
 
     cal = calendar.Calendar(firstweekday=0)
     weeks = []
     has_activity = False
+    month_pages_total = Decimal("0")
+    month_reading_days: set[date] = set()
+    month_completed_ids: set[int] = set()
+    day_payloads: dict[str, dict[str, object]] = {}
     for week in cal.monthdatescalendar(calendar_year, calendar_month):
         week_days = []
         for day in week:
             record = day_records.get(day)
             books = []
             is_completion_day = False
+            pages_total = Decimal("0")
+            audio_seconds = 0
+            reading_sessions = 0
             if record and day.month == calendar_month:
                 completion_ids = record["completed_ids"]
                 books = sorted(
@@ -175,6 +196,8 @@ def _build_reading_calendar(user: User, params, read_items_qs, period_meta):
                             "id": book_id,
                             "title": info["title"],
                             "cover_url": info["cover_url"],
+                            "detail_url": info.get("detail_url"),
+                            "authors": info.get("authors", []),
                             "is_completion": book_id in completion_ids,
                         }
                         for book_id, info in record["books"].items()
@@ -183,14 +206,43 @@ def _build_reading_calendar(user: User, params, read_items_qs, period_meta):
                 )
                 is_completion_day = bool(completion_ids)
                 has_activity = True
+                pages_total = record.get("pages_equivalent") or Decimal("0")
+                audio_seconds = record.get("audio_seconds") or 0
+                reading_sessions = record.get("reading_sessions") or 0
+                if pages_total > 0:
+                    month_pages_total += pages_total
+                if completion_ids:
+                    month_completed_ids.update(completion_ids)
+                if pages_total > 0 or books:
+                    month_reading_days.add(day)
             week_days.append(
                 {
                     "date": day,
                     "in_month": day.month == calendar_month,
                     "books": books,
                     "is_completion_day": is_completion_day,
+                    "pages_total": _decimal_to_number(pages_total),
+                    "books_count": len(books),
+                    "audio_display": _format_duration(timedelta(seconds=audio_seconds))
+                    if audio_seconds
+                    else None,
+                    "reading_sessions": reading_sessions,
                 }
             )
+            if day.month == calendar_month:
+                iso_date = day.isoformat()
+                day_payloads[iso_date] = {
+                    "date": iso_date,
+                    "date_display": day.strftime("%d.%m.%Y"),
+                    "pages_total": _decimal_to_number(pages_total),
+                    "books_count": len(books),
+                    "audio_display": _format_duration(timedelta(seconds=audio_seconds))
+                    if audio_seconds
+                    else None,
+                    "reading_sessions": reading_sessions,
+                    "books": books,
+                    "has_completion": is_completion_day,
+                }
         weeks.append(week_days)
 
     prev_month_anchor = first_day - timedelta(days=1)
@@ -199,6 +251,21 @@ def _build_reading_calendar(user: User, params, read_items_qs, period_meta):
     next_month_start = date(next_month_anchor.year, next_month_anchor.month, 1)
 
     month_name = MONTH_NAMES[calendar_month] if 1 <= calendar_month < len(MONTH_NAMES) else str(calendar_month)
+
+    month_stats = None
+    if month_pages_total > 0 or month_completed_ids or month_reading_days:
+        avg_pages = None
+        if month_reading_days:
+            avg_pages = (
+                month_pages_total
+                / Decimal(len(month_reading_days))
+            ).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+        month_stats = {
+            "pages_total": _decimal_to_number(month_pages_total),
+            "books_count": len(month_completed_ids),
+            "reading_days": len(month_reading_days),
+            "avg_pages": _decimal_to_number(avg_pages) if avg_pages is not None else None,
+        }
 
     return {
         "year": calendar_year,
@@ -209,6 +276,8 @@ def _build_reading_calendar(user: User, params, read_items_qs, period_meta):
         "has_activity": has_activity,
         "prev_url": _build_calendar_url(params, prev_month_start.year, prev_month_start.month),
         "next_url": _build_calendar_url(params, next_month_start.year, next_month_start.month),
+        "month_totals": month_stats,
+        "day_payloads": day_payloads,
     }
 
 
