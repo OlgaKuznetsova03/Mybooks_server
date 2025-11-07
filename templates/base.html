@@ -290,11 +290,13 @@
 
     <ul class="navbar-nav" id="offcanvasLinks">
       <li class="nav-item"><a class="nav-link" href="{% url 'book_list' %}">Книги</a></li>
+      <li class="nav-item"><a class="nav-link" href="{% url 'shelves:reading_now' %}">Читаю сейчас</a></li>
       {% if request.user.is_authenticated %}
       <li class="nav-item"><a class="nav-link" href="{% url 'shelves:home_library' %}">Домашняя библиотека</a></li>
       {% endif %}
+      <li class="nav-item"><a class="nav-link" href="{% url 'reading_communities_overview' %}">Совместные чтения и марафоны</a></li>
       <li class="nav-item"><a class="nav-link" href="{% url 'games:index' %}">Игры</a></li>
-      <li class="nav-item"><a class="nav-link" href="{% url 'shelves:reading_feed' %}">Лента</a></li>
+      <li class="nav-item"><a class="nav-link" href="{% url 'shelves:reading_feed' %}">Отзывы и Рейтинг</a></li>
       <li class="nav-item"><a class="nav-link" href="{% url 'collaborations:offer_list' %}">Сотрудничество</a></li>
       <li class="nav-item"><a class="nav-link" href="{% url 'collaborations:blogger_community' %}">Блогерский хаб</a></li>
       <li class="nav-item">
@@ -305,8 +307,6 @@
           {% endif %}
         </a>
       </li>
-      <li class="nav-item"><a class="nav-link" href="{% url 'reading_communities_overview' %}">Совместные чтения и марафоны</a></li>
-      <li class="nav-item"><a class="nav-link" href="{% url 'shelves:reading_now' %}">Читаю сейчас</a></li>
       <li class="nav-item"><a class="nav-link" href="{% url 'premium_overview' %}">Премиум</a></li>
     </ul>
 

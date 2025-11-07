@@ -1,12 +1,15 @@
 import tempfile
 from unittest import mock
 
+from datetime import timedelta
+
 from django.contrib.auth.models import Group, User
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from shelves.models import Shelf, ShelfItem
 from shelves.services import ALL_DEFAULT_READ_SHELF_NAMES
@@ -749,3 +752,31 @@ class RateBookMovesShelfTests(TestCase):
         self.assertTrue(
             ShelfItem.objects.filter(shelf=read_shelf, book=self.book).exists()
         )
+
+
+class BookDetailQuickAddReadShelfAliasTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="alias-user", password="pass12345")
+        self.client.login(username="alias-user", password="pass12345")
+        self.book = Book.objects.create(title="Alias Shelf Book")
+
+        self.read_shelf = Shelf.objects.get(user=self.user, name="Прочитал")
+        self.read_shelf.name = "Прочитано"
+        self.read_shelf.save(update_fields=["name"])
+
+    def test_quick_add_respects_custom_date_for_alias(self):
+        target_date = timezone.localdate() - timedelta(days=5)
+
+        response = self.client.post(
+            reverse("book_detail", args=[self.book.pk]),
+            {
+                "action": "quick-add-shelf",
+                "shelf": str(self.read_shelf.pk),
+                "read_at": target_date.isoformat(),
+            },
+        )
+
+        self.assertRedirects(response, reverse("book_detail", args=[self.book.pk]))
+
+        shelf_item = ShelfItem.objects.get(shelf=self.read_shelf, book=self.book)
+        self.assertEqual(timezone.localtime(shelf_item.added_at).date(), target_date)

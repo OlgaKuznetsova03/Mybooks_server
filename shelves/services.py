@@ -19,10 +19,19 @@ from .models import BookProgress, Shelf, ShelfItem, HomeLibraryEntry
 DEFAULT_WANT_SHELF = "Хочу прочитать"
 DEFAULT_READING_SHELF = "Читаю"
 DEFAULT_READ_SHELF = "Прочитал"
-DEFAULT_READ_SHELF_ALIASES: tuple[str, ...] = ("Прочитал",)
-ALL_DEFAULT_READ_SHELF_NAMES: tuple[str, ...] = (
-    DEFAULT_READ_SHELF,
-    *DEFAULT_READ_SHELF_ALIASES,
+DEFAULT_READ_SHELF_ALIASES: tuple[str, ...] = (
+    "Прочитал",
+    "Прочитано",
+)
+ALL_DEFAULT_READ_SHELF_NAMES: tuple[str, ...] = tuple(
+    dict.fromkeys(
+        name.strip()
+        for name in (
+            DEFAULT_READ_SHELF,
+            *DEFAULT_READ_SHELF_ALIASES,
+        )
+        if name and name.strip()
+    )
 )
 DEFAULT_HOME_LIBRARY_SHELF = "Моя домашняя библиотека"
 READING_PROGRESS_LABEL = "Читаю сейчас"
