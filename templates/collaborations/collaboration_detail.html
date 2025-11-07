@@ -81,7 +81,7 @@
                 <div class="border rounded p-3">
                   <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                     <div>
-                      <strong>{{ message.author.get_full_name|default:message.author.username }}</strong>
+                      <strong><a class="text-decoration-none link-dark" href="{% url 'profile' message.author.username %}">{{ message.author.get_full_name|default:message.author.username }}</a></strong>
                       {% if message.author_id == collaboration.author_id %}
                         <span class="badge text-bg-secondary ms-2">{% trans "Автор" %}</span>
                       {% else %}

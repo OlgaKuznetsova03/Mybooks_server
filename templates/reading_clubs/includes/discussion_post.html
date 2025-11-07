@@ -1,6 +1,8 @@
 <article class="discussion-post{% if level %} discussion-post--nested{% endif %}" id="post-{{ post.pk }}">
   <div class="d-flex justify-content-between mb-2">
-    <div class="discussion-post__author">{{ post.author.get_full_name|default:post.author.username }}</div>
+    <div class="discussion-post__author">
+      <a class="discussion-post__author-link" href="{% url 'profile' post.author.username %}">{{ post.author.get_full_name|default:post.author.username }}</a>
+    </div>
     <div class="discussion-post__timestamp">{{ post.created_at|date:"d E Y H:i" }}</div>
   </div>
 

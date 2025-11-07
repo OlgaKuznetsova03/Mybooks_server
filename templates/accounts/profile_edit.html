@@ -7,8 +7,24 @@
   <h5>Профиль</h5>
   {% for f in form %}
     <div class="mb-3">
-      <label class="form-label">{{ f.label }}</label>
-      {{ f }}
+      {% if f.field.widget.input_type == "checkbox" %}
+        <div class="form-check">
+          {{ f }}
+          <label class="form-check-label" for="{{ f.id_for_label }}">{{ f.label }}</label>
+        </div>
+        {% if f.help_text %}
+          <div class="form-text">{{ f.help_text }}</div>
+        {% endif %}
+      {% else %}
+        <label class="form-label" for="{{ f.id_for_label }}">{{ f.label }}</label>
+        {{ f }}
+        {% if f.help_text %}
+          <div class="form-text">{{ f.help_text }}</div>
+        {% endif %}
+      {% endif %}
+      {% if f.errors %}
+        <div class="invalid-feedback d-block">{{ f.errors|join:", " }}</div>
+      {% endif %}
     </div>
   {% endfor %}
 

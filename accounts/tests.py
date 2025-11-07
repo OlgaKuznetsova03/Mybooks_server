@@ -170,6 +170,50 @@ class AuthorProfileBooksTests(TestCase):
         self.assertContains(response, "Добавить книгу")
 
 
+@override_settings(
+    SECURE_SSL_REDIRECT=False,
+    SESSION_COOKIE_SECURE=False,
+    CSRF_COOKIE_SECURE=False,
+)
+class ProfilePrivacyTests(TestCase):
+    def setUp(self):
+        self.client.defaults["HTTP_HOST"] = "localhost"
+        self.client.defaults["wsgi.url_scheme"] = "https"
+        self.client.defaults["HTTP_X_FORWARDED_PROTO"] = "https"
+        self.owner = get_user_model().objects.create_user(
+            username="private_user",
+            email="private@example.com",
+            password="PrivatePass123!",
+        )
+        self.owner.profile.is_private = True
+        self.owner.profile.save(update_fields=["is_private"])
+        self.other = get_user_model().objects.create_user(
+            username="visitor",
+            email="visitor@example.com",
+            password="VisitorPass123!",
+        )
+
+    def test_private_profile_hidden_from_other_users(self):
+        self.client.login(username=self.other.username, password="VisitorPass123!")
+        response = self.client.get(
+            reverse("profile", kwargs={"username": self.owner.username})
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "accounts/profile_private.html")
+        self.assertContains(response, "Это приватный аккаунт")
+
+    def test_private_profile_visible_to_owner(self):
+        self.client.login(username=self.owner.username, password="PrivatePass123!")
+        response = self.client.get(
+            reverse("profile", kwargs={"username": self.owner.username})
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "accounts/profile.html")
+        self.assertContains(response, self.owner.username)
+
+
 class SignUpRoleAssignmentTests(TestCase):
     def test_signup_assigns_selected_roles(self):
         form = SignUpForm(

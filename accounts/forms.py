@@ -169,10 +169,16 @@ class ProfileForm(forms.ModelForm):
         widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
         help_text=f"Максимальный размер файла: {_avatar_max_mb} MB.",
     )
+    is_private = forms.BooleanField(
+        label="Сделать профиль приватным",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        help_text="Если включено, другие пользователи увидят, что это приватный аккаунт и не смогут просматривать ваш профиль.",
+    )
 
     class Meta:
         model = Profile
-        fields = ("avatar", "bio", "website")
+        fields = ("avatar", "bio", "website", "is_private")
         widgets = {"bio": forms.Textarea(attrs={"rows": 4})}
 
 

@@ -815,6 +815,13 @@ def profile(request, username=None):
         username=username or request.user.username
     )
     profile_obj = user_obj.profile
+    is_owner = request.user.is_authenticated and request.user == user_obj
+    if profile_obj.is_private and not is_owner:
+        return render(
+            request,
+            "accounts/profile_private.html",
+            {"u": user_obj},
+        )
     stats_payload = _collect_profile_stats(user_obj, request.GET)
     active_tab = request.GET.get("tab", "overview")
     if active_tab == "shelves":

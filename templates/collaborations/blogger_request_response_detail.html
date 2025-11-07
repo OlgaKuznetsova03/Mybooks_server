@@ -194,7 +194,7 @@
                 <div class="comment-bubble border rounded p-3 {% if comment.author_id == response.responder_id %}is-author{% elif comment.author_id == request_obj.blogger_id %}is-blogger{% endif %}">
                   <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
                     <div>
-                      <strong>{{ comment.author.get_full_name|default:comment.author.username }}</strong>
+                      <strong><a class="text-decoration-none link-dark" href="{% url 'profile' comment.author.username %}">{{ comment.author.get_full_name|default:comment.author.username }}</a></strong>
                       {% if comment.author_id == request_obj.blogger_id %}
                         <span class="badge text-bg-secondary ms-2">{% trans "Блогер" %}</span>
                       {% elif comment.author_id == response.responder_id %}

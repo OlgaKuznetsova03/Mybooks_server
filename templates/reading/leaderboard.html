@@ -22,7 +22,9 @@
   .leaderboard-entry__position{font-weight:700;font-size:1.35rem;color:#1e3b45;min-width:2.5rem;text-align:center}
   .leaderboard-entry__avatar{width:52px;height:52px;border-radius:50%;overflow:hidden;background:rgba(70,112,126,.18);display:flex;align-items:center;justify-content:center;font-weight:700;color:#1e3b45;text-transform:uppercase;flex-shrink:0}
   .leaderboard-entry__avatar--placeholder{border:2px solid rgba(70,112,126,.24);background:rgba(70,112,126,.08)}
-  .leaderboard-entry__name{font-weight:600;color:#1e3b45}
+  .leaderboard-entry__name{font-weight:600;color:#1e3b45;text-decoration:none;display:block}
+  .leaderboard-entry__name:hover,
+  .leaderboard-entry__name:focus{text-decoration:underline;color:#162b32}
   .leaderboard-entry__value{font-size:.95rem;color:#2d4b55}
   .leaderboard-empty{margin:0;padding:1rem 1.25rem;border-radius:18px;background:rgba(70,112,126,.08);color:#2a4751;font-size:.95rem}
 </style>
@@ -87,7 +89,7 @@
               {% endif %}
             </div>
             <div class="flex-grow-1">
-              <div class="leaderboard-entry__name">{{ display_name }}</div>
+              <a class="leaderboard-entry__name" href="{% url 'profile' item.user.username %}">{{ display_name }}</a>
               {% if selected_metric == 'pages' %}
                 <div class="leaderboard-entry__value">
                   {{ item.total_pages|floatformat:-2 }} {{ item.total_pages|ru_pluralize:"страница,страницы,страниц" }}

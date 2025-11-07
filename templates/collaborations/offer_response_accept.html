@@ -162,7 +162,7 @@
           <ul class="list-unstyled small mb-0">
             {% for comment in comments %}
               <li class="mb-2">
-                <strong>{{ comment.author.get_full_name|default:comment.author.username }}</strong>
+                <strong><a class="text-decoration-none link-dark" href="{% url 'profile' comment.author.username %}">{{ comment.author.get_full_name|default:comment.author.username }}</a></strong>
                 <span class="text-muted">· {{ comment.created_at|date:"j E Y, H:i" }}</span>
                 <div>{{ comment.text|linebreaks }}</div>
               </li>

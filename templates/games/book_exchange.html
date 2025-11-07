@@ -15,7 +15,7 @@
         {% if challenge_data and challenge_data.challenge %}
         <div class="text-lg-end">
           <div class="fw-semibold">Раунд № {{ challenge_data.challenge.round_number }}</div>
-          <div class="small text-muted">Игрок: {{ challenge_data.challenge.user.username }}</div>
+          <div class="small text-muted">Игрок: <a class="text-muted text-decoration-none" href="{% url 'profile' challenge_data.challenge.user.username %}">{{ challenge_data.challenge.user.username }}</a></div>
           {% if challenge_data.deadline %}
           <div class="small">Дедлайн: {{ challenge_data.deadline|date:"d E Y" }}{% if challenge_data.days_left is not None %} (осталось {{ challenge_data.days_left }} дн.){% endif %}</div>
           {% endif %}
@@ -293,7 +293,7 @@
                     {% endif %}
                   </div>
                   <div class="flex-grow-1">
-                    <h3 class="h6 mb-1 mb-md-0">{{ challenge_data.challenge.user.username }}</h3>
+                    <h3 class="h6 mb-1 mb-md-0"><a class="text-decoration-none link-dark" href="{% url 'profile' challenge_data.challenge.user.username %}">{{ challenge_data.challenge.user.username }}</a></h3>
                     <div class="small text-muted">Раунд № {{ challenge_data.challenge.round_number }}</div>
                   </div>
                   <span class="badge bg-primary text-white ms-auto">Ваша полка</span>
@@ -327,7 +327,7 @@
                     {% endif %}
                   </div>
                   <div class="flex-grow-1">
-                    <h3 class="h6 mb-1">{{ foreign.challenge.user.username }}</h3>
+                    <h3 class="h6 mb-1"><a class="text-decoration-none link-dark" href="{% url 'profile' foreign.challenge.user.username %}">{{ foreign.challenge.user.username }}</a></h3>
                     <div class="small text-muted">Раунд № {{ foreign.challenge.round_number }}</div>
                   </div>
                   <span class="badge bg-light text-dark ms-auto">Цель: {{ foreign.challenge.target_books }}</span>

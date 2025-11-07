@@ -145,8 +145,14 @@
     font-weight: 600;
     color: #1e3b45;
     font-size: 1rem;
+    text-decoration: none;
   }
 
+  .reading-feed-entry__user:hover,
+  .reading-feed-entry__user:focus {
+    text-decoration: underline;
+  }
+  
   .reading-feed-entry__book {
     font-size: 1.05rem;
     color: #46707e;
@@ -262,6 +268,16 @@
 
   .reading-feed-comment strong {
     color: #1e3b45;
+  }
+
+  .reading-feed-comment__author {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .reading-feed-comment__author:hover,
+  .reading-feed-comment__author:focus {
+    text-decoration: underline;
   }
 
   .reading-feed-comment small {
@@ -385,7 +401,7 @@
                   {% endif %}
                 </div>
                 <div class="reading-feed-entry__details">
-                  <span class="reading-feed-entry__user">{{ display_name }}</span>
+                  <a class="reading-feed-entry__user" href="{% url 'profile' review.user.username %}">{{ display_name }}</a>
                   <span class="reading-feed-entry__book">{{ review.book.title }}</span>
                   <div class="reading-feed-entry__stats small text-muted">
                     <span>{{ review.created_at|date:"d E Y, H:i" }}</span>
@@ -414,7 +430,9 @@
             <div class="reading-feed-comments">
               {% for comment in review.comments.all %}
                 <div class="reading-feed-comment">
-                  <strong>{{ comment.user.get_full_name|default:comment.user.username }}</strong>
+                  {% with comment_name=comment.user.get_full_name|default:comment.user.username %}
+                  <strong><a class="reading-feed-comment__author" href="{% url 'profile' comment.user.username %}">{{ comment_name }}</a></strong>
+                  {% endwith %}
                   <small class="ms-2">{{ comment.created_at|date:"d.m.Y H:i" }}</small>
                   <p>{{ comment.body|linebreaksbr }}</p>
                 </div>
@@ -464,8 +482,8 @@
                   <span>{{ display_name|slice:":1" }}</span>
                 {% endif %}
               </div>
-              <div class="reading-feed-entry__details">
-                <span class="reading-feed-entry__user">{{ display_name }}</span>
+             <div class="reading-feed-entry__details">
+                <a class="reading-feed-entry__user" href="{% url 'profile' entry.user.username %}">{{ display_name }}</a>
                 <span class="reading-feed-entry__book">{{ entry.book.title }}</span>
                 <div class="reading-feed-entry__stats small text-muted">
                   <span>{{ entry.created_at|date:"d E Y, H:i" }}</span>
@@ -494,7 +512,9 @@
         <div class="reading-feed-comments">
           {% for comment in entry.comments.all %}
             <div class="reading-feed-comment">
-              <strong>{{ comment.user.get_full_name|default:comment.user.username }}</strong>
+              {% with comment_name=comment.user.get_full_name|default:comment.user.username %}
+              <strong><a class="reading-feed-comment__author" href="{% url 'profile' comment.user.username %}">{{ comment_name }}</a></strong>
+              {% endwith %}
               <small class="ms-2">{{ comment.created_at|date:"d.m.Y H:i" }}</small>
               <p>{{ comment.body|linebreaksbr }}</p>
             </div>

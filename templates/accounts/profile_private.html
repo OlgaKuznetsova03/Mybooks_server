@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Приватный профиль{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-6">
+      <div class="alert alert-info text-center" role="alert">
+        <h1 class="h4 mb-3">Это приватный аккаунт</h1>
+        <p class="mb-0">Пользователь <strong>@{{ u.username }}</strong> ограничил доступ к своему профилю.</p>
+        <p class="mb-0">Просмотр доступен только самому пользователю.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

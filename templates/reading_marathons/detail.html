@@ -158,7 +158,11 @@
         <div class="card h-100">
           <div class="card-header d-flex justify-content-between align-items-center" style="background-color:#62769a; color:#fff;">
             <div>
-              <h3 class="h6 mb-0">{{ participant_obj.user.get_full_name|default:participant_obj.user.username }}</h3>
+              <h3 class="h6 mb-0">
+                <a class="text-white text-decoration-none" href="{% url 'profile' participant_obj.user.username %}">
+                  {{ participant_obj.user.get_full_name|default:participant_obj.user.username }}
+                </a>
+              </h3>
               {% if not participant_obj.is_approved %}
                 <small class="text-warning">Ожидает подтверждения участия</small>
               {% endif %}

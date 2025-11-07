@@ -107,6 +107,9 @@
     }
 
     .discussion-theme .discussion-post__author{ font-weight:600; color:#2b1d17; }
+    .discussion-theme .discussion-post__author-link{ color:inherit; text-decoration:none; }
+    .discussion-theme .discussion-post__author-link:hover,
+    .discussion-theme .discussion-post__author-link:focus{ text-decoration:underline; }
     .discussion-theme .discussion-post__timestamp{ color:rgba(0,0,0,.55); }
     .discussion-theme .discussion-post__reply-meta{ color:var(--muted); font-size:.95rem; }
     .discussion-theme .discussion-post__content{ color:#2b1d17; }
@@ -194,7 +197,7 @@
                 <div class="alert alert-info discussion-form__reply-preview" role="status">
                   <div class="d-flex justify-content-between align-items-start gap-3">
                     <div>
-                      <div class="fw-semibold">Ответ на {{ reply_to_post.author.get_full_name|default:reply_to_post.author.username }}</div>
+                      <div class="fw-semibold">Ответ на <a class="discussion-post__author-link" href="{% url 'profile' reply_to_post.author.username %}">{{ reply_to_post.author.get_full_name|default:reply_to_post.author.username }}</a></div>
                       <div class="small text-muted mb-1">{{ reply_to_post.created_at|date:"d E Y H:i" }}</div>
                       <div class="discussion-form__quoted">{{ reply_to_post.content|linebreaksbr }}</div>
                     </div>

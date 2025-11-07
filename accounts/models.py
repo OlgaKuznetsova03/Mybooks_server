@@ -30,6 +30,7 @@ class Profile(models.Model):
     avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
     bio = models.TextField(blank=True)
     website = models.URLField(blank=True)
+    is_private = models.BooleanField(default=False)
     coins = models.PositiveIntegerField(default=0)
     last_daily_reward_at = models.DateField(blank=True, null=True)
     premium_auto_renew = models.BooleanField(default=True)

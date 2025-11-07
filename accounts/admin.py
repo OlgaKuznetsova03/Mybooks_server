@@ -8,12 +8,14 @@ from .models import CoinTransaction, PremiumPayment, PremiumSubscription, Profil
 class ProfileAdmin(admin.ModelAdmin):
     list_display = (
         "user",
+        "is_private",
         "is_reader",
         "is_author",
         "is_blogger",
         "has_active_premium",
         "coin_balance_display",
     )
+    list_filter = ("is_private",)
     search_fields = ("user__username", "user__email")
     list_select_related = ("user",)
 
