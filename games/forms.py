@@ -16,11 +16,13 @@ from .models import (
     BookJourneyAssignment,
     BookExchangeOffer,
     ForgottenBookEntry,
+    NobelLaureateAssignment,
 )
 from .services.book_exchange import BookExchangeGame
 from .services.book_journey import BookJourneyMap
 from .services.forgotten_books import ForgottenBooksGame
 from .services.read_before_buy import ReadBeforeBuyGame
+from .services.nobel_challenge import NobelLaureatesChallenge
 
 
 class ReadBeforeBuyEnrollForm(forms.Form):
@@ -135,6 +137,87 @@ class BookJourneyReleaseForm(forms.Form):
         stage = BookJourneyMap.get_stage_by_number(number)
         if not stage:
             raise ValidationError("Этап на карте не найден.")
+        return number
+
+
+class NobelAssignmentForm(forms.Form):
+    stage_number = forms.IntegerField(widget=forms.HiddenInput)
+    book = forms.ModelChoiceField(
+        queryset=Book.objects.none(),
+        label="Книга лауреата",
+        empty_label="Выберите книгу",
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+        self.allowed_shelves = [DEFAULT_WANT_SHELF, *ALL_DEFAULT_READ_SHELF_NAMES]
+        book_field = self.fields["book"]
+        book_field.widget.attrs.setdefault("class", "form-select form-select-sm nobel-stage-select")
+        if not user:
+            book_field.queryset = Book.objects.none()
+            return
+        queryset = (
+            Book.objects.filter(
+                shelf_items__shelf__user=user,
+                shelf_items__shelf__name__in=self.allowed_shelves,
+            )
+            .distinct()
+            .order_by("title")
+        )
+        book_field.queryset = queryset
+
+    def clean(self):
+        cleaned = super().clean()
+        user = self.user
+        if not user:
+            raise ValidationError("Авторизуйтесь, чтобы прикреплять книги к этапам.")
+
+        stage_number = cleaned.get("stage_number")
+        if stage_number is None:
+            raise ValidationError("Не удалось определить этап.")
+        try:
+            stage_number = int(stage_number)
+        except (TypeError, ValueError):
+            raise ValidationError("Некорректный номер этапа.")
+        stage = NobelLaureatesChallenge.get_stage_by_number(stage_number)
+        if not stage:
+            raise ValidationError("Этап не найден в списке лауреатов.")
+
+        book = cleaned.get("book")
+        if not book:
+            cleaned["stage_number"] = stage_number
+            return cleaned
+
+        allowed_shelves = getattr(self, "allowed_shelves", [DEFAULT_WANT_SHELF, *ALL_DEFAULT_READ_SHELF_NAMES])
+        if not ShelfItem.objects.filter(
+            shelf__user=user,
+            shelf__name__in=allowed_shelves,
+            book=book,
+        ).exists():
+            raise ValidationError(
+                "Добавьте книгу лауреата на полку «Хочу прочитать» или «Прочитал»,"
+                " прежде чем прикреплять её к этапу."
+            )
+
+        existing = NobelLaureateAssignment.objects.filter(
+            user=user, stage_number=stage_number
+        ).first()
+        if existing and existing.is_completed:
+            raise ValidationError("Этап уже выполнен — изменить книгу нельзя.")
+
+        cleaned["stage_number"] = stage_number
+        return cleaned
+
+
+class NobelReleaseForm(forms.Form):
+    stage_number = forms.IntegerField(widget=forms.HiddenInput)
+
+    def clean_stage_number(self):
+        number = self.cleaned_data["stage_number"]
+        stage = NobelLaureatesChallenge.get_stage_by_number(number)
+        if not stage:
+            raise ValidationError("Этап не найден в списке лауреатов.")
         return number
 
 

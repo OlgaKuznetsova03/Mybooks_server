@@ -149,6 +149,14 @@ def move_book_to_read_shelf(user: User, book: Book, *, read_date: date | None = 
             entry.save(update_fields=["read_at", "updated_at"])
 
     try:
+        from games.models import NobelLaureateAssignment
+    except ImportError:  # pragma: no cover - games app may be unavailable
+        NobelLaureateAssignment = None
+
+    if NobelLaureateAssignment:
+        NobelLaureateAssignment.sync_for_user_book(user, book)
+
+    try:
         from games.services.read_before_buy import ReadBeforeBuyGame
     except ImportError:
         return

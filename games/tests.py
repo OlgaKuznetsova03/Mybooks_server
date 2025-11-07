@@ -12,7 +12,9 @@ from shelves.models import BookProgress, Shelf, ShelfItem
 from shelves.services import (
     DEFAULT_READ_SHELF,
     DEFAULT_READING_SHELF,
+    DEFAULT_WANT_SHELF,
     get_home_library_shelf,
+    move_book_to_read_shelf,
 )
 
 from .models import (
@@ -24,10 +26,12 @@ from .models import (
     GameShelfBook,
     GameShelfPurchase,
     GameShelfState,
+    NobelLaureateAssignment,
 )
 from .forms import BookJourneyAssignForm
 from .services.book_exchange import BookExchangeGame
 from .services.book_journey import BookJourneyMap
+from .services.nobel_challenge import NobelLaureatesChallenge
 from .services.forgotten_books import ForgottenBooksGame
 from .services.read_before_buy import ReadBeforeBuyGame
 
@@ -40,9 +44,64 @@ class GameCatalogViewTests(TestCase):
         active_game = ReadBeforeBuyGame.get_game()
         self.assertContains(response, active_game.title)
         self.assertContains(response, BookJourneyMap.TITLE)
+        self.assertContains(response, NobelLaureatesChallenge.TITLE)
         self.assertContains(response, "Скоро появятся")
         self.assertContains(response, reverse("games:read_before_buy"))
+        self.assertContains(response, reverse("games:nobel_challenge"))
 
+
+
+class NobelChallengeViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="nobel", password="secret123")
+        self.book = Book.objects.create(title="Лауреатская книга", synopsis="")
+        want_shelf = Shelf.objects.get(user=self.user, name=DEFAULT_WANT_SHELF)
+        ShelfItem.objects.create(shelf=want_shelf, book=self.book)
+
+    def test_challenge_page_renders(self):
+        response = self.client.get(reverse("games:nobel_challenge"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, NobelLaureatesChallenge.TITLE)
+        self.assertContains(response, "1901")
+
+    def test_assign_book_creates_assignment(self):
+        self.client.login(username="nobel", password="secret123")
+        response = self.client.post(
+            reverse("games:nobel_challenge"),
+            {"action": "assign", "stage_number": 1, "book": self.book.id},
+        )
+        self.assertRedirects(response, reverse("games:nobel_challenge"))
+        assignment = NobelLaureateAssignment.objects.get(user=self.user, stage_number=1)
+        self.assertEqual(assignment.book_id, self.book.id)
+        self.assertEqual(assignment.status, NobelLaureateAssignment.Status.IN_PROGRESS)
+
+    def test_stage_completes_after_read_shelf_and_review(self):
+        self.client.login(username="nobel", password="secret123")
+        self.client.post(
+            reverse("games:nobel_challenge"),
+            {"action": "assign", "stage_number": 2, "book": self.book.id},
+        )
+        assignment = NobelLaureateAssignment.objects.get(user=self.user, stage_number=2)
+        move_book_to_read_shelf(self.user, self.book)
+        Rating.objects.create(user=self.user, book=self.book, review="Отличное чтение")
+        NobelLaureateAssignment.sync_for_user_book(self.user, self.book)
+        assignment.refresh_from_db()
+        self.assertTrue(assignment.is_completed)
+
+    def test_release_stage_removes_assignment(self):
+        self.client.login(username="nobel", password="secret123")
+        self.client.post(
+            reverse("games:nobel_challenge"),
+            {"action": "assign", "stage_number": 3, "book": self.book.id},
+        )
+        response = self.client.post(
+            reverse("games:nobel_challenge"),
+            {"action": "release", "stage_number": 3},
+        )
+        self.assertRedirects(response, reverse("games:nobel_challenge"))
+        self.assertFalse(
+            NobelLaureateAssignment.objects.filter(user=self.user, stage_number=3).exists()
+        )
 
 
 class ReadBeforeBuyGameTests(TestCase):

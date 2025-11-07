@@ -12,6 +12,7 @@ from .models import (
     BookExchangeAcceptedBook,
     BookJourneyAssignment,
     ForgottenBookEntry,
+    NobelLaureateAssignment,
 )
 
 
@@ -23,6 +24,7 @@ def handle_book_progress_update(sender, instance, **kwargs):
         BookJourneyAssignment.sync_for_user_book(instance.user, instance.book)
         ForgottenBookEntry.sync_for_user_book(instance.user, instance.book)
         BookExchangeAcceptedBook.sync_for_user_book(instance.user, instance.book)
+        NobelLaureateAssignment.sync_for_user_book(instance.user, instance.book)
 
 
 @receiver(post_save, sender=Rating)
@@ -33,6 +35,7 @@ def handle_rating_save(sender, instance, **kwargs):
         BookJourneyAssignment.sync_for_user_book(instance.user, instance.book)
         ForgottenBookEntry.sync_for_user_book(instance.user, instance.book)
         BookExchangeAcceptedBook.sync_for_user_book(instance.user, instance.book)
+        NobelLaureateAssignment.sync_for_user_book(instance.user, instance.book)
 
 
 @receiver(post_delete, sender=Rating)
@@ -43,3 +46,4 @@ def handle_rating_delete(sender, instance, **kwargs):
         BookJourneyAssignment.sync_for_user_book(instance.user, instance.book)
         ForgottenBookEntry.sync_for_user_book(instance.user, instance.book)
         BookExchangeAcceptedBook.sync_for_user_book(instance.user, instance.book)
+        NobelLaureateAssignment.sync_for_user_book(instance.user, instance.book)

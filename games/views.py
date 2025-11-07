@@ -9,9 +9,13 @@ from django.views.decorators.http import require_GET
 
 from django.db.models.functions import Coalesce
 
-from books.models import Rating
+from books.models import Book, Rating
 from shelves.models import BookProgress, ShelfItem
-from shelves.services import move_book_to_reading_shelf
+from shelves.services import (
+    ALL_DEFAULT_READ_SHELF_NAMES,
+    DEFAULT_WANT_SHELF,
+    move_book_to_reading_shelf,
+)
 
 from .catalog import get_game_cards
 from .forms import (
@@ -19,16 +23,19 @@ from .forms import (
     BookExchangeRespondForm,
     BookExchangeStartForm,
     BookJourneyAssignForm,
+    NobelAssignmentForm,
+    NobelReleaseForm,
     ForgottenBooksAddForm,
     ForgottenBooksRemoveForm,
     BookJourneyReleaseForm,
     ReadBeforeBuyEnrollForm,
 )
-from .models import BookExchangeChallenge, BookJourneyAssignment
+from .models import BookExchangeChallenge, BookJourneyAssignment, NobelLaureateAssignment
 from .services.book_exchange import BookExchangeGame
 from .services.forgotten_books import ForgottenBooksGame
 from .services.book_journey import BookJourneyMap
 from .services.read_before_buy import ReadBeforeBuyGame
+from .services.nobel_challenge import NobelLaureatesChallenge
 
 
 def _truncate_text(value: str, limit: int = 200) -> str:
@@ -702,3 +709,227 @@ def book_journey_map(request):
         "next_available_stage": next_available_stage,
     }
     return render(request, "games/book_journey_map.html", context)
+
+
+def nobel_laureates_challenge(request):
+    """Display and manage the Nobel laureates reading challenge."""
+
+    user = request.user
+    assignment_form = None
+    release_form = NobelReleaseForm()
+    assignment_stage_value = None
+
+    if request.method == "POST":
+        if not user.is_authenticated:
+            messages.error(request, "Авторизуйтесь, чтобы управлять этапами челленджа.")
+            return redirect("login")
+        action = request.POST.get("action")
+        if action == "assign":
+            assignment_form = NobelAssignmentForm(request.POST, user=user)
+            if assignment_form.is_valid():
+                stage_number = assignment_form.cleaned_data["stage_number"]
+                book = assignment_form.cleaned_data["book"]
+                stage = NobelLaureatesChallenge.get_stage_by_number(stage_number)
+                assignment, created = NobelLaureateAssignment.objects.get_or_create(
+                    user=user,
+                    stage_number=stage_number,
+                    defaults={"book": book},
+                )
+                if not created and assignment.is_completed:
+                    messages.error(
+                        request,
+                        "Этап уже выполнен — заменить книгу нельзя, освободите его вручную.",
+                    )
+                    return redirect("games:nobel_challenge")
+                assignment.reset_progress(book=book)
+                NobelLaureateAssignment.sync_for_user_book(user, book)
+                assignment.refresh_from_db()
+                stage_title = stage.title if stage else f"Этап #{stage_number}"
+                if assignment.is_completed:
+                    messages.success(
+                        request,
+                        (
+                            f"Этап «{stage_title}» засчитан: книга уже отмечена как"
+                            " прочитанная и отзыв найден."
+                        ),
+                    )
+                else:
+                    messages.success(
+                        request,
+                        (
+                            f"Книга «{book.title}» прикреплена к этапу «{stage_title}»."
+                            " Отметьте чтение и отзыв, чтобы завершить его."
+                        ),
+                    )
+                return redirect("games:nobel_challenge")
+            raw_stage_value = request.POST.get("stage_number")
+            try:
+                assignment_stage_value = int(raw_stage_value)
+            except (TypeError, ValueError):
+                assignment_stage_value = None
+            for error_list in assignment_form.errors.values():
+                for error in error_list:
+                    messages.error(request, error)
+        elif action == "release":
+            release_form = NobelReleaseForm(request.POST)
+            if release_form.is_valid():
+                stage_number = release_form.cleaned_data["stage_number"]
+                assignment = NobelLaureateAssignment.objects.filter(
+                    user=user, stage_number=stage_number
+                ).first()
+                stage = NobelLaureatesChallenge.get_stage_by_number(stage_number)
+                stage_title = stage.title if stage else f"Этап #{stage_number}"
+                if not assignment:
+                    messages.error(request, "Для этого этапа пока не выбрана книга.")
+                elif assignment.is_completed:
+                    messages.error(
+                        request, "Нельзя удалить книгу с уже выполненного этапа."
+                    )
+                else:
+                    assignment.delete()
+                    messages.success(
+                        request, f"Этап «{stage_title}» снова свободен для выбора."
+                    )
+                return redirect("games:nobel_challenge")
+            for error_list in release_form.errors.values():
+                for error in error_list:
+                    messages.error(request, error)
+        else:
+            assignment_form = NobelAssignmentForm(user=user)
+
+    if assignment_form is None:
+        assignment_form = NobelAssignmentForm(
+            user=user if user.is_authenticated else None
+        )
+
+    assignments_lookup = {}
+    review_lookup = {}
+    read_books = set()
+    if user.is_authenticated:
+        assignments = (
+            NobelLaureateAssignment.objects.filter(user=user)
+            .select_related("book")
+            .prefetch_related("book__authors")
+            .order_by("stage_number")
+        )
+        assignments_lookup = {assignment.stage_number: assignment for assignment in assignments}
+        book_ids = [assignment.book_id for assignment in assignments]
+        if book_ids:
+            read_books = set(
+                ShelfItem.objects.filter(
+                    shelf__user=user,
+                    shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+                    book_id__in=book_ids,
+                ).values_list("book_id", flat=True)
+            )
+            review_lookup = {
+                rating.book_id: rating
+                for rating in Rating.objects.filter(user=user, book_id__in=book_ids)
+            }
+
+    stages = []
+    completed_count = 0
+    in_progress_count = 0
+    for stage in NobelLaureatesChallenge.get_stages():
+        assignment = assignments_lookup.get(stage.number)
+        status = "available"
+        assignment_payload = None
+        if assignment:
+            status = (
+                "completed"
+                if assignment.status == assignment.Status.COMPLETED
+                else "in_progress"
+            )
+            rating = review_lookup.get(assignment.book_id)
+            has_review = bool(rating and str(getattr(rating, "review", "") or "").strip())
+            on_read_shelf = assignment.book_id in read_books
+            authors = ", ".join(
+                assignment.book.authors.all().values_list("name", flat=True)
+            )
+            assignment_payload = {
+                "id": assignment.id,
+                "book_id": assignment.book_id,
+                "book_title": assignment.book.title,
+                "book_authors": authors,
+                "status": assignment.status,
+                "is_completed": assignment.is_completed,
+                "has_review": has_review,
+                "on_read_shelf": on_read_shelf,
+                "detail_url": reverse("book_detail", args=[assignment.book_id]),
+                "review_url": reverse("book_detail", args=[assignment.book_id]) + "#write-review",
+                "completed_at": assignment.completed_at,
+            }
+            if status == "completed":
+                completed_count += 1
+            else:
+                in_progress_count += 1
+
+        stages.append(
+            {
+                "number": stage.number,
+                "title": stage.title,
+                "year": stage.year,
+                "laureate": stage.laureate,
+                "requirement": stage.requirement,
+                "description": stage.description,
+                "status": status,
+                "assignment": assignment_payload,
+            }
+        )
+
+    stage_count = len(stages)
+    available_count = stage_count - completed_count - in_progress_count
+    available_count = max(available_count, 0)
+    progress_percent = 0
+    if stage_count:
+        progress_percent = round((completed_count / stage_count) * 100)
+
+    available_books = []
+    if user.is_authenticated:
+        allowed_shelves = [DEFAULT_WANT_SHELF, *ALL_DEFAULT_READ_SHELF_NAMES]
+        books_qs = (
+            Book.objects.filter(
+                shelf_items__shelf__user=user,
+                shelf_items__shelf__name__in=allowed_shelves,
+            )
+            .distinct()
+            .order_by("title")
+            .prefetch_related("authors")
+        )
+        for book in books_qs:
+            authors = ", ".join(book.authors.all().values_list("name", flat=True))
+            search_text = f"{book.title} {authors}".lower()
+            available_books.append(
+                {
+                    "id": book.id,
+                    "title": book.title,
+                    "authors": authors,
+                    "search": search_text,
+                }
+            )
+
+    context = {
+        "title": NobelLaureatesChallenge.TITLE,
+        "description": NobelLaureatesChallenge.DESCRIPTION,
+        "checklist": NobelLaureatesChallenge.CHECKLIST,
+        "stages": stages,
+        "stage_summary": {
+            "total": stage_count,
+            "completed": completed_count,
+            "in_progress": in_progress_count,
+            "available": available_count,
+            "progress_percent": progress_percent,
+        },
+        "assignment_form": assignment_form,
+        "release_form": release_form,
+        "available_books": available_books,
+        "is_authenticated": user.is_authenticated,
+        "assignment_stage_value": assignment_stage_value,
+        "status_labels": {
+            "available": "Свободно",
+            "in_progress": "В процессе",
+            "completed": "Выполнено",
+        },
+    }
+
+    return render(request, "games/nobel_challenge.html", context)

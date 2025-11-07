@@ -324,6 +324,143 @@ class BookJourneyAssignment(models.Model):
             assignment.apply_completion_state(finished=finished, has_review=has_review)
 
 
+class NobelLaureateAssignment(models.Model):
+    """Привязка книги к этапу челленджа нобелевских лауреатов."""
+
+    class Status(models.TextChoices):
+        IN_PROGRESS = "in_progress", "В процессе"
+        COMPLETED = "completed", "Выполнено"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="nobel_assignments",
+    )
+    stage_number = models.PositiveSmallIntegerField()
+    book = models.ForeignKey(
+        "books.Book",
+        on_delete=models.CASCADE,
+        related_name="nobel_assignments",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.IN_PROGRESS,
+    )
+    started_at = models.DateTimeField(default=timezone.now)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("user", "stage_number")
+        ordering = ["stage_number"]
+
+    def __str__(self) -> str:  # pragma: no cover - simple representation
+        return f"#{self.stage_number} — {self.book.title} ({self.user.username})"
+
+    @property
+    def is_completed(self) -> bool:
+        return self.status == self.Status.COMPLETED
+
+    def reset_progress(self, *, book) -> None:
+        """Перевести запись в состояние "в процессе" и обновить книгу."""
+
+        updates = []
+        if self.book_id != book.id:
+            self.book = book
+            updates.append("book")
+        if self.status != self.Status.IN_PROGRESS:
+            self.status = self.Status.IN_PROGRESS
+            updates.append("status")
+        now = timezone.now()
+        self.started_at = now
+        self.completed_at = None
+        updates.extend(["started_at", "completed_at", "updated_at"])
+        updates = list(dict.fromkeys(updates))
+        self.save(update_fields=updates)
+
+    def apply_completion_state(
+        self,
+        *,
+        on_read_shelf: bool,
+        has_review: bool,
+        completed_at=None,
+    ) -> bool:
+        """Обновить статус выполнения этапа в зависимости от условий."""
+
+        if on_read_shelf and has_review:
+            target_completed_at = completed_at or timezone.now()
+            if self.status != self.Status.COMPLETED:
+                self.status = self.Status.COMPLETED
+                self.completed_at = target_completed_at
+                self.updated_at = timezone.now()
+                self.save(update_fields=["status", "completed_at", "updated_at"])
+                award_for_game_stage_completion(self)
+                return True
+            if self.completed_at != target_completed_at:
+                self.completed_at = target_completed_at
+                self.updated_at = timezone.now()
+                self.save(update_fields=["completed_at", "updated_at"])
+                return True
+            return False
+
+        if self.status != self.Status.IN_PROGRESS or self.completed_at is not None:
+            self.status = self.Status.IN_PROGRESS
+            self.completed_at = None
+            self.updated_at = timezone.now()
+            self.save(update_fields=["status", "completed_at", "updated_at"])
+            return True
+        return False
+
+    @classmethod
+    def sync_for_user_book(cls, user, book) -> None:
+        """Пересчитать статус для всех этапов с участием книги пользователя."""
+
+        assignments = list(
+            cls.objects.filter(user=user, book=book).select_related("book")
+        )
+        if not assignments:
+            return
+
+        from shelves.models import ShelfItem
+        from shelves.services import ALL_DEFAULT_READ_SHELF_NAMES
+        from books.models import Rating
+
+        shelf_entry = (
+            ShelfItem.objects.filter(
+                shelf__user=user,
+                shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+                book=book,
+            )
+            .order_by("-added_at")
+            .first()
+        )
+        on_read_shelf = shelf_entry is not None
+        read_added_at = getattr(shelf_entry, "added_at", None)
+
+        review = (
+            Rating.objects.filter(user=user, book=book)
+            .order_by("-created_at")
+            .first()
+        )
+        has_review = bool(review and str(getattr(review, "review", "") or "").strip())
+        review_created_at = getattr(review, "created_at", None)
+
+        completed_at = None
+        if on_read_shelf and has_review:
+            timestamps = [value for value in (read_added_at, review_created_at) if value]
+            if timestamps:
+                completed_at = max(timestamps)
+
+        for assignment in assignments:
+            assignment.apply_completion_state(
+                on_read_shelf=on_read_shelf,
+                has_review=has_review,
+                completed_at=completed_at,
+            )
+
+
 class BookExchangeChallenge(models.Model):
     """Индивидуальный раунд игры обмена книгами."""
 
@@ -576,6 +713,7 @@ __all__ = [
     "GameShelfBook",
     "GameShelfPurchase",
     "BookJourneyAssignment",
+    "NobelLaureateAssignment",
     "BookExchangeChallenge",
     "BookExchangeOffer",
     "BookExchangeAcceptedBook",

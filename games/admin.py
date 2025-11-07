@@ -8,6 +8,7 @@ from .models import (
     GameShelfBook,
     GameShelfPurchase,
     GameShelfState,
+    NobelLaureateAssignment,
 )
 
 
@@ -85,3 +86,17 @@ class BookExchangeAcceptedBookAdmin(admin.ModelAdmin):
     )
     search_fields = ("book__title", "challenge__user__username")
     autocomplete_fields = ("challenge", "offer", "book")
+
+@admin.register(NobelLaureateAssignment)
+class NobelLaureateAssignmentAdmin(admin.ModelAdmin):
+    list_display = (
+        "user",
+        "stage_number",
+        "book",
+        "status",
+        "started_at",
+        "completed_at",
+    )
+    list_filter = ("status",)
+    search_fields = ("user__username", "book__title")
+    autocomplete_fields = ("user", "book")

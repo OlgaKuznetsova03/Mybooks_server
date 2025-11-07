@@ -11,6 +11,7 @@ from .services.book_exchange import BookExchangeGame
 from .services.book_journey import BookJourneyMap
 from .services.forgotten_books import ForgottenBooksGame
 from .services.read_before_buy import ReadBeforeBuyGame
+from .services.nobel_challenge import NobelLaureatesChallenge
 
 
 @dataclass(frozen=True)
@@ -37,6 +38,7 @@ def get_game_cards() -> List[GameCard]:
     read_before_buy = ReadBeforeBuyGame.get_game()
     forgotten_books = ForgottenBooksGame.get_game()
     book_exchange = BookExchangeGame.get_game()
+    nobel_challenge = NobelLaureatesChallenge.get_game()
     available: List[GameCard] = [
         GameCard(
             slug=ReadBeforeBuyGame.SLUG,
@@ -84,6 +86,18 @@ def get_game_cards() -> List[GameCard]:
                 f"{BookJourneyMap.get_stage_count()} этапов",
                 "Геймификация чтения",
                 "Трекинг прогресса",
+            ),
+        ),
+        GameCard(
+            slug=NobelLaureatesChallenge.SLUG,
+            title=nobel_challenge.title,
+            description=nobel_challenge.description,
+            url_name="games:nobel_challenge",
+            icon="🏆",
+            highlights=(
+                f"{NobelLaureatesChallenge.get_stage_count()} лауреата",
+                "Поиск по библиотеке",
+                "Автоматический зачёт этапов",
             ),
         ),
     ]

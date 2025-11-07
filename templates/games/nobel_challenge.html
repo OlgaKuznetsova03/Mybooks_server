@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ title }} — литературная игра{% endblock %}
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'games/game-pages.css?v=1762270644' %}">
+<style>
+  .nobel-stage-list {
+    display: grid;
+    gap: 1.5rem;
+  }
+  .nobel-stage {
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    background: #fff;
+    box-shadow: 0 0.25rem 1rem rgba(15, 23, 42, 0.08);
+  }
+  .nobel-stage--focus {
+    outline: 3px solid rgba(59, 130, 246, 0.35);
+  }
+  .nobel-stage__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .nobel-stage__title {
+    font-weight: 600;
+    font-size: 1.05rem;
+  }
+  .nobel-stage__meta {
+    font-size: 0.875rem;
+    color: #6c757d;
+  }
+  .nobel-stage__status {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .nobel-stage__assignment {
+    margin-top: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    background: rgba(13, 110, 253, 0.06);
+  }
+  .nobel-stage__assignment strong {
+    display: block;
+    font-weight: 600;
+  }
+  .nobel-stage__actions {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .nobel-stage__form .form-select:disabled {
+    background-color: #f8f9fa;
+  }
+  .nobel-stage__hints {
+    font-size: 0.8125rem;
+    color: #6c757d;
+  }
+  @media (min-width: 768px) {
+    .nobel-stage__actions {
+      flex-direction: row;
+      align-items: flex-start;
+    }
+    .nobel-stage__assign-form {
+      flex: 1 1 auto;
+    }
+  }
+</style>
+{% endblock %}
+{% block content %}
+<section class="game-hero card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <div class="d-flex flex-column flex-lg-row gap-4 align-items-start justify-content-between">
+      <div>
+        <h1 class="game-hero-heading mb-2">{{ title }}</h1>
+        <p class="game-hero-description mb-0">{{ description }}</p>
+      </div>
+      <div class="ms-lg-auto text-lg-end game-hero-meta">
+        <div class="small text-uppercase text-muted mb-1">Всего этапов</div>
+        <div class="fs-4 fw-semibold">{{ stage_summary.total }}</div>
+        <div class="small text-muted">С 1901 по 2025 год</div>
+      </div>
+    </div>
+    <div class="game-hero-stats">
+      <div class="game-hero-stat">
+        <span class="label">Пройдено</span>
+        <span class="value">{{ stage_summary.completed }}</span>
+        <span class="hint">Отзыв и полка «Прочитал»</span>
+      </div>
+      <div class="game-hero-stat">
+        <span class="label">В процессе</span>
+        <span class="value">{{ stage_summary.in_progress }}</span>
+        <span class="hint">Книги ожидают финала</span>
+      </div>
+      <div class="game-hero-stat">
+        <span class="label">Свободно</span>
+        <span class="value">{{ stage_summary.available }}</span>
+        <span class="hint">Выберите любого лауреата</span>
+      </div>
+    </div>
+    <div
+      class="game-progress"
+      role="progressbar"
+      aria-valuenow="{{ stage_summary.progress_percent }}"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-label="Прогресс чтения лауреатов"
+    >
+      <div class="game-progress-bar" style="width: {{ stage_summary.progress_percent }}%;"></div>
+    </div>
+    <div class="small text-muted mt-2">
+      Пройдено {{ stage_summary.completed }} из {{ stage_summary.total }} лауреатов.
+    </div>
+  </div>
+</section>
+
+<div class="row g-4 align-items-start">
+  <div class="col-xl-4 order-xl-2 order-1">
+    <section class="card shadow-sm border-0 game-panel game-panel--soft mb-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+          <div>
+            <div class="game-panel-title mb-1">Как играть</div>
+            <p class="small text-muted mb-0">Проходите этапы в любом порядке, выбирая интересных лауреатов.</p>
+          </div>
+          <span class="badge rounded-pill journey-badge">{{ stage_summary.total }} этапов</span>
+        </div>
+        <ol class="game-checklist small mb-4">
+          {% for item in checklist %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ol>
+        {% if not is_authenticated %}
+          <div class="game-hint p-3 small" role="status">
+            <strong>Войдите, чтобы прикреплять книги.</strong>
+            После авторизации вы сможете искать книги по своей библиотеке и отмечать прогресс чтения лауреатов.
+          </div>
+        {% endif %}
+      </div>
+    </section>
+    <section class="card shadow-sm border-0 game-panel">
+      <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+          <div class="game-panel-title mb-0">Статус этапов</div>
+          <span class="badge rounded-pill journey-badge">{{ stage_summary.total }}</span>
+        </div>
+      </div>
+      <div class="card-body small text-muted">
+        <p class="mb-1"><span class="badge bg-light text-body-secondary border">Свободно</span> — книга ещё не выбрана.</p>
+        <p class="mb-1"><span class="badge bg-warning text-dark">В процессе</span> — книга прикреплена и ждёт чтения.</p>
+        <p class="mb-0"><span class="badge bg-success">Выполнено</span> — книга на полке «Прочитал», отзыв опубликован.</p>
+      </div>
+    </section>
+  </div>
+  <div class="col-xl-8 order-xl-1 order-2">
+    <section class="card shadow-sm border-0">
+      <div class="card-header">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
+          <div>
+            <h2 class="h5 mb-1">Лауреаты Нобелевской премии</h2>
+            <p class="small text-muted mb-0">Используйте поиск в каждом этапе, чтобы быстро найти книгу из своих полок.</p>
+          </div>
+          {% if is_authenticated and not available_books %}
+            <span class="badge bg-warning text-dark">Добавьте книги на полки, чтобы начать</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="nobel-stage-list">
+          {% for stage in stages %}
+            <article class="nobel-stage{% if assignment_stage_value and assignment_stage_value == stage.number %} nobel-stage--focus{% endif %}" id="nobel-stage-{{ stage.number }}">
+              <div class="nobel-stage__header">
+                <div>
+                  <div class="nobel-stage__title">#{{ stage.number }} · {{ stage.laureate }}</div>
+                  <div class="nobel-stage__meta">Награждён в {{ stage.year }} году · {{ stage.requirement }}</div>
+                </div>
+                <span class="badge nobel-stage__status {% if stage.status == 'completed' %}bg-success{% elif stage.status == 'in_progress' %}bg-warning text-dark{% else %}bg-light text-body-secondary border{% endif %}">
+                  {{ status_labels[stage.status] }}
+                </span>
+              </div>
+              <p class="small text-muted mb-2">{{ stage.description }}</p>
+              {% if stage.assignment %}
+                <div class="nobel-stage__assignment">
+                  <strong>{{ stage.assignment.book_title }}</strong>
+                  {% if stage.assignment.book_authors %}
+                    <div class="small text-muted">{{ stage.assignment.book_authors }}</div>
+                  {% endif %}
+                  <div class="nobel-stage__hints mt-2">
+                    {% if stage.assignment.on_read_shelf %}
+                      <span class="text-success"><i class="bi bi-check-circle me-1"></i>Книга на полке «Прочитал»</span>
+                    {% else %}
+                      <span><i class="bi bi-bookmark-dash me-1"></i>Переместите книгу на полку «Прочитал»</span>
+                    {% endif %}
+                    <span class="ms-3">
+                      {% if stage.assignment.has_review %}
+                        <i class="bi bi-chat-left-text-fill text-success me-1"></i>Отзыв опубликован
+                      {% else %}
+                        <i class="bi bi-chat-left-text me-1"></i>Напишите отзыв, чтобы завершить этап
+                      {% endif %}
+                    </span>
+                  </div>
+                  <div class="mt-2 d-flex flex-wrap gap-2">
+                    <a class="btn btn-sm btn-outline-primary" href="{{ stage.assignment.detail_url }}" target="_blank" rel="noopener">Карточка книги</a>
+                    <a class="btn btn-sm btn-outline-secondary" href="{{ stage.assignment.review_url }}" target="_blank" rel="noopener">К отзыву</a>
+                  </div>
+                </div>
+              {% endif %}
+              {% if is_authenticated %}
+                <div class="nobel-stage__actions">
+                  <form method="post" class="nobel-stage__form nobel-stage__assign-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="assign">
+                    <input type="hidden" name="stage_number" value="{{ stage.number }}">
+                    <div class="input-group input-group-sm mb-2">
+                      <span class="input-group-text"><i class="bi bi-search"></i></span>
+                      <input
+                        type="search"
+                        class="form-control form-control-sm nobel-stage-search"
+                        data-target="#nobel-stage-select-{{ stage.number }}"
+                        placeholder="Поиск по книгам"
+                        {% if not available_books or stage.assignment and stage.assignment.is_completed %}disabled{% endif %}
+                      >
+                    </div>
+                    <select
+                      id="nobel-stage-select-{{ stage.number }}"
+                      name="book"
+                      class="form-select form-select-sm nobel-stage-select"
+                      {% if not available_books or stage.assignment and stage.assignment.is_completed %}disabled{% endif %}
+                    >
+                      <option value="">Выберите книгу лауреата</option>
+                      {% for book in available_books %}
+                        <option
+                          value="{{ book.id }}"
+                          data-search="{{ book.search }}"
+                          {% if stage.assignment and stage.assignment.book_id == book.id %}selected{% endif %}
+                        >
+                          {{ book.title }}{% if book.authors %} — {{ book.authors }}{% endif %}
+                        </option>
+                      {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-primary mt-2" {% if not available_books or stage.assignment and stage.assignment.is_completed %}disabled{% endif %}>
+                      {% if stage.assignment %}Обновить книгу{% else %}Прикрепить книгу{% endif %}
+                    </button>
+                  </form>
+                  {% if stage.assignment and not stage.assignment.is_completed %}
+                    <form method="post" class="nobel-stage__form nobel-stage__release-form">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="release">
+                      <input type="hidden" name="stage_number" value="{{ stage.number }}">
+                      <button type="submit" class="btn btn-sm btn-outline-danger">Освободить этап</button>
+                    </form>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </article>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+{{ block.super }}
+<script>
+  (() => {
+    const filterOptions = (input) => {
+      const targetId = input.getAttribute('data-target');
+      if (!targetId) return;
+      const select = document.querySelector(targetId);
+      if (!select) return;
+      const query = input.value.trim().toLowerCase();
+      const options = Array.from(select.options);
+      options.forEach((option, index) => {
+        if (index === 0) {
+          option.hidden = false;
+          return;
+        }
+        const haystack = option.dataset.search || option.textContent;
+        const isMatch = !query || haystack.toLowerCase().includes(query);
+        option.hidden = !isMatch;
+      });
+      if (select.value && select.selectedOptions.length && select.selectedOptions[0].hidden) {
+        select.selectedIndex = 0;
+      }
+    };
+
+    document.querySelectorAll('.nobel-stage-search').forEach((input) => {
+      input.addEventListener('input', () => filterOptions(input));
+    });
+  })();
+</script>
+{% endblock %}
