@@ -193,6 +193,39 @@
       transform: translateY(-2px);
     }
 
+    .profile-activity-section { margin-top: 2.5rem; }
+    .profile-activity-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+    .profile-activity-header i { font-size: 1.25rem; color: var(--profile-accent-color); }
+    .profile-activity-card {
+      border-radius: 1.25rem;
+      border: 1px solid rgba(194, 150, 129, 0.25);
+      background: rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(6px);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .profile-activity-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--profile-accent-color);
+      box-shadow: 0 12px 30px rgba(194, 150, 129, 0.25);
+    }
+    .profile-activity-card .card-title { font-weight: 600; color: var(--profile-accent-color-text); }
+    .profile-activity-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      background: rgba(194, 150, 129, 0.15);
+      color: var(--profile-accent-color-text);
+    }
+    .profile-activity-meta { font-size: 0.85rem; color: var(--profile-accent-color-text); opacity: 0.75; }
+    .profile-activity-empty {
+      border-radius: 1rem;
+      border: 1px dashed rgba(194, 150, 129, 0.4);
+      padding: 1.5rem;
+      color: rgba(1, 22, 39, 0.65);
+      background: rgba(194, 150, 129, 0.05);
+    }
+
     /* Интерактивный календарь чтения */
     .reading-calendar-wrapper { 
       border-radius: var(--bs-border-radius-lg); 
@@ -514,11 +547,33 @@
     .profile-theme .profile-rating-button:focus{
       color: #011627 !important;
     }
+    .profile-theme .profile-activity-card{
+      background: rgba(255, 255, 255, 0.72);
+      border-color: rgba(194, 150, 129, 0.35);
+    }
+    .profile-theme .profile-activity-empty{
+      background: rgba(194, 150, 129, 0.08);
+      border-color: rgba(194, 150, 129, 0.45);
+      color: rgba(1, 22, 39, 0.75);
+    }
 
     /* тёмная тема */
     [data-bs-theme="dark"] .profile-theme #profileTabs .nav-link,
     [data-bs-theme="dark"] .profile-theme a{ color:var(--profile-accent-color) !important; }
     [data-bs-theme="dark"] .profile-theme .btn-outline-primary:hover{ color:#fff !important; }
+    [data-bs-theme="dark"] .profile-theme .profile-activity-card{
+      background: rgba(1, 22, 39, 0.72);
+      border-color: rgba(194, 150, 129, 0.4);
+      box-shadow: none;
+    }
+    [data-bs-theme="dark"] .profile-theme .profile-activity-card:hover{
+      box-shadow: 0 12px 26px rgba(0,0,0,0.45);
+    }
+    [data-bs-theme="dark"] .profile-theme .profile-activity-empty{
+      background: rgba(194, 150, 129, 0.12);
+      color: rgba(255, 255, 255, 0.85);
+      border-color: rgba(194, 150, 129, 0.5);
+    }
     .profile-theme a.btn.profile-action-button { color:#011627 !important; }
 
     /* Анимированные карточки статистики */
@@ -1001,6 +1056,12 @@
       <button class="nav-link{% if current_tab == 'books' %} active{% endif %}" id="books-tab" data-bs-toggle="tab"
               data-bs-target="#books" type="button" role="tab" aria-selected="{% if current_tab == 'books' %}true{% else %}false{% endif %}">
         <i class="bi bi-book me-1"></i>Мои книги
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link{% if current_tab == 'activities' %} active{% endif %}" id="activities-tab" data-bs-toggle="tab"
+              data-bs-target="#activities" type="button" role="tab" aria-selected="{% if current_tab == 'activities' %}true{% else %}false{% endif %}">
+        <i class="bi bi-lightning-charge me-1"></i>Активности
       </button>
     </li>
     <li class="nav-item" role="presentation">
@@ -1563,6 +1624,324 @@
           {% else %}
             Пользователь пока не указал свои книги.
           {% endif %}
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Активности -->
+    <div class="tab-pane fade{% if current_tab == 'activities' %} show active{% endif %}" id="activities" role="tabpanel">
+      {% if profile_activities.has_any %}
+        <div class="profile-activity-section mt-0">
+          <div class="profile-activity-header">
+            <i class="bi bi-controller"></i>
+            <div>
+              <h5 class="mb-1">Игры</h5>
+              <p class="text-muted small mb-0">Все игровые активности, в которых участвует {{ u.username }}.</p>
+            </div>
+          </div>
+          {% if profile_activities.games.has_data %}
+            <div class="row g-3">
+              {% with stats=profile_activities.games.forgotten %}
+                {% if stats.total %}
+                  <div class="col-12 col-xl-6">
+                    <div class="card profile-activity-card h-100">
+                      <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                          <h6 class="card-title mb-0">12 забытых книг</h6>
+                          <span class="profile-activity-badge" title="Всего книг в списке">{{ stats.total }}</span>
+                        </div>
+                        <p class="text-muted small mb-2">Добавлено книг: {{ stats.total }}, завершено: {{ stats.completed }}, выбрано на месяц: {{ stats.selected }}.</p>
+                        {% if stats.current_selection %}
+                          {% with selection=stats.current_selection %}
+                            <div class="profile-activity-meta">
+                              Текущий выбор:
+                              <a href="{% url 'book_detail' selection.entry.book.pk %}">{{ selection.entry.book.title }}</a>
+                              · до {{ selection.deadline|date:"j E" }}
+                            </div>
+                          {% endwith %}
+                        {% else %}
+                          <p class="profile-activity-meta mb-0">На этот месяц книга ещё не выбрана.</p>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                {% endif %}
+              {% endwith %}
+
+              {% if profile_activities.games.assignments %}
+                <div class="col-12 col-xl-6">
+                  <div class="card profile-activity-card h-100">
+                    <div class="card-body">
+                      <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="card-title mb-0">Книжное путешествие</h6>
+                        <span class="profile-activity-badge" title="Завершено этапов">{{ profile_activities.games.completed_count }}/{{ profile_activities.games.total_stages }}</span>
+                      </div>
+                      <p class="text-muted small mb-3">Выполнено {{ profile_activities.games.completed_count }} из {{ profile_activities.games.total_stages }} этапов.</p>
+                      {% if profile_activities.games.active_assignment %}
+                        {% with assignment=profile_activities.games.active_assignment %}
+                          <div class="profile-activity-meta mb-2">
+                            Активный этап: №{{ assignment.stage_number }}{% if profile_activities.games.active_stage %} — {{ profile_activities.games.active_stage.title }}{% endif %}
+                          </div>
+                          {% if assignment.book %}
+                            <div class="profile-activity-meta">
+                              Книга: <a href="{% url 'book_detail' assignment.book.pk %}">{{ assignment.book.title }}</a>
+                            </div>
+                          {% endif %}
+                        {% endwith %}
+                      {% else %}
+                        <p class="profile-activity-meta mb-0">Нет активного этапа — можно выбрать новое задание.</p>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              {% endif %}
+
+              {% with exchange=profile_activities.games.book_exchange %}
+                {% if exchange.items %}
+                  <div class="col-12 col-xl-6">
+                    <div class="card profile-activity-card h-100">
+                      <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                          <h6 class="card-title mb-0">Обмен книгами</h6>
+                          <span class="profile-activity-badge" title="Активные раунды">{{ exchange.active }}</span>
+                        </div>
+                        <p class="text-muted small mb-2">Активных раундов: {{ exchange.active }}, завершено: {{ exchange.completed }}.</p>
+                        <ul class="list-unstyled mb-0 small">
+                          {% for challenge in exchange.items|slice:":3" %}
+                            <li class="mb-2">
+                              <a class="fw-semibold" href="{{ challenge.get_absolute_url }}">Раунд {{ challenge.round_number }}</a>
+                              <div class="profile-activity-meta">
+                                {{ challenge.get_status_display }} · {{ challenge.accepted_count }}/{{ challenge.target_books }} книг
+                              </div>
+                            </li>
+                          {% endfor %}
+                        </ul>
+                        {% if exchange.extra_count %}
+                          <p class="profile-activity-meta mt-2 mb-0">Ещё {{ exchange.extra_count }} раундов.</p>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                {% endif %}
+              {% endwith %}
+
+              {% if profile_activities.games.shelf_states %}
+                <div class="col-12 col-xl-6">
+                  <div class="card profile-activity-card h-100">
+                    <div class="card-body">
+                      <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="card-title mb-0">Игровые полки</h6>
+                        <span class="profile-activity-badge" title="Количество полок">{{ profile_activities.games.shelf_states|length }}</span>
+                      </div>
+                      <ul class="list-unstyled mb-0 small">
+                        {% for state in profile_activities.games.shelf_states|slice:":4" %}
+                          <li class="mb-2">
+                            <strong>{{ state.game.title }}</strong> · {{ state.shelf.name }}
+                            <div class="profile-activity-meta">Баланс: {{ state.points_balance }} · Обновлено {{ state.updated_at|date:"j E" }}</div>
+                          </li>
+                        {% endfor %}
+                      </ul>
+                      {% if profile_activities.games.shelf_states_extra %}
+                        <p class="profile-activity-meta mt-2 mb-0">И ещё {{ profile_activities.games.shelf_states_extra }} полок.</p>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          {% else %}
+            <div class="profile-activity-empty text-center">
+              <p class="mb-0">Пока нет игровых активностей.</p>
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="profile-activity-section">
+          <div class="profile-activity-header">
+            <i class="bi bi-flag"></i>
+            <div>
+              <h5 class="mb-1">Читательские марафоны</h5>
+              <p class="text-muted small mb-0">Марафоны, созданные пользователем или с его участием.</p>
+            </div>
+          </div>
+          {% if profile_activities.marathons.has_data %}
+            <div class="row g-3">
+              <div class="col-12 col-lg-4">
+                <div class="card profile-activity-card h-100">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <h6 class="card-title mb-0">Созданные</h6>
+                      <span class="profile-activity-badge">{{ profile_activities.marathons.owned|length }}</span>
+                    </div>
+                    {% if profile_activities.marathons.owned %}
+                      <ul class="list-unstyled mt-3 mb-0 small">
+                        {% for marathon in profile_activities.marathons.owned %}
+                          <li class="mb-3">
+                            <a class="fw-semibold" href="{{ marathon.url }}">{{ marathon.title }}</a>
+                            <div class="profile-activity-meta">
+                              {{ marathon.status_label }}{% if marathon.start_date %} · старт {{ marathon.start_date|date:"j E" }}{% endif %}{% if marathon.end_date %} · до {{ marathon.end_date|date:"j E" }}{% endif %}
+                            </div>
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    {% else %}
+                      <p class="text-muted small mb-0 mt-3">Марафоны ещё не созданы.</p>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-lg-4">
+                <div class="card profile-activity-card h-100">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <h6 class="card-title mb-0">Участвую</h6>
+                      <span class="profile-activity-badge">{{ profile_activities.marathons.participating|length }}</span>
+                    </div>
+                    {% if profile_activities.marathons.participating %}
+                      <ul class="list-unstyled mt-3 mb-0 small">
+                        {% for marathon in profile_activities.marathons.participating %}
+                          <li class="mb-3">
+                            <a class="fw-semibold" href="{{ marathon.url }}">{{ marathon.title }}</a>
+                            <div class="profile-activity-meta">
+                              {{ marathon.status_label }}{% if marathon.start_date %} · старт {{ marathon.start_date|date:"j E" }}{% endif %}{% if marathon.end_date %} · до {{ marathon.end_date|date:"j E" }}{% endif %}
+                            </div>
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    {% else %}
+                      <p class="text-muted small mb-0 mt-3">Пока нет участия в марафонах.</p>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-lg-4">
+                <div class="card profile-activity-card h-100">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <h6 class="card-title mb-0">Ожидают подтверждения</h6>
+                      <span class="profile-activity-badge">{{ profile_activities.marathons.pending|length }}</span>
+                    </div>
+                    {% if profile_activities.marathons.pending %}
+                      <ul class="list-unstyled mt-3 mb-0 small">
+                        {% for marathon in profile_activities.marathons.pending %}
+                          <li class="mb-3">
+                            <a class="fw-semibold" href="{{ marathon.url }}">{{ marathon.title }}</a>
+                            <div class="profile-activity-meta">
+                              {{ marathon.status_label }}{% if marathon.start_date %} · старт {{ marathon.start_date|date:"j E" }}{% endif %}{% if marathon.end_date %} · до {{ marathon.end_date|date:"j E" }}{% endif %}
+                            </div>
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    {% else %}
+                      <p class="text-muted small mb-0 mt-3">Нет заявок, ожидающих подтверждения.</p>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% else %}
+            <div class="profile-activity-empty text-center">
+              <p class="mb-0">У пользователя пока нет марафонских активностей.</p>
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="profile-activity-section">
+          <div class="profile-activity-header">
+            <i class="bi bi-people"></i>
+            <div>
+              <h5 class="mb-1">Совместные чтения</h5>
+              <p class="text-muted small mb-0">Чтения, где {{ u.username }} участвует или выступает организатором.</p>
+            </div>
+          </div>
+          {% if profile_activities.clubs.has_data %}
+            <div class="row g-3">
+              <div class="col-12 col-lg-4">
+                <div class="card profile-activity-card h-100">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <h6 class="card-title mb-0">Организую</h6>
+                      <span class="profile-activity-badge">{{ profile_activities.clubs.owned|length }}</span>
+                    </div>
+                    {% if profile_activities.clubs.owned %}
+                      <ul class="list-unstyled mt-3 mb-0 small">
+                        {% for club in profile_activities.clubs.owned %}
+                          <li class="mb-3">
+                            <a class="fw-semibold" href="{{ club.url }}">{{ club.title }}</a>
+                            <div class="profile-activity-meta">
+                              {{ club.status_label }}{% if club.start_date %} · старт {{ club.start_date|date:"j E" }}{% endif %}{% if club.end_date %} · до {{ club.end_date|date:"j E" }}{% endif %}
+                            </div>
+                            <div class="profile-activity-meta">Книга: <a href="{% url 'book_detail' club.book_id %}">{{ club.book_title }}</a></div>
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    {% else %}
+                      <p class="text-muted small mb-0 mt-3">Пока нет созданных чтений.</p>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-lg-4">
+                <div class="card profile-activity-card h-100">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <h6 class="card-title mb-0">Участвую</h6>
+                      <span class="profile-activity-badge">{{ profile_activities.clubs.participating|length }}</span>
+                    </div>
+                    {% if profile_activities.clubs.participating %}
+                      <ul class="list-unstyled mt-3 mb-0 small">
+                        {% for club in profile_activities.clubs.participating %}
+                          <li class="mb-3">
+                            <a class="fw-semibold" href="{{ club.url }}">{{ club.title }}</a>
+                            <div class="profile-activity-meta">
+                              {{ club.status_label }}{% if club.start_date %} · старт {{ club.start_date|date:"j E" }}{% endif %}{% if club.end_date %} · до {{ club.end_date|date:"j E" }}{% endif %}
+                            </div>
+                            <div class="profile-activity-meta">Книга: <a href="{% url 'book_detail' club.book_id %}">{{ club.book_title }}</a></div>
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    {% else %}
+                      <p class="text-muted small mb-0 mt-3">Пока нет участия в совместных чтениях.</p>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-lg-4">
+                <div class="card profile-activity-card h-100">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <h6 class="card-title mb-0">Ожидаю подтверждения</h6>
+                      <span class="profile-activity-badge">{{ profile_activities.clubs.pending|length }}</span>
+                    </div>
+                    {% if profile_activities.clubs.pending %}
+                      <ul class="list-unstyled mt-3 mb-0 small">
+                        {% for club in profile_activities.clubs.pending %}
+                          <li class="mb-3">
+                            <a class="fw-semibold" href="{{ club.url }}">{{ club.title }}</a>
+                            <div class="profile-activity-meta">
+                              {{ club.status_label }}{% if club.start_date %} · старт {{ club.start_date|date:"j E" }}{% endif %}{% if club.end_date %} · до {{ club.end_date|date:"j E" }}{% endif %}
+                            </div>
+                            <div class="profile-activity-meta">Книга: <a href="{% url 'book_detail' club.book_id %}">{{ club.book_title }}</a></div>
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    {% else %}
+                      <p class="text-muted small mb-0 mt-3">Нет заявок на участие.</p>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% else %}
+            <div class="profile-activity-empty text-center">
+              <p class="mb-0">Совместные чтения пока не запланированы.</p>
+            </div>
+          {% endif %}
+        </div>
+      {% else %}
+        <div class="profile-activity-empty text-center">
+          <p class="mb-2">У пользователя пока нет активностей.</p>
+          <p class="mb-0 text-muted">Как только {{ u.username }} присоединится к играм, марафонам или совместным чтениям, они появятся здесь.</p>
         </div>
       {% endif %}
     </div>

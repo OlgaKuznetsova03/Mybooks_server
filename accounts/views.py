@@ -34,6 +34,17 @@ from user_ratings.models import UserPointEvent
 from .forms import SignUpForm, ProfileForm, RoleForm, PremiumPurchaseForm
 from .models import YANDEX_AD_REWARD_COINS
 
+from games.models import (
+    BookExchangeChallenge,
+    BookJourneyAssignment,
+    ForgottenBookEntry,
+    GameShelfState,
+)
+from games.services.book_journey import BookJourneyMap
+from games.services.forgotten_books import ForgottenBooksGame
+from reading_marathons.models import MarathonParticipant, ReadingMarathon
+from reading_clubs.models import ReadingClub, ReadingParticipant
+
 MONTH_NAMES = [
     "",
     "Январь",
@@ -60,6 +71,20 @@ WEEKDAY_LABELS = [
     "Сб",
     "Вс",
 ]
+
+
+MARATHON_STATUS_LABELS = {
+    "upcoming": "Скоро старт",
+    "active": "Идёт",
+    "past": "Завершён",
+}
+
+
+READING_CLUB_STATUS_LABELS = {
+    "upcoming": "Скоро старт",
+    "active": "Идёт",
+    "past": "Завершено",
+}
 
 
 def _is_mobile_app_request(request) -> bool:
@@ -826,7 +851,7 @@ def profile(request, username=None):
     active_tab = request.GET.get("tab", "overview")
     if active_tab == "shelves":
         active_tab = "overview"
-    if active_tab not in {"overview", "stats", "books", "reviews"}:
+    if active_tab not in {"overview", "stats", "books", "reviews", "activities"}:
         active_tab = "overview"
 
     user_shelves = (
@@ -871,6 +896,205 @@ def profile(request, username=None):
         else []
     )
 
+    # --- Активности пользователя ---
+    journey_assignments = list(
+        BookJourneyAssignment.objects.filter(user=user_obj)
+        .select_related("book")
+        .order_by("stage_number")
+    )
+    journey_active = next(
+        (
+            assignment
+            for assignment in journey_assignments
+            if assignment.status == BookJourneyAssignment.Status.IN_PROGRESS
+        ),
+        None,
+    )
+    journey_completed_count = sum(
+        1
+        for assignment in journey_assignments
+        if assignment.status == BookJourneyAssignment.Status.COMPLETED
+    )
+    journey_active_stage = (
+        BookJourneyMap.get_stage_by_number(journey_active.stage_number)
+        if journey_active
+        else None
+    )
+
+    forgotten_entries = list(
+        ForgottenBookEntry.objects.filter(user=user_obj)
+        .select_related("book")
+        .order_by("added_at")
+    )
+    forgotten_current_selection = (
+        ForgottenBooksGame.get_current_selection(user_obj)
+        if forgotten_entries
+        else None
+    )
+
+    book_exchange_challenges = list(
+        BookExchangeChallenge.objects.filter(user=user_obj)
+        .select_related("shelf", "game")
+        .order_by("-started_at")
+    )
+    book_exchange_active = sum(
+        1
+        for challenge in book_exchange_challenges
+        if challenge.status == BookExchangeChallenge.Status.ACTIVE
+    )
+    book_exchange_completed = sum(
+        1
+        for challenge in book_exchange_challenges
+        if challenge.status == BookExchangeChallenge.Status.COMPLETED
+    )
+
+    game_states = list(
+        GameShelfState.objects.filter(user=user_obj)
+        .select_related("game", "shelf")
+        .order_by("-updated_at")
+    )
+
+    def serialize_marathon(marathon, role):
+        return {
+            "id": marathon.id,
+            "title": marathon.title,
+            "url": marathon.get_absolute_url(),
+            "status": marathon.status,
+            "status_label": MARATHON_STATUS_LABELS.get(
+                marathon.status, "Активность"
+            ),
+            "start_date": marathon.start_date,
+            "end_date": marathon.end_date,
+            "role": role,
+        }
+
+    marathons_owned = [
+        serialize_marathon(marathon, "creator")
+        for marathon in ReadingMarathon.objects.filter(creator=user_obj)
+        .order_by("-start_date", "-created_at")
+    ]
+    marathons_participating = [
+        serialize_marathon(marathon, "participant")
+        for marathon in ReadingMarathon.objects.filter(
+            participants__user=user_obj,
+            participants__status=MarathonParticipant.Status.APPROVED,
+        )
+        .exclude(creator=user_obj)
+        .order_by("-start_date", "-created_at")
+        .distinct()
+    ]
+    marathons_pending = [
+        serialize_marathon(marathon, "pending")
+        for marathon in ReadingMarathon.objects.filter(
+            participants__user=user_obj,
+            participants__status=MarathonParticipant.Status.PENDING,
+        )
+        .order_by("-start_date", "-created_at")
+        .distinct()
+    ]
+
+    def serialize_club(club, role):
+        return {
+            "id": club.id,
+            "title": club.title,
+            "url": club.get_absolute_url(),
+            "status": club.status,
+            "status_label": READING_CLUB_STATUS_LABELS.get(
+                club.status, "Активность"
+            ),
+            "start_date": club.start_date,
+            "end_date": club.end_date,
+            "role": role,
+            "book_title": club.book.title,
+            "book_id": club.book_id,
+        }
+
+    clubs_owned = [
+        serialize_club(club, "creator")
+        for club in ReadingClub.objects.filter(creator=user_obj)
+        .select_related("book")
+        .order_by("-start_date", "-created_at")
+    ]
+    clubs_participating = [
+        serialize_club(club, "participant")
+        for club in ReadingClub.objects.filter(
+            participants__user=user_obj,
+            participants__status=ReadingParticipant.Status.APPROVED,
+        )
+        .exclude(creator=user_obj)
+        .select_related("book")
+        .order_by("-start_date", "-created_at")
+        .distinct()
+    ]
+    clubs_pending = [
+        serialize_club(club, "pending")
+        for club in ReadingClub.objects.filter(
+            participants__user=user_obj,
+            participants__status=ReadingParticipant.Status.PENDING,
+        )
+        .select_related("book")
+        .order_by("-start_date", "-created_at")
+        .distinct()
+    ]
+
+    games_has_data = any(
+        (
+            journey_assignments,
+            forgotten_entries,
+            book_exchange_challenges,
+            game_states,
+        )
+    )
+    marathons_has_data = any(
+        (marathons_owned, marathons_participating, marathons_pending)
+    )
+    clubs_has_data = any((clubs_owned, clubs_participating, clubs_pending))
+
+    profile_activities = {
+        "games": {
+            "assignments": journey_assignments,
+            "active_assignment": journey_active,
+            "active_stage": journey_active_stage,
+            "completed_count": journey_completed_count,
+            "total_stages": BookJourneyMap.get_stage_count(),
+            "forgotten": {
+                "entries": forgotten_entries,
+                "current_selection": forgotten_current_selection,
+                "total": len(forgotten_entries),
+                "selected": sum(
+                    1 for entry in forgotten_entries if entry.selected_month
+                ),
+                "completed": sum(
+                    1 for entry in forgotten_entries if entry.completed_at
+                ),
+            },
+            "book_exchange": {
+                "items": book_exchange_challenges,
+                "active": book_exchange_active,
+                "completed": book_exchange_completed,
+                "extra_count": max(len(book_exchange_challenges) - 3, 0),
+            },
+            "shelf_states": game_states,
+            "shelf_states_extra": max(len(game_states) - 4, 0),
+            "has_data": games_has_data,
+        },
+        "marathons": {
+            "owned": marathons_owned,
+            "participating": marathons_participating,
+            "pending": marathons_pending,
+            "has_data": marathons_has_data,
+        },
+        "clubs": {
+            "owned": clubs_owned,
+            "participating": clubs_participating,
+            "pending": clubs_pending,
+            "has_data": clubs_has_data,
+        },
+    }
+    profile_activities["has_any"] = (
+        games_has_data or marathons_has_data or clubs_has_data
+    )
+
     context = {
         "u": user_obj,
         "profile_obj": profile_obj,
@@ -900,6 +1124,7 @@ def profile(request, username=None):
         "show_coin_balance": request.user == user_obj,
         "coin_balance": profile_obj.coin_balance,
         "has_unlimited_coins": profile_obj.has_unlimited_coins,
+        "profile_activities": profile_activities,
     }
     return render(request, "accounts/profile.html", context)
 
