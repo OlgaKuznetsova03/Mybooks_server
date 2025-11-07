@@ -439,43 +439,61 @@
   /* Стили модалок */
   .home-library-modal .modal-content,
   .home-summary-modal .modal-content {
-    background: #f8fafc;
+    background: radial-gradient(circle at top right, rgba(194, 224, 239, 0.18), transparent 55%),
+                linear-gradient(160deg, rgba(248, 250, 252, 0.96), rgba(226, 232, 240, 0.92));
     color: #0f172a;
-    border-radius: 20px;
-    border: 1px solid rgba(148, 163, 184, 0.35);
-    box-shadow: 0 24px 50px rgba(15, 23, 42, 0.18);
+    border-radius: 24px;
+    border: none;
+    box-shadow: 0 24px 65px rgba(15, 23, 42, 0.28);
+    overflow: hidden;
   }
 
   .home-library-modal .modal-header,
-  .home-library-modal .modal-body,
-  .home-summary-modal .modal-header,
-  .home-summary-modal .modal-body {
-    color: #0f172a;
-    background: transparent;
+  .home-summary-modal .modal-header {
+    border: none;
+    background: linear-gradient(135deg, rgba(127, 154, 175, 0.95), rgba(93, 114, 131, 0.95));
+    color: #fff;
+    padding: 1.5rem 1.75rem;
+  }
+
+  .home-library-modal .modal-header {
+    border-bottom: 1px solid rgba(194, 224, 239, 0.35);
+  }
+
+  .home-summary-modal .modal-header {
+    border-bottom: 1px solid rgba(194, 224, 239, 0.28);
   }
 
   .home-library-modal .modal-title,
   .home-summary-modal .modal-title {
-    color: #0f172a;
+    color: inherit;
     font-weight: 700;
+    letter-spacing: 0.01em;
   }
 
-  .home-library-modal .modal-header {
-    border-bottom: 1px solid rgba(148, 163, 184, 0.25);
-  }
-
-  .home-library-modal .modal-body {
-    border-radius: 0 0 20px 20px;
+  .home-library-modal .modal-body,
+  .home-summary-modal .modal-body {
+    padding: 2rem 1.75rem 2.25rem;
+    background: transparent;
+    color: #1e293b;
   }
 
   .home-library-modal .badge {
-    background: rgba(59, 130, 246, 0.12);
+    background: rgba(194, 224, 239, 0.22);
     color: #1d4ed8;
+    border-radius: 999px;
+    font-weight: 600;
   }
 
   .home-library-modal .btn-close,
   .home-summary-modal .btn-close {
-    filter: none;
+    filter: brightness(0) invert(1);
+    opacity: 0.8;
+  }
+
+  .home-library-modal .btn-close:hover,
+  .home-summary-modal .btn-close:hover {
+    opacity: 1;
   }
 
   /* Списки в модалках */
@@ -483,17 +501,22 @@
     display: flex;
     justify-content: between;
     align-items: flex-start;
-    padding: 0.75rem;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.25);
-    transition: background 0.3s ease;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.75rem;
+    border-radius: 18px;
+    background: rgba(148, 163, 184, 0.12);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
   }
 
   .book-list-item:hover {
-    background: rgba(226, 232, 240, 0.45);
+    background: rgba(148, 163, 184, 0.2);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.15);
   }
 
   .book-list-item:last-child {
-    border-bottom: none;
+    margin-bottom: 0;
   }
 
   .book-info {
