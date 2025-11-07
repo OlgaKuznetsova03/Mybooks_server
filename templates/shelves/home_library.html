@@ -247,28 +247,119 @@
   .home-glow-card ul li span:first-child{color:var(--home-text-soft);}
   .home-glow-card .badge{border-radius:12px;background:rgba(194,224,239,.22)!important;color:var(--home-accent);border:1px solid rgba(194,224,239,.5);}
 
-  .home-stats-grid{display:grid;gap:1.25rem;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
-  .home-stats-primary{font-size:clamp(2.25rem,4vw,3.5rem);font-weight:700;color:var(--home-accent);}
+  /* Компактная статистика */
+  .stats-compact {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
 
-  /* Новые стили для улучшенного UX */
-  .reading-progress-bar {
-    height: 8px;
-    border-radius: 10px;
+  .stat-item {
+    background: rgba(255,255,255,0.05);
+    border-radius: 16px;
+    padding: 1rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255,255,255,0.1);
+    cursor: pointer;
+  }
+
+  .stat-item:hover {
+    transform: translateY(-3px);
+    background: rgba(255,255,255,0.08);
+    border-color: var(--home-accent);
+  }
+
+  .stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--home-accent);
+    line-height: 1;
+    margin-bottom: 0.25rem;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    color: var(--home-text-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .stat-details {
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.6);
+    margin-top: 0.25rem;
+  }
+
+  /* Кнопки действий */
+  .action-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .action-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    color: var(--home-text-soft);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .action-btn:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: var(--home-accent);
+    transform: translateY(-2px);
+    color: var(--home-accent);
+    text-decoration: none;
+  }
+
+  .action-icon {
+    font-size: 1.25rem;
+    color: var(--home-accent);
+  }
+
+  .action-text {
+    flex: 1;
+  }
+
+  .action-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .action-desc {
+    font-size: 0.75rem;
+    opacity: 0.8;
+    margin-top: 0.1rem;
+  }
+
+  /* Поиск и фильтры */
+  .search-box {
+    margin-bottom: 1.5rem;
+  }
+
+  .search-box .input-group {
+    border-radius: 12px;
     overflow: hidden;
-    background: rgba(255,255,255,0.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   }
-  
-  .reading-progress-bar .progress-bar {
-    transition: width 1s ease-in-out;
-  }
-  
+
   .filter-chips {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
   }
-  
+
   .filter-chip {
     padding: 0.5rem 1rem;
     background: var(--home-surface);
@@ -279,97 +370,35 @@
     font-size: 0.875rem;
     color: var(--home-text-soft);
   }
-  
+
   .filter-chip:hover {
     background: var(--home-surface-alt);
     transform: translateY(-2px);
   }
-  
+
   .filter-chip.active {
     background: var(--home-accent);
     color: #1c242b;
     border-color: var(--home-accent);
     animation: pulseGlow 2s infinite;
   }
-  
-  .search-box {
-    margin-bottom: 1.5rem;
-  }
-  
-  .search-box .input-group {
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  }
-  
-  .table-hover tbody tr {
-    transition: all 0.3s ease;
-  }
-  
-  .table-hover tbody tr:hover {
-    background: rgba(194, 224, 239, 0.1) !important;
-    transform: translateX(5px);
-  }
-  
-  .status-cell {
-    position: relative;
-    cursor: pointer;
-  }
-  
-  .status-options {
-    display: none;
-    position: absolute;
-    background: var(--home-card-bg);
-    border: 1px solid var(--home-card-border);
-    border-radius: 8px;
-    padding: 0.5rem;
-    z-index: 10;
-    min-width: 150px;
-    top: 100%;
-    left: 0;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-  }
-  
-  .status-cell:hover .status-options {
-    display: block;
-    animation: fadeInUp 0.3s ease-out;
-  }
-  
-  .status-option {
-    padding: 0.5rem;
-    border-radius: 4px;
-    margin-bottom: 0.25rem;
-    transition: background 0.2s;
-    font-size: 0.875rem;
-  }
-  
-  .status-option:hover {
-    background: var(--home-surface-alt);
-  }
-  
-  .activity-calendar {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 2px;
-    margin-bottom: 1rem;
-  }
-  
-  .calendar-day {
-    width: 20px;
-    height: 20px;
-    border-radius: 2px;
-    background: var(--home-surface);
-    transition: all 0.3s ease;
-  }
-  
-  .calendar-day.active {
-    background: var(--home-accent);
-  }
-  
-  .calendar-day:hover {
-    transform: scale(1.3);
-  }
-  
+
+  /* Таблица - исправленные цвета для белого фона */
+  .home-library-table{background:#fff;border-radius:24px;border:1px solid #dbe3f0;box-shadow:0 18px 40px rgba(15,23,42,.12);overflow:hidden;color:#1e293b !important;}
+  .home-library-table .table{color:#1e293b !important;margin-bottom:0;border-color:#e2e8f0;}
+  .home-library-table .table thead{background:#f8fafc;}
+  .home-library-table .table thead th{border-color:#e2e8f0;font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:.7rem;color:#0f172a !important;cursor:pointer;transition:background 0.3s ease;}
+  .home-library-table .table thead th:hover{background:#e2e8f0;}
+  .home-library-table .table tbody td{border-color:#e2e8f0;vertical-align:top;background:#fff;color:#1e293b !important;transition:all 0.3s ease;}
+  .home-library-table .table tbody tr:hover td{background:#f1f5f9;transform:translateY(-2px);}
+  .home-table-actions .btn{border-radius:12px;transition:all 0.3s ease;}
+  .home-table-actions .btn-outline-secondary{color:#475569 !important;border-color:rgba(194,224,239,.55);background:rgba(82,106,122,.65);}
+  .home-table-actions .btn-outline-secondary:hover,.home-table-actions .btn-outline-secondary:focus{background:rgba(194,224,239,.2);color:#1c242b;border-color:rgba(194,224,239,.85);transform:scale(1.05);}
+  .home-table-actions .btn-outline-danger{color:#dc2626 !important;border-color:rgba(248,113,113,.55);background:rgba(244,63,94,.12);}
+  .home-table-actions .btn-outline-danger:hover,.home-table-actions .btn-outline-danger:focus{background:rgba(244,63,94,.25);color:#dc2626;border-color:rgba(244,63,94,.65);transform:scale(1.05);}
+  .tag-chip{display:inline-flex;align-items:center;padding:.25rem .6rem;border-radius:999px;background:rgba(194,224,239,.18);color:#0d2744 !important;font-size:.75rem;margin-right:.35rem;margin-bottom:.35rem;border:1px solid rgba(255,255,255,.28);transition:all 0.3s ease;}
+  .tag-chip:hover{transform:scale(1.05);background:rgba(194,224,239,.3);}
+
   /* Уведомления */
   .library-notification {
     position: fixed;
@@ -407,56 +436,90 @@
     margin-left: 1rem;
   }
 
-  .home-filters-card{background:var(--home-surface);border-radius:20px;border:1px solid var(--home-divider);box-shadow:0 16px 32px rgba(20,27,33,.5);}
-  .home-filters-toggle{border-radius:14px;border:1px solid rgba(255,255,255,.28);background:rgba(61,81,96,.8);color:#f8f9ff;font-weight:600;letter-spacing:.05em;}
+  /* Списки в модалках */
+  .book-list-item {
+    display: flex;
+    justify-content: between;
+    align-items: flex-start;
+    padding: 0.75rem;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    transition: background 0.3s ease;
+  }
 
-  .home-section-title{font-size:.75rem;letter-spacing:.3em;text-transform:uppercase;color:rgba(210,226,241,.82);}
-  .home-activity{display:grid;gap:1.25rem;}
+  .book-list-item:hover {
+    background: rgba(255,255,255,0.05);
+  }
 
-  .home-library-table{background:#fff;border-radius:24px;border:1px solid #dbe3f0;box-shadow:0 18px 40px rgba(15,23,42,.12);overflow:hidden;color:#0f172a;}
-  .home-library-table .table{color:inherit;margin-bottom:0;border-color:#e2e8f0;}
-  .home-library-table .table thead{background:#f8fafc;}
-  .home-library-table .table thead th{border-color:#e2e8f0;font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:.7rem;color:#0f172a;cursor:pointer;transition:background 0.3s ease;}
-  .home-library-table .table thead th:hover{background:#e2e8f0;}
-  .home-library-table .table tbody td{border-color:#e2e8f0;vertical-align:top;background:#fff;color:inherit;transition:all 0.3s ease;}
-  .home-library-table .table tbody tr:hover td{background:#f1f5f9;transform:translateY(-2px);}
-  .home-table-actions .btn{border-radius:12px;transition:all 0.3s ease;}
-  .home-table-actions .btn-outline-secondary{color:rgba(61,81,96,.9);border-color:rgba(194,224,239,.55);background:rgba(82,106,122,.65);}
-  .home-table-actions .btn-outline-secondary:hover,.home-table-actions .btn-outline-secondary:focus{background:rgba(194,224,239,.2);color:#1c242b;border-color:rgba(194,224,239,.85);transform:scale(1.05);}
-  .home-table-actions .btn-outline-danger{color:#fca5a5;border-color:rgba(248,113,113,.55);background:rgba(244,63,94,.12);}
-  .home-table-actions .btn-outline-danger:hover,.home-table-actions .btn-outline-danger:focus{background:rgba(244,63,94,.25);color:#fee2e2;border-color:rgba(244,63,94,.65);transform:scale(1.05);}
-  .tag-chip{display:inline-flex;align-items:center;padding:.25rem .6rem;border-radius:999px;background:rgba(194,224,239,.18);color:#0d2744;font-size:.75rem;margin-right:.35rem;margin-bottom:.35rem;border:1px solid rgba(255,255,255,.28);transition:all 0.3s ease;}
-  .tag-chip:hover{transform:scale(1.05);background:rgba(194,224,239,.3);}
+  .book-list-item:last-child {
+    border-bottom: none;
+  }
 
-  @media (max-width:991.98px){.home-hero{padding:2rem 1.5rem}.home-activity{grid-template-columns:1fr}}
-  @media (max-width:767.98px){
-    .home-hero{padding:1.75rem 1.25rem}
-    .home-hero__title{font-size:1.875rem}
-    .home-hero__subtitle{font-size:.95rem}
-    .home-stats-grid{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+  .book-info {
+    flex: 1;
+  }
+
+  .book-title {
+    font-weight: 600;
+    color: var(--home-text-soft);
+    margin-bottom: 0.25rem;
+  }
+
+  .book-authors {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.7);
+  }
+
+  .book-meta {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.6);
+    margin-top: 0.25rem;
+  }
+
+  /* Адаптивность */
+  @media (max-width: 768px) {
+    .stats-compact {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+
+    .stat-item {
+      padding: 0.75rem;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+    }
+
+    .action-buttons {
+      grid-template-columns: 1fr;
+    }
+
+    .filter-chips {
+      justify-content: center;
+    }
+
+    .filter-chip {
+      padding: 0.75rem 1.25rem;
+    }
+
     .home-progress-stats{flex-direction:column;align-items:stretch;gap:.75rem}
     .home-progress-side{min-width:0;display:flex;align-items:center;justify-content:space-between;text-align:left}
     .home-progress-side.text-end{text-align:left!important}
     .home-progress-value{font-size:1.875rem}
-    .home-library-table .table thead{display:none}
-    .home-library-table table,.home-library-table tbody,.home-library-table tr,.home-library-table td{display:block;width:100%}
-    .home-library-table tr{background:#fff;border-radius:20px;margin-bottom:1rem;padding:1rem 1.25rem;box-shadow:0 18px 35px rgba(15,23,42,.12);transition:all 0.3s ease;}
-    .home-library-table tr:hover{transform:translateY(-5px);}
-    .home-library-table td{border:none;padding:.25rem 0;background:transparent}
-    .home-library-table td::before{content:attr(data-label);display:block;font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:#64748b;margin-bottom:.15rem}
-    .home-library-table td[data-label="Действия"]{text-align:left;margin-top:.5rem}
-    .home-table-actions{justify-content:flex-start!important}
-    .home-filters-toggle{width:100%}
-    .home-disposed-card .table thead{display:none}
-    .home-disposed-card .table,.home-disposed-card tbody,.home-disposed-card tr,.home-disposed-card td{display:block;width:100%}
-    .home-disposed-card tr{background:#fff;border-radius:20px;margin-bottom:1rem;padding:1rem 1.25rem;box-shadow:0 18px 35px rgba(15,23,42,.12)}
-    .home-disposed-card td{border:none;padding:.3rem 0;background:transparent}
-    .home-disposed-card td::before{content:attr(data-label);display:block;font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:#64748b;margin-bottom:.1rem}
-    .filter-chips{justify-content:center;}
-    .filter-chip{padding:0.75rem 1.25rem;}
   }
-  @media (min-width:768px){
-    #homeLibraryFilters{display:block!important;height:auto!important;visibility:visible!important}
+
+  @media (max-width: 480px) {
+    .stats-compact {
+      grid-template-columns: 1fr;
+    }
+
+    .home-hero {
+      padding: 1.5rem 1rem;
+    }
+
+    .home-hero__title {
+      font-size: 1.75rem;
+    }
   }
 
   /* Reduce motion */
@@ -477,7 +540,7 @@
     <div class="col-12 col-lg-7 home-hero__content">
       <p class="home-section-title mb-2">Домашняя коллекция</p>
       <h1 class="home-hero__title display-5 mb-3">Моя домашняя библиотека</h1>
-      <p class="home-hero__subtitle mb-4">Отслеживайте бумажные и электронные экземпляры, расставляйте их по полкам и возвращайтесь к любимым сериям с атмосферой ретро-игры.</p>
+      <p class="home-hero__subtitle mb-4">Отслеживайте бумажные и электронные экземпляры, расставляйте их по полкам и возвращайтесь к любимым сериям.</p>
       <div class="home-hero__actions mb-3">
         <a class="btn btn-light home-hero__btn" href="{% url 'book_list' %}"><i class="bi bi-plus-circle me-2"></i> Добавить книгу</a>
         <a class="btn btn-outline-light home-hero__btn" href="{% url 'shelves:my_shelves' %}"><i class="bi bi-card-list me-2"></i> К полкам</a>
@@ -541,11 +604,60 @@
             </button>
           </div>
         </div>
-
       </div>
     </div>
   </div>
 </section>
+
+<!-- Компактная статистика под героем -->
+<div class="home-glow-card mb-5">
+  <h2 class="h6 text-uppercase text-muted mb-3">Обзор библиотеки</h2>
+  
+  <div class="stats-compact">
+    <div class="stat-item" onclick="showAllBooks()">
+      <div class="stat-value" data-target="{{ summary.total }}">0</div>
+      <div class="stat-label">Всего книг</div>
+      <div class="stat-details">в библиотеке</div>
+    </div>
+    
+    <div class="stat-item" onclick="showReadBooks()">
+      <div class="stat-value" data-target="{{ summary.read_count }}">0</div>
+      <div class="stat-label">Прочитано</div>
+      <div class="stat-details">книг</div>
+    </div>
+    
+    <div class="stat-item" onclick="showGenres()">
+      <div class="stat-value" data-target="{{ summary.genre_counts|length }}">0</div>
+      <div class="stat-label">Жанров</div>
+      <div class="stat-details">в коллекции</div>
+    </div>
+    
+    <div class="stat-item" onclick="showSeries()">
+      <div class="stat-value" data-target="{{ summary.series_counts|length }}">0</div>
+      <div class="stat-label">Серий</div>
+      <div class="stat-details">начато</div>
+    </div>
+  </div>
+
+  <!-- Быстрые действия -->
+  <div class="action-buttons">
+    <a href="{% url 'book_list' %}" class="action-btn">
+      <div class="action-icon"><i class="bi bi-search"></i></div>
+      <div class="action-text">
+        <div class="action-title">Найти книгу</div>
+        <div class="action-desc">Поиск по каталогу</div>
+      </div>
+    </a>
+    
+    <a href="{% url 'shelves:my_shelves' %}" class="action-btn">
+      <div class="action-icon"><i class="bi bi-collection"></i></div>
+      <div class="action-text">
+        <div class="action-title">Мои полки</div>
+        <div class="action-desc">Управление коллекцией</div>
+      </div>
+    </a>
+  </div>
+</div>
 
 <!-- Быстрый поиск -->
 <div class="search-box">
@@ -560,7 +672,7 @@
 </div>
 
 <!-- Быстрые фильтры -->
-<div class="filter-chips mb-4">
+<div class="filter-chips">
   <div class="filter-chip active" data-filter="all">Все книги</div>
   <div class="filter-chip" data-filter="reading">Читаю сейчас</div>
   <div class="filter-chip" data-filter="unread">Не начаты</div>
@@ -568,224 +680,8 @@
   <div class="filter-chip" data-filter="modern">Современные</div>
 </div>
 
-<div class="home-stats-grid mb-5">
-  <div class="home-glow-card home-quick-actions-card h-100">
-    <h2 class="h6 text-uppercase text-muted mb-3">Быстрые действия</h2>
-    <div class="d-flex flex-wrap gap-3">
-      <div class="flex-fill">
-        <div class="small text-uppercase text-muted mb-1">Текущие книги</div>
-        <button class="home-stats-button home-stats-button--block summary-trigger" type="button" data-summary-trigger data-summary-category="active" data-summary-title="Текущие книги">
-          <span class="home-stats-primary" data-target="{{ summary.total }}">0</span>
-        </button>
-      </div>
-      <div class="flex-fill">
-        <div class="small text-uppercase text-muted mb-1">Передано</div>
-        <button class="home-stats-button home-stats-button--block summary-trigger" type="button" data-summary-trigger data-summary-category="disposed" data-summary-title="Переданные книги">
-          <span class="display-6 mb-0" data-target="{{ summary.disposed_total }}">0</span>
-        </button>
-      </div>
-    </div>
-    
-    <!-- Прогресс чтения -->
-    <div class="reading-progress mt-3">
-      <div class="d-flex justify-content-between small text-muted mb-2">
-        <span>Читаю сейчас: <span id="readingNowCount">0</span></span>
-        <span>В планах: <span id="plannedCount">0</span></span>
-      </div>
-      <div class="reading-progress-bar">
-        <div class="progress-bar bg-warning" role="progressbar" id="readingProgressBar"
-             style="width: 0%">
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {% if entries %}
-    <div class="home-glow-card">
-      <h2 class="h6 text-uppercase text-muted mb-3">Всего активных книг</h2>
-      <button class="home-stats-button home-stats-button--block summary-trigger" type="button" data-summary-trigger data-summary-category="active" data-summary-title="Текущие книги">
-        <span class="home-stats-primary" data-target="{{ summary.total }}">0</span>
-      </button>
-      <p class="small text-muted mb-0">
-        Передано:
-        <button class="home-stats-button home-stats-button--inline summary-trigger" type="button" data-summary-trigger data-summary-category="disposed" data-summary-title="Переданные книги">
-          <span data-target="{{ summary.disposed_total }}">0</span> {{ summary.disposed_total|ru_pluralize:"книга,книги,книг" }}
-        </button>
-      </p>
-    </div>
-
-    <div class="home-glow-card">
-      <h2 class="h6 text-uppercase text-muted mb-3">Классика против современности</h2>
-      <div class="d-flex gap-4 align-items-end">
-        <div>
-          <div class="small text-uppercase text-muted">Классика</div>
-          <button class="home-stats-button display-6 mb-0 summary-trigger" type="button" data-summary-trigger data-summary-category="classic" data-summary-title="Классические книги">
-            <span class="home-progress-number" data-target="{{ summary.classic_count }}">0</span>
-          </button>
-        </div>
-        <div>
-          <div class="small text-uppercase text-muted">Современные</div>
-          <button class="home-stats-button display-6 mb-0 text-info summary-trigger" type="button" data-summary-trigger data-summary-category="modern" data-summary-title="Современные книги">
-            <span class="home-progress-number" data-target="{{ summary.modern_count }}">0</span>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Активность чтения -->
-    <div class="home-glow-card">
-      <h2 class="h6 text-uppercase text-muted mb-3">Ваша активность</h2>
-      <div class="activity-calendar" id="readingCalendar">
-        <!-- Календарь будет заполнен JavaScript -->
-      </div>
-      <div class="activity-stats mt-3">
-        <div class="row text-center">
-          <div class="col-4">
-            <div class="h5 mb-1" id="booksThisMonth">0</div>
-            <div class="small text-muted">в этом месяце</div>
-          </div>
-          <div class="col-4">
-            <div class="h5 mb-1" id="readingStreak">0</div>
-            <div class="small text-muted">дней подряд</div>
-          </div>
-          <div class="col-4">
-            <div class="h5 mb-1" id="avgPages">0</div>
-            <div class="small text-muted">стр/день</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="home-glow-card">
-      <h2 class="h6 text-uppercase text-muted mb-3">Популярные серии</h2>
-      {% if summary.series_counts %}
-        <ul class="list-unstyled mb-0 small">
-          {% for series in summary.series_counts %}
-            <li class="d-flex justify-content-between">
-              <span>{{ series.series_name }}</span>
-              <button class="home-stats-button home-stats-button--compact summary-trigger" type="button" data-summary-trigger data-summary-category="series" data-summary-key="{{ series.series_name }}" data-summary-title="Серия «{{ series.series_name }}»">
-                <span data-target="{{ series.total }}">0</span>
-              </button>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p class="text-muted mb-0">Добавьте серию для экземпляров.</p>
-      {% endif %}
-    </div>
-
-    <div class="home-glow-card">
-      <h2 class="h6 text-uppercase text-muted mb-3">Популярные жанры</h2>
-      {% if summary.genre_counts %}
-        <ul class="list-unstyled mb-0 small">
-          {% for genre in summary.genre_counts %}
-            <li class="d-flex justify-content-between">
-              <span>{{ genre.name }}</span>
-              <button class="home-stats-button home-stats-button--compact summary-trigger" type="button" data-summary-trigger data-summary-category="genres" data-summary-key="{{ genre.name }}" data-summary-title="Жанр «{{ genre.name }}»">
-                <span data-target="{{ genre.total }}">0</span>
-              </button>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p class="text-muted mb-0">Заполните жанры, чтобы увидеть статистику.</p>
-      {% endif %}
-    </div>
-  {% endif %}
-</div>
-
+<!-- Основная таблица -->
 {% if entries %}
-  <div class="home-filters-card p-4 mb-5">
-    <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
-      <h2 class="h6 text-uppercase text-muted mb-0">Детальные фильтры</h2>
-      <button class="btn home-filters-toggle d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#homeLibraryFilters" aria-expanded="false" aria-controls="homeLibraryFilters">
-        <i class="bi bi-sliders me-2"></i>Показать фильтры
-      </button>
-    </div>
-    <div id="homeLibraryFilters" class="collapse">
-      <form method="get" class="row g-3">
-        {% if filter_form.non_field_errors %}
-          <div class="col-12"><div class="alert alert-danger">{{ filter_form.non_field_errors }}</div></div>
-        {% endif %}
-        <div class="col-12 col-md-4">
-          <label class="form-label" for="id_is_classic">{{ filter_form.is_classic.label }}</label>
-          {{ filter_form.is_classic }}{{ filter_form.is_classic.errors }}
-        </div>
-        <div class="col-12 col-md-4">
-          <label class="form-label" for="id_series">{{ filter_form.series.label }}</label>
-          {{ filter_form.series }}{{ filter_form.series.errors }}
-        </div>
-        <div class="col-12 col-md-4">
-          <label class="form-label" for="id_genres">{{ filter_form.genres.label }}</label>
-          {{ filter_form.genres }}{{ filter_form.genres.errors }}
-        </div>
-        <div class="col-12 d-flex flex-column flex-md-row gap-2 mt-2">
-          <button class="btn btn-primary flex-fill" type="submit">Применить</button>
-          {% if filters_applied %}
-            <a class="btn btn-outline-secondary flex-fill flex-md-grow-0" href="{% url 'shelves:home_library' %}">Сбросить</a>
-          {% endif %}
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <div class="home-activity mb-5">
-    <div class="home-glow-card h-100">
-      <h2 class="h6 text-uppercase text-muted mb-3">Последние обновления</h2>
-      {% if summary.recent_entries %}
-        <ul class="list-unstyled mb-0">
-          {% for entry in summary.recent_entries %}
-            <li class="mb-3 pb-3 border-bottom border-secondary-subtle">
-              <div class="fw-semibold">{{ entry.book.title }}</div>
-              <div class="small text-muted">
-                {% if entry.book.authors.all %}{{ entry.book.authors.all|join:", " }} ·{% endif %}
-                {% if entry.acquired_at %}получена {{ entry.acquired_at|date:"d.m.Y" }}{% else %}добавлена {{ entry.shelf_item.added_at|date:"d.m.Y" }}{% endif %}
-                {% if entry.location %} · хранится: {{ entry.location }}{% endif %}
-              </div>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p class="text-muted mb-0">Пока нет активности. Заполните информацию о нескольких книгах.</p>
-      {% endif %}
-    </div>
-
-    <div class="home-glow-card h-100">
-      <h2 class="h6 text-uppercase text-muted mb-3">Статусы экземпляров</h2>
-      {% if summary.statuses %}
-        <ul class="list-unstyled mb-3">
-          {% for status in summary.statuses %}
-            <li class="d-flex justify-content-between align-items-center mb-2">
-              <span>{{ status.status }}</span>
-              <button class="badge text-bg-light border-0 summary-trigger" type="button" data-summary-trigger data-summary-category="statuses" data-summary-key="{{ status.status }}" data-summary-title="Статус «{{ status.status }}»">
-                <span data-target="{{ status.total }}">0</span>
-              </button>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p class="text-muted mb-3">Используйте поле «Статус», чтобы отслеживать движение книг.</p>
-      {% endif %}
-      <div class="border-top border-secondary pt-3">
-        <h3 class="h6 text-uppercase text-muted mb-2">Где лежат книги</h3>
-        {% if summary.locations %}
-          <ul class="list-unstyled mb-0 small">
-            {% for loc in summary.locations %}
-              <li class="d-flex justify-content-between">
-                <span>{{ loc.location }}</span>
-                <button class="home-stats-button home-stats-button--compact fw-semibold summary-trigger" type="button" data-summary-trigger data-summary-category="locations" data-summary-key="{{ loc.location }}" data-summary-title="Место хранения «{{ loc.location }}»">
-                  <span data-target="{{ loc.total }}">0</span>
-                </button>
-              </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p class="text-muted mb-0 small">Добавьте информацию о хранении, чтобы ничего не потерялось.</p>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
   <div class="home-library-table mb-4">
     <div class="table-responsive">
       <table class="table align-middle table-hover" id="booksTable">
@@ -805,120 +701,182 @@
         </thead>
         <tbody>
           {% default_shelf_status_map entries request.user as default_status_map %}
-          {% if entries %}
-            {% for entry in entries %}
-              <tr data-book-id="{{ entry.book.pk }}" 
-                  data-title="{{ entry.book.title|lower }}" 
-                  data-authors="{{ entry.book.authors.all|join:', '|lower }}"
-                  data-genres="{% for genre in entry.custom_genres.all %}{{ genre.name|lower }} {% endfor %}"
-                  data-status="{{ entry.status|default:''|lower }}"
-                  data-classic="{% if entry.is_classic %}classic{% else %}modern{% endif %}"
-                  data-reading="{% if entry.is_read or default_status_map|dict_get:entry.book.pk %}reading{% else %}unread{% endif %}">
-                <td data-label="Книга" style="min-width:200px;">
-                  <div class="fw-semibold"><a class="text-decoration-none text-reset" href="{% url 'book_detail' entry.book.pk %}">{{ entry.book.title }}</a></div>
-                  <div class="small text-muted">{{ entry.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
-                  {% with status=default_status_map|dict_get:entry.book.pk %}
-                    <div class="mt-2">
-                      {% if entry.is_read %}
-                        <div class="small text-muted fw-semibold">Прочитано{% if entry.date_read %} {{ entry.date_read|date:"d.m.Y" }}{% endif %}</div>
-                      {% elif status and status.code == 'read' %}
-                        {% with read_date=status.added_at %}
-                          <div class="small text-muted fw-semibold">Прочитано{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}</div>
-                        {% endwith %}
-                      {% elif status and status.code == 'reading' %}
-                        <div class="small text-muted fw-semibold">На полке «{{ status.label|default:default_reading_shelf_name|default:'Читаю' }}»</div>
-                      {% else %}
-                        <form method="post" action="{% url 'shelves:move_book_to_reading' entry.book.pk %}">
-                          {% csrf_token %}
-                          <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                          <button type="submit" class="btn btn-sm btn-outline-primary mt-1"><i class="bi bi-book-half" aria-hidden="true"></i><span>Начать читать</span></button>
-                        </form>
-                      {% endif %}
-                    </div>
-                  {% endwith %}
-                </td>
-                <td data-label="Формат">{{ entry.get_format_display }}</td>
-                <td data-label="Статус" class="status-cell">
-                  <span class="current-status" data-status="{{ entry.status }}">
-                    {{ entry.status|default:"—" }}
-                  </span>
-                </td>
-                <td data-label="Хранение">
-                  {% if entry.location %}{{ entry.location }}<br>{% endif %}
-                  {% if entry.shelf_section %}<span class="text-muted small">{{ entry.shelf_section }}</span>{% endif %}
-                  {% if not entry.location and not entry.shelf_section %}—{% endif %}
-                </td>
-                <td data-label="Классика">{% if entry.is_classic %}<span class="badge text-bg-success">Да</span>{% else %}<span class="text-muted">Нет</span>{% endif %}</td>
-                <td data-label="Серия">{{ entry.series_name|default:"—" }}</td>
-                <td data-label="Жанры">
-                  {% with entry.custom_genres.all as entry_genres %}
-                    {% if entry_genres %}{% for genre in entry_genres %}<span class="tag-chip">{{ genre }}</span>{% endfor %}{% else %}—{% endif %}
-                  {% endwith %}
-                </td>
-                <td data-label="Приобретена">{% if entry.acquired_at %}{{ entry.acquired_at|date:"d.m.Y" }}{% else %}—{% endif %}</td>
-                <td data-label="Заметки" style="max-width:240px;white-space:pre-wrap;">{{ entry.notes|default:"—" }}</td>
-                <td data-label="Действия" class="text-end">
-                  <div class="btn-group btn-group-sm home-table-actions">
-                    <a class="btn btn-outline-secondary" href="{% url 'shelves:home_library_edit' entry.shelf_item_id %}?next={{ request.get_full_path|urlencode }}"><i class="bi bi-pencil"></i></a>
-                    <a class="btn btn-outline-danger" href="{% url 'shelves:remove_book_from_shelf' shelf.id entry.book.id %}?next={{ request.get_full_path|urlencode }}" title="Удалить из полки" aria-label="Удалить книгу"><i class="bi bi-trash"></i></a>
+          {% for entry in entries %}
+            <tr data-book-id="{{ entry.book.pk }}" 
+                data-title="{{ entry.book.title|lower }}" 
+                data-authors="{{ entry.book.authors.all|join:', '|lower }}"
+                data-genres="{% for genre in entry.custom_genres.all %}{{ genre.name|lower }} {% endfor %}"
+                data-status="{{ entry.status|default:''|lower }}"
+                data-classic="{% if entry.is_classic %}classic{% else %}modern{% endif %}"
+                data-reading="{% if entry.is_read or default_status_map|dict_get:entry.book.pk %}reading{% else %}unread{% endif %}">
+              <td data-label="Книга" style="min-width:200px;">
+                <div class="fw-semibold"><a class="text-decoration-none text-reset" href="{% url 'book_detail' entry.book.pk %}">{{ entry.book.title }}</a></div>
+                <div class="small text-muted" style="color: #64748b !important;">{{ entry.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
+                {% with status=default_status_map|dict_get:entry.book.pk %}
+                  <div class="mt-2">
+                    {% if entry.is_read %}
+                      <div class="small text-muted fw-semibold" style="color: #64748b !important;">Прочитано{% if entry.date_read %} {{ entry.date_read|date:"d.m.Y" }}{% endif %}</div>
+                    {% elif status and status.code == 'read' %}
+                      {% with read_date=status.added_at %}
+                        <div class="small text-muted fw-semibold" style="color: #64748b !important;">Прочитано{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}</div>
+                      {% endwith %}
+                    {% elif status and status.code == 'reading' %}
+                      <div class="small text-muted fw-semibold" style="color: #64748b !important;">На полке «{{ status.label|default:default_reading_shelf_name|default:'Читаю' }}»</div>
+                    {% else %}
+                      <form method="post" action="{% url 'shelves:move_book_to_reading' entry.book.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit" class="btn btn-sm btn-outline-primary mt-1"><i class="bi bi-book-half" aria-hidden="true"></i><span>Начать читать</span></button>
+                      </form>
+                    {% endif %}
                   </div>
-                </td>
-              </tr>
-            {% endfor %}
-          {% else %}
-            <tr><td colspan="10" class="text-center text-muted py-4">По выбранным условиям книги не найдены.</td></tr>
-          {% endif %}
+                {% endwith %}
+              </td>
+              <td data-label="Формат">{{ entry.get_format_display }}</td>
+              <td data-label="Статус">{{ entry.status|default:"—" }}</td>
+              <td data-label="Хранение">
+                {% if entry.location %}{{ entry.location }}<br>{% endif %}
+                {% if entry.shelf_section %}<span class="text-muted small" style="color: #64748b !important;">{{ entry.shelf_section }}</span>{% endif %}
+                {% if not entry.location and not entry.shelf_section %}—{% endif %}
+              </td>
+              <td data-label="Классика">{% if entry.is_classic %}<span class="badge text-bg-success">Да</span>{% else %}<span class="text-muted" style="color: #64748b !important;">Нет</span>{% endif %}</td>
+              <td data-label="Серия">{{ entry.series_name|default:"—" }}</td>
+              <td data-label="Жанры">
+                {% with entry.custom_genres.all as entry_genres %}
+                  {% if entry_genres %}{% for genre in entry_genres %}<span class="tag-chip">{{ genre }}</span>{% endfor %}{% else %}—{% endif %}
+                {% endwith %}
+              </td>
+              <td data-label="Приобретена">{% if entry.acquired_at %}{{ entry.acquired_at|date:"d.m.Y" }}{% else %}—{% endif %}</td>
+              <td data-label="Заметки" style="max-width:240px;white-space:pre-wrap;">{{ entry.notes|default:"—" }}</td>
+              <td data-label="Действия" class="text-end">
+                <div class="btn-group btn-group-sm home-table-actions">
+                  <a class="btn btn-outline-secondary" href="{% url 'shelves:home_library_edit' entry.shelf_item_id %}?next={{ request.get_full_path|urlencode }}"><i class="bi bi-pencil"></i></a>
+                  <a class="btn btn-outline-danger" href="{% url 'shelves:remove_book_from_shelf' shelf.id entry.book.id %}?next={{ request.get_full_path|urlencode }}" title="Удалить из полки" aria-label="Удалить книгу"><i class="bi bi-trash"></i></a>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
-
-  {% if disposed_entries %}
-    <div class="home-glow-card home-disposed-card mt-4">
-      <h2 class="h6 text-uppercase text-muted mb-3">Проданные и отданные книги</h2>
-      <div class="table-responsive">
-        <table class="table align-middle mb-0">
-          <thead><tr><th>Книга</th><th>Статус</th><th>Комментарий</th><th>Обновлено</th><th class="text-end">Действия</th></tr></thead>
-          <tbody>
-            {% default_shelf_status_map disposed_entries request.user as disposed_status_map %}
-            {% for entry in disposed_entries %}
-              <tr>
-                <td data-label="Книга" style="min-width:200px;">
-                  <div class="fw-semibold"><a class="text-decoration-none text-reset" href="{% url 'book_detail' entry.book.pk %}">{{ entry.book.title }}</a></div>
-                  <div class="small text-muted">{{ entry.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
-                  {% with status=disposed_status_map|dict_get:entry.book.pk %}
-                    {% if entry.is_read %}
-                      <div class="small text-muted fw-semibold mt-2">Прочитано{% if entry.date_read %} {{ entry.date_read|date:"d.m.Y" }}{% endif %}</div>
-                    {% elif status and status.code == 'read' %}
-                      {% with read_date=status.added_at %}
-                        <div class="small text-muted fw-semibold mt-2">Прочитано{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}</div>
-                      {% endwith %}
-                    {% elif status and status.code == 'reading' %}
-                      <div class="small text-muted fw-semibold mt-2">На полке «{{ status.label|default:default_reading_shelf_name|default:'Читаю' }}»</div>
-                    {% endif %}
-                  {% endwith %}
-                </td>
-                <td data-label="Статус">{{ entry.status|default:"—" }}</td>
-                <td data-label="Комментарий" style="max-width:280px;white-space:pre-wrap;">{{ entry.disposition_note|default:"—" }}</td>
-                <td data-label="Обновлено">{{ entry.updated_at|date:"d.m.Y H:i" }}</td>
-                <td data-label="Действия" class="text-end">
-                  <div class="btn-group btn-group-sm home-table-actions">
-                    <a class="btn btn-outline-secondary" href="{% url 'shelves:home_library_edit' entry.shelf_item_id %}?next={{ request.get_full_path|urlencode }}"><i class="bi bi-pencil"></i></a>
-                    <a class="btn btn-outline-danger" href="{% url 'shelves:remove_book_from_shelf' shelf.id entry.book.id %}?next={{ request.get_full_path|urlencode }}" title="Удалить из полки" aria-label="Удалить книгу"><i class="bi bi-trash"></i></a>
-                  </div>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  {% endif %}
 {% else %}
-  <div class="alert alert-light border">На полке пока нет книг. Найдите книгу в каталоге и добавьте её в полку «{{ shelf.name }}» на странице книги.</div>
+  <div class="alert alert-light border text-center py-5">
+    <i class="bi bi-book display-1 text-muted mb-3 d-block"></i>
+    <h3>Библиотека пуста</h3>
+    <p class="text-muted">Начните добавлять книги в свою коллекцию</p>
+    <a href="{% url 'book_list' %}" class="btn btn-primary mt-2">Добавить первую книгу</a>
+  </div>
 {% endif %}
 
-<!-- Модалка списка -->
+<!-- Модалки для статистики -->
+<div class="modal fade" id="readBooksModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">📖 Прочитанные книги ({{ summary.read_count }})</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div id="readBooksList">
+          {% for entry in entries %}
+            {% if entry.is_read %}
+              <div class="book-list-item">
+                <div class="book-info">
+                  <div class="book-title">{{ entry.book.title }}</div>
+                  <div class="book-authors">{{ entry.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
+                  {% if entry.date_read %}
+                    <div class="book-meta">Прочитано: {{ entry.date_read|date:"d.m.Y" }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="genresModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">🎭 Жанры в коллекции</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          {% for genre in summary.genre_counts %}
+            <div class="col-md-6 mb-3">
+              <div class="d-flex justify-content-between align-items-center p-3 border rounded">
+                <span>{{ genre.name }}</span>
+                <span class="badge bg-primary">{{ genre.total }}</span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="seriesModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">📚 Серии книг</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          {% for series in summary.series_counts %}
+            <div class="col-md-6 mb-3">
+              <div class="d-flex justify-content-between align-items-center p-3 border rounded">
+                <span>{{ series.series_name }}</span>
+                <span class="badge bg-primary">{{ series.total }}</span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="allBooksModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">📚 Все книги ({{ summary.total }})</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div id="allBooksList">
+          {% for entry in entries %}
+            <div class="book-list-item">
+              <div class="book-info">
+                <div class="book-title">{{ entry.book.title }}</div>
+                <div class="book-authors">{{ entry.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
+                <div class="book-meta">
+                  {% if entry.is_read %}
+                    <span class="text-success">Прочитано</span>
+                  {% else %}
+                    <span class="text-warning">В планах</span>
+                  {% endif %}
+                  • {{ entry.get_format_display }}
+                  {% if entry.acquired_at %}• Приобретена: {{ entry.acquired_at|date:"d.m.Y" }}{% endif %}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Оригинальная модалка для прогресса -->
 <div class="modal fade home-summary-modal" id="homeLibrarySummaryModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-scrollable">
     <div class="modal-content">
@@ -936,517 +894,397 @@
 {% endblock %}
 
 {% block extra_js %}
-  {{ summary_data|json_script:"homeLibrarySummaryData" }}
-  <script>
-    (function () {
-      // Система уведомлений
-      function showLibraryNotification(message, type = 'info') {
-        const notification = document.createElement('div');
-        notification.className = `library-notification library-notification-${type}`;
-        const icons = { info: 'info-circle', success: 'check-circle', warning: 'exclamation-triangle', error: 'x-circle' };
-        notification.innerHTML = `
-          <div class="notification-content">
-            <i class="bi bi-${icons[type]} me-2"></i>
-            ${message}
-          </div>
-          <button class="notification-close">&times;</button>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        setTimeout(() => notification.classList.add('show'), 100);
-        
-        setTimeout(() => hideNotification(notification), 5000);
-        
-        notification.querySelector('.notification-close').addEventListener('click', () => {
-          hideNotification(notification);
-        });
+{{ summary_data|json_script:"homeLibrarySummaryData" }}
+<script>
+(function() {
+  // Система уведомлений
+  function showLibraryNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `library-notification library-notification-${type}`;
+    const icons = { info: 'info-circle', success: 'check-circle', warning: 'exclamation-triangle', error: 'x-circle' };
+    notification.innerHTML = `
+      <div class="notification-content">
+        <i class="bi bi-${icons[type]} me-2"></i>
+        ${message}
+      </div>
+      <button class="notification-close">&times;</button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => notification.classList.add('show'), 100);
+    
+    setTimeout(() => hideNotification(notification), 5000);
+    
+    notification.querySelector('.notification-close').addEventListener('click', () => {
+      hideNotification(notification);
+    });
+  }
+
+  function hideNotification(notification) {
+    notification.classList.remove('show');
+    setTimeout(() => notification.remove(), 300);
+  }
+
+  // Функции для модалок
+  window.showReadBooks = function() {
+    const modal = new bootstrap.Modal(document.getElementById('readBooksModal'));
+    modal.show();
+  };
+
+  window.showGenres = function() {
+    const modal = new bootstrap.Modal(document.getElementById('genresModal'));
+    modal.show();
+  };
+
+  window.showSeries = function() {
+    const modal = new bootstrap.Modal(document.getElementById('seriesModal'));
+    modal.show();
+  };
+
+  window.showAllBooks = function() {
+    const modal = new bootstrap.Modal(document.getElementById('allBooksModal'));
+    modal.show();
+  };
+
+  // Оригинальный код прогресса (сохранен)
+  const dataElement = document.getElementById('homeLibrarySummaryData');
+  if (!dataElement) return;
+
+  let summaryData = {};
+  try { summaryData = JSON.parse(dataElement.textContent || '{}'); }
+  catch (e) { console.error('Failed to parse home library summary data', e); summaryData = {}; }
+
+  const modalEl = document.getElementById('homeLibrarySummaryModal');
+  const titleEl = modalEl ? modalEl.querySelector('[data-role="summary-title"]') : null;
+  const listWrapper = modalEl ? modalEl.querySelector('[data-role="summary-list"]') : null;
+  const emptyEl = modalEl ? modalEl.querySelector('[data-role="summary-empty"]') : null;
+  let modalInstance = null;
+
+  function ensureModal(){
+    if (!modalEl) return null;
+    if (!modalInstance && window.bootstrap?.Modal) modalInstance = new bootstrap.Modal(modalEl);
+    return modalInstance;
+  }
+
+  function renderBooks(items){
+    if (!listWrapper || !emptyEl) return;
+    if (!Array.isArray(items) || !items.length){
+      listWrapper.innerHTML=''; listWrapper.classList.add('d-none');
+      emptyEl.classList.remove('d-none'); emptyEl.textContent='Для этого раздела пока нет книг.'; return;
+    }
+    const frag = document.createDocumentFragment();
+    items.forEach(book=>{
+      const item = document.createElement('div'); item.className='list-group-item home-summary-item';
+      const link = document.createElement('a'); link.href=book.url; link.textContent=book.title;
+      const sub = document.createElement('div'); sub.className='text-muted small mt-1'; sub.textContent=book.authors || 'Автор неизвестен';
+      item.appendChild(link); item.appendChild(sub); frag.appendChild(item);
+    });
+    listWrapper.innerHTML=''; listWrapper.appendChild(frag);
+    emptyEl.classList.add('d-none'); listWrapper.classList.remove('d-none');
+  }
+
+  function openModal(title, items){
+    if (titleEl) titleEl.textContent = title || 'Список книг';
+    renderBooks(items);
+    const m = ensureModal(); if (m) m.show();
+  }
+
+  function getSummaryItems(trigger){
+    const category = trigger.dataset.summaryCategory; if (!category) return [];
+    if (['classic','modern','active','disposed'].includes(category)) return summaryData[category] || [];
+    if (['series','genres','locations','statuses'].includes(category)){
+      const key = trigger.dataset.summaryKey; const bucket = summaryData[category] || {};
+      return key ? (bucket[key] || []) : [];
+    }
+    if (category === 'period'){
+      const kind = trigger.dataset.periodKind, type = trigger.dataset.periodType, value = trigger.dataset.periodValue;
+      const periods = summaryData.periods || {}; const typeBucket = periods[type] || {}; const stats = typeBucket[value] || {};
+      if (kind === 'bought') return stats.bought_books || [];
+      if (kind === 'read')   return stats.read_books || [];
+      return [];
+    }
+    return [];
+  }
+
+  function getPeriodOptions(type){
+    const options = summaryData.periodOptions || {}; return options[type] || [];
+  }
+  function getPeriodLabel(type, value){
+    const opts = getPeriodOptions(type); const found = opts.find(o=>o.value===value); return found ? found.label : '';
+  }
+
+  document.querySelectorAll('[data-summary-trigger]').forEach(trigger=>{
+    trigger.addEventListener('click', ()=>{
+      const title = trigger.dataset.summaryTitle || trigger.textContent.trim();
+      const items = getSummaryItems(trigger);
+      openModal(title, items);
+    });
+  });
+
+  const periodTypeSelect  = document.querySelector('[data-role="period-type"]');
+  const periodValueSelect = document.querySelector('[data-role="period-value"]');
+  const boughtCountEl     = document.querySelector('[data-role="period-bought-count"]');
+  const readCountEl       = document.querySelector('[data-role="period-read-count"]');
+  const fillLeftEl        = document.querySelector('[data-role="fill-left"]');
+  const fillRightEl       = document.querySelector('[data-role="fill-right"]');
+  const labelEl           = document.querySelector('[data-role="period-progress-label"]');
+  const lineEl            = fillLeftEl?.parentElement;
+  const PERIOD_STORAGE_KEY = 'homeLibraryPeriodSelection';
+
+  function getStorage(){ try { return window.localStorage; } catch(e){ return null; } }
+
+  function loadSavedPeriod(){
+    const storage = getStorage(); if (!storage) return null;
+    try{
+      const raw = storage.getItem(PERIOD_STORAGE_KEY); if (!raw) return null;
+      const parsed = JSON.parse(raw); if (!parsed || typeof parsed!=='object') return null;
+      const values = typeof parsed.values==='object' && parsed.values ? parsed.values : {};
+      const type = (parsed.type==='year' || parsed.type==='month') ? parsed.type : null;
+      const value = type && values[type] ? values[type] : (typeof parsed.value==='string' ? parsed.value : '');
+      return { type, value, values };
+    }catch(e){ console.warn('Failed to read saved period', e); return null; }
+  }
+  function savePeriodSelection(type, value){
+    const storage = getStorage(); if (!storage) return;
+    try{
+      const existing = loadSavedPeriod(); const values = existing?.values ? { ...existing.values } : {};
+      if (type==='year' || type==='month'){ value ? values[type]=value : delete values[type]; }
+      const payload = JSON.stringify({ type, value: value || '', values });
+      storage.setItem(PERIOD_STORAGE_KEY, payload);
+    }catch(e){ console.warn('Failed to save period', e); }
+  }
+
+  const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function animateNumber(el, to){
+    const from = parseInt(el.textContent || '0', 10) || 0;
+    if (prefersReduced || from === to){ el.textContent = to; return; }
+    const dur = 700; const start = performance.now();
+    const step = (t)=>{
+      const p = Math.min(1, (t - start) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(from + (to - from) * eased);
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  function placeLightningAt(percent){
+    if (!lineEl) return;
+    let bolt = lineEl.querySelector('.home-progress-lightning');
+    if (!bolt){
+      bolt = document.createElement('div');
+      bolt.className = 'home-progress-lightning';
+      lineEl.appendChild(bolt);
+    }
+    bolt.style.left = percent + '%';
+    bolt.classList.remove('reflash','is-static'); void bolt.offsetWidth;
+    bolt.classList.add('reflash');
+    setTimeout(()=> bolt.classList.add('is-static'), 900);
+  }
+
+  function spawnSparksAt(percent){
+    if (!lineEl || prefersReduced) return;
+    const sparks = 6;
+    for (let i=0;i<sparks;i++){
+      const s = document.createElement('div');
+      s.className = 'home-progress-spark';
+      s.style.left = percent + '%';
+      const angle = (Math.random()*70 - 35) * (Math.PI/180);
+      const dist  = 16 + Math.random()*18;
+      s.style.setProperty('--dx', `${Math.cos(angle)*dist}px`);
+      s.style.setProperty('--dy', `${Math.sin(angle)*dist - 8}px`);
+      lineEl.appendChild(s);
+      setTimeout(()=>s.remove(), 700);
+    }
+  }
+
+  function updatePeriodTriggers(type, value, label){
+    document.querySelectorAll('[data-summary-category="period"]').forEach((trigger)=>{
+      trigger.dataset.periodType = type;
+      trigger.dataset.periodValue = value || '';
+      const kind = trigger.dataset.periodKind;
+      if (label && kind){
+        const prefix = kind === 'bought' ? 'Куплено — ' : 'Прочитано — ';
+        trigger.dataset.summaryTitle = prefix + label;
+      } else if (kind){
+        trigger.dataset.summaryTitle = kind === 'bought' ? 'Куплено' : 'Прочитано';
       }
+    });
+  }
 
-      function hideNotification(notification) {
-        notification.classList.remove('show');
-        setTimeout(() => notification.remove(), 300);
+  function updatePeriodCard(){
+    if (!fillLeftEl || !fillRightEl) return;
+
+    const type = periodTypeSelect?.value || 'year';
+    const options = getPeriodOptions(type);
+    let value = '';
+    if (options.length){
+      value = periodValueSelect?.value || options[0].value;
+      if (periodValueSelect && !options.some(o=>o.value===value)){
+        periodValueSelect.value = options[0].value;
+        value = periodValueSelect.value;
       }
+    }
 
-      // Анимация чисел
-      function animateValue(element, start, end, duration) {
-        if (!element) return;
-        let startTimestamp = null;
-        const step = (timestamp) => {
-          if (!startTimestamp) startTimestamp = timestamp;
-          const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-          const value = Math.floor(progress * (end - start) + start);
-          element.textContent = value.toLocaleString();
-          if (progress < 1) {
-            window.requestAnimationFrame(step);
-          }
-        };
-        window.requestAnimationFrame(step);
+    const periods = summaryData.periods || {};
+    const stats = (periods[type] && periods[type][value]) || {};
+    const boughtCount = stats.bought_count || 0;
+    const readCount   = stats.read_count   || 0;
+
+    animateNumber(boughtCountEl, boughtCount);
+    animateNumber(readCountEl,   readCount);
+
+    const total = boughtCount + readCount;
+    const boughtPercent = total ? Math.round((boughtCount / total) * 100) : 0;
+    const readPercent   = 100 - boughtPercent;
+
+    lineEl?.classList.add('is-animating');
+    setTimeout(()=> lineEl?.classList.remove('is-animating'), 1200);
+
+    fillLeftEl.style.transition = 'none';
+    fillRightEl.style.transition = 'none';
+    fillLeftEl.style.width  = '0%';
+    fillRightEl.style.width = '0%';
+    void fillLeftEl.offsetWidth;
+    fillLeftEl.style.transition  = 'width 900ms ease';
+    fillRightEl.style.transition = 'width 900ms ease';
+    fillLeftEl.style.width  = boughtPercent + '%';
+    fillRightEl.style.width = readPercent   + '%';
+
+    placeLightningAt(boughtPercent);
+    spawnSparksAt(boughtPercent);
+
+    if (labelEl){
+      labelEl.classList.remove('pop');
+      labelEl.textContent = `${boughtPercent}% / ${readPercent}%`;
+      setTimeout(()=> labelEl.classList.add('pop'), 920);
+    }
+
+    const label = getPeriodLabel(type, value);
+    updatePeriodTriggers(type, value, label);
+    savePeriodSelection(type, value);
+  }
+
+  function populatePeriodOptions(type, preferredValue){
+    if (!periodValueSelect) return;
+    const options = getPeriodOptions(type);
+    periodValueSelect.innerHTML = '';
+    if (!options.length){
+      const opt = document.createElement('option'); opt.value=''; opt.textContent='Нет данных'; opt.selected=true;
+      periodValueSelect.appendChild(opt); periodValueSelect.disabled = true;
+      if (labelEl) labelEl.textContent = '0% / 0%';
+      if (fillLeftEl && fillRightEl){
+        fillLeftEl.style.width = '0%'; fillRightEl.style.width = '0%';
       }
+      return;
+    }
+    periodValueSelect.disabled = false;
+    let selectedDone = false;
+    options.forEach(o=>{
+      const el = document.createElement('option'); el.value=o.value; el.textContent=o.label;
+      if (!selectedDone && preferredValue && o.value===preferredValue){ el.selected=true; selectedDone=true; }
+      periodValueSelect.appendChild(el);
+    });
+    if (!selectedDone && summaryData?.defaultPeriod?.type===type){
+      const def = summaryData.defaultPeriod.value;
+      const opt = Array.from(periodValueSelect.options).find(x=>x.value===def);
+      if (opt) opt.selected = true;
+    }
+    if (!Array.from(periodValueSelect.options).some(x=>x.selected) && periodValueSelect.options.length){
+      periodValueSelect.options[0].selected = true;
+    }
+  }
 
-      // Запуск анимации при появлении в viewport
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            const el = entry.target;
-            const targetValue = parseInt(el.dataset.target) || 0;
-            animateValue(el, 0, targetValue, 2000);
-            observer.unobserve(el);
-          }
-        });
-      }, { threshold: 0.1 });
+  periodTypeSelect?.addEventListener('change', ()=>{
+    const t = periodTypeSelect.value || 'year';
+    const saved = loadSavedPeriod(); const preferred = saved?.values ? saved.values[t] : undefined;
+    populatePeriodOptions(t, preferred); updatePeriodCard();
+  });
+  periodValueSelect?.addEventListener('change', updatePeriodCard);
 
-      // Инициализация анимации чисел
-      document.querySelectorAll('[data-target]').forEach(el => {
-        if (el.textContent === '0') {
-          observer.observe(el);
-        }
-      });
+  let initialType = periodTypeSelect?.value || 'year';
+  let initialValue;
+  const saved = loadSavedPeriod();
+  if (saved){
+    if (saved.type && getPeriodOptions(saved.type).length){
+      initialType = saved.type; if (periodTypeSelect) periodTypeSelect.value = saved.type;
+    }
+    initialValue = saved.values?.[initialType] || saved.value;
+  }
+  populatePeriodOptions(initialType, initialValue);
+  updatePeriodCard();
 
-      // Быстрый поиск
-      const searchInput = document.getElementById('bookSearch');
-      const clearSearch = document.getElementById('clearSearch');
+  // Быстрый поиск
+  const searchInput = document.getElementById('bookSearch');
+  const clearSearch = document.getElementById('clearSearch');
+  
+  if (searchInput) {
+    searchInput.addEventListener('input', function(e) {
+      const searchTerm = e.target.value.toLowerCase();
+      const rows = document.querySelectorAll('#booksTable tbody tr');
+      let visibleCount = 0;
       
-      if (searchInput) {
-        searchInput.addEventListener('input', function(e) {
-          const searchTerm = e.target.value.toLowerCase();
-          const rows = document.querySelectorAll('#booksTable tbody tr');
-          let visibleCount = 0;
-          
-          rows.forEach(row => {
-            const title = row.dataset.title || '';
-            const authors = row.dataset.authors || '';
-            const genres = row.dataset.genres || '';
-            const text = title + ' ' + authors + ' ' + genres;
-            const isVisible = text.includes(searchTerm);
-            
-            row.style.display = isVisible ? '' : 'none';
-            if (isVisible) visibleCount++;
-          });
-          
-          // Показать уведомление о результатах поиска
-          if (searchTerm && visibleCount === 0) {
-            showLibraryNotification('По вашему запросу ничего не найдено', 'warning');
-          }
-        });
+      rows.forEach(row => {
+        const title = row.dataset.title || '';
+        const authors = row.dataset.authors || '';
+        const genres = row.dataset.genres || '';
+        const text = title + ' ' + authors + ' ' + genres;
+        const isVisible = text.includes(searchTerm);
         
-        clearSearch.addEventListener('click', function() {
-          searchInput.value = '';
-          const rows = document.querySelectorAll('#booksTable tbody tr');
-          rows.forEach(row => row.style.display = '');
-        });
-      }
-
-      // Быстрые фильтры
-      const filterChips = document.querySelectorAll('.filter-chip');
-      filterChips.forEach(chip => {
-        chip.addEventListener('click', function() {
-          const filter = this.dataset.filter;
-          
-          // Обновить активный чип
-          filterChips.forEach(c => c.classList.remove('active'));
-          this.classList.add('active');
-          
-          // Применить фильтр
-          const rows = document.querySelectorAll('#booksTable tbody tr');
-          rows.forEach(row => {
-            if (filter === 'all') {
-              row.style.display = '';
-            } else {
-              const matchesFilter = row.dataset[filter] !== undefined;
-              row.style.display = matchesFilter ? '' : 'none';
-            }
-          });
-          
-          showLibraryNotification(`Показаны: ${this.textContent}`, 'info');
-        });
+        row.style.display = isVisible ? '' : 'none';
+        if (isVisible) visibleCount++;
       });
-
-      // Сортировка таблицы
-      function makeTableSortable(table) {
-        const headers = table.querySelectorAll('th[data-sort]');
-        headers.forEach(header => {
-          header.style.cursor = 'pointer';
-          header.addEventListener('click', () => {
-            const sortBy = header.dataset.sort;
-            const isAsc = !header.classList.contains('sort-asc');
-            
-            // Сброс предыдущей сортировки
-            headers.forEach(h => {
-              h.classList.remove('sort-asc', 'sort-desc');
-              h.querySelector('.sort-indicator')?.remove();
-            });
-            
-            // Добавление индикатора
-            const indicator = document.createElement('i');
-            indicator.className = `bi bi-arrow-${isAsc ? 'up' : 'down'} sort-indicator ms-1`;
-            header.appendChild(indicator);
-            header.classList.add(isAsc ? 'sort-asc' : 'sort-desc');
-            
-            sortTable(table, sortBy, isAsc);
-          });
-        });
-      }
-
-      function getSortValue(row, sortBy) {
-        switch(sortBy) {
-          case 'title': return row.dataset.title;
-          case 'authors': return row.dataset.authors;
-          case 'status': return row.querySelector('.current-status').textContent.toLowerCase();
-          case 'classic': return row.dataset.classic;
-          case 'acquired': return row.querySelector('td:nth-child(8)').textContent;
-          default: return row.querySelector(`td:nth-child(${getColumnIndex(sortBy)})`).textContent.toLowerCase();
-        }
-      }
-
-      function getColumnIndex(sortBy) {
-        const mapping = { title: 1, format: 2, status: 3, location: 4, classic: 5, series: 6, genres: 7, acquired: 8, notes: 9 };
-        return mapping[sortBy] || 1;
-      }
-
-      function compareValues(a, b) {
-        if (a === b) return 0;
-        return a < b ? -1 : 1;
-      }
-
-      function sortTable(table, sortBy, ascending) {
-        const tbody = table.querySelector('tbody');
-        const rows = Array.from(tbody.querySelectorAll('tr'));
-        
-        rows.sort((a, b) => {
-          const aVal = getSortValue(a, sortBy);
-          const bVal = getSortValue(b, sortBy);
-          return ascending ? compareValues(aVal, bVal) : compareValues(bVal, aVal);
-        });
-        
-        // Анимированная перестановка
-        rows.forEach((row, index) => {
-          setTimeout(() => {
-            tbody.appendChild(row);
-            row.style.opacity = '0';
-            row.style.transform = 'translateY(20px)';
-            setTimeout(() => {
-              row.style.opacity = '1';
-              row.style.transform = 'translateY(0)';
-            }, 50);
-          }, index * 50);
-        });
-        
-        showLibraryNotification(`Таблица отсортирована по: ${sortBy}`, 'success');
-      }
-
-      // Инициализация сортировки
-      const booksTable = document.getElementById('booksTable');
-      if (booksTable) {
-        makeTableSortable(booksTable);
-      }
-
-      // Календарь активности
-      function initActivityCalendar() {
-        const calendar = document.getElementById('readingCalendar');
-        if (!calendar) return;
-        
-        // Заполняем календарь демо-данными
-        for (let i = 0; i < 35; i++) {
-          const day = document.createElement('div');
-          day.className = 'calendar-day';
-          if (Math.random() > 0.7) {
-            day.classList.add('active');
-            day.title = 'Читал в этот день';
-          }
-          calendar.appendChild(day);
-        }
-        
-        // Обновляем статистику
-        document.getElementById('booksThisMonth').textContent = '3';
-        document.getElementById('readingStreak').textContent = '7';
-        document.getElementById('avgPages').textContent = '25';
-        
-        // Обновляем прогресс чтения
-        document.getElementById('readingNowCount').textContent = '2';
-        document.getElementById('plannedCount').textContent = '5';
-        document.getElementById('readingProgressBar').style.width = '29%';
-      }
-
-      // Оригинальный код прогресса (сохранен)
-      const dataElement = document.getElementById('homeLibrarySummaryData');
-      if (!dataElement) return;
-
-      let summaryData = {};
-      try { summaryData = JSON.parse(dataElement.textContent || '{}'); }
-      catch (e) { console.error('Failed to parse home library summary data', e); summaryData = {}; }
-
-      const modalEl = document.getElementById('homeLibrarySummaryModal');
-      const titleEl = modalEl ? modalEl.querySelector('[data-role="summary-title"]') : null;
-      const listWrapper = modalEl ? modalEl.querySelector('[data-role="summary-list"]') : null;
-      const emptyEl = modalEl ? modalEl.querySelector('[data-role="summary-empty"]') : null;
-      let modalInstance = null;
-
-      function ensureModal(){
-        if (!modalEl) return null;
-        if (!modalInstance && window.bootstrap?.Modal) modalInstance = new bootstrap.Modal(modalEl);
-        return modalInstance;
-      }
-
-      function renderBooks(items){
-        if (!listWrapper || !emptyEl) return;
-        if (!Array.isArray(items) || !items.length){
-          listWrapper.innerHTML=''; listWrapper.classList.add('d-none');
-          emptyEl.classList.remove('d-none'); emptyEl.textContent='Для этого раздела пока нет книг.'; return;
-        }
-        const frag = document.createDocumentFragment();
-        items.forEach(book=>{
-          const item = document.createElement('div'); item.className='list-group-item home-summary-item';
-          const link = document.createElement('a'); link.href=book.url; link.textContent=book.title;
-          const sub = document.createElement('div'); sub.className='text-muted small mt-1'; sub.textContent=book.authors || 'Автор неизвестен';
-          item.appendChild(link); item.appendChild(sub); frag.appendChild(item);
-        });
-        listWrapper.innerHTML=''; listWrapper.appendChild(frag);
-        emptyEl.classList.add('d-none'); listWrapper.classList.remove('d-none');
-      }
-
-      function openModal(title, items){
-        if (titleEl) titleEl.textContent = title || 'Список книг';
-        renderBooks(items);
-        const m = ensureModal(); if (m) m.show();
-      }
-
-      function getSummaryItems(trigger){
-        const category = trigger.dataset.summaryCategory; if (!category) return [];
-        if (['classic','modern','active','disposed'].includes(category)) return summaryData[category] || [];
-        if (['series','genres','locations','statuses'].includes(category)){
-          const key = trigger.dataset.summaryKey; const bucket = summaryData[category] || {};
-          return key ? (bucket[key] || []) : [];
-        }
-        if (category === 'period'){
-          const kind = trigger.dataset.periodKind, type = trigger.dataset.periodType, value = trigger.dataset.periodValue;
-          const periods = summaryData.periods || {}; const typeBucket = periods[type] || {}; const stats = typeBucket[value] || {};
-          if (kind === 'bought') return stats.bought_books || [];
-          if (kind === 'read')   return stats.read_books || [];
-          return [];
-        }
-        return [];
-      }
-
-      function getPeriodOptions(type){
-        const options = summaryData.periodOptions || {}; return options[type] || [];
-      }
-      function getPeriodLabel(type, value){
-        const opts = getPeriodOptions(type); const found = opts.find(o=>o.value===value); return found ? found.label : '';
-      }
-
-      document.querySelectorAll('[data-summary-trigger]').forEach(trigger=>{
-        trigger.addEventListener('click', ()=>{
-          const title = trigger.dataset.summaryTitle || trigger.textContent.trim();
-          const items = getSummaryItems(trigger);
-          openModal(title, items);
-        });
-      });
-
-      const periodTypeSelect  = document.querySelector('[data-role="period-type"]');
-      const periodValueSelect = document.querySelector('[data-role="period-value"]');
-      const boughtCountEl     = document.querySelector('[data-role="period-bought-count"]');
-      const readCountEl       = document.querySelector('[data-role="period-read-count"]');
-      const fillLeftEl        = document.querySelector('[data-role="fill-left"]');
-      const fillRightEl       = document.querySelector('[data-role="fill-right"]');
-      const labelEl           = document.querySelector('[data-role="period-progress-label"]');
-      const lineEl            = fillLeftEl?.parentElement;
-      const PERIOD_STORAGE_KEY = 'homeLibraryPeriodSelection';
-
-      function getStorage(){ try { return window.localStorage; } catch(e){ return null; } }
-
-      function loadSavedPeriod(){
-        const storage = getStorage(); if (!storage) return null;
-        try{
-          const raw = storage.getItem(PERIOD_STORAGE_KEY); if (!raw) return null;
-          const parsed = JSON.parse(raw); if (!parsed || typeof parsed!=='object') return null;
-          const values = typeof parsed.values==='object' && parsed.values ? parsed.values : {};
-          const type = (parsed.type==='year' || parsed.type==='month') ? parsed.type : null;
-          const value = type && values[type] ? values[type] : (typeof parsed.value==='string' ? parsed.value : '');
-          return { type, value, values };
-        }catch(e){ console.warn('Failed to read saved period', e); return null; }
-      }
-      function savePeriodSelection(type, value){
-        const storage = getStorage(); if (!storage) return;
-        try{
-          const existing = loadSavedPeriod(); const values = existing?.values ? { ...existing.values } : {};
-          if (type==='year' || type==='month'){ value ? values[type]=value : delete values[type]; }
-          const payload = JSON.stringify({ type, value: value || '', values });
-          storage.setItem(PERIOD_STORAGE_KEY, payload);
-        }catch(e){ console.warn('Failed to save period', e); }
-      }
-
-      const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      function animateNumber(el, to){
-        const from = parseInt(el.textContent || '0', 10) || 0;
-        if (prefersReduced || from === to){ el.textContent = to; return; }
-        const dur = 700; const start = performance.now();
-        const step = (t)=>{
-          const p = Math.min(1, (t - start) / dur);
-          const eased = 1 - Math.pow(1 - p, 3);
-          el.textContent = Math.round(from + (to - from) * eased);
-          if (p < 1) requestAnimationFrame(step);
-        };
-        requestAnimationFrame(step);
-      }
-
-      function placeLightningAt(percent){
-        if (!lineEl) return;
-        let bolt = lineEl.querySelector('.home-progress-lightning');
-        if (!bolt){
-          bolt = document.createElement('div');
-          bolt.className = 'home-progress-lightning';
-          lineEl.appendChild(bolt);
-        }
-        bolt.style.left = percent + '%';
-        bolt.classList.remove('reflash','is-static'); void bolt.offsetWidth;
-        bolt.classList.add('reflash');
-        setTimeout(()=> bolt.classList.add('is-static'), 900);
-      }
-
-      function spawnSparksAt(percent){
-        if (!lineEl || prefersReduced) return;
-        const sparks = 6;
-        for (let i=0;i<sparks;i++){
-          const s = document.createElement('div');
-          s.className = 'home-progress-spark';
-          s.style.left = percent + '%';
-          const angle = (Math.random()*70 - 35) * (Math.PI/180);
-          const dist  = 16 + Math.random()*18;
-          s.style.setProperty('--dx', `${Math.cos(angle)*dist}px`);
-          s.style.setProperty('--dy', `${Math.sin(angle)*dist - 8}px`);
-          lineEl.appendChild(s);
-          setTimeout(()=>s.remove(), 700);
-        }
-      }
-
-      function updatePeriodTriggers(type, value, label){
-        document.querySelectorAll('[data-summary-category="period"]').forEach((trigger)=>{
-          trigger.dataset.periodType = type;
-          trigger.dataset.periodValue = value || '';
-          const kind = trigger.dataset.periodKind;
-          if (label && kind){
-            const prefix = kind === 'bought' ? 'Куплено — ' : 'Прочитано — ';
-            trigger.dataset.summaryTitle = prefix + label;
-          } else if (kind){
-            trigger.dataset.summaryTitle = kind === 'bought' ? 'Куплено' : 'Прочитано';
-          }
-        });
-      }
-
-      function updatePeriodCard(){
-        if (!fillLeftEl || !fillRightEl) return;
-
-        const type = periodTypeSelect?.value || 'year';
-        const options = getPeriodOptions(type);
-        let value = '';
-        if (options.length){
-          value = periodValueSelect?.value || options[0].value;
-          if (periodValueSelect && !options.some(o=>o.value===value)){
-            periodValueSelect.value = options[0].value;
-            value = periodValueSelect.value;
-          }
-        }
-
-        const periods = summaryData.periods || {};
-        const stats = (periods[type] && periods[type][value]) || {};
-        const boughtCount = stats.bought_count || 0;
-        const readCount   = stats.read_count   || 0;
-
-        animateNumber(boughtCountEl, boughtCount);
-        animateNumber(readCountEl,   readCount);
-
-        const total = boughtCount + readCount;
-        const boughtPercent = total ? Math.round((boughtCount / total) * 100) : 0;
-        const readPercent   = 100 - boughtPercent;
-
-        lineEl?.classList.add('is-animating');
-        setTimeout(()=> lineEl?.classList.remove('is-animating'), 1200);
-
-        fillLeftEl.style.transition = 'none';
-        fillRightEl.style.transition = 'none';
-        fillLeftEl.style.width  = '0%';
-        fillRightEl.style.width = '0%';
-        void fillLeftEl.offsetWidth;
-        fillLeftEl.style.transition  = 'width 900ms ease';
-        fillRightEl.style.transition = 'width 900ms ease';
-        fillLeftEl.style.width  = boughtPercent + '%';
-        fillRightEl.style.width = readPercent   + '%';
-
-        placeLightningAt(boughtPercent);
-        spawnSparksAt(boughtPercent);
-
-        if (labelEl){
-          labelEl.classList.remove('pop');
-          labelEl.textContent = `${boughtPercent}% / ${readPercent}%`;
-          setTimeout(()=> labelEl.classList.add('pop'), 920);
-        }
-
-        const label = getPeriodLabel(type, value);
-        updatePeriodTriggers(type, value, label);
-        savePeriodSelection(type, value);
-      }
-
-      function populatePeriodOptions(type, preferredValue){
-        if (!periodValueSelect) return;
-        const options = getPeriodOptions(type);
-        periodValueSelect.innerHTML = '';
-        if (!options.length){
-          const opt = document.createElement('option'); opt.value=''; opt.textContent='Нет данных'; opt.selected=true;
-          periodValueSelect.appendChild(opt); periodValueSelect.disabled = true;
-          if (labelEl) labelEl.textContent = '0% / 0%';
-          if (fillLeftEl && fillRightEl){
-            fillLeftEl.style.width = '0%'; fillRightEl.style.width = '0%';
-          }
-          return;
-        }
-        periodValueSelect.disabled = false;
-        let selectedDone = false;
-        options.forEach(o=>{
-          const el = document.createElement('option'); el.value=o.value; el.textContent=o.label;
-          if (!selectedDone && preferredValue && o.value===preferredValue){ el.selected=true; selectedDone=true; }
-          periodValueSelect.appendChild(el);
-        });
-        if (!selectedDone && summaryData?.defaultPeriod?.type===type){
-          const def = summaryData.defaultPeriod.value;
-          const opt = Array.from(periodValueSelect.options).find(x=>x.value===def);
-          if (opt) opt.selected = true;
-        }
-        if (!Array.from(periodValueSelect.options).some(x=>x.selected) && periodValueSelect.options.length){
-          periodValueSelect.options[0].selected = true;
-        }
-      }
-
-      periodTypeSelect?.addEventListener('change', ()=>{
-        const t = periodTypeSelect.value || 'year';
-        const saved = loadSavedPeriod(); const preferred = saved?.values ? saved.values[t] : undefined;
-        populatePeriodOptions(t, preferred); updatePeriodCard();
-      });
-      periodValueSelect?.addEventListener('change', updatePeriodCard);
-
-      let initialType = periodTypeSelect?.value || 'year';
-      let initialValue;
-      const saved = loadSavedPeriod();
-      if (saved){
-        if (saved.type && getPeriodOptions(saved.type).length){
-          initialType = saved.type; if (periodTypeSelect) periodTypeSelect.value = saved.type;
-        }
-        initialValue = saved.values?.[initialType] || saved.value;
-      }
-      populatePeriodOptions(initialType, initialValue);
-      updatePeriodCard();
-
-      // Инициализация новых функций
-      initActivityCalendar();
       
-      // Показать приветственное уведомление
-      setTimeout(() => {
-        showLibraryNotification('Добро пожаловать в вашу библиотеку! Используйте быстрые фильтры для удобной навигации.', 'info');
-      }, 1000);
+      if (searchTerm && visibleCount === 0) {
+        showLibraryNotification('По вашему запросу ничего не найдено', 'warning');
+      }
+    });
+    
+    clearSearch.addEventListener('click', function() {
+      searchInput.value = '';
+      const rows = document.querySelectorAll('#booksTable tbody tr');
+      rows.forEach(row => row.style.display = '');
+      showLibraryNotification('Поиск очищен', 'info');
+    });
+  }
 
-    })();
-  </script>
-  <!-- Yandex.RTB R-A-17641153-4 -->
+  // Быстрые фильтры
+  const filterChips = document.querySelectorAll('.filter-chip');
+  filterChips.forEach(chip => {
+    chip.addEventListener('click', function() {
+      const filter = this.dataset.filter;
+      
+      // Обновить активный чип
+      filterChips.forEach(c => c.classList.remove('active'));
+      this.classList.add('active');
+      
+      // Применить фильтр
+      const rows = document.querySelectorAll('#booksTable tbody tr');
+      rows.forEach(row => {
+        if (filter === 'all') {
+          row.style.display = '';
+        } else {
+          const matchesFilter = row.dataset[filter] !== undefined;
+          row.style.display = matchesFilter ? '' : 'none';
+        }
+      });
+      
+      showLibraryNotification(`Показаны: ${this.textContent}`, 'info');
+    });
+  });
+
+  // Инициализация
+  document.addEventListener('DOMContentLoaded', function() {
+    // Показать приветственное уведомление
+    setTimeout(() => {
+      showLibraryNotification('Добро пожаловать в вашу библиотеку! Нажмите на любую статистику для детальной информации.', 'info');
+    }, 1000);
+  });
+
+})();
+</script>
+<!-- Yandex.RTB R-A-17641153-4 -->
 <script>
 window.yaContextCb.push(() => {
     Ya.Context.AdvManager.render({
