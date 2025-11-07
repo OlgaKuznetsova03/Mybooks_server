@@ -628,7 +628,7 @@
 
     <div class="stat-item" onclick="showGenres()">
       <div class="stat-value" data-target="{{ summary.genre_total|default:0 }}">{{ summary.genre_total|default:0 }}</div>
-      <div class="stat-label">Жанров</div>␊
+      <div class="stat-label">Жанров</div>
       <div class="stat-details">в коллекции</div>
     </div>
 
@@ -709,7 +709,7 @@
                 data-genres="{% for genre in entry.custom_genres.all %}{{ genre.name|lower }} {% endfor %}"
                 data-status="{{ entry.status|default:''|lower }}"
                 data-classic="{% if entry.is_classic %}classic{% else %}modern{% endif %}"
-                data-reading="{% if entry.is_read or (shelf_status and shelf_status.code == 'read') %}read{% elif shelf_status and shelf_status.code == 'reading' %}reading{% else %}unread{% endif %}">
+                data-reading="{% if entry.is_read %}read{% elif shelf_status and shelf_status.code == 'read' %}read{% elif shelf_status and shelf_status.code == 'reading' %}reading{% else %}unread{% endif %}">
               <td data-label="Книга" style="min-width:200px;">
                 <div class="fw-semibold"><a class="text-decoration-none text-reset" href="{% url 'book_detail' entry.book.pk %}">{{ entry.book.title }}</a></div>
                 <div class="small text-muted" style="color: #64748b !important;">{{ entry.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
