@@ -615,25 +615,25 @@
   
   <div class="stats-compact">
     <div class="stat-item" onclick="showAllBooks()">
-      <div class="stat-value" data-target="{{ summary.total }}">0</div>
+      <div class="stat-value" data-target="{{ summary.total|default:0 }}">{{ summary.total|default:0 }}</div>
       <div class="stat-label">Всего книг</div>
       <div class="stat-details">в библиотеке</div>
     </div>
-    
+
     <div class="stat-item" onclick="showReadBooks()">
-      <div class="stat-value" data-target="{{ summary.read_count }}">0</div>
+      <div class="stat-value" data-target="{{ summary.read_count|default:0 }}">{{ summary.read_count|default:0 }}</div>
       <div class="stat-label">Прочитано</div>
       <div class="stat-details">книг</div>
     </div>
-    
+
     <div class="stat-item" onclick="showGenres()">
-      <div class="stat-value" data-target="{{ summary.genre_counts|length }}">0</div>
-      <div class="stat-label">Жанров</div>
+      <div class="stat-value" data-target="{{ summary.genre_total|default:0 }}">{{ summary.genre_total|default:0 }}</div>
+      <div class="stat-label">Жанров</div>␊
       <div class="stat-details">в коллекции</div>
     </div>
-    
+
     <div class="stat-item" onclick="showSeries()">
-      <div class="stat-value" data-target="{{ summary.series_counts|length }}">0</div>
+      <div class="stat-value" data-target="{{ summary.series_total|default:0 }}">{{ summary.series_total|default:0 }}</div>
       <div class="stat-label">Серий</div>
       <div class="stat-details">начато</div>
     </div>
@@ -702,35 +702,34 @@
         <tbody>
           {% default_shelf_status_map entries request.user as default_status_map %}
           {% for entry in entries %}
-            <tr data-book-id="{{ entry.book.pk }}" 
-                data-title="{{ entry.book.title|lower }}" 
+            {% with shelf_status=default_status_map|dict_get:entry.book.pk %}
+            <tr data-book-id="{{ entry.book.pk }}"
+                data-title="{{ entry.book.title|lower }}"
                 data-authors="{{ entry.book.authors.all|join:', '|lower }}"
                 data-genres="{% for genre in entry.custom_genres.all %}{{ genre.name|lower }} {% endfor %}"
                 data-status="{{ entry.status|default:''|lower }}"
                 data-classic="{% if entry.is_classic %}classic{% else %}modern{% endif %}"
-                data-reading="{% if entry.is_read or default_status_map|dict_get:entry.book.pk %}reading{% else %}unread{% endif %}">
+                data-reading="{% if entry.is_read or (shelf_status and shelf_status.code == 'read') %}read{% elif shelf_status and shelf_status.code == 'reading' %}reading{% else %}unread{% endif %}">
               <td data-label="Книга" style="min-width:200px;">
                 <div class="fw-semibold"><a class="text-decoration-none text-reset" href="{% url 'book_detail' entry.book.pk %}">{{ entry.book.title }}</a></div>
                 <div class="small text-muted" style="color: #64748b !important;">{{ entry.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
-                {% with status=default_status_map|dict_get:entry.book.pk %}
-                  <div class="mt-2">
-                    {% if entry.is_read %}
-                      <div class="small text-muted fw-semibold" style="color: #64748b !important;">Прочитано{% if entry.date_read %} {{ entry.date_read|date:"d.m.Y" }}{% endif %}</div>
-                    {% elif status and status.code == 'read' %}
-                      {% with read_date=status.added_at %}
-                        <div class="small text-muted fw-semibold" style="color: #64748b !important;">Прочитано{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}</div>
-                      {% endwith %}
-                    {% elif status and status.code == 'reading' %}
-                      <div class="small text-muted fw-semibold" style="color: #64748b !important;">На полке «{{ status.label|default:default_reading_shelf_name|default:'Читаю' }}»</div>
-                    {% else %}
-                      <form method="post" action="{% url 'shelves:move_book_to_reading' entry.book.pk %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                        <button type="submit" class="btn btn-sm btn-outline-primary mt-1"><i class="bi bi-book-half" aria-hidden="true"></i><span>Начать читать</span></button>
-                      </form>
-                    {% endif %}
-                  </div>
-                {% endwith %}
+                <div class="mt-2">
+                  {% if entry.is_read %}
+                    <div class="small text-muted fw-semibold" style="color: #64748b !important;">Прочитано{% if entry.date_read %} {{ entry.date_read|date:"d.m.Y" }}{% endif %}</div>
+                  {% elif shelf_status and shelf_status.code == 'read' %}
+                    {% with read_date=shelf_status.added_at %}
+                      <div class="small text-muted fw-semibold" style="color: #64748b !important;">Прочитано{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}</div>
+                    {% endwith %}
+                  {% elif shelf_status and shelf_status.code == 'reading' %}
+                    <div class="small text-muted fw-semibold" style="color: #64748b !important;">На полке «{{ shelf_status.label|default:default_reading_shelf_name|default:'Читаю' }}»</div>
+                  {% else %}
+                    <form method="post" action="{% url 'shelves:move_book_to_reading' entry.book.pk %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <button type="submit" class="btn btn-sm btn-outline-primary mt-1"><i class="bi bi-book-half" aria-hidden="true"></i><span>Начать читать</span></button>
+                    </form>
+                  {% endif %}
+                </div>
               </td>
               <td data-label="Формат">{{ entry.get_format_display }}</td>
               <td data-label="Статус">{{ entry.status|default:"—" }}</td>
@@ -755,6 +754,7 @@
                 </div>
               </td>
             </tr>
+            {% endwith %}
           {% endfor %}
         </tbody>
       </table>
@@ -1069,6 +1069,19 @@
     requestAnimationFrame(step);
   }
 
+  document.querySelectorAll('.stat-value[data-target]').forEach((el)=>{
+    const targetRaw = el.dataset.target;
+    if (typeof targetRaw !== 'string' || !targetRaw.trim()) return;
+    const targetValue = parseInt(targetRaw, 10);
+    if (Number.isNaN(targetValue)) return;
+    if (!prefersReduced){
+      el.textContent = '0';
+      requestAnimationFrame(()=> animateNumber(el, targetValue));
+    } else {
+      el.textContent = targetValue;
+    }
+  });
+
   function placeLightningAt(percent){
     if (!lineEl) return;
     let bolt = lineEl.querySelector('.home-progress-lightning');
@@ -1262,12 +1275,24 @@
       // Применить фильтр
       const rows = document.querySelectorAll('#booksTable tbody tr');
       rows.forEach(row => {
-        if (filter === 'all') {
-          row.style.display = '';
-        } else {
-          const matchesFilter = row.dataset[filter] !== undefined;
-          row.style.display = matchesFilter ? '' : 'none';
+        let matchesFilter = true;
+        switch (filter) {
+          case 'reading':
+            matchesFilter = row.dataset.reading === 'reading';
+            break;
+          case 'unread':
+            matchesFilter = row.dataset.reading === 'unread';
+            break;
+          case 'classic':
+            matchesFilter = row.dataset.classic === 'classic';
+            break;
+          case 'modern':
+            matchesFilter = row.dataset.classic === 'modern';
+            break;
+          default:
+            matchesFilter = true;
         }
+        row.style.display = (filter === 'all' || matchesFilter) ? '' : 'none';
       });
       
       showLibraryNotification(`Показаны: ${this.textContent}`, 'info');

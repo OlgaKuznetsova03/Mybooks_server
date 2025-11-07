@@ -217,12 +217,14 @@ def home_library(request):
         .values_list("series_name", flat=True)
         .distinct()
     )
+    series_total = len(series_values)
     genre_queryset = (
         Genre.objects
         .filter(home_library_entries__shelf_item__shelf=shelf, home_library_entries__is_disposed=False)
         .distinct()
         .order_by("name")
     )
+    genre_total = genre_queryset.count()
     filter_form = HomeLibraryFilterForm(
         request.GET or None,
         series_choices=series_values,
@@ -281,6 +283,22 @@ def home_library(request):
         # на случай редких ошибок — просто не показываем дату
         read_dates_map = {}
 
+    def _apply_read_metadata(entry: HomeLibraryEntry) -> bool:
+        """Annotate entry with derived read flags and return read status."""
+
+        if not entry:
+            return False
+
+        book_id = entry.shelf_item.book_id if entry.shelf_item else None
+        read_date = entry.read_at or (read_dates_map.get(book_id) if book_id else None)
+        entry.date_read = read_date
+        entry.is_read = bool(read_date)
+        return entry.is_read
+
+    read_count = sum(1 for entry in active_entries_list if _apply_read_metadata(entry))
+    for entry in disposed_entries_list:
+        _apply_read_metadata(entry)
+
     # Итоговые списки
     entries = list(
         filtered_entries_qs
@@ -293,14 +311,12 @@ def home_library(request):
 
     # === ДОБАВЛЕНО: прокидываем виртуальное поле date_read в объекты для шаблона ===
     for entry in entries:
-        bid = entry.shelf_item.book_id if entry.shelf_item and entry.shelf_item.book_id else None
-        entry.date_read = entry.read_at or read_dates_map.get(bid)
-        entry.is_read = bool(entry.date_read)
+        if not hasattr(entry, "date_read"):
+            _apply_read_metadata(entry)
 
     for entry in disposed_entries:
-        bid = entry.shelf_item.book_id if entry.shelf_item and entry.shelf_item.book_id else None
-        entry.date_read = entry.read_at or read_dates_map.get(bid)
-        entry.is_read = bool(entry.date_read)
+        if not hasattr(entry, "date_read"):
+            _apply_read_metadata(entry)
 
     def _entry_book_data(entry: HomeLibraryEntry):
         if not entry.shelf_item or not entry.shelf_item.book:
@@ -518,8 +534,11 @@ def home_library(request):
         "disposed_total": disposed_total,
         "classic_count": classic_count,
         "modern_count": total_active - classic_count,
+        "read_count": read_count,
         "series_counts": series_counts,
         "genre_counts": genre_counts,
+        "series_total": series_total,
+        "genre_total": genre_total,
         "locations": location_counts,
         "statuses": status_counts,
         "recent_entries": recent_entries,
