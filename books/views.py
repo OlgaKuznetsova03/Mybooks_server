@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import timedelta
+from datetime import date, datetime, timedelta
 
 from django.db.models import (
     Q,
@@ -1849,10 +1849,20 @@ def rate_book(request, pk):
             rating.book = book
             rating.user = request.user
             rating.save()
+            existing_read_date: date | None = None
+            status_map = get_default_shelf_status_map(request.user, [book.pk])
+            status = status_map.get(book.pk)
+            if status and status.get("code") == "read":
+                added_at = status.get("added_at")
+                if isinstance(added_at, datetime):
+                    added_at = timezone.localtime(added_at) if timezone.is_aware(added_at) else added_at
+                    existing_read_date = added_at.date()
+                elif isinstance(added_at, date):
+                    existing_read_date = added_at
             if rating.review and str(rating.review).strip():
                 award_for_review(request.user, rating)
             ReadBeforeBuyGame.handle_review(request.user, book, rating.review)
-            move_book_to_read_shelf(request.user, book)
+            move_book_to_read_shelf(request.user, book, read_date=existing_read_date)
             print_url = reverse("book_review_print", args=[book.pk])
             messages.success(
                 request,
