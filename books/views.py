@@ -1934,6 +1934,7 @@ def book_review_print(request, pk):
         "rating": rating,
         "cover_url": cover_url,
         "authors": book.authors.all(),
+        "total_pages": book.get_total_pages(),
         "reading_start": reading_start,
         "reading_end": reading_end,
         "notes": notes,

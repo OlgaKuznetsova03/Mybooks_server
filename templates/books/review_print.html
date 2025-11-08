@@ -501,7 +501,7 @@
             </div>
             <div class="meta-item">
               <span>Страниц</span>
-              {{ book.total_pages|default:"—" }}
+              {{ total_pages|default_if_none:"—" }}
             </div>
             <div class="meta-item">
               <span>Чтение</span>
