@@ -181,7 +181,7 @@
                   <div class="nobel-stage__meta">Награждён в {{ stage.year }} году · {{ stage.requirement }}</div>
                 </div>
                 <span class="badge nobel-stage__status {% if stage.status == 'completed' %}bg-success{% elif stage.status == 'in_progress' %}bg-warning text-dark{% else %}bg-light text-body-secondary border{% endif %}">
-                  {{ status_labels[stage.status] }}
+                  {{ stage.status_label }}
                 </span>
               </div>
               <p class="small text-muted mb-2">{{ stage.description }}</p>
