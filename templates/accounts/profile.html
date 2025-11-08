@@ -1696,6 +1696,41 @@
                 </div>
               {% endif %}
 
+              {% with nobel=profile_activities.games.nobel %}
+                {% if nobel.entries %}
+                  <div class="col-12 col-xl-6">
+                    <div class="card profile-activity-card h-100">
+                      <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                          <h6 class="card-title mb-0">Нобелевские лауреаты</h6>
+                          <span class="profile-activity-badge" title="Завершено этапов">{{ nobel.completed_count }}/{{ nobel.total_stages }}</span>
+                        </div>
+                        <p class="text-muted small mb-3">Этапов в процессе: {{ nobel.in_progress_count }}, завершено: {{ nobel.completed_count }}.</p>
+                        <ul class="list-unstyled mb-0 small">
+                          {% for entry in nobel.entries|slice:":3" %}
+                            <li class="mb-2">
+                              <div class="fw-semibold">Этап №{{ entry.stage_number }}</div>
+                              {% if entry.stage_title %}
+                                <div class="profile-activity-meta">{{ entry.stage_title }}</div>
+                              {% endif %}
+                              <div class="profile-activity-meta">
+                                {{ entry.status_label }}{% if entry.is_completed and entry.completed_at %} · {{ entry.completed_at|date:"j E" }}{% endif %}
+                              </div>
+                              <div class="profile-activity-meta mb-0">
+                                Книга: <a href="{{ entry.book_url }}">{{ entry.book_title }}</a>
+                              </div>
+                            </li>
+                          {% endfor %}
+                        </ul>
+                        {% if nobel.extra_count %}
+                          <p class="profile-activity-meta mt-2 mb-0">Ещё {{ nobel.extra_count }} этапов в работе.</p>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                {% endif %}
+              {% endwith %}
+
               {% with exchange=profile_activities.games.book_exchange %}
                 {% if exchange.items %}
                   <div class="col-12 col-xl-6">

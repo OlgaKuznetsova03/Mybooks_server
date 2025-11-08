@@ -39,9 +39,11 @@ from games.models import (
     BookJourneyAssignment,
     ForgottenBookEntry,
     GameShelfState,
+    NobelLaureateAssignment,
 )
 from games.services.book_journey import BookJourneyMap
 from games.services.forgotten_books import ForgottenBooksGame
+from games.services.nobel_challenge import NobelLaureatesChallenge
 from reading_marathons.models import MarathonParticipant, ReadingMarathon
 from reading_clubs.models import ReadingClub, ReadingParticipant
 
@@ -927,6 +929,48 @@ def profile(request, username=None):
         .order_by("-updated_at")
     )
 
+    nobel_assignments = list(
+        NobelLaureateAssignment.objects.filter(user=user_obj)
+        .select_related("book")
+        .order_by("stage_number")
+    )
+    nobel_stage_lookup = {
+        stage.number: stage for stage in NobelLaureatesChallenge.get_stages()
+    }
+    nobel_entries = []
+    nobel_completed = 0
+    nobel_in_progress = 0
+
+    for assignment in nobel_assignments:
+        if assignment.status == NobelLaureateAssignment.Status.COMPLETED:
+            nobel_completed += 1
+        else:
+            nobel_in_progress += 1
+
+        stage = nobel_stage_lookup.get(assignment.stage_number)
+        nobel_entries.append(
+            {
+                "stage_number": assignment.stage_number,
+                "stage_title": stage.title if stage else "",
+                "status": assignment.status,
+                "status_label": assignment.get_status_display(),
+                "is_completed": assignment.is_completed,
+                "completed_at": assignment.completed_at,
+                "book_title": assignment.book.title,
+                "book_url": reverse("book_detail", args=[assignment.book_id]),
+            }
+        )
+
+    nobel_total_stages = NobelLaureatesChallenge.get_stage_count()
+    nobel_stats = {
+        "entries": nobel_entries,
+        "completed_count": nobel_completed,
+        "in_progress_count": nobel_in_progress,
+        "total_stages": nobel_total_stages,
+        "extra_count": max(len(nobel_entries) - 3, 0),
+        "has_data": bool(nobel_entries),
+    }
+
     def serialize_marathon(marathon, role):
         return {
             "id": marathon.id,
@@ -1016,6 +1060,7 @@ def profile(request, username=None):
             forgotten_entries,
             book_exchange_challenges,
             game_states,
+            nobel_entries,
         )
     )
     marathons_has_data = any(
@@ -1049,6 +1094,7 @@ def profile(request, username=None):
             },
             "shelf_states": game_states,
             "shelf_states_extra": max(len(game_states) - 4, 0),
+            "nobel": nobel_stats,
             "has_data": games_has_data,
         },
         "marathons": {

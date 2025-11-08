@@ -30,6 +30,7 @@ from shelves.models import BookProgress, Shelf, ShelfItem, ReadingLog
 from shelves.services import DEFAULT_READ_SHELF
 
 from accounts.views import _collect_profile_stats
+from games.models import NobelLaureateAssignment
 
 
 @override_settings(
@@ -212,6 +213,48 @@ class ProfilePrivacyTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "accounts/profile.html")
         self.assertContains(response, self.owner.username)
+
+
+@override_settings(
+    SECURE_SSL_REDIRECT=False,
+    SESSION_COOKIE_SECURE=False,
+    CSRF_COOKIE_SECURE=False,
+)
+class ProfileNobelChallengeTests(TestCase):
+    def setUp(self):
+        self.client.defaults["HTTP_HOST"] = "localhost"
+        self.client.defaults["wsgi.url_scheme"] = "https"
+        self.client.defaults["HTTP_X_FORWARDED_PROTO"] = "https"
+        self.password = "ReaderPass123!"
+        self.user = get_user_model().objects.create_user(
+            username="nobel_reader",
+            email="nobel@example.com",
+            password=self.password,
+        )
+        self.book = Book.objects.create(title="Лауреатская книга")
+
+    def test_profile_activities_include_nobel_challenge(self):
+        NobelLaureateAssignment.objects.create(
+            user=self.user,
+            book=self.book,
+            stage_number=1,
+        )
+
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(
+            reverse("profile", kwargs={"username": self.user.username}),
+            {"tab": "activities"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        nobel_stats = response.context["profile_activities"]["games"]["nobel"]
+        self.assertTrue(nobel_stats["entries"])
+        self.assertTrue(nobel_stats["has_data"])
+        entry = nobel_stats["entries"][0]
+        self.assertEqual(entry["stage_number"], 1)
+        self.assertEqual(entry["book_title"], self.book.title)
+        self.assertContains(response, "Нобелевские лауреаты")
+        self.assertContains(response, "Лауреатская книга")
 
 
 class SignUpRoleAssignmentTests(TestCase):
