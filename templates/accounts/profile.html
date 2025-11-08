@@ -202,11 +202,20 @@
       background: rgba(255, 255, 255, 0.65);
       backdrop-filter: blur(6px);
       transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      position: relative;
+      cursor: pointer;
     }
     .profile-activity-card:hover {
       transform: translateY(-4px);
       border-color: var(--profile-accent-color);
       box-shadow: 0 12px 30px rgba(194, 150, 129, 0.25);
+    }
+    .profile-activity-card a.stretched-link {
+      z-index: 1;
+    }
+    .profile-activity-card a:not(.stretched-link) {
+      position: relative;
+      z-index: 2;
     }
     .profile-activity-card .card-title { font-weight: 600; color: var(--profile-accent-color-text); }
     .profile-activity-badge {
@@ -1206,20 +1215,34 @@
                   </a>
                 </div>
               </div>
-              <div class="table-responsive reading-calendar-wrapper">
-                <table class="reading-calendar align-middle mb-0">
-                  <thead class="text-muted text-uppercase small">
-                    <tr>
-                      {% for weekday in calendar.weekday_labels %}
-                        <th scope="col">{{ weekday }}</th>
-                      {% endfor %}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for week in calendar.weeks %}
+              <button
+                type="button"
+                class="btn btn-outline-primary btn-sm w-100 d-sm-none mb-3"
+                id="calendarToggleButton"
+                data-bs-toggle="collapse"
+                data-bs-target="#readingCalendarCollapse"
+                aria-expanded="false"
+                aria-controls="readingCalendarCollapse"
+                data-show-label="Показать календарь чтения"
+                data-hide-label="Скрыть календарь чтения"
+              >
+                <span class="calendar-toggle-label">Показать календарь чтения</span>
+              </button>
+              <div id="readingCalendarCollapse" class="collapse d-sm-block">
+                <div class="table-responsive reading-calendar-wrapper">
+                  <table class="reading-calendar align-middle mb-0">
+                    <thead class="text-muted text-uppercase small">
                       <tr>
-                        {% for day in week %}
-                          <td class="{% if not day.in_month %}opacity-75{% endif %} {% if day.books %}calendar-day-active{% endif %}"
+                        {% for weekday in calendar.weekday_labels %}
+                          <th scope="col">{{ weekday }}</th>
+                        {% endfor %}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for week in calendar.weeks %}
+                        <tr>
+                          {% for day in week %}
+                            <td class="{% if not day.in_month %}opacity-75{% endif %} {% if day.books %}calendar-day-active{% endif %}"
                               {% if day.in_month %}data-date="{{ day.date|date:"Y-m-d" }}"{% endif %}
                               role="button"
                               tabindex="0"
@@ -1273,11 +1296,12 @@
                               </div>
                             </div>
                           </td>
-                        {% endfor %}
-                      </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
+                          {% endfor %}
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
               </div>
               {% if not calendar.has_activity %}
                 <p class="text-muted small mb-0 mt-3">В этом месяце пока нет активностей чтения.</p>
@@ -1662,6 +1686,9 @@
                         {% else %}
                           <p class="profile-activity-meta mb-0">На этот месяц книга ещё не выбрана.</p>
                         {% endif %}
+                      <a class="stretched-link" href="{% url 'games:forgotten_books' %}">
+                          <span class="visually-hidden">Перейти в игру «12 забытых книг»</span>
+                        </a>
                       </div>
                     </div>
                   </div>
@@ -1691,6 +1718,9 @@
                       {% else %}
                         <p class="profile-activity-meta mb-0">Нет активного этапа — можно выбрать новое задание.</p>
                       {% endif %}
+                    <a class="stretched-link" href="{% url 'games:book_journey_map' %}">
+                        <span class="visually-hidden">Перейти в игру «Книжное путешествие»</span>
+                      </a>
                     </div>
                   </div>
                 </div>
@@ -1725,6 +1755,9 @@
                         {% if nobel.extra_count %}
                           <p class="profile-activity-meta mt-2 mb-0">Ещё {{ nobel.extra_count }} этапов в работе.</p>
                         {% endif %}
+                        <a class="stretched-link" href="{% url 'games:nobel_challenge' %}">
+                          <span class="visually-hidden">Перейти в игру «Нобелевские лауреаты»</span>
+                        </a>
                       </div>
                     </div>
                   </div>
@@ -1754,6 +1787,9 @@
                         {% if exchange.extra_count %}
                           <p class="profile-activity-meta mt-2 mb-0">Ещё {{ exchange.extra_count }} раундов.</p>
                         {% endif %}
+                        <a class="stretched-link" href="{% url 'games:book_exchange' %}">
+                          <span class="visually-hidden">Перейти в игру «Обмен книгами»</span>
+                        </a>
                       </div>
                     </div>
                   </div>
@@ -1779,6 +1815,9 @@
                       {% if profile_activities.games.shelf_states_extra %}
                         <p class="profile-activity-meta mt-2 mb-0">И ещё {{ profile_activities.games.shelf_states_extra }} полок.</p>
                       {% endif %}
+                      <a class="stretched-link" href="{% url 'games:index' %}">
+                        <span class="visually-hidden">Перейти к разделу игр</span>
+                      </a>
                     </div>
                   </div>
                 </div>
@@ -1822,6 +1861,9 @@
                     {% else %}
                       <p class="text-muted small mb-0 mt-3">Марафоны ещё не созданы.</p>
                     {% endif %}
+                    <a class="stretched-link" href="{% url 'reading_marathons:list' %}">
+                      <span class="visually-hidden">Перейти к разделу читательских марафонов</span>
+                    </a>
                   </div>
                 </div>
               </div>
@@ -1846,6 +1888,9 @@
                     {% else %}
                       <p class="text-muted small mb-0 mt-3">Пока нет участия в марафонах.</p>
                     {% endif %}
+                    <a class="stretched-link" href="{% url 'reading_marathons:list' %}">
+                      <span class="visually-hidden">Перейти к разделу читательских марафонов</span>
+                    </a>
                   </div>
                 </div>
               </div>
@@ -1870,6 +1915,9 @@
                     {% else %}
                       <p class="text-muted small mb-0 mt-3">Нет заявок, ожидающих подтверждения.</p>
                     {% endif %}
+                    <a class="stretched-link" href="{% url 'reading_marathons:list' %}">
+                      <span class="visually-hidden">Перейти к разделу читательских марафонов</span>
+                    </a>
                   </div>
                 </div>
               </div>
@@ -1913,6 +1961,9 @@
                     {% else %}
                       <p class="text-muted small mb-0 mt-3">Пока нет созданных чтений.</p>
                     {% endif %}
+                    <a class="stretched-link" href="{% url 'reading_clubs:list' %}">
+                      <span class="visually-hidden">Перейти к разделу совместных чтений</span>
+                    </a>
                   </div>
                 </div>
               </div>
@@ -1938,6 +1989,9 @@
                     {% else %}
                       <p class="text-muted small mb-0 mt-3">Пока нет участия в совместных чтениях.</p>
                     {% endif %}
+                    <a class="stretched-link" href="{% url 'reading_clubs:list' %}">
+                      <span class="visually-hidden">Перейти к разделу совместных чтений</span>
+                    </a>
                   </div>
                 </div>
               </div>
@@ -1963,6 +2017,9 @@
                     {% else %}
                       <p class="text-muted small mb-0 mt-3">Нет заявок на участие.</p>
                     {% endif %}
+                    <a class="stretched-link" href="{% url 'reading_clubs:list' %}">
+                      <span class="visually-hidden">Перейти к разделу совместных чтений</span>
+                    </a>
                   </div>
                 </div>
               </div>
@@ -2480,6 +2537,47 @@ window.yaContextCb.push(() => {
           }
         });
       });
+
+      const calendarCollapseElement = document.getElementById('readingCalendarCollapse');
+      const calendarToggleButton = document.getElementById('calendarToggleButton');
+
+      if (calendarCollapseElement && calendarToggleButton && typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
+        const collapseInstance = bootstrap.Collapse.getOrCreateInstance(calendarCollapseElement, { toggle: false });
+        const labelElement = calendarToggleButton.querySelector('.calendar-toggle-label');
+        const showLabel = calendarToggleButton.dataset.showLabel || 'Показать календарь чтения';
+        const hideLabel = calendarToggleButton.dataset.hideLabel || 'Скрыть календарь чтения';
+
+        const updateButtonState = (expanded) => {
+          calendarToggleButton.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+          if (labelElement) {
+            labelElement.textContent = expanded ? hideLabel : showLabel;
+          } else {
+            calendarToggleButton.textContent = expanded ? hideLabel : showLabel;
+          }
+        };
+
+        calendarCollapseElement.addEventListener('shown.bs.collapse', () => {
+          updateButtonState(true);
+        });
+        calendarCollapseElement.addEventListener('hidden.bs.collapse', () => {
+          updateButtonState(false);
+        });
+
+        const mediaQuery = window.matchMedia('(min-width: 576px)');
+        const handleViewportChange = (event) => {
+          if (event.matches) {
+            collapseInstance.show();
+          } else {
+            collapseInstance.hide();
+          }
+        };
+
+        handleViewportChange(mediaQuery);
+        mediaQuery.addEventListener('change', handleViewportChange);
+        updateButtonState(calendarCollapseElement.classList.contains('show'));
+      } else if (calendarToggleButton && !calendarCollapseElement) {
+        calendarToggleButton.hidden = true;
+      }
 
       // Задержка для плавного появления
       setTimeout(() => {

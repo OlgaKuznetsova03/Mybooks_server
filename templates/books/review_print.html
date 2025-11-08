@@ -17,79 +17,86 @@
 
     * {
       box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
-    html, body {
+    @page {
+      size: A4;
+      margin: 0;
+    }
+
+    body {
       margin: 0;
       padding: 0;
       background: #f4ede7;
       color: #2b2b2b;
       font-family: 'Inter', 'Segoe UI', sans-serif;
+      font-size: 12px;
+      line-height: 1.4;
     }
 
-    body {
-      display: flex;
-      justify-content: center;
-      padding: 32px;
-    }
-    
     .page {
       background: var(--surface);
       width: 210mm;
-      min-height: 297mm;
-      padding: 36px 44px 48px;
+      height: 297mm;
+      padding: 20mm 15mm;
       position: relative;
-      border-radius: 18px;
-      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
       overflow: hidden;
+      page-break-after: always;
+    }
+
+    .page:last-child {
+      page-break-after: auto;
     }
 
     .page::before,
     .page::after {
       content: "";
       position: absolute;
-      width: 220px;
-      height: 220px;
-      background: radial-gradient(circle at top left, rgba(194, 106, 90, 0.18), transparent 65%);
-      opacity: 0.9;
+      width: 120px;
+      height: 120px;
+      background: radial-gradient(circle at top left, rgba(194, 106, 90, 0.12), transparent 65%);
+      opacity: 0.7;
       pointer-events: none;
       z-index: 0;
     }
 
     .page::after {
-      right: -60px;
-      bottom: -80px;
+      right: -30px;
+      bottom: -40px;
       transform: rotate(15deg);
-      background: radial-gradient(circle at bottom right, rgba(194, 106, 90, 0.16), transparent 70%);
+      background: radial-gradient(circle at bottom right, rgba(194, 106, 90, 0.1), transparent 70%);
     }
 
     header {
-        position: relative;
+      position: relative;
       z-index: 1;
       display: grid;
-      grid-template-columns: 180px 1fr;
-      gap: 28px;
-      padding: 28px;
-      border-radius: 18px;
-      background: linear-gradient(135deg, rgba(194, 106, 90, 0.12), rgba(255, 255, 255, 0.9));
-      border: 1px solid rgba(194, 106, 90, 0.18);
+      grid-template-columns: 80px 1fr;
+      gap: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(194, 106, 90, 0.08), rgba(255, 255, 255, 0.9));
+      border: 1px solid rgba(194, 106, 90, 0.12);
     }
 
     .cover {
-      width: 180px;
-      height: 260px;
-      border-radius: 14px;
+      width: 80px;
+      height: 120px;
+      border-radius: 8px;
       background: rgba(255, 255, 255, 0.6);
       border: 1px solid rgba(255, 255, 255, 0.8);
-      box-shadow: 0 16px 30px rgba(194, 106, 90, 0.28);
+      box-shadow: 0 8px 20px rgba(194, 106, 90, 0.2);
       overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
+      font-size: 10px;
       color: var(--muted);
       text-align: center;
-      padding: 16px;
+      padding: 8px;
     }
     
     .cover img {
@@ -100,221 +107,238 @@
     
     .title-block h1 {
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 32px;
+      font-size: 18px;
       font-weight: 600;
-      margin: 0;
+      margin: 0 0 4px 0;
       color: var(--accent-dark);
+      line-height: 1.2;
     }
     
     .title-block .subtitle {
-      margin-top: 8px;
-      font-size: 16px;
+      font-size: 11px;
       color: var(--muted);
+      margin-bottom: 12px;
     }
     
     .meta-grid {
-      margin-top: 18px;
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px 24px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px 12px;
     }
 
     .meta-item {
-      font-size: 14px;
+      font-size: 10px;
       color: #373a3d;
-      line-height: 1.4;
+      line-height: 1.3;
     }
 
     .meta-item span {
       display: block;
-      font-size: 11px;
-      letter-spacing: 0.08em;
+      font-size: 9px;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--muted);
+      margin-bottom: 2px;
     }
 
     main {
       position: relative;
       z-index: 1;
-      margin-top: 36px;
-      display: flex;
-      flex-direction: column;
-      gap: 28px;
+    }
+
+    .two-column {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .full-width {
+      grid-column: 1 / -1;
     }
 
     section {
       background: rgba(255, 255, 255, 0.9);
       border: 1px solid var(--border-color);
-      border-radius: 16px;
-      padding: 24px 28px;
-      box-shadow: 0 12px 26px rgba(0, 0, 0, 0.04);
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+      break-inside: avoid;
     }
     
     section h2 {
-      margin: 0 0 18px;
+      margin: 0 0 12px;
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 22px;
+      font-size: 14px;
       color: var(--accent-dark);
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 6px;
       letter-spacing: 0.02em;
     }
 
     section h2::before {
       content: '';
-      width: 18px;
-      height: 18px;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
       background: linear-gradient(135deg, rgba(194, 106, 90, 0.85), rgba(237, 196, 169, 0.85));
-      box-shadow: 0 0 0 3px rgba(194, 106, 90, 0.15);
+      box-shadow: 0 0 0 2px rgba(194, 106, 90, 0.15);
+      flex-shrink: 0;
     }
 
     .description {
-      font-size: 14px;
-      line-height: 1.7;
+      font-size: 11px;
+      line-height: 1.5;
       color: #34373c;
     }
 
     .empty-note {
       color: var(--muted);
       font-style: italic;
+      font-size: 11px;
     }
     
     .notes {
       background: repeating-linear-gradient(
         transparent,
-        transparent 28px,
-        var(--line-color) 28px,
-        var(--line-color) 30px
+        transparent 22px,
+        var(--line-color) 22px,
+        var(--line-color) 24px
       );
-      border-radius: 14px;
-      padding: 18px 20px;
-      font-size: 14px;
-      line-height: 30px;
-      min-height: 220px;
-      border: 1px solid rgba(194, 106, 90, 0.18);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 11px;
+      line-height: 24px;
+      min-height: 120px;
+      border: 1px solid rgba(194, 106, 90, 0.12);
       white-space: pre-wrap;
     }
     
     .annotations {
       list-style: none;
       padding: 0;
-      margin: 18px 0 0;
+      margin: 12px 0 0;
       display: grid;
-      gap: 12px;
+      gap: 8px;
     }
 
     .annotations li {
       background: rgba(255, 255, 255, 0.75);
-      border: 1px solid rgba(194, 106, 90, 0.18);
-      border-radius: 12px;
-      padding: 14px 18px;
-      box-shadow: 0 10px 18px rgba(194, 106, 90, 0.12);
+      border: 1px solid rgba(194, 106, 90, 0.12);
+      border-radius: 8px;
+      padding: 10px 12px;
+      box-shadow: 0 4px 8px rgba(194, 106, 90, 0.08);
     }
 
     .annotation-meta {
-      font-size: 12px;
+      font-size: 9px;
       font-weight: 600;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--muted);
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
 
     .annotation-body {
-      font-size: 14px;
-      line-height: 1.6;
+      font-size: 11px;
+      line-height: 1.4;
       font-weight: 500;
       color: #2d2d2d;
     }
 
     .annotation-comment {
-      margin-top: 10px;
-      font-size: 13px;
+      margin-top: 6px;
+      font-size: 10px;
       color: var(--muted);
     }
 
     blockquote {
       margin: 0;
-      padding-left: 16px;
-      border-left: 4px solid rgba(194, 106, 90, 0.35);
+      padding-left: 12px;
+      border-left: 3px solid rgba(194, 106, 90, 0.3);
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 18px;
-      line-height: 1.7;
+      font-size: 12px;
+      line-height: 1.5;
       color: var(--accent-dark);
     }
 
-    .characters {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      gap: 16px;
+    /* СТОЛБИК ДЛЯ ПЕРСОНАЖЕЙ */
+    .characters-column {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
       padding: 0;
       list-style: none;
       margin: 0;
+      max-height: 300px;
+      overflow-y: auto;
     }
 
     .character-card {
       background: rgba(255, 255, 255, 0.75);
-      border: 1px solid rgba(194, 106, 90, 0.2);
-      border-radius: 14px;
-      padding: 16px;
-      box-shadow: 0 8px 18px rgba(194, 106, 90, 0.14);
+      border: 1px solid rgba(194, 106, 90, 0.15);
+      border-radius: 8px;
+      padding: 10px 12px;
+      box-shadow: 0 2px 6px rgba(194, 106, 90, 0.1);
+      break-inside: avoid;
     }
 
     .character-card strong {
       display: block;
       font-weight: 600;
       color: var(--accent-dark);
-      margin-bottom: 6px;
+      margin-bottom: 4px;
+      font-size: 11px;
     }
 
     .character-card p {
       margin: 0;
-      font-size: 13px;
+      font-size: 10px;
       color: #3c3f43;
-      line-height: 1.5;
+      line-height: 1.4;
     }
 
     .scores {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 8px;
     }
 
     .score-card {
-      background: rgba(194, 106, 90, 0.08);
-      border: 1px solid rgba(194, 106, 90, 0.24);
-      border-radius: 14px;
-      padding: 14px 16px;
+      background: rgba(194, 106, 90, 0.06);
+      border: 1px solid rgba(194, 106, 90, 0.18);
+      border-radius: 8px;
+      padding: 10px 12px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 4px;
       text-align: left;
       color: #3d3a38;
     }
 
     .score-label {
-      font-size: 12px;
-      letter-spacing: 0.08em;
+      font-size: 9px;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--muted);
     }
 
     .score-value {
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 26px;
+      font-size: 18px;
       font-weight: 600;
       color: var(--accent-dark);
     }
 
     .review {
       background: rgba(255, 255, 255, 0.92);
-      border-radius: 16px;
-      border: 1px solid rgba(194, 106, 90, 0.22);
-      padding: 22px;
-      font-size: 15px;
-      line-height: 1.7;
+      border-radius: 10px;
+      border: 1px solid rgba(194, 106, 90, 0.18);
+      padding: 15px;
+      font-size: 11px;
+      line-height: 1.5;
       color: #303030;
       white-space: pre-wrap;
       position: relative;
@@ -324,26 +348,35 @@
     .review::before {
       content: '“';
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 86px;
-      color: rgba(194, 106, 90, 0.18);
+      font-size: 50px;
+      color: rgba(194, 106, 90, 0.15);
       position: absolute;
-      top: -24px;
-      left: 12px;
+      top: -10px;
+      left: 8px;
     }
 
     .review::after {
       content: '”';
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 86px;
-      color: rgba(194, 106, 90, 0.18);
+      font-size: 50px;
+      color: rgba(194, 106, 90, 0.15);
       position: absolute;
-      bottom: -36px;
-      right: 28px;
+      bottom: -20px;
+      right: 15px;
+    }
+
+    .section-subtitle {
+      font-size: 11px;
+      color: var(--muted);
+      margin: -8px 0 12px 18px;
+      font-style: italic;
     }
 
     .footer-note {
-      margin-top: 12px;
-      font-size: 12px;
+      position: absolute;
+      bottom: 15mm;
+      right: 15mm;
+      font-size: 9px;
       color: var(--muted);
       text-align: right;
     }
@@ -352,18 +385,27 @@
       body {
         padding: 0;
         background: transparent;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
       }
 
       .page {
         box-shadow: none;
         border-radius: 0;
-        width: auto;
-        min-height: auto;
+        width: 210mm;
+        height: 297mm;
+        margin: 0;
+        padding: 20mm 15mm;
       }
 
       .page::before,
       .page::after {
-        display: none;
+        display: block;
+      }
+
+      .two-column {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
       }
     }
   </style>
@@ -382,12 +424,12 @@
         <h1>«{{ book.title }}»</h1>
         <div class="subtitle">
           {% if authors %}
-            Автор(ы): {{ authors|join:", " }}
+            {{ authors|join:", " }}
           {% else %}
             Автор не указан
           {% endif %}
         </div>
-      <div class="meta-grid">
+        <div class="meta-grid">
           <div class="meta-item">
             <span>Жанры</span>
             {% if book.genres.all %}
@@ -405,11 +447,11 @@
             {% endif %}
           </div>
           <div class="meta-item">
-            <span>Количество страниц</span>
+            <span>Страниц</span>
             {{ book.total_pages|default:"—" }}
           </div>
           <div class="meta-item">
-            <span>Период чтения</span>
+            <span>Чтение</span>
             {% if reading_start and reading_end %}
               {{ reading_start|date:"d.m.Y" }} — {{ reading_end|date:"d.m.Y" }}
             {% elif reading_start %}
@@ -425,24 +467,83 @@
     </header>
 
     <main>
-      <section>
-        <h2>О книге</h2>
-        {% if book.synopsis %}
-          <div class="description">{{ book.synopsis }}</div>
-        {% else %}
-          <p class="empty-note">Описание пока не добавлено.</p>
-        {% endif %}
-      </section>
+      <div class="two-column">
+        <!-- ЛЕВАЯ КОЛОНКА -->
+        <div>
+          <section>
+            <h2>О книге</h2>
+            {% if book.synopsis %}
+              <div class="description">{{ book.synopsis }}</div>
+            {% else %}
+              <p class="empty-note">Описание пока не добавлено.</p>
+            {% endif %}
+          </section>
 
-      <section>
+          <section>
+            <h2>Герои истории</h2>
+            <div class="section-subtitle">Персонажи и их характеристики</div>
+            {% if characters %}
+              <ul class="characters-column">
+                {% for character in characters %}
+                  <li class="character-card">
+                    <strong>{{ character.name }}</strong>
+                    {% if character.description %}
+                      <p>{{ character.description }}</p>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="empty-note">Список персонажей пока пуст</p>
+            {% endif %}
+          </section>
+        </div>
+
+        <!-- ПРАВАЯ КОЛОНКА -->
+        <div>
+          {% if rating.has_any_scores %}
+            <section>
+              <h2>Оценки</h2>
+              <div class="scores">
+                {% if rating.score %}
+                  <div class="score-card">
+                    <span class="score-label">Общая</span>
+                    <span class="score-value">{{ rating.score }}/10</span>
+                  </div>
+                {% endif %}
+                {% for label, value in rating.get_category_scores %}
+                  <div class="score-card">
+                    <span class="score-label">{{ label }}</span>
+                    <span class="score-value">{{ value }}/10</span>
+                  </div>
+                {% endfor %}
+              </div>
+            </section>
+          {% endif %}
+
+          <section>
+            <h2>Отзыв</h2>
+            {% if rating.review %}
+              <div class="review">{{ rating.review|linebreaksbr }}</div>
+            {% else %}
+              <p class="empty-note">Текст отзыва ещё не написан.</p>
+            {% endif %}
+          </section>
+        </div>
+      </div>
+
+      <!-- ПОЛНОШИРИННЫЕ СЕКЦИИ -->
+      <section class="full-width">
         <h2>Комментарии и цитаты</h2>
+        <div class="section-subtitle">Заметки, мысли и любимые цитаты из книги</div>
+        
         {% if notes or saved_notes or saved_quotes %}
           {% if notes %}
             <div class="notes">{{ notes|linebreaksbr }}</div>
           {% endif %}
 
           {% if saved_notes %}
-            <h3>Короткие заметки</h3>
+            <h3 style="font-size: 12px; margin: 15px 0 8px 0; color: var(--accent-dark);">Короткие заметки</h3>
             <ul class="annotations">
               {% for note in saved_notes %}
                 <li>
@@ -459,7 +560,7 @@
           {% endif %}
 
           {% if saved_quotes %}
-            <h3>Цитаты</h3>
+            <h3 style="font-size: 12px; margin: 15px 0 8px 0; color: var(--accent-dark);">Цитаты</h3>
             <ul class="annotations">
               {% for quote in saved_quotes %}
                 <li>
@@ -478,56 +579,9 @@
           <p class="empty-note">Здесь можно записывать любимые моменты и цитаты.</p>
         {% endif %}
       </section>
-
-      <section>
-        <h2>Герои истории</h2>
-        {% if characters %}
-          <ul class="characters">
-            {% for character in characters %}
-              <li class="character-card">
-                <strong>{{ character.name }}</strong>
-                {% if character.description %}
-                  <p>{{ character.description }}</p>
-                {% endif %}
-              </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p class="empty-note">Список персонажей пока пуст — самое время его заполнить!</p>
-        {% endif %}
-      </section>
-
-      {% if rating.has_any_scores %}
-        <section>
-          <h2>Оценки</h2>
-          <div class="scores">
-            {% if rating.score %}
-              <div class="score-card">
-                <span class="score-label">Общая оценка</span>
-                <span class="score-value">{{ rating.score }}/10</span>
-              </div>
-            {% endif %}
-            {% for label, value in rating.get_category_scores %}
-              <div class="score-card">
-                <span class="score-label">{{ label }}</span>
-                <span class="score-value">{{ value }}/10</span>
-              </div>
-            {% endfor %}
-          </div>
-        </section>
-      {% endif %}
-
-      <section>
-        <h2>Отзыв</h2>
-        {% if rating.review %}
-          <div class="review">{{ rating.review|linebreaksbr }}</div>
-        {% else %}
-          <p class="empty-note">Текст отзыва ещё не написан.</p>
-        {% endif %}
-      </section>
     </main>
 
-    <div class="footer-note">Дата формирования: {{ rating.created_at|date:"d.m.Y" }}</div>
+    <div class="footer-note">Сформировано {{ rating.created_at|date:"d.m.Y" }} • Читательский дневник</div>
   </div>
 </body>
 </html>
