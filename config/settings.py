@@ -161,7 +161,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [BASE_DIR / 'templates'],
-        'APP_DIRS': True,
+        'APP_DIRS': False,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -171,6 +171,10 @@ TEMPLATES = [
                 "django.template.context_processors.media",
                 "collaborations.context_processors.collaboration_notifications",
                 "config.context_processors.static_version",
+            ],
+            'loaders': [
+                'config.template_loaders.SafeFilesystemLoader',
+                'django.template.loaders.app_directories.Loader',
             ],
         },
     },
