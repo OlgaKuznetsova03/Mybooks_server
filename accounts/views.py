@@ -72,6 +72,11 @@ WEEKDAY_LABELS = [
     "Вс",
 ]
 
+YOO_KASSA_CHECKOUT_URL = (
+    "https://yookassa.ru/yooid/signup/step/phone?origin=Checkout&returnUrl="
+    "https%3A%2F%2Fyookassa.ru%2Fjoinups%2F%3Fsource%3Dpayouts"
+)
+
 
 MARATHON_STATUS_LABELS = {
     "upcoming": "Скоро старт",
@@ -767,7 +772,7 @@ def premium_overview(request):
                 profile.save(update_fields=["premium_auto_renew"])
                 messages.success(
                     request,
-                    "Автопродление отключено. Вы можете включить его в любой момент на этой странице.",
+                    "Автопродление отключено. При необходимости отмените регулярные списания в YooKassa.",
                 )
             else:
                 messages.info(request, "Автопродление уже отключено.")
@@ -778,23 +783,10 @@ def premium_overview(request):
                 profile.save(update_fields=["premium_auto_renew"])
                 messages.success(
                     request,
-                    "Автопродление включено. Подписка будет продлеваться каждый месяц автоматически.",
+                    "Автопродление включено. После успешных списаний в YooKassa премиум будет продлеваться автоматически.",
                 )
             else:
                 messages.info(request, "Автопродление уже включено.")
-            return redirect("premium_overview")
-
-        form = PremiumPurchaseForm(request.POST, user=request.user)
-        if form.is_valid():
-            payment = form.save()
-            method_label = dict(PremiumPayment.PaymentMethod.choices)[payment.method]
-            messages.success(
-                request,
-                (
-                    f"Счёт №{payment.reference} создан. Оплатите {payment.amount} ₽ через «{method_label}» "
-                    "и сообщите нам об оплате — премиум активируется сразу после подтверждения."
-                ),
-            )
             return redirect("premium_overview")
 
     recent_payments = (
@@ -804,31 +796,12 @@ def premium_overview(request):
         request.user.premium_subscriptions.select_related("payment", "granted_by").order_by("-start_at")[:5]
     )
 
-    payment_instructions = {
-        PremiumPayment.PaymentMethod.YOOMONEY: (
-            "Оплатите счёт из приложения или веб-версии ЮMoney. Сохраните чек и отправьте его в поддержку, чтобы мы "
-            "активировали подписку."
-        ),
-    }
-
-    method_labels = dict(PremiumPayment.PaymentMethod.choices)
-    payment_instruction_items = [
-        {
-            "code": code,
-            "label": method_labels.get(code, code),
-            "text": payment_instructions[code],
-        }
-        for code, _ in PremiumPayment.PaymentMethod.choices
-        if code in payment_instructions
-    ]
-
     context = {
         "profile": profile,
         "active_subscription": active_subscription,
-        "premium_form": form,
         "recent_payments": recent_payments,
         "recent_subscriptions": recent_subscriptions,
-        "payment_instruction_items": payment_instruction_items,
+        "premium_checkout_url": YOO_KASSA_CHECKOUT_URL,
     }
     return render(request, "accounts/premium.html", context)
 

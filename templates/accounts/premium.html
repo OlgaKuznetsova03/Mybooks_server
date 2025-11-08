@@ -28,7 +28,7 @@
     
     <div class="alert alert-info">
       <div class="fw-semibold">Стоимость подписки — 300 ₽ в месяц.</div>
-      <div class="mb-0">Подписка оформляется на один месяц и по умолчанию продлевается автоматически. Управляйте автопродлением ниже на этой странице.</div>
+      <div class="mb-0">Оплата проходит через YooKassa и по умолчанию продлевается автоматически каждый месяц. Управляйте автопродлением в YooKassa и при необходимости обновляйте настройку ниже на этой странице.</div>
     </div>
 
     {% if active_subscription %}
@@ -42,7 +42,7 @@
     {% else %}
     <div class="alert alert-warning">
       <div class="fw-semibold">Премиум пока не подключён.</div>
-      <div class="mb-0">Оформите подписку, чтобы открыть доступ к закрытым разделам, авторским подборкам и премиум-статистике чтения.</div>
+      <div class="mb-0">Нажмите «Оформить подписку» ниже, чтобы отключить рекламу</div>
     </div>
     {% endif %}
     
@@ -52,14 +52,16 @@
       </div>
       <div class="card-body">
         {% if profile.premium_auto_renew %}
-        <p class="mb-3">Автопродление включено. Мы автоматически продлим подписку ещё на месяц после окончания текущего оплаченного периода.</p>
+        <p class="mb-3">Автопродление включено. После каждого успешного ежемесячного списания в YooKassa мы продлим доступ ещё на месяц автоматически.</p>
+        <p class="mb-3 small text-muted">Если хотите прекратить списания, отмените подписку на странице Премиум.</p>
         <form method="post" class="d-inline">
           {% csrf_token %}
           <input type="hidden" name="action" value="disable_auto_renew">
-          <button class="btn btn-outline-danger" type="submit">Отключить автопродление</button>
+          <button class="btn btn-outline-danger" type="submit">Отключить автопродления</button>
         </form>
         {% else %}
-        <p class="mb-3">Автопродление отключено. По завершении оплаченного периода доступ будет прекращён, если вы не оформите подписку повторно.</p>
+        <p class="mb-3">Автопродление отключено. По завершении оплаченного периода доступ будет прекращён, даже если подписка в YooKassa останется активной.</p>
+        <p class="mb-3 small text-muted">При необходимости выключите подписку и в YooKassa, чтобы остановить регулярные списания.</p>
         <form method="post" class="d-inline">
           {% csrf_token %}
           <input type="hidden" name="action" value="enable_auto_renew">
@@ -75,36 +77,15 @@
         <h2 class="h5 mb-0">Оформить подписку</h2>
       </div>
       <div class="card-body">
-        <form method="post" novalidate>
-          {% csrf_token %}
-          {{ premium_form.non_field_errors }}
-          <div class="mb-3">
-            {{ premium_form.plan.label_tag }}
-            {{ premium_form.plan }}
-            {% if premium_form.plan.help_text %}<div class="form-text">{{ premium_form.plan.help_text }}</div>{% endif %}
-            {% for error in premium_form.plan.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
-          </div>
-          <div class="mb-3">
-            <div class="fw-semibold mb-2">{{ premium_form.payment_method.label }}</div>
-            {% for radio in premium_form.payment_method %}
-            <div class="form-check">
-              {{ radio.tag }}
-              <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
-            </div>
-            {% endfor %}
-            {% for error in premium_form.payment_method.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
-          </div>
-          <div class="mb-3">
-            <div class="form-check">
-              {{ premium_form.agree_offer }}
-              <label class="form-check-label" for="{{ premium_form.agree_offer.id_for_label }}">
-                Я подтверждаю, что ознакомился с <a class="link-primary" href="#premium-offer">договором-офертой</a> и принимаю его условия.
-              </label>
-            </div>
-            {% for error in premium_form.agree_offer.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
-          </div>
-          <button class="btn btn-primary" type="submit">Оплатить премиум</button>
-        </form>
+        <p class="mb-3">Стоимость подписки — 300 ₽ в месяц. Оплата проходит через сервис YooKassa с автоматическим продлением каждый месяц.</p>
+        <ol class="mb-4">
+          <li class="mb-2">Подтвердите ежемесячный платеж на 300 ₽.</li>
+          <li class="mb-0">После успешной оплаты премиум активируется автоматически. Если что-то пошло не так, напишите нам в поддержку.</li>
+        </ol>
+        <a class="btn btn-primary" href="{{ premium_checkout_url }}" target="_blank" rel="noopener">
+          Оформить подписку в YooKassa
+        </a>
+        <p class="small text-muted mt-3">Управлять подпиской и отменять автопродление можно в личном кабинете YooKassa.</p>
         <div id="premium-offer" class="mt-4 border rounded-3 p-3 bg-body-tertiary">
           <h3 class="h6 mb-3">🧾 Публичная оферта на заключение договора оказания услуг (подписка)</h3>
           <p class="mb-2"><strong>1. Общие положения</strong></p>
@@ -152,32 +133,12 @@
         </div>
       </div>
     </div>
-
-    <div class="card shadow-sm mb-4">
-      <div class="card-header bg-body-tertiary">
-        <h2 class="h5 mb-0">Как оплатить</h2>
-      </div>
-      <div class="card-body">
-        <p class="text-muted">Сразу после создания счёта вы получите реквизиты и подробную инструкцию на e-mail {{ request.user.email }}.</p>
-        <div class="row g-3">
-          {% for item in payment_instruction_items %}
-          <div class="col-md-6">
-            <div class="border rounded-3 p-3 h-100">
-              <div class="fw-semibold mb-2">{{ item.label }}</div>
-              <div class="small text-muted">{{ item.text }}</div>
-            </div>
-          </div>
-          {% endfor %}
-        </div>
-        <p class="small text-muted mt-3">После оплаты ответьте на письмо или напишите в поддержку, указав номер счёта. Мы активируем премиум сразу после подтверждения перевода.</p>
-      </div>
-    </div>
-
     <div class="card shadow-sm">
       <div class="card-header bg-body-tertiary">
         <h2 class="h5 mb-0">История счетов</h2>
       </div>
       <div class="card-body">
+        <p class="small text-muted">История включает счета, созданные в нашем сервисе. Подписки, оформленные напрямую в YooKassa, появятся здесь после синхронизации.</p>
         {% if recent_payments %}
         <div class="table-responsive">
           <table class="table align-middle">
