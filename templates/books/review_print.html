@@ -491,11 +491,13 @@
             </div>
             <div class="meta-item">
               <span>Издательство</span>
-              {% if book.publisher %}
-                {{ book.publisher.name }}
-              {% else %}
-                —
-              {% endif %}
+              {% with publishers=book.publisher.all %}
+                {% if publishers %}
+                  {{ publishers|join:", " }}
+                {% else %}
+                  —
+                {% endif %}
+              {% endwith %}
             </div>
             <div class="meta-item">
               <span>Страниц</span>
