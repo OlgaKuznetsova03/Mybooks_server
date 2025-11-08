@@ -143,10 +143,16 @@ def move_book_to_read_shelf(user: User, book: Book, *, read_date: date | None = 
     home_item = ShelfItem.objects.filter(shelf=home_shelf, book=book).select_related("home_entry").first()
     if home_item:
         entry, _ = HomeLibraryEntry.objects.get_or_create(shelf_item=home_item)
-        target_date = read_date or timezone.localdate()
-        if entry.read_at != target_date:
+        target_date = None
+        if read_date is not None:
+            target_date = read_date
+        elif entry.read_at is None:
+            target_date = timezone.localdate()
+
+        if target_date is not None and entry.read_at != target_date:
             entry.read_at = target_date
             entry.save(update_fields=["read_at", "updated_at"])
+
 
     try:
         from games.models import NobelLaureateAssignment
