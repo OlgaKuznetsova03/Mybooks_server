@@ -830,6 +830,12 @@ def nobel_laureates_challenge(request):
     stages = []
     completed_count = 0
     in_progress_count = 0
+    status_labels = {
+        "available": "Свободно",
+        "in_progress": "В процессе",
+        "completed": "Выполнено",
+    }
+
     for stage in NobelLaureatesChallenge.get_stages():
         assignment = assignments_lookup.get(stage.number)
         status = "available"
@@ -873,6 +879,7 @@ def nobel_laureates_challenge(request):
                 "requirement": stage.requirement,
                 "description": stage.description,
                 "status": status,
+                "status_label": status_labels.get(status, ""),
                 "assignment": assignment_payload,
             }
         )
@@ -925,11 +932,6 @@ def nobel_laureates_challenge(request):
         "available_books": available_books,
         "is_authenticated": user.is_authenticated,
         "assignment_stage_value": assignment_stage_value,
-        "status_labels": {
-            "available": "Свободно",
-            "in_progress": "В процессе",
-            "completed": "Выполнено",
-        },
     }
 
     return render(request, "games/nobel_challenge.html", context)
