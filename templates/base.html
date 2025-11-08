@@ -283,31 +283,96 @@
   </div>
   <div class="offcanvas-body d-flex flex-column gap-3">
 
-    <!-- Поиск -->
-    <a class="offcanvas-title btn btn-primary" id="mainOffcanvasLabel" href="{% url 'book_create' %}">
-      <i class="bi bi-plus-lg me-2"></i>Добавить книгу
+    {% if request.user.is_authenticated %}
+      <a
+        class="btn btn-outline-secondary d-flex align-items-center justify-content-center gap-2"
+        href="{% url 'profile' request.user.username %}"
+      >
+        <i class="bi bi-person-circle"></i>
+        <span>{{ request.user.username }}</span>
+      </a>
+    {% endif %}
+
+    <a
+      class="offcanvas-title btn btn-primary d-flex align-items-center justify-content-center gap-2"
+      id="mainOffcanvasLabel"
+      href="{% url 'book_create' %}"
+    >
+      <i class="bi bi-plus-lg"></i>
+      <span>Добавить книгу</span>
     </a>
 
     <ul class="navbar-nav" id="offcanvasLinks">
-      <li class="nav-item"><a class="nav-link" href="{% url 'book_list' %}">Книги</a></li>
-      <li class="nav-item"><a class="nav-link" href="{% url 'shelves:reading_now' %}">Читаю сейчас</a></li>
-      {% if request.user.is_authenticated %}
-      <li class="nav-item"><a class="nav-link" href="{% url 'shelves:home_library' %}">Домашняя библиотека</a></li>
-      {% endif %}
-      <li class="nav-item"><a class="nav-link" href="{% url 'reading_communities_overview' %}">Совместные чтения и марафоны</a></li>
-      <li class="nav-item"><a class="nav-link" href="{% url 'games:index' %}">Игры</a></li>
-      <li class="nav-item"><a class="nav-link" href="{% url 'shelves:reading_feed' %}">Отзывы и Рейтинг</a></li>
-      <li class="nav-item"><a class="nav-link" href="{% url 'collaborations:offer_list' %}">Сотрудничество</a></li>
-      <li class="nav-item"><a class="nav-link" href="{% url 'collaborations:blogger_community' %}">Блогерский хаб</a></li>
       <li class="nav-item">
-        <a class="nav-link d-flex justify-content-between align-items-center" href="{% url 'collaborations:collaboration_notifications' %}">
-          <span>Уведомления</span>
+        <a class="nav-link d-flex align-items-center gap-2" href="{% url 'book_list' %}">
+          <i class="bi bi-journal-bookmark"></i>
+          <span>Книги</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center gap-2" href="{% url 'shelves:reading_now' %}">
+          <i class="bi bi-bookmark-check"></i>
+          <span>Читаю сейчас</span>
+        </a>
+      </li>
+      {% if request.user.is_authenticated %}
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center gap-2" href="{% url 'shelves:home_library' %}">
+          <i class="bi bi-house-heart"></i>
+          <span>Домашняя библиотека</span>
+        </a>
+      </li>
+      {% endif %}
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center gap-2" href="{% url 'reading_communities_overview' %}">
+          <i class="bi bi-chat-dots"></i>
+          <span>Совместные чтения и марафоны</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center gap-2" href="{% url 'games:index' %}">
+          <i class="bi bi-controller"></i>
+          <span>Игры</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center gap-2" href="{% url 'shelves:reading_feed' %}">
+          <i class="bi bi-stars"></i>
+          <span>Отзывы и Рейтинг</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center gap-2" href="{% url 'collaborations:offer_list' %}">
+          <i class="bi bi-people"></i>
+          <span>Сотрудничество</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center gap-2" href="{% url 'collaborations:blogger_community' %}">
+          <i class="bi bi-megaphone"></i>
+          <span>Блогерский хаб</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a
+          class="nav-link d-flex align-items-center justify-content-between gap-2"
+          href="{% url 'collaborations:collaboration_notifications' %}"
+        >
+          <span class="d-flex align-items-center gap-2">
+            <i class="bi bi-bell"></i>
+            <span>Уведомления</span>
+          </span>
           {% if collaboration_notifications.total %}
             <span class="badge text-bg-secondary">{{ collaboration_notifications.total }}</span>
           {% endif %}
         </a>
       </li>
-      <li class="nav-item"><a class="nav-link" href="{% url 'premium_overview' %}">Премиум</a></li>
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center gap-2" href="{% url 'premium_overview' %}">
+          <i class="bi bi-gem"></i>
+          <span>Премиум</span>
+        </a>
+      </li>
     </ul>
 
     <hr class="my-2">
@@ -315,13 +380,19 @@
     <!-- Аккаунт -->
     <div class="d-grid gap-2">
       {% if request.user.is_authenticated %}
-        <a class="btn btn-outline-secondary" href="{% url 'profile' request.user.username %}">
-          <i class="bi bi-person-circle me-1"></i>{{ request.user.username }}
+        <a class="btn btn-outline-danger d-flex align-items-center justify-content-center gap-2" href="{% url 'logout' %}">
+          <i class="bi bi-box-arrow-right"></i>
+          <span>Выйти</span>
         </a>
-        <a class="btn btn-outline-danger" href="{% url 'logout' %}">Выйти</a>
       {% else %}
-        <a class="btn btn-outline-primary" href="{% url 'login' %}">Войти</a>
-        <a class="btn" href="{% url 'signup' %}">Регистрация</a>
+        <a class="btn btn-outline-primary d-flex align-items-center justify-content-center gap-2" href="{% url 'login' %}">
+          <i class="bi bi-box-arrow-in-right"></i>
+          <span>Войти</span>
+        </a>
+        <a class="btn d-flex align-items-center justify-content-center gap-2" href="{% url 'signup' %}">
+          <i class="bi bi-pencil-square"></i>
+          <span>Регистрация</span>
+        </a>
       {% endif %}
     </div>
   </div>
