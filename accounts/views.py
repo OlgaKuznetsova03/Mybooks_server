@@ -13,11 +13,15 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from .models import PremiumPayment
 from django.db.models import Count, Sum
-from django.http import JsonResponse, Http404
+from django.http import JsonResponse, Http404, HttpResponse, QueryDict
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.text import slugify
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
+from django.template.loader import render_to_string
+
+from collections import Counter
 
 
 from shelves.models import Shelf, ShelfItem, BookProgress, HomeLibraryEntry, ReadingLog
@@ -740,6 +744,283 @@ def _collect_profile_stats(user: User, params):
         "stats": stats,
         "stats_period": period_meta,
     }
+
+
+def _build_absolute_url(request, url: str | None) -> str | None:
+    if not url:
+        return None
+    url = str(url).strip()
+    if not url:
+        return None
+    if url.startswith("//"):
+        return f"{request.scheme}:{url}"
+    if url.startswith("/"):
+        return request.build_absolute_uri(url)
+    return url
+
+
+@login_required
+def profile_monthly_print(request):
+    user = request.user
+    today = timezone.localdate()
+
+    def _safe_int(value, default):
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return default
+        return parsed
+
+    def _format_minutes_label(total_minutes: int) -> str | None:
+        if total_minutes <= 0:
+            return None
+        hours, minutes = divmod(int(total_minutes), 60)
+        if hours and minutes:
+            return f"{hours} ч {minutes} мин"
+        if hours:
+            return f"{hours} ч"
+        return f"{minutes} мин"
+
+    year = _safe_int(request.GET.get("year"), today.year)
+    month = _safe_int(request.GET.get("month"), today.month)
+    if month < 1 or month > 12:
+        month = today.month
+
+    params = QueryDict(mutable=True)
+    params.update(
+        {
+            "period": "month",
+            "year": str(year),
+            "month": str(month),
+            "calendar_year": str(year),
+            "calendar_month": str(month),
+            "tab": "stats",
+        }
+    )
+
+    stats_payload = _collect_profile_stats(user, params)
+    stats = stats_payload.get("stats", {})
+    calendar_payload = stats.get("reading_calendar") or {}
+    calendar_year = calendar_payload.get("year") or year
+    calendar_month = calendar_payload.get("month") or month
+    try:
+        _, last_day = calendar.monthrange(calendar_year, calendar_month)
+    except ValueError:
+        calendar_year, calendar_month = today.year, today.month
+        _, last_day = calendar.monthrange(calendar_year, calendar_month)
+
+    month_name = calendar_payload.get("month_name")
+    if not month_name and 1 <= calendar_month < len(MONTH_NAMES):
+        month_name = MONTH_NAMES[calendar_month]
+
+    day_payloads = calendar_payload.get("day_payloads") or {}
+    daily_summary: list[dict[str, object]] = []
+    max_pages = 0
+    max_audio_minutes = 0
+    max_sessions = 0
+    total_audio_minutes = 0
+    total_sessions = 0
+    activity_dates: list[date] = []
+    best_streak = 0
+    current_streak = 0
+    current_break = 0
+    longest_break = 0
+    top_day = None
+
+    for day_number in range(1, last_day + 1):
+        day_date = date(calendar_year, calendar_month, day_number)
+        iso = day_date.isoformat()
+        payload = day_payloads.get(iso) or {}
+        pages = payload.get("pages_total") or 0
+        books_count = payload.get("books_count") or 0
+        audio_minutes = payload.get("audio_minutes") or 0
+        sessions = payload.get("reading_sessions") or 0
+        has_completion = bool(payload.get("has_completion"))
+        has_activity = bool(pages or books_count or sessions or audio_minutes or has_completion)
+
+        if has_activity:
+            activity_dates.append(day_date)
+            current_streak += 1
+            current_break = 0
+            if current_streak > best_streak:
+                best_streak = current_streak
+        else:
+            current_streak = 0
+            current_break += 1
+            if current_break > longest_break:
+                longest_break = current_break
+
+        if not top_day or pages > top_day.get("pages", 0):
+            top_day = {
+                "date": day_date,
+                "pages": pages,
+                "books": payload.get("books", []),
+                "books_count": books_count,
+                "audio_minutes": audio_minutes or 0,
+            }
+
+        max_pages = max(max_pages, pages or 0)
+        max_audio_minutes = max(max_audio_minutes, audio_minutes or 0)
+        max_sessions = max(max_sessions, sessions or 0)
+        total_audio_minutes += audio_minutes or 0
+        total_sessions += sessions or 0
+
+        daily_summary.append(
+            {
+                "date": day_date,
+                "iso": iso,
+                "display": day_date.strftime("%d.%m.%Y"),
+                "weekday": day_date.strftime("%a"),
+                "pages": pages or 0,
+                "books_count": books_count or 0,
+                "audio_minutes": audio_minutes or 0,
+                "sessions": sessions or 0,
+                "has_completion": has_completion,
+                "has_activity": has_activity,
+                "books": payload.get("books", []),
+                "audio_display": payload.get("audio_display"),
+            }
+        )
+
+    for entry in daily_summary:
+        pages_ratio = (entry["pages"] / max_pages) if max_pages else 0
+        audio_ratio = (entry["audio_minutes"] / max_audio_minutes) if max_audio_minutes else 0
+        sessions_ratio = (entry["sessions"] / max_sessions) if max_sessions else 0
+        entry["pages_ratio"] = pages_ratio
+        entry["audio_ratio"] = audio_ratio
+        entry["sessions_ratio"] = sessions_ratio
+        entry["pages_percent"] = int(round(pages_ratio * 100)) if pages_ratio else 0
+        entry["audio_percent"] = int(round(audio_ratio * 100)) if audio_ratio else 0
+        entry["sessions_percent"] = int(round(sessions_ratio * 100)) if sessions_ratio else 0
+
+    total_audio_label = _format_minutes_label(total_audio_minutes)
+
+    top_activity_days = sorted(
+        (entry for entry in daily_summary if entry["has_activity"]),
+        key=lambda value: (
+            value["pages"],
+            value["books_count"],
+            value["audio_minutes"],
+        ),
+        reverse=True,
+    )[:3]
+
+    stats_period = stats_payload.get("stats_period") or {}
+    month_totals = calendar_payload.get("month_totals") or {}
+    month_overview = {
+        "pages_total": month_totals.get("pages_total") or stats.get("pages_total") or 0,
+        "books_count": month_totals.get("books_count") or len(stats.get("books", [])),
+        "reading_days": month_totals.get("reading_days") or len(activity_dates),
+        "avg_pages": month_totals.get("avg_pages") or stats.get("pages_average"),
+    }
+
+    format_breakdown = []
+    for label, percent, color in zip(
+        stats.get("format_labels", []),
+        stats.get("format_values", []),
+        stats.get("format_palette", []),
+    ):
+        format_breakdown.append(
+            {
+                "label": label,
+                "percent": round(percent, 1),
+                "color": color,
+            }
+        )
+
+    genre_values = stats.get("genre_values", [])
+    genre_total = sum(genre_values)
+    genre_breakdown = []
+    for label, value in zip(stats.get("genre_labels", []), genre_values):
+        percent = (value / genre_total * 100) if genre_total else 0
+        genre_breakdown.append(
+            {
+                "label": label,
+                "value": value,
+                "percent": round(percent, 1),
+            }
+        )
+
+    stats_books = stats.get("books", [])
+    book_ids = [entry.get("book").id for entry in stats_books if entry.get("book")]
+    authors_map: dict[int, list[str]] = {}
+    genres_map: dict[int, list[str]] = {}
+    if book_ids:
+        related_books = (
+            Book.objects.filter(id__in=book_ids)
+            .prefetch_related("authors", "genres")
+        )
+        for related in related_books:
+            authors_map[related.id] = [author.name for author in related.authors.all()]
+            genres_map[related.id] = [genre.name for genre in related.genres.all()]
+
+    completed_books = []
+    for entry in stats_books:
+        book = entry.get("book")
+        if not book:
+            continue
+        book_authors = authors_map.get(book.id, [])
+        completed_books.append(
+            {
+                "id": book.id,
+                "title": book.title,
+                "authors": book_authors,
+                "cover_url": _build_absolute_url(request, entry.get("cover_url")),
+                "format": entry.get("format"),
+                "has_review": entry.get("has_review"),
+                "review_url": entry.get("review_url"),
+                "genres": genres_map.get(book.id, []),
+            }
+        )
+
+    author_counter = Counter()
+    for entry in completed_books:
+        for author in entry.get("authors", []):
+            author_counter[author] += 1
+    top_authors = author_counter.most_common(5)
+
+    profile = getattr(user, "profile", None)
+    avatar_url = None
+    if profile and profile.avatar:
+        avatar_url = _build_absolute_url(request, profile.avatar.url)
+
+    highlights = {
+        "best_streak": best_streak,
+        "longest_break": longest_break,
+        "activity_start": activity_dates[0] if activity_dates else None,
+        "activity_end": activity_dates[-1] if activity_dates else None,
+        "top_day": top_day,
+    }
+
+    context = {
+        "user": user,
+        "profile": profile,
+        "avatar_url": avatar_url,
+        "calendar": calendar_payload,
+        "weekday_labels": calendar_payload.get("weekday_labels") or WEEKDAY_LABELS,
+        "calendar_year": calendar_year,
+        "calendar_month": calendar_month,
+        "month_name": month_name or str(calendar_month),
+        "month_overview": month_overview,
+        "stats": stats,
+        "stats_period": stats_period,
+        "format_breakdown": format_breakdown,
+        "genre_breakdown": genre_breakdown[:7],
+        "completed_books": completed_books,
+        "daily_summary": daily_summary,
+        "top_activity_days": top_activity_days,
+        "highlights": highlights,
+        "top_authors": top_authors,
+        "total_audio_minutes": total_audio_minutes,
+        "total_sessions": total_sessions,
+        "total_audio_label": total_audio_label,
+    }
+
+    html = render_to_string("accounts/monthly_print.html", context)
+    filename = slugify(f"{user.username}-{calendar_year}-{calendar_month}-reading-journal") or "reading-journal"
+    response = HttpResponse(html, content_type="text/html; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="{filename}.html"'
+    return response
 
 
 def signup(request):

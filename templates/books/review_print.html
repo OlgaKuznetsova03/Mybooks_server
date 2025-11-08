@@ -23,7 +23,7 @@
 
     @page {
       size: A4;
-      margin: 0;
+      margin: 15mm 0;
     }
 
     body {
@@ -39,7 +39,8 @@
     .page {
       background: var(--surface);
       width: 210mm;
-      height: 297mm;
+      min-height: 297mm;
+      height: auto;
       padding: 20mm 15mm;
       position: relative;
       overflow: hidden;
@@ -50,33 +51,17 @@
       page-break-after: auto;
     }
 
-    .page::before,
-    .page::after {
-      content: "";
-      position: absolute;
-      width: 120px;
-      height: 120px;
-      background: radial-gradient(circle at top left, rgba(194, 106, 90, 0.12), transparent 65%);
-      opacity: 0.7;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .page::after {
-      right: -30px;
-      bottom: -40px;
-      transform: rotate(15deg);
-      background: radial-gradient(circle at bottom right, rgba(194, 106, 90, 0.1), transparent 70%);
-    }
-
-    header {
+    .page-header {
       position: relative;
       z-index: 1;
+      margin-bottom: 20px;
+    }
+
+    .book-header {
       display: grid;
       grid-template-columns: 80px 1fr;
       gap: 16px;
       padding: 20px;
-      margin-bottom: 20px;
       border-radius: 12px;
       background: linear-gradient(135deg, rgba(194, 106, 90, 0.08), rgba(255, 255, 255, 0.9));
       border: 1px solid rgba(194, 106, 90, 0.12);
@@ -146,11 +131,23 @@
       z-index: 1;
     }
 
-    .two-column {
+    .content-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 15px;
-      margin-bottom: 20px;
+      align-items: start;
+    }
+
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
     }
 
     .full-width {
@@ -162,9 +159,14 @@
       border: 1px solid var(--border-color);
       border-radius: 10px;
       padding: 15px;
-      margin-bottom: 15px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+      page-break-inside: avoid;
       break-inside: avoid;
+    }
+
+    .auto-break {
+      page-break-inside: auto;
+      break-inside: auto;
     }
     
     section h2 {
@@ -176,6 +178,7 @@
       align-items: center;
       gap: 6px;
       letter-spacing: 0.02em;
+      page-break-after: avoid;
     }
 
     section h2::before {
@@ -214,6 +217,7 @@
       min-height: 120px;
       border: 1px solid rgba(194, 106, 90, 0.12);
       white-space: pre-wrap;
+      page-break-inside: auto;
     }
     
     .annotations {
@@ -230,6 +234,7 @@
       border-radius: 8px;
       padding: 10px 12px;
       box-shadow: 0 4px 8px rgba(194, 106, 90, 0.08);
+      page-break-inside: avoid;
     }
 
     .annotation-meta {
@@ -272,8 +277,7 @@
       padding: 0;
       list-style: none;
       margin: 0;
-      max-height: 300px;
-      overflow-y: auto;
+      max-height: none;
     }
 
     .character-card {
@@ -282,7 +286,7 @@
       border-radius: 8px;
       padding: 10px 12px;
       box-shadow: 0 2px 6px rgba(194, 106, 90, 0.1);
-      break-inside: avoid;
+      page-break-inside: avoid;
     }
 
     .character-card strong {
@@ -343,26 +347,7 @@
       white-space: pre-wrap;
       position: relative;
       overflow: hidden;
-    }
-
-    .review::before {
-      content: '“';
-      font-family: 'Playfair Display', Georgia, serif;
-      font-size: 50px;
-      color: rgba(194, 106, 90, 0.15);
-      position: absolute;
-      top: -10px;
-      left: 8px;
-    }
-
-    .review::after {
-      content: '”';
-      font-family: 'Playfair Display', Georgia, serif;
-      font-size: 50px;
-      color: rgba(194, 106, 90, 0.15);
-      position: absolute;
-      bottom: -20px;
-      right: 15px;
+      page-break-inside: avoid;
     }
 
     .section-subtitle {
@@ -372,104 +357,171 @@
       font-style: italic;
     }
 
-    .footer-note {
+    .page-number {
       position: absolute;
-      bottom: 15mm;
+      bottom: 10mm;
       right: 15mm;
-      font-size: 9px;
+      font-size: 10px;
       color: var(--muted);
-      text-align: right;
     }
 
+    .footer-note {
+      position: absolute;
+      bottom: 10mm;
+      left: 15mm;
+      font-size: 9px;
+      color: var(--muted);
+    }
+
+    /* Стили для продолжения на новых страницах */
+    .continued {
+      margin-top: 10px;
+      padding-top: 15px;
+      border-top: 2px dashed rgba(194, 106, 90, 0.2);
+    }
+
+    .continued::before {
+      content: "Продолжение...";
+      display: block;
+      font-size: 10px;
+      color: var(--muted);
+      margin-bottom: 10px;
+      font-style: italic;
+    }
+
+    /* Медиа-запросы для печати */
     @media print {
       body {
         padding: 0;
         background: transparent;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+        width: 210mm;
+        height: 297mm;
       }
 
       .page {
         box-shadow: none;
         border-radius: 0;
         width: 210mm;
-        height: 297mm;
+        min-height: 297mm;
+        height: auto;
         margin: 0;
-        padding: 20mm 15mm;
+        padding: 15mm 15mm;
+        page-break-after: always;
       }
 
-      .page::before,
-      .page::after {
-        display: block;
+      .page:last-child {
+        page-break-after: auto;
       }
 
-      .two-column {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+      section {
+        page-break-inside: avoid;
+        break-inside: avoid;
       }
+
+      .notes,
+      .review,
+      .annotations {
+        page-break-inside: auto;
+      }
+
+      .character-card,
+      .annotations li {
+        page-break-inside: avoid;
+      }
+
+      h1, h2, h3 {
+        page-break-after: avoid;
+      }
+
+      /* Предотвращение висячих строк */
+      p, blockquote {
+        orphans: 3;
+        widows: 3;
+      }
+    }
+
+    /* Улучшенная поддержка многостраничности */
+    .page-continued .book-header {
+      display: none;
+    }
+
+    .page-continued .page-header::before {
+      content: "«{{ book.title }}» - Продолжение";
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 16px;
+      color: var(--accent-dark);
+      margin-bottom: 15px;
+      display: block;
+      padding-bottom: 10px;
+      border-bottom: 2px solid rgba(194, 106, 90, 0.1);
     }
   </style>
 </head>
 <body>
+  <!-- Первая страница -->
   <div class="page">
-    <header>
-      <div class="cover">
-        {% if cover_url %}
-          <img src="{{ cover_url }}" alt="Обложка {{ book.title }}">
-        {% else %}
-          Нет обложки
-        {% endif %}
-      </div>
-      <div class="title-block">
-        <h1>«{{ book.title }}»</h1>
-        <div class="subtitle">
-          {% if authors %}
-            {{ authors|join:", " }}
+    <div class="page-header">
+      <div class="book-header">
+        <div class="cover">
+          {% if cover_url %}
+            <img src="{{ cover_url }}" alt="Обложка {{ book.title }}">
           {% else %}
-            Автор не указан
+            Нет обложки
           {% endif %}
         </div>
-        <div class="meta-grid">
-          <div class="meta-item">
-            <span>Жанры</span>
-            {% if book.genres.all %}
-              {{ book.genres.all|join:", " }}
+        <div class="title-block">
+          <h1>«{{ book.title }}»</h1>
+          <div class="subtitle">
+            {% if authors %}
+              {{ authors|join:", " }}
             {% else %}
-              —
+              Автор не указан
             {% endif %}
           </div>
-          <div class="meta-item">
-            <span>Издательство</span>
-            {% if book.publisher %}
-              {{ book.publisher.name }}
-            {% else %}
-              —
-            {% endif %}
-          </div>
-          <div class="meta-item">
-            <span>Страниц</span>
-            {{ book.total_pages|default:"—" }}
-          </div>
-          <div class="meta-item">
-            <span>Чтение</span>
-            {% if reading_start and reading_end %}
-              {{ reading_start|date:"d.m.Y" }} — {{ reading_end|date:"d.m.Y" }}
-            {% elif reading_start %}
-              c {{ reading_start|date:"d.m.Y" }}
-            {% elif reading_end %}
-              до {{ reading_end|date:"d.m.Y" }}
-            {% else %}
-              не указан
-            {% endif %}
+          <div class="meta-grid">
+            <div class="meta-item">
+              <span>Жанры</span>
+              {% if book.genres.all %}
+                {{ book.genres.all|join:", " }}
+              {% else %}
+                —
+              {% endif %}
+            </div>
+            <div class="meta-item">
+              <span>Издательство</span>
+              {% if book.publisher %}
+                {{ book.publisher.name }}
+              {% else %}
+                —
+              {% endif %}
+            </div>
+            <div class="meta-item">
+              <span>Страниц</span>
+              {{ book.total_pages|default:"—" }}
+            </div>
+            <div class="meta-item">
+              <span>Чтение</span>
+              {% if reading_start and reading_end %}
+                {{ reading_start|date:"d.m.Y" }} — {{ reading_end|date:"d.m.Y" }}
+              {% elif reading_start %}
+                c {{ reading_start|date:"d.m.Y" }}
+              {% elif reading_end %}
+                до {{ reading_end|date:"d.m.Y" }}
+              {% else %}
+                не указан
+              {% endif %}
+            </div>
           </div>
         </div>
       </div>
-    </header>
+    </div>
 
     <main>
-      <div class="two-column">
-        <!-- ЛЕВАЯ КОЛОНКА -->
-        <div>
+      <div class="content-grid">
+        <!-- Основной контент -->
+        <div class="main-content">
           <section>
             <h2>О книге</h2>
             {% if book.synopsis %}
@@ -479,28 +531,6 @@
             {% endif %}
           </section>
 
-          <section>
-            <h2>Герои истории</h2>
-            <div class="section-subtitle">Персонажи и их характеристики</div>
-            {% if characters %}
-              <ul class="characters-column">
-                {% for character in characters %}
-                  <li class="character-card">
-                    <strong>{{ character.name }}</strong>
-                    {% if character.description %}
-                      <p>{{ character.description }}</p>
-                    {% endif %}
-                  </li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p class="empty-note">Список персонажей пока пуст</p>
-            {% endif %}
-          </section>
-        </div>
-
-        <!-- ПРАВАЯ КОЛОНКА -->
-        <div>
           {% if rating.has_any_scores %}
             <section>
               <h2>Оценки</h2>
@@ -530,10 +560,32 @@
             {% endif %}
           </section>
         </div>
+
+        <!-- Боковая панель -->
+        <div class="sidebar">
+          <section>
+            <h2>Герои истории</h2>
+            <div class="section-subtitle">Персонажи и их характеристики</div>
+            {% if characters %}
+              <ul class="characters-column">
+                {% for character in characters %}
+                  <li class="character-card">
+                    <strong>{{ character.name }}</strong>
+                    {% if character.description %}
+                      <p>{{ character.description }}</p>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="empty-note">Список персонажей пока пуст</p>
+            {% endif %}
+          </section>
+        </div>
       </div>
 
-      <!-- ПОЛНОШИРИННЫЕ СЕКЦИИ -->
-      <section class="full-width">
+      <!-- Заметки и цитаты (могут переходить на след. страницы) -->
+      <section class="full-width auto-break">
         <h2>Комментарии и цитаты</h2>
         <div class="section-subtitle">Заметки, мысли и любимые цитаты из книги</div>
         
@@ -582,6 +634,12 @@
     </main>
 
     <div class="footer-note">Сформировано {{ rating.created_at|date:"d.m.Y" }} • Читательский дневник</div>
+    <div class="page-number">1</div>
   </div>
+
+  <!-- Автоматически генерируемые продолжения -->
+  {% if notes|length > 500 or saved_notes|length > 10 or saved_quotes|length > 10 %}
+    <!-- Дополнительные страницы будут создаваться автоматически браузером при печати -->
+  {% endif %}
 </body>
 </html>

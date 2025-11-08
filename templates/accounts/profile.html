@@ -1203,16 +1203,23 @@
                   <h3 class="h6 mb-1">Календарь чтения</h3>
                   <p class="text-muted small mb-0">Сколько вы прочитали в этом месяце?</p>
                 </div>
-                <div class="btn-group btn-group-sm" role="group" aria-label="Навигация по месяцам">
-                  <a class="btn btn-outline-secondary" href="{{ calendar.prev_url }}" aria-label="Предыдущий месяц">
-                    <i class="bi bi-chevron-left"></i>
-                  </a>
-                  <span class="btn btn-light disabled text-nowrap">
-                    {{ calendar.month_name }} {{ calendar.year }}
-                  </span>
-                  <a class="btn btn-outline-secondary" href="{{ calendar.next_url }}" aria-label="Следующий месяц">
-                    <i class="bi bi-chevron-right"></i>
-                  </a>
+                <div class="d-flex flex-column flex-md-row align-items-md-center gap-2">
+                  <div class="btn-group btn-group-sm" role="group" aria-label="Навигация по месяцам">
+                    <a class="btn btn-outline-secondary" href="{{ calendar.prev_url }}" aria-label="Предыдущий месяц">
+                      <i class="bi bi-chevron-left"></i>
+                    </a>
+                    <span class="btn btn-light disabled text-nowrap">
+                      {{ calendar.month_name }} {{ calendar.year }}
+                    </span>
+                    <a class="btn btn-outline-secondary" href="{{ calendar.next_url }}" aria-label="Следующий месяц">
+                      <i class="bi bi-chevron-right"></i>
+                    </a>
+                  </div>
+                  {% if request.user.is_authenticated and request.user == u %}
+                    <a class="btn btn-outline-secondary btn-sm" href="{% url 'profile_monthly_print' %}?year={{ calendar.year }}&amp;month={{ calendar.month }}" target="_blank" rel="noopener">
+                      <i class="bi bi-printer me-1"></i>Распечатать месяц
+                    </a>
+                  {% endif %}
                 </div>
               </div>
               <button

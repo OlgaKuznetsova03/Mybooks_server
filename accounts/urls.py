@@ -15,6 +15,7 @@ urlpatterns = [
     ),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("premium/", views.premium_overview, name="premium_overview"),
+    path("me/print/monthly/", views.profile_monthly_print, name="profile_monthly_print"),
     path(
         "password-reset/",
         auth_views.PasswordResetView.as_view(
