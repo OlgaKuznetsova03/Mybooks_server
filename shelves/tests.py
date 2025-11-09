@@ -798,6 +798,69 @@ class HomeLibraryEntryReadDateTests(TestCase):
         self.assertEqual(status["label"], read_shelf.name)
         self.assertEqual(status["added_at"], shelf_item.added_at)
 
+    def test_home_library_add_uses_read_shelf_date(self):
+        target_date = localdate() - timedelta(days=4)
+
+        move_book_to_read_shelf(self.user, self.book, read_date=target_date)
+
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("book_detail", args=[self.book.pk]),
+            {
+                "action": "home-library-add",
+                "purchase_date": "",
+                "read_date": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        home_shelf = Shelf.objects.get(user=self.user, name=DEFAULT_HOME_LIBRARY_SHELF)
+        entry = HomeLibraryEntry.objects.get(
+            shelf_item__shelf=home_shelf,
+            shelf_item__book=self.book,
+        )
+        self.assertEqual(entry.read_at, target_date)
+
+    def test_home_library_add_with_read_date_adds_read_shelf_entry(self):
+        target_date = localdate() - timedelta(days=2)
+
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("book_detail", args=[self.book.pk]),
+            {
+                "action": "home-library-add",
+                "mark_as_read": "on",
+                "read_date": target_date.isoformat(),
+                "purchase_date": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        home_shelf = Shelf.objects.get(user=self.user, name=DEFAULT_HOME_LIBRARY_SHELF)
+        entry = HomeLibraryEntry.objects.get(
+            shelf_item__shelf=home_shelf,
+            shelf_item__book=self.book,
+        )
+        self.assertEqual(entry.read_at, target_date)
+
+        read_shelf = Shelf.objects.filter(
+            user=self.user,
+            name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+        ).first()
+        self.assertIsNotNone(read_shelf)
+
+        shelf_item = ShelfItem.objects.filter(shelf=read_shelf, book=self.book).first()
+        self.assertIsNotNone(shelf_item)
+        added_at = shelf_item.added_at
+        self.assertIsNotNone(added_at)
+        if timezone.is_aware(added_at):
+            added_date = timezone.localtime(added_at).date()
+        else:
+            added_date = added_at.date()
+        self.assertEqual(added_date, target_date)
+
     def test_read_shelf_alias_supported(self):
         Shelf.objects.filter(user=self.user, name=DEFAULT_READ_SHELF).update(name="Прочитано")
         read_shelf = Shelf.objects.get(user=self.user, name="Прочитано")

@@ -1104,11 +1104,35 @@ def book_detail(request, pk):
                 purchase_updated = False
                 read_updated = False
                 read_cleared = False
+                effective_read_date: date | None = None
 
                 if purchase_date and entry.acquired_at != purchase_date:
                     entry.acquired_at = purchase_date
                     fields_to_update.append("acquired_at")
                     purchase_updated = True
+
+                if (created or entry_created) and not mark_as_read:
+                    read_shelf_item = (
+                        ShelfItem.objects
+                        .filter(
+                            shelf__user=request.user,
+                            shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+                            book=book,
+                        )
+                        .order_by("-added_at")
+                        .first()
+                    )
+                    if read_shelf_item and read_shelf_item.added_at:
+                        added_at = read_shelf_item.added_at
+                        if timezone.is_aware(added_at):
+                            read_shelf_date = timezone.localtime(added_at).date()
+                        else:
+                            read_shelf_date = added_at.date()
+                        if entry.read_at != read_shelf_date:
+                            entry.read_at = read_shelf_date
+                            if "read_at" not in fields_to_update:
+                                fields_to_update.append("read_at")
+                            read_updated = True
 
                 if mark_as_read:
                     effective_read_date = read_date or timezone.localdate()
@@ -1125,6 +1149,9 @@ def book_detail(request, pk):
 
                 if fields_to_update:
                     entry.save(update_fields=[*fields_to_update, "updated_at"])
+
+                if mark_as_read:
+                    move_book_to_read_shelf(request.user, book, read_date=effective_read_date)
 
                 if created or entry_created:
                     messages.success(
