@@ -191,7 +191,6 @@ class Book(models.Model):
     synopsis = models.TextField(blank=True, null=True)
     series = models.CharField(max_length=255, blank=True, null=True)
     series_order = models.PositiveIntegerField(blank=True, null=True)
-    page_count = models.PositiveIntegerField(blank=True, null=True)
     age_rating = models.CharField(max_length=10, blank=True, null=True)
     language = models.CharField(max_length=50, blank=True, null=True)
     isbn = models.ManyToManyField(ISBNModel, related_name='books', blank=True)
@@ -255,16 +254,12 @@ class Book(models.Model):
     def get_total_pages(self):
         """
         Источник приоритетов:
-        0. Ручное значение в карточке книги, если заполнено.
         1. primary_isbn.total_pages, если заполнено.
         2. Первая привязанная запись ISBN с указанием total_pages.
         """
-        if self.page_count:
-            return self.page_count
-
         if self.primary_isbn and self.primary_isbn.total_pages:
             return self.primary_isbn.total_pages
-        
+
         fallback_isbn = (
             self.isbn.filter(total_pages__isnull=False)
             .exclude(total_pages=0)

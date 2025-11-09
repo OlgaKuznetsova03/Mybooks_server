@@ -265,7 +265,7 @@ class BookForm(forms.ModelForm):
         model = Book
         fields = [
             "title", "authors", "isbn", "synopsis", "series",
-            "series_order", "page_count", "genres", "age_rating", "language",
+            "series_order", "genres", "age_rating", "language",
             "cover", "audio", "publisher"
         ]
         labels = {
@@ -311,7 +311,7 @@ class BookForm(forms.ModelForm):
             self.fields["isbn"].initial = ", ".join(
                 self.instance.isbn.order_by("title").values_list("isbn", flat=True)
             )
-            self.fields["page_count"].initial = self.instance.page_count
+            self.fields["page_count"].initial = self._initial_page_count()
 
         if (
             self._user_is_author
@@ -330,6 +330,61 @@ class BookForm(forms.ModelForm):
                 widget.attrs.setdefault("class", "form-select")
             elif isinstance(widget, forms.CheckboxInput):
                 widget.attrs.setdefault("class", "form-check-input")
+
+    def _initial_page_count(self):
+        if not self.instance.pk:
+            return None
+
+        primary = getattr(self.instance, "primary_isbn", None)
+        if primary and primary.total_pages:
+            return primary.total_pages
+
+        fallback = (
+            self.instance.isbn.filter(total_pages__isnull=False)
+            .exclude(total_pages=0)
+            .order_by("pk")
+            .first()
+        )
+        if fallback:
+            return fallback.total_pages
+        return None
+
+    def _select_page_count_target(self, book):
+        if not getattr(book, "pk", None):
+            return None
+
+        primary = getattr(book, "primary_isbn", None)
+        if primary:
+            return primary
+
+        return (
+            book.isbn.filter(total_pages__isnull=False)
+            .order_by("pk")
+            .first()
+            or book.isbn.order_by("pk").first()
+        )
+
+    def _apply_page_count(self, book):
+        if not getattr(book, "pk", None):
+            return
+
+        if "page_count" not in self.cleaned_data:
+            return
+
+        page_count = self.cleaned_data.get("page_count")
+        target = self._select_page_count_target(book)
+        if not target:
+            return
+
+        current = target.total_pages
+        if page_count:
+            if current != page_count:
+                target.total_pages = page_count
+                target.save(update_fields=["total_pages"])
+        else:
+            if current is not None:
+                target.total_pages = None
+                target.save(update_fields=["total_pages"])
 
     def clean_confirm_authorship(self):
         value = self.cleaned_data.get("confirm_authorship")
@@ -491,6 +546,20 @@ class BookForm(forms.ModelForm):
         if not isinstance(parsed, dict):
             raise ValidationError("Получены некорректные данные из API.")
         return parsed
+
+    def save(self, commit=True):
+        book = super().save(commit=commit)
+        if commit:
+            self._apply_page_count(book)
+        else:
+            self._deferred_page_count = True
+        return book
+
+    def save_m2m(self):
+        super().save_m2m()
+        if getattr(self, "_deferred_page_count", False):
+            self._apply_page_count(self.instance)
+            self._deferred_page_count = False
 
 
 class RatingForm(forms.ModelForm):

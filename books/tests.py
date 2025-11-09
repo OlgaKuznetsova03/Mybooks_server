@@ -466,31 +466,43 @@ class RegisterBookEditionTests(TestCase):
         self.assertEqual(result.added_isbns, [isbn_new])
 
     def test_sets_page_count_for_new_book(self):
+        isbn_value = make_isbn13(11)
+        isbn = ISBNModel.objects.create(isbn=isbn_value, isbn13=isbn_value)
+
         result = register_book_edition(
             title="Новая книга",
             authors=[self.author],
             page_count=345,
+            isbn_entries=[isbn],
         )
 
         self.assertTrue(result.created)
         result.book.refresh_from_db()
-        self.assertEqual(result.book.page_count, 345)
+        isbn.refresh_from_db()
+        self.assertEqual(result.book.primary_isbn, isbn)
+        self.assertEqual(isbn.total_pages, 345)
         self.assertEqual(result.book.get_total_pages(), 345)
 
     def test_updates_page_count_for_existing_book(self):
-        book = Book.objects.create(title="Книга", synopsis="Описание", page_count=200)
+        book = Book.objects.create(title="Книга", synopsis="Описание")
         book.authors.add(self.author)
+
+        isbn_value = make_isbn13(12)
+        isbn = ISBNModel.objects.create(isbn=isbn_value, isbn13=isbn_value, total_pages=200)
+        book.isbn.add(isbn)
+        book.primary_isbn = isbn
+        book.save(update_fields=["primary_isbn"])
 
         result = register_book_edition(
             title="Книга",
             authors=[self.author],
             page_count=410,
+            isbn_entries=[isbn],
         )
 
         self.assertFalse(result.created)
-        book.refresh_from_db()
-        self.assertEqual(book.page_count, 410)
-
+        isbn.refresh_from_db()
+        self.assertEqual(isbn.total_pages, 410)
 
     def test_manual_publisher_overrides_metadata(self):
         isbn_value = make_isbn13(9)
