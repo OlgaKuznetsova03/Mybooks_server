@@ -40,3 +40,31 @@ class BookFormGenresTests(TestCase):
         genres = form.cleaned_data["genres"]
         self.assertEqual({genre.name for genre in genres}, {"Детектив", "Современная литература"})
         self.assertEqual(Genre.objects.count(), 2)
+
+
+class BookFormPageCountTests(TestCase):
+    def test_accepts_valid_page_count(self):
+        form = BookForm(
+            data={
+                "title": "Тест",
+                "authors": "Автор",
+                "genres": "Фэнтези",
+                "page_count": 350,
+            }
+        )
+
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data["page_count"], 350)
+
+    def test_rejects_zero_page_count(self):
+        form = BookForm(
+            data={
+                "title": "Тест",
+                "authors": "Автор",
+                "genres": "Фэнтези",
+                "page_count": 0,
+            }
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("page_count", form.errors)

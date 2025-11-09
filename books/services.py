@@ -156,6 +156,7 @@ def register_book_edition(
     synopsis: str | None = None,
     series: str | None = None,
     series_order: int | None = None,
+    page_count: int | None = None,
     age_rating: str | None = None,
     language: str | None = None,
     audio: AudioBook | None = None,
@@ -216,6 +217,7 @@ def register_book_edition(
                 synopsis=synopsis or "",
                 series=series or None,
                 series_order=series_order,
+                page_count=page_count,
                 age_rating=age_rating or None,
                 language=language or None,
                 audio=audio,
@@ -248,6 +250,9 @@ def register_book_edition(
             if series_order and not book.series_order:
                 book.series_order = series_order
                 updates.append("series_order")
+            if page_count and book.page_count != page_count:
+                book.page_count = page_count
+                updates.append("page_count")
             if age_rating and not book.age_rating:
                 book.age_rating = age_rating
                 updates.append("age_rating")
@@ -310,6 +315,10 @@ def register_book_edition(
         if not book.primary_isbn and (added_isbns or isbn_entries):
             book.primary_isbn = (added_isbns or isbn_entries)[0]
             book.save(update_fields=["primary_isbn"])
+
+        if page_count and book.page_count != page_count:
+            book.page_count = page_count
+            book.save(update_fields=["page_count"])
 
         cover_reference = ""
         new_cover_uploaded = bool(cover_file)

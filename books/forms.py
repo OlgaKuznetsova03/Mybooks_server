@@ -247,6 +247,13 @@ class BookForm(forms.ModelForm):
         help_text="Можно указать несколько издательств через запятую.",
         widget=forms.TextInput(attrs={"placeholder": "Эксмо, Азбука"}),
     )
+    page_count = forms.IntegerField(
+        label="Количество страниц",
+        required=False,
+        min_value=1,
+        help_text="Укажите, если знаете точное количество страниц.",
+        widget=forms.NumberInput(attrs={"placeholder": "320"}),
+    )
     confirm_authorship = forms.BooleanField(
         label="Я подтверждаю, что являюсь автором этой книги",
         required=False,
@@ -258,7 +265,7 @@ class BookForm(forms.ModelForm):
         model = Book
         fields = [
             "title", "authors", "isbn", "synopsis", "series",
-            "series_order", "genres", "age_rating", "language",
+            "series_order", "page_count", "genres", "age_rating", "language",
             "cover", "audio", "publisher"
         ]
         labels = {
@@ -304,6 +311,7 @@ class BookForm(forms.ModelForm):
             self.fields["isbn"].initial = ", ".join(
                 self.instance.isbn.order_by("title").values_list("isbn", flat=True)
             )
+            self.fields["page_count"].initial = self.instance.page_count
 
         if (
             self._user_is_author
