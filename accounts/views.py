@@ -28,7 +28,9 @@ from shelves.models import Shelf, ShelfItem, BookProgress, HomeLibraryEntry, Rea
 from shelves.services import (
     DEFAULT_HOME_LIBRARY_SHELF,
     DEFAULT_READ_SHELF,
+    DEFAULT_READ_SHELF_ALIASES,
     DEFAULT_READING_SHELF,
+    DEFAULT_WANT_SHELF,
     ALL_DEFAULT_READ_SHELF_NAMES,
     READING_PROGRESS_LABEL,
 )
@@ -1447,6 +1449,36 @@ def profile(request, username=None):
         games_has_data or marathons_has_data or clubs_has_data
     )
 
+    default_read_adj = next(
+        (
+            alias
+            for alias in DEFAULT_READ_SHELF_ALIASES
+            if alias
+            and alias.strip()
+            and alias.strip().lower() != DEFAULT_READ_SHELF.lower()
+        ),
+        DEFAULT_READ_SHELF,
+    )
+
+    shelf_word_forms = {
+        "read": {
+            "label": DEFAULT_READ_SHELF,
+            "adjective": default_read_adj,
+        },
+        "reading": {
+            "label": DEFAULT_READING_SHELF,
+            "adjective": READING_PROGRESS_LABEL or DEFAULT_READING_SHELF,
+        },
+        "want": {
+            "label": DEFAULT_WANT_SHELF,
+            "adjective": DEFAULT_WANT_SHELF,
+        },
+        "home": {
+            "label": DEFAULT_HOME_LIBRARY_SHELF,
+            "adjective": DEFAULT_HOME_LIBRARY_SHELF,
+        },
+    }
+
     context = {
         "u": user_obj,
         "profile_obj": profile_obj,
@@ -1461,6 +1493,12 @@ def profile(request, username=None):
         "default_reading_shelf_name": DEFAULT_READING_SHELF,
         "default_home_library_shelf_name": DEFAULT_HOME_LIBRARY_SHELF,
         "default_read_shelf_name": DEFAULT_READ_SHELF,
+        "default_want_shelf_name": DEFAULT_WANT_SHELF,
+        "read_adj": default_read_adj,
+        "reading_adj": READING_PROGRESS_LABEL or DEFAULT_READING_SHELF,
+        "want_adj": DEFAULT_WANT_SHELF,
+        "home_adj": DEFAULT_HOME_LIBRARY_SHELF,
+        "shelf_word_forms": shelf_word_forms,
         "reading_progress_label": READING_PROGRESS_LABEL,
         "author_books": author_books,
         "can_manage_author_books": can_manage_author_books,
