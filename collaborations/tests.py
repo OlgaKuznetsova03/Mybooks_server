@@ -1,8 +1,13 @@
 from datetime import date, timedelta
+from io import BytesIO
+import shutil
+import tempfile
+from zipfile import ZipFile
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
-from django.test import TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from books.models import Book
@@ -740,3 +745,92 @@ class BloggerRequestResponseWorkflowTests(TestCase):
         pending_responses = list(response.context["pending_blogger_request_responses"])
         self.assertTrue(any(item.pk == response_obj.pk for item in pending_responses))
 
+
+class CollaborationMessageAttachmentTests(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.tempdir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tempdir, ignore_errors=True)
+        self.override = override_settings(MEDIA_ROOT=self.tempdir)
+        self.override.enable()
+        self.addCleanup(self.override.disable)
+
+        user_model = get_user_model()
+        self.author = user_model.objects.create_user(
+            username="attachment_author",
+            password="password123",
+            email="attach-author@example.com",
+        )
+        self.partner = user_model.objects.create_user(
+            username="attachment_partner",
+            password="password123",
+            email="attach-partner@example.com",
+        )
+
+        self.collaboration = Collaboration.objects.create(
+            author=self.author,
+            partner=self.partner,
+            deadline=date.today() + timedelta(days=7),
+            status=Collaboration.Status.ACTIVE,
+            author_approved=True,
+            partner_approved=True,
+        )
+
+    def _build_epub(self, name: str = "book.epub", extra_files: dict[str, str] | None = None):
+        extra_files = extra_files or {}
+        buffer = BytesIO()
+        with ZipFile(buffer, "w") as archive:
+            archive.writestr("mimetype", "application/epub+zip")
+            archive.writestr("META-INF/container.xml", "<container />")
+            archive.writestr("OEBPS/content.opf", "<package></package>")
+            for path, content in extra_files.items():
+                archive.writestr(path, content)
+        return SimpleUploadedFile(name, buffer.getvalue(), content_type="application/epub+zip")
+
+    def test_author_can_attach_valid_epub(self):
+        self.client.force_login(self.author)
+        response = self.client.post(
+            reverse("collaborations:collaboration_detail", args=[self.collaboration.pk]),
+            {"text": "Файл во вложении.", "epub_file": self._build_epub()},
+        )
+        self.assertEqual(response.status_code, 302)
+        message = self.collaboration.messages.get()
+        self.assertEqual(message.author, self.author)
+        self.assertTrue(message.epub_file.name.endswith(".epub"))
+
+    def test_partner_cannot_attach_epub(self):
+        self.client.force_login(self.partner)
+        response = self.client.post(
+            reverse("collaborations:collaboration_detail", args=[self.collaboration.pk]),
+            {"text": "Попытка", "epub_file": self._build_epub()},
+        )
+        self.assertEqual(response.status_code, 400)
+        form = response.context["form"]
+        self.assertIn("epub_file", form.errors)
+        self.assertEqual(self.collaboration.messages.count(), 0)
+
+    def test_author_cannot_attach_epub_before_confirmation(self):
+        self.collaboration.partner_approved = False
+        self.collaboration.save(update_fields=["partner_approved"])
+
+        self.client.force_login(self.author)
+        response = self.client.post(
+            reverse("collaborations:collaboration_detail", args=[self.collaboration.pk]),
+            {"text": "Пока рано", "epub_file": self._build_epub()},
+        )
+        self.assertEqual(response.status_code, 400)
+        form = response.context["form"]
+        self.assertIn("epub_file", form.errors)
+        self.assertEqual(self.collaboration.messages.count(), 0)
+
+    def test_rejects_epub_with_dangerous_content(self):
+        self.client.force_login(self.author)
+        dangerous_epub = self._build_epub(extra_files={"OEBPS/virus.exe": "malware"})
+        response = self.client.post(
+            reverse("collaborations:collaboration_detail", args=[self.collaboration.pk]),
+            {"text": "Будьте осторожны", "epub_file": dangerous_epub},
+        )
+        self.assertEqual(response.status_code, 400)
+        form = response.context["form"]
+        self.assertIn("epub_file", form.errors)
+        self.assertEqual(self.collaboration.messages.count(), 0)

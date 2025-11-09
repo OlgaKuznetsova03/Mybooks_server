@@ -1176,6 +1176,13 @@ class CollaborationMessage(models.Model):
         verbose_name=_("Сообщение"),
         validators=[MaxLengthValidator(2000)],
     )
+    epub_file = models.FileField(
+        upload_to="collaborations/epubs/%Y/%m/%d",
+        blank=True,
+        null=True,
+        verbose_name=_("EPUB-файл"),
+        help_text=_("Опциональное вложение с текстом книги."),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -22,6 +22,7 @@ from .models import (
     Collaboration,
     CollaborationMessage,
 )
+from .validators import validate_epub_attachment
 
 
 class BootstrapModelForm(forms.ModelForm):
@@ -346,10 +347,36 @@ class BloggerRequestResponseForm(BootstrapModelForm):
         if self.request_obj and self.request_obj.is_for_bloggers:
             return BloggerRequestResponse.ResponderType.BLOGGER
         return BloggerRequestResponse.ResponderType.AUTHOR
+
+
 class CollaborationMessageForm(BootstrapModelForm):
+    epub_file = forms.FileField(
+        label=_("EPUB-файл"),
+        required=False,
+        help_text=_("Прикрепите электронную версию книги в формате .epub."),
+        widget=forms.ClearableFileInput(attrs={"accept": ".epub"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.collaboration = kwargs.pop("collaboration", None)
+        self.user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+        field = self.fields.get("epub_file")
+        if field is not None:
+            field.required = False
+            field.widget.attrs.setdefault("class", "form-control")
+        self.can_upload_epub = self._epub_allowed()
+
+    def _epub_allowed(self) -> bool:
+        if not self.collaboration or not self.user:
+            return False
+        if getattr(self.user, "id", None) != getattr(self.collaboration, "author_id", None):
+            return False
+        return bool(self.collaboration.author_approved and self.collaboration.partner_approved)
+
     class Meta:
         model = CollaborationMessage
-        fields = ["text"]
+        fields = ["text", "epub_file"]
         widgets = {
             "text": forms.Textarea(
                 attrs={
@@ -362,6 +389,17 @@ class CollaborationMessageForm(BootstrapModelForm):
             )
         }
         labels = {"text": _("Сообщение")}
+
+    def clean_epub_file(self):
+        upload = self.cleaned_data.get("epub_file")
+        if not upload:
+            return None
+        if not self.can_upload_epub:
+            raise forms.ValidationError(
+                _("Прикреплять файлы может только автор после подтверждения сотрудничества."),
+            )
+        validate_epub_attachment(upload)
+        return upload
 
 
 class BloggerInvitationForm(BootstrapModelForm):

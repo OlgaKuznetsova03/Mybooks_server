@@ -1560,7 +1560,7 @@ class CollaborationDetailView(LoginRequiredMixin, View):
         if not self._ensure_participant(request, collaboration):
             return redirect("collaborations:collaboration_list")
         collaboration.mark_read(request.user)
-        form = CollaborationMessageForm()
+        form = CollaborationMessageForm(collaboration=collaboration, user=request.user)
         return render(
             request,
             self.template_name,
@@ -1572,7 +1572,12 @@ class CollaborationDetailView(LoginRequiredMixin, View):
         if not self._ensure_participant(request, collaboration):
             return redirect("collaborations:collaboration_list")
 
-        form = CollaborationMessageForm(request.POST)
+        form = CollaborationMessageForm(
+            request.POST,
+            request.FILES,
+            collaboration=collaboration,
+            user=request.user,
+        )
         if not collaboration.allows_discussion():
             messages.error(
                 request,
@@ -1581,11 +1586,10 @@ class CollaborationDetailView(LoginRequiredMixin, View):
             return redirect("collaborations:collaboration_detail", pk=collaboration.pk)
 
         if form.is_valid():
-            message = CollaborationMessage.objects.create(
-                collaboration=collaboration,
-                author=request.user,
-                text=form.cleaned_data["text"],
-            )
+            message = form.save(commit=False)
+            message.collaboration = collaboration
+            message.author = request.user
+            message.save()
             collaboration.register_activity(request.user, message.created_at)
             messages.success(request, _("Сообщение отправлено."))
             return redirect("collaborations:collaboration_detail", pk=collaboration.pk)
