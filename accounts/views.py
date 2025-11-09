@@ -12,7 +12,7 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from .models import PremiumPayment
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, Prefetch
 from django.http import JsonResponse, Http404, HttpResponse, QueryDict
 from django.urls import reverse
 from django.utils import timezone
@@ -1110,13 +1110,65 @@ def profile(request, username=None):
     if active_tab not in {"overview", "stats", "books", "reviews", "activities"}:
         active_tab = "overview"
 
-    user_shelves = (
+    shelf_items_prefetch = Prefetch(
+        "items",
+        queryset=(
+            ShelfItem.objects
+            .select_related("book", "home_entry")
+            .prefetch_related("book__authors")
+            .order_by("-added_at")
+        ),
+    )
+
+    user_shelves = list(
         user_obj.shelves
         .filter(is_managed=False)
         .select_related("user")
-        .prefetch_related("items__book__authors")
+        .prefetch_related(shelf_items_prefetch)
         .order_by("-is_default", "name")
     )
+
+    if user_shelves:
+        book_ids = set()
+        home_entries = []
+        for shelf in user_shelves:
+            for item in shelf.items.all():
+                if item.book_id:
+                    book_ids.add(item.book_id)
+                home_entry = getattr(item, "home_entry", None)
+                if home_entry:
+                    home_entries.append(home_entry)
+
+        read_dates_map = {}
+        if book_ids:
+            read_items = (
+                ShelfItem.objects
+                .filter(
+                    shelf__user=user_obj,
+                    shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+                    book_id__in=book_ids,
+                )
+                .values("book_id", "added_at")
+            )
+            for ri in read_items:
+                added_at = ri["added_at"]
+                if not added_at:
+                    continue
+                added_date = (
+                    timezone.localtime(added_at).date()
+                    if timezone.is_aware(added_at)
+                    else added_at.date()
+                )
+                book_id = ri["book_id"]
+                previous = read_dates_map.get(book_id)
+                read_dates_map[book_id] = min(previous, added_date) if previous else added_date
+
+        for entry in home_entries:
+            shelf_item = getattr(entry, "shelf_item", None)
+            book_id = shelf_item.book_id if shelf_item else None
+            read_date = entry.read_at or (read_dates_map.get(book_id) if book_id else None)
+            entry.date_read = read_date
+            entry.is_read = bool(read_date)
 
     is_author = user_obj.groups.filter(name="author").exists()
 
