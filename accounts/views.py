@@ -768,7 +768,13 @@ def _collect_leaderboard_snapshot(user: User) -> dict[str, dict[str, object]]:
             .annotate(total_points=Sum("points"))
         )
 
-        user_points = aggregated.filter(user=user.id).values_list("total_points", flat=True).first()
+        user_points = (
+            aggregated
+            .filter(user=user.id)
+            .order_by("user")
+            .values_list("total_points", flat=True)
+            .first()
+        )
         total_participants = aggregated.count()
         has_points = bool(user_points)
 
@@ -792,7 +798,13 @@ def _collect_leaderboard_snapshot(user: User) -> dict[str, dict[str, object]]:
         .values("user")
         .annotate(total_points=Sum("points"))
     )
-    overall_points = overall_totals.filter(user=user.id).values_list("total_points", flat=True).first()
+    overall_points = (
+        overall_totals
+        .filter(user=user.id)
+        .order_by("user")
+        .values_list("total_points", flat=True)
+        .first()
+    )
     overall_participants = overall_totals.count()
     overall_has_points = bool(overall_points)
     overall_position = None
