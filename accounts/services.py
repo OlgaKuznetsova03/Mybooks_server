@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from django.utils.translation import gettext_lazy as _
 
@@ -51,3 +52,46 @@ def charge_feature_access(
         raise InsufficientCoinsError() from exc
 
     return FeatureChargeResult(profile=profile, transaction=transaction, cost=cost)
+
+
+def get_feature_payment_context(
+    profile: Profile | None,
+    *,
+    cost: int = FEATURE_ACCESS_COST,
+) -> dict[str, Any]:
+    """Build a template-friendly context about feature payments.
+
+    Parameters
+    ----------
+    profile:
+        The profile of the current user. ``None`` means the user is anonymous.
+    cost:
+        How many coins the feature costs. Must be positive.
+    """
+
+    if cost <= 0:
+        raise ValueError("Feature cost must be positive")
+
+    has_profile = profile is not None
+    has_unlimited_coins = bool(profile and profile.has_unlimited_coins)
+    coin_balance: int | None = None
+    can_afford = False
+    shortage: int | None = None
+
+    if profile:
+        if has_unlimited_coins:
+            can_afford = True
+        else:
+            coin_balance = profile.coins
+            can_afford = coin_balance >= cost
+            if not can_afford:
+                shortage = cost - coin_balance
+
+    return {
+        "cost": cost,
+        "has_profile": has_profile,
+        "has_unlimited_coins": has_unlimited_coins,
+        "coin_balance": coin_balance,
+        "can_afford": can_afford,
+        "shortage": shortage,
+    }

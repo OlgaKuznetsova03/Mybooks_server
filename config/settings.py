@@ -176,9 +176,6 @@ TEMPLATES = [
                 'config.template_loaders.SafeFilesystemLoader',
                 'django.template.loaders.app_directories.Loader',
             ],
-            'builtins': [
-                'collaborations.templatetags.feature_cost',
-            ],
         },
     },
 ]
