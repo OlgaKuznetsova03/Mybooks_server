@@ -6,11 +6,13 @@ template cannot be read due to restrictive filesystem permissions.
 """
 
 from __future__ import annotations
-import os
 
 import logging
-from django.template import TemplateDoesNotExist
+from django.core.exceptions import SuspiciousFileOperation
+from django.template import Origin, TemplateDoesNotExist
 from django.template.loaders.filesystem import Loader as FilesystemLoader
+from django.template.utils import get_app_template_dirs
+from django.utils._os import safe_join
 
 logger = logging.getLogger(__name__)
 
@@ -38,15 +40,23 @@ class SafeFilesystemLoader(FilesystemLoader):
             raise TemplateDoesNotExist(origin) from exc
             
     def get_template_sources(self, template_name):
-        """
-        Return the absolute paths to possible template files.
-        """
-        from django.template.utils import get_app_template_dirs
-        
-        # Ищем в DIRS из настроек
-        for template_dir in self.get_dirs():
-            yield os.path.join(template_dir, template_name)
-        
-        # Ищем в папках приложений (если нужно)
-        for app_dir in get_app_template_dirs('templates'):
-            yield os.path.join(app_dir, template_name)
+        """Yield ``Origin`` objects from project and app template directories."""
+
+        seen: set[str] = set()
+
+        for origin in super().get_template_sources(template_name):
+            if origin.name in seen:
+                continue
+            seen.add(origin.name)
+            yield origin
+
+        for template_dir in get_app_template_dirs("templates"):
+            try:
+                name = safe_join(template_dir, template_name)
+            except SuspiciousFileOperation:
+                continue
+
+            if name in seen:
+                continue
+
+            yield Origin(name=name, template_name=template_name, loader=self)
