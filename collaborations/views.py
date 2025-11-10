@@ -14,11 +14,7 @@ from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView
 from django.views.generic.edit import CreateView, FormView, UpdateView
 
-from accounts.services import (
-    charge_feature_access,
-    get_feature_payment_context,
-    InsufficientCoinsError,
-)
+from accounts.services import charge_feature_access, InsufficientCoinsError
 
 from .forms import (
     AuthorOfferForm,
@@ -309,7 +305,6 @@ class BloggerCommunityView(View):
             "can_share_blogger_content": can_share_blogger_content,
             "can_share_book_clubs": can_share_book_clubs,
         }
-        context.update(get_feature_payment_context(request.user))
         return render(request, self.template_name, context)
 
     @staticmethod
@@ -363,7 +358,6 @@ class OfferListView(ListView):
         user = self.request.user
         is_author = user.is_authenticated and _user_is_author(user)
         is_blogger = user.is_authenticated and _user_is_blogger(user)
-        context.update(get_feature_payment_context(user))
         if user.is_authenticated and (is_author or is_blogger):
             context["show_response_inbox"] = True
             pending_count = AuthorOfferResponse.objects.filter(
@@ -465,7 +459,6 @@ class OfferCreateView(LoginRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context.update(get_feature_payment_context(self.request.user))
         context.setdefault("is_editing", False)
         return context
 
@@ -495,7 +488,6 @@ class OfferUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context.update(get_feature_payment_context(self.request.user))
         context.setdefault("is_editing", True)
         return context
     
@@ -1318,7 +1310,6 @@ class BloggerRequestListView(ListView):
         user = self.request.user
         is_blogger = user.is_authenticated and _user_is_blogger(user)
         is_author = user.is_authenticated and _user_is_author(user)
-        context.update(get_feature_payment_context(user))
         if is_blogger:
             context["show_response_inbox"] = True
             pending_count = BloggerRequestResponse.objects.filter(
@@ -1372,7 +1363,7 @@ class BloggerRequestCreateView(LoginRequiredMixin, View):
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, form, formset):
-        context = {
+        return {
             "form": form,
             "formset": formset,
             "page_title": self.page_title,
@@ -1381,8 +1372,6 @@ class BloggerRequestCreateView(LoginRequiredMixin, View):
             "is_edit": self.is_edit,
             "cancel_url": reverse("collaborations:blogger_request_list"),
         }
-        context.update(get_feature_payment_context(self.request.user))
-        return context
     
     def get(self, request):
         form = BloggerRequestForm()
@@ -1436,7 +1425,7 @@ class BloggerRequestUpdateView(LoginRequiredMixin, View):
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, form, formset):
-        context = {
+        return {
             "form": form,
             "formset": formset,
             "page_title": self.page_title,
@@ -1448,8 +1437,6 @@ class BloggerRequestUpdateView(LoginRequiredMixin, View):
                 "collaborations:blogger_request_detail", args=[self.request_obj.pk]
             ),
         }
-        context.update(get_feature_payment_context(self.request.user))
-        return context
 
     def get(self, request, pk):
         form = BloggerRequestForm(instance=self.request_obj)

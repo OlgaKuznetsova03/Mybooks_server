@@ -166,7 +166,6 @@
             {% endif %}
           </div>
           {% if can_share_blogger_content %}
-            {% include "includes/feature_cost_notice.html" with classes="text-muted small mb-3" %}
             <div class="collapse{% if invitation_form.errors %} show{% endif %}" id="communityInvitationForm">
               <form method="post" class="card hub-card shadow-sm">
               {% csrf_token %}
@@ -212,7 +211,6 @@
                     <div class="form-text">{{ invitation_form.description.help_text }}</div>
                   </div>
                 </div>
-                {% include "includes/feature_cost_notice.html" with classes="text-muted small mt-3" %}
               </div>
               <div class="card-footer d-flex justify-content-end gap-2 bg-body-secondary">
                 <button type="submit" class="btn btn-primary">
@@ -298,7 +296,6 @@
             {% endif %}
           </div>
           {% if can_share_blogger_content %}
-            {% include "includes/feature_cost_notice.html" with classes="text-muted small mb-3" %}
             <div class="collapse{% if giveaway_form.errors %} show{% endif %}" id="communityGiveawayForm">
               <form method="post" class="card hub-card shadow-sm">
             {% csrf_token %}
@@ -347,7 +344,6 @@
                   {% endif %}
                 </div>
               </div>
-              {% include "includes/feature_cost_notice.html" with classes="text-muted small mt-3" %}
             </div>
             <div class="card-footer d-flex justify-content-end gap-2 bg-body-secondary">
               <button type="submit" class="btn btn-primary">
@@ -424,9 +420,8 @@
         </div>
 
         {% if can_share_book_clubs %}
-            {% include "includes/feature_cost_notice.html" with classes="text-muted small mb-3" %}
             <div class="collapse{% if club_form.errors %} show{% endif %}" id="communityClubForm">
-              <form method="post" class="card hub-card shadow-sm">
+            <form method="post" class="card hub-card shadow-sm">
               {% csrf_token %}
               <input type="hidden" name="section" value="clubs">
               <div class="card-body">
@@ -480,16 +475,15 @@
                   </div>
                   <div class="col-12">
                     <label class="form-label" for="{{ club_form.description.id_for_label }}">{{ club_form.description.label }}</label>
-                  {{ club_form.description }}
-                  {% if club_form.description.errors %}
-                    <div class="invalid-feedback d-block">{{ club_form.description.errors|join:', ' }}</div>
-                  {% endif %}
-                  {% if club_form.description.help_text %}
-                    <div class="form-text">{{ club_form.description.help_text }}</div>
-                  {% endif %}
+                 {{ club_form.description }}
+                    {% if club_form.description.errors %}
+                      <div class="invalid-feedback d-block">{{ club_form.description.errors|join:', ' }}</div>
+                    {% endif %}
+                    {% if club_form.description.help_text %}
+                      <div class="form-text">{{ club_form.description.help_text }}</div>
+                    {% endif %}
+                  </div>
                 </div>
-                {% include "includes/feature_cost_notice.html" with classes="text-muted small mt-3" %}
-              </div>
               </div>
               <div class="card-footer d-flex justify-content-end gap-2 bg-body-secondary">
                 <button type="submit" class="btn btn-primary">

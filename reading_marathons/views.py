@@ -20,11 +20,7 @@ from accounts.services import (
 
 from user_ratings.services import award_for_marathon_confirmation
 
-from .forms import (
-    MarathonEntryForm,
-    MarathonEntryStatusForm,
-    ReadingMarathonForm,
-)
+from accounts.services import charge_feature_access, InsufficientCoinsError
 from .models import MarathonEntry, MarathonParticipant, ReadingMarathon
 
 
@@ -33,11 +29,6 @@ class MarathonListView(ListView):
     queryset = ReadingMarathon.objects.prefetch_related("themes").all()
     context_object_name = "marathons"
     template_name = "reading_marathons/list.html"
-
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-        context.update(get_feature_payment_context(self.request.user))
-        return context
 
 
 class MarathonCreateView(LoginRequiredMixin, CreateView):
@@ -63,11 +54,6 @@ class MarathonCreateView(LoginRequiredMixin, CreateView):
 
     def get_success_url(self) -> str:
         return self.object.get_absolute_url()
-
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-        context.update(get_feature_payment_context(self.request.user))
-        return context
 
 
 class MarathonDetailView(DetailView):
