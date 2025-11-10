@@ -7,16 +7,19 @@ from typing import Iterable
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import transaction
 from django.db.models import Count, IntegerField, OuterRef, Prefetch, Subquery
 from django.http import Http404, HttpRequest, HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.utils.translation import gettext_lazy as _
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.generic import DetailView, FormView, ListView
 
 from django.db.models.functions import Coalesce
 
+from accounts.services import charge_feature_access, InsufficientCoinsError
 from user_ratings.services import award_for_discussion_post
 
 from .forms import DiscussionPostForm, ReadingClubForm, ReadingNormForm
@@ -122,14 +125,26 @@ class ReadingClubCreateView(LoginRequiredMixin, FormView):
         return initial
 
     def form_valid(self, form: ReadingClubForm):  # type: ignore[override]
+        user = self.request.user
         reading_club: ReadingClub = form.save(commit=False)
-        reading_club.creator = self.request.user
-        reading_club.save()
-        ReadingParticipant.objects.get_or_create(
-            reading=reading_club,
-            user=self.request.user,
-            defaults={"status": ReadingParticipant.Status.APPROVED},
-        )
+
+        try:
+            with transaction.atomic():
+                charge_feature_access(
+                    user.profile,
+                    description=_("Создание совместного чтения"),
+                )
+                reading_club.creator = user
+                reading_club.save()
+                ReadingParticipant.objects.get_or_create(
+                    reading=reading_club,
+                    user=user,
+                    defaults={"status": ReadingParticipant.Status.APPROVED},
+                )
+        except InsufficientCoinsError:
+            form.add_error(None, _("Недостаточно монет для создания совместного чтения."))
+            return self.form_invalid(form)
+
         messages.success(
             self.request,
             "Совместное чтение создано. Теперь добавьте нормы и пригласите участников!",

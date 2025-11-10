@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import transaction
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
@@ -12,6 +13,8 @@ from django.utils.translation import gettext as _
 from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView
 from django.views.generic.edit import CreateView, FormView, UpdateView
+
+from accounts.services import charge_feature_access, InsufficientCoinsError
 
 from .forms import (
     AuthorOfferForm,
@@ -159,15 +162,27 @@ class BloggerCommunityView(View):
 
             club_form = CommunityBookClubForm(request.POST)
             if club_form.is_valid():
-                club = club_form.save(commit=False)
-                club.submitted_by = request.user
-                club.save()
-                messages.success(
-                    request,
-                    _("Клуб добавлен! Спасибо, что делитесь активностями сообществ."),
-                )
-                redirect_url = f"{request.path}?tab=clubs"
-                return redirect(redirect_url)
+                try:
+                    with transaction.atomic():
+                        charge_feature_access(
+                            request.user.profile,
+                            description=_("Публикация информации о клубе сообщества"),
+                        )
+                        club = club_form.save(commit=False)
+                        club.submitted_by = request.user
+                        club.save()
+                except InsufficientCoinsError:
+                    club_form.add_error(
+                        None,
+                        _("Недостаточно монет для публикации информации о клубе."),
+                    )
+                else:
+                    messages.success(
+                        request,
+                        _("Клуб добавлен! Спасибо, что делитесь активностями сообществ."),
+                    )
+                    redirect_url = f"{request.path}?tab=clubs"
+                    return redirect(redirect_url)
             return self._render(
                 request,
                 club_form=club_form,
@@ -193,15 +208,27 @@ class BloggerCommunityView(View):
             giveaway_form = BloggerGiveawayForm(request.POST)
             invitation_form = BloggerInvitationForm()
             if giveaway_form.is_valid():
-                giveaway = giveaway_form.save(commit=False)
-                giveaway.blogger = request.user
-                giveaway.save()
-                messages.success(
-                    request,
-                    _("Розыгрыш опубликован! Не забудьте обновить информацию после его завершения."),
-                )
-                redirect_url = f"{request.path}?tab=giveaways"
-                return redirect(redirect_url)
+                try:
+                    with transaction.atomic():
+                        charge_feature_access(
+                            request.user.profile,
+                            description=_("Публикация розыгрыша в блогерском хабе"),
+                        )
+                        giveaway = giveaway_form.save(commit=False)
+                        giveaway.blogger = request.user
+                        giveaway.save()
+                except InsufficientCoinsError:
+                    giveaway_form.add_error(
+                        None,
+                        _("Недостаточно монет для публикации розыгрыша."),
+                    )
+                else:
+                    messages.success(
+                        request,
+                        _("Розыгрыш опубликован! Не забудьте обновить информацию после его завершения."),
+                    )
+                    redirect_url = f"{request.path}?tab=giveaways"
+                    return redirect(redirect_url)
             return self._render(
                 request,
                 invitation_form=invitation_form,
@@ -212,14 +239,26 @@ class BloggerCommunityView(View):
         invitation_form = BloggerInvitationForm(request.POST)
         giveaway_form = BloggerGiveawayForm()
         if invitation_form.is_valid():
-            invitation = invitation_form.save(commit=False)
-            invitation.blogger = request.user
-            invitation.save()
-            messages.success(
-                request,
-                _("Приглашение опубликовано!"),
-            )
-            return redirect(request.path)
+            try:
+                with transaction.atomic():
+                    charge_feature_access(
+                        request.user.profile,
+                        description=_("Публикация приглашения в блогерском хабе"),
+                    )
+                    invitation = invitation_form.save(commit=False)
+                    invitation.blogger = request.user
+                    invitation.save()
+            except InsufficientCoinsError:
+                invitation_form.add_error(
+                    None,
+                    _("Недостаточно монет для публикации приглашения."),
+                )
+            else:
+                messages.success(
+                    request,
+                    _("Приглашение опубликовано!"),
+                )
+                return redirect(request.path)
         return self._render(
             request,
             invitation_form=invitation_form,
@@ -397,9 +436,21 @@ class OfferCreateView(LoginRequiredMixin, CreateView):
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
-        form.instance.author = self.request.user
+        user = self.request.user
+        try:
+            with transaction.atomic():
+                charge_feature_access(
+                    user.profile,
+                    description=_("Публикация предложения о сотрудничестве"),
+                )
+                form.instance.author = user
+                response = super().form_valid(form)
+        except InsufficientCoinsError:
+            form.add_error(None, _("Недостаточно монет для публикации предложения."))
+            return self.form_invalid(form)
+
         messages.success(self.request, _("Предложение опубликовано."))
-        return super().form_valid(form)
+        return response
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -1335,11 +1386,23 @@ class BloggerRequestCreateView(LoginRequiredMixin, View):
             blogger_request.blogger = request.user
             formset = BloggerPlatformPresenceFormSet(request.POST, instance=blogger_request)
             if formset.is_valid():
-                blogger_request.save()
-                form.save_m2m()
-                formset.save()
-                messages.success(request, _("Заявка блогера опубликована."))
-                return redirect("collaborations:blogger_request_list")
+                try:
+                    with transaction.atomic():
+                        charge_feature_access(
+                            request.user.profile,
+                            description=_("Публикация заявки блогера"),
+                        )
+                        blogger_request.save()
+                        form.save_m2m()
+                        formset.save()
+                except InsufficientCoinsError:
+                    form.add_error(
+                        None,
+                        _("Недостаточно монет для публикации заявки."),
+                    )
+                else:
+                    messages.success(request, _("Заявка блогера опубликована."))
+                    return redirect("collaborations:blogger_request_list")
         return render(request, self.template_name, self.get_context_data(form, formset))
 
 

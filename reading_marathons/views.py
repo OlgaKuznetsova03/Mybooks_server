@@ -6,10 +6,13 @@ from typing import Any, Dict
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import transaction
 from django.http import HttpRequest, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import CreateView, DetailView, ListView
+
+from accounts.services import charge_feature_access, InsufficientCoinsError
 
 from user_ratings.services import award_for_marathon_confirmation
 
@@ -33,8 +36,19 @@ class MarathonCreateView(LoginRequiredMixin, CreateView):
     template_name = "reading_marathons/create.html"
 
     def form_valid(self, form: ReadingMarathonForm) -> HttpResponse:
-        form.instance.creator = self.request.user
-        response = super().form_valid(form)
+        user = self.request.user
+        try:
+            with transaction.atomic():
+                charge_feature_access(
+                    user.profile,
+                    description=_("Создание марафона"),
+                )
+                form.instance.creator = user
+                response = super().form_valid(form)
+        except InsufficientCoinsError:
+            form.add_error(None, _("Недостаточно монет для создания марафона."))
+            return self.form_invalid(form)
+
         messages.success(self.request, _("Марафон создан. Пригласите друзей к чтению!"))
         return response
 
