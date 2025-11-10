@@ -12,7 +12,11 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import CreateView, DetailView, ListView
 
-from accounts.services import charge_feature_access, InsufficientCoinsError
+from accounts.services import (
+    charge_feature_access,
+    get_feature_payment_context,
+    InsufficientCoinsError,
+)
 
 from user_ratings.services import award_for_marathon_confirmation
 
@@ -29,6 +33,11 @@ class MarathonListView(ListView):
     queryset = ReadingMarathon.objects.prefetch_related("themes").all()
     context_object_name = "marathons"
     template_name = "reading_marathons/list.html"
+
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context.update(get_feature_payment_context(self.request.user))
+        return context
 
 
 class MarathonCreateView(LoginRequiredMixin, CreateView):
@@ -54,6 +63,11 @@ class MarathonCreateView(LoginRequiredMixin, CreateView):
 
     def get_success_url(self) -> str:
         return self.object.get_absolute_url()
+
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context.update(get_feature_payment_context(self.request.user))
+        return context
 
 
 class MarathonDetailView(DetailView):

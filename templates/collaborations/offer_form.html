@@ -97,6 +97,9 @@
       {% trans "Новое предложение" %}
     {% endif %}
   </h1>
+  {% if not is_editing %}
+    {% include "includes/feature_cost_notice.html" with classes="text-muted small mb-3" %}
+  {% endif %}
 
   <form method="post" class="card shadow-sm">
     <div class="card-body">

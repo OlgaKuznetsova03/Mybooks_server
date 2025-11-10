@@ -34,6 +34,7 @@ from django.utils import timezone
 from django.utils.html import mark_safe
 from django.utils.text import slugify
 from django.views.decorators.http import require_GET, require_POST
+from accounts.services import get_feature_payment_context
 from shelves.forms import HomeLibraryQuickAddForm, QuickAddShelfForm
 from shelves.models import BookProgress, ShelfItem, HomeLibraryEntry, ProgressAnnotation
 from shelves.services import (
@@ -1650,7 +1651,7 @@ def book_detail(request, pk):
         club.set_prefetched_message_count(club.message_count)
         reading_clubs_by_status[club.status].append(club)
 
-    return render(request, "books/book_detail.html", {
+    context = {
         "book": book,
         "form": form,
         "ratings": ratings,
@@ -1681,7 +1682,9 @@ def book_detail(request, pk):
         "read_shelf_name_tokens": read_shelf_name_tokens,
         "genre_shelves": genre_shelves,
         "reading_clubs_by_status": reading_clubs_by_status,
-    })
+    }
+    context.update(get_feature_payment_context(request.user))
+    return render(request, "books/book_detail.html", context)
 
 @login_required
 def book_create(request):

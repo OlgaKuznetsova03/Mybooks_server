@@ -1005,6 +1005,7 @@
                 <a class="btn btn-communities-primary" href="{% url 'reading_clubs:create' %}">
                   <i class="bi bi-plus-lg me-1"></i>Создать чтение
                 </a>
+                {% include "includes/feature_cost_notice.html" with classes="text-muted small mt-2" %}
               {% endif %}
             </div>
           </div>
@@ -1078,6 +1079,7 @@
                 <a class="btn btn-communities-primary" href="{% url 'reading_marathons:create' %}">
                   <i class="bi bi-plus-lg me-1"></i>Создать марафон
                 </a>
+                {% include "includes/feature_cost_notice.html" with classes="text-muted small mt-2" %}
               {% endif %}
             </div>
           </div>

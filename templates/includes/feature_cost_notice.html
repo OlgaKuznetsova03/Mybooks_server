@@ -1,0 +1,25 @@
+{% load i18n %}
+{% if feature_cost %}
+  {% with notice_classes=classes|default:'text-muted small mt-2' %}
+    <p class="{{ notice_classes }}">
+      {% blocktrans count cost=feature_cost %}
+        Размещение стоит {{ cost }} монету.
+      {% plural %}
+        Размещение стоит {{ cost }} монет.
+      {% endblocktrans %}
+      {% if user_has_unlimited_coins %}
+        {% trans "У вас безлимитные монеты по подписке." %}
+      {% elif request.user.is_authenticated and user_coin_balance is not None %}
+        {% blocktrans count balance=user_coin_balance %}
+          Ваш баланс: {{ balance }} монета.
+        {% plural %}
+          Ваш баланс: {{ balance }} монет.
+        {% endblocktrans %}
+      {% elif request.user.is_authenticated %}
+        {% trans "Ваш баланс будет списан при публикации." %}
+      {% else %}
+        {% trans "Войдите, чтобы увидеть свой баланс." %}
+      {% endif %}
+    </p>
+  {% endwith %}
+{% endif %}

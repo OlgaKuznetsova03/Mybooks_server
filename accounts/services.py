@@ -1,6 +1,6 @@
 from __future__ import annotations
-
 from dataclasses import dataclass
+from typing import Any, Dict
 
 from django.utils.translation import gettext_lazy as _
 
@@ -51,3 +51,21 @@ def charge_feature_access(
         raise InsufficientCoinsError() from exc
 
     return FeatureChargeResult(profile=profile, transaction=transaction, cost=cost)
+
+
+def get_feature_payment_context(user: Any) -> Dict[str, Any]:
+    """Build template context describing the paid feature cost and balance."""
+
+    context: Dict[str, Any] = {
+        "feature_cost": FEATURE_ACCESS_COST,
+        "user_coin_balance": None,
+        "user_has_unlimited_coins": False,
+    }
+
+    if getattr(user, "is_authenticated", False):
+        profile: Profile = user.profile  # type: ignore[attr-defined]
+        context["user_has_unlimited_coins"] = profile.has_unlimited_coins
+        if not profile.has_unlimited_coins:
+            context["user_coin_balance"] = profile.coins
+
+    return context

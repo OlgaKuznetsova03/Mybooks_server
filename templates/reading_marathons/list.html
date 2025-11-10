@@ -113,6 +113,7 @@
           <a class="btn btn-primary" href="{% url 'reading_marathons:create' %}">
             <i class="bi bi-flag me-2"></i>Создать марафон
           </a>
+          {% include "includes/feature_cost_notice.html" with classes="text-muted small mt-2" %}
         {% else %}
           <a class="btn btn-primary" href="{% url 'login' %}">Войдите, чтобы создать марафон</a>
         {% endif %}

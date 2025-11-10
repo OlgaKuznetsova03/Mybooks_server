@@ -19,7 +19,11 @@ from django.views.generic import DetailView, FormView, ListView
 
 from django.db.models.functions import Coalesce
 
-from accounts.services import charge_feature_access, InsufficientCoinsError
+from accounts.services import (
+    charge_feature_access,
+    get_feature_payment_context,
+    InsufficientCoinsError,
+)
 from user_ratings.services import award_for_discussion_post
 
 from .forms import DiscussionPostForm, ReadingClubForm, ReadingNormForm
@@ -112,6 +116,11 @@ class ReadingClubListView(ListView):
             ),
         ]
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(get_feature_payment_context(self.request.user))
+        return context
+
 
 class ReadingClubCreateView(LoginRequiredMixin, FormView):
     template_name = "reading_clubs/create.html"
@@ -150,6 +159,11 @@ class ReadingClubCreateView(LoginRequiredMixin, FormView):
             "Совместное чтение создано. Теперь добавьте нормы и пригласите участников!",
         )
         return redirect(reading_club.get_absolute_url())
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(get_feature_payment_context(self.request.user))
+        return context
 
 
 class ReadingClubDetailView(DetailView):

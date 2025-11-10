@@ -118,6 +118,7 @@
         <a class="btn btn-reading" href="{% url 'reading_clubs:create' %}">
           <i class="bi bi-journal-plus me-1"></i> Создать совместное чтение
         </a>
+        {% include "includes/feature_cost_notice.html" with classes="text-muted small mt-2" %}
       </div>
     {% endif %}
 

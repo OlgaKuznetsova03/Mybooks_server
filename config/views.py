@@ -5,6 +5,7 @@ from typing import Any
 from django.shortcuts import render
 from django.utils import timezone
 
+from accounts.services import get_feature_payment_context
 from reading_clubs.models import ReadingClub
 from reading_marathons.models import ReadingMarathon
 
@@ -99,6 +100,7 @@ def reading_communities_overview(request):
         "club_groups": club_groups,
         "marathon_groups": marathon_groups,
     }
+    context.update(get_feature_payment_context(request.user))
     return render(request, "config/reading_communities.html", context)
 
 
