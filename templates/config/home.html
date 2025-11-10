@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Главная · Калейдоскоп книг{% endblock %}
 
 {% block body_class %} home-page{% endblock %}
@@ -155,6 +156,86 @@
   .hero-highlight__card:hover i {
     transform: scale(1.2);
     color: #8b5a2b !important;
+  }
+
+  .feature-visual-grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    margin-top: 1.5rem;
+  }
+
+  .feature-visual-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 1.5rem;
+    box-shadow:
+      inset 0 0 0 1px rgba(171, 120, 67, 0.2),
+      0 1.5rem 3rem rgba(77, 54, 28, 0.12);
+    overflow: hidden;
+    position: relative;
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+  }
+
+  .feature-visual-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(171, 120, 67, 0.08), transparent 55%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+  }
+
+  .feature-visual-card:hover {
+    transform: translateY(-8px);
+    box-shadow:
+      inset 0 0 0 1px rgba(171, 120, 67, 0.35),
+      0 2rem 4rem rgba(77, 54, 28, 0.2);
+  }
+
+  .feature-visual-card:hover::before {
+    opacity: 1;
+  }
+
+  .feature-visual-card__image {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .feature-visual-card__image img {
+    width: 100%;
+    display: block;
+    object-fit: cover;
+    transition: transform 0.6s ease;
+  }
+
+  .feature-visual-card:hover .feature-visual-card__image img {
+    transform: scale(1.05);
+  }
+
+  .feature-visual-card__body {
+    padding: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .feature-visual-card__title {
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .feature-visual-card__list {
+    margin: 0;
+    padding-left: 1.2rem;
+    color: #4f3a28;
+  }
+
+  .feature-visual-card__list li + li {
+    margin-top: 0.4rem;
   }
 
   .home-section {
@@ -535,6 +616,10 @@
     .stat-number {
       font-size: 2.5rem;
     }
+
+    .feature-visual-card__body {
+      padding: 1.5rem;
+    }
   }
 </style>
 {% endblock %}
@@ -591,6 +676,58 @@
       </div>
       <p class="mb-0">Авторы ищут читателей и блогеров: отправьте заявку и получите книгу бесплатно, чтобы поделиться впечатлениями.</p>
     </a>
+  </div>
+</section>
+
+<section class="home-section scroll-reveal">
+  <div class="section-heading">
+    <h2 class="section-heading__title h3">Статистика и динамика чтения</h2>
+  </div>
+
+  <div class="feature-visual-grid">
+    <div class="feature-visual-card">
+      <div class="feature-visual-card__image">
+        <img
+          src="{% static 'img/Statistic.png' %}"
+          alt="Подробная статистика чтения за день"
+          loading="lazy"
+        />
+      </div>
+      <div class="feature-visual-card__body">
+        <h3 class="feature-visual-card__title h4 mb-0">Глубокая статистика дня</h3>
+        <p class="mb-0">
+          Сервис собирает данные по каждому дню, чтобы вы видели, когда читаете больше всего, какие книги вдохновляют и
+          в какие часы удобнее погружаться в истории.
+        </p>
+        <ul class="feature-visual-card__list">
+          <li>Подробные графики по времени и форматам чтения.</li>
+          <li>Подсказки, когда вы на пике читательской продуктивности.</li>
+          <li>Синхронизация с клубами и марафонами для общего прогресса.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="feature-visual-card">
+      <div class="feature-visual-card__image">
+        <img
+          src="{% static 'img/Progress.png' %}"
+          alt="Отслеживание прогресса в разных форматах чтения"
+          loading="lazy"
+        />
+      </div>
+      <div class="feature-visual-card__body">
+        <h3 class="feature-visual-card__title h4 mb-0">Гибкое отслеживание прогресса</h3>
+        <p class="mb-0">
+          Добавляйте прочитанное в страницах, процентах, часах аудио или в минутах — мы сравним форматы и подскажем, где
+          история увлекает сильнее всего.
+        </p>
+        <ul class="feature-visual-card__list">
+          <li>Фиксируйте прогресс в нескольких форматах одновременно.</li>
+          <li>Анализируйте, в каком формате книга продвигается быстрее.</li>
+          <li>Легко переключайтесь между устройствами без потери данных.</li>
+        </ul>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -753,7 +890,7 @@
     }, 2000);
 
     // Интерактивный hover для всех карточек
-    const cards = document.querySelectorAll('.hero-highlight__card, .book-card, .featured-book');
+    const cards = document.querySelectorAll('.hero-highlight__card, .book-card, .featured-book, .feature-visual-card');
     cards.forEach(card => {
       card.addEventListener('mouseenter', function() {
         this.style.zIndex = '10';
