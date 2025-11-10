@@ -35,7 +35,7 @@ from shelves.services import (
     READING_PROGRESS_LABEL,
 )
 from books.models import Rating, Book
-from user_ratings.models import UserPointEvent
+from user_ratings.models import LeaderboardPeriod, UserPointEvent
 
 from .forms import SignUpForm, ProfileForm, RoleForm, PremiumPurchaseForm
 from .models import YANDEX_AD_REWARD_COINS
@@ -748,6 +748,75 @@ def _collect_profile_stats(user: User, params):
     }
 
 
+def _collect_leaderboard_snapshot(user: User) -> dict[str, dict[str, object]]:
+    """Return rating leaderboard stats for the user's profile page."""
+
+    snapshot: dict[str, dict[str, object]] = {}
+
+    period_map: dict[str, LeaderboardPeriod] = {
+        "day": LeaderboardPeriod.DAY,
+        "week": LeaderboardPeriod.WEEK,
+        "month": LeaderboardPeriod.MONTH,
+        "year": LeaderboardPeriod.YEAR,
+    }
+
+    for key, period in period_map.items():
+        aggregated = (
+            UserPointEvent.objects
+            .for_period(period)
+            .values("user")
+            .annotate(total_points=Sum("points"))
+        )
+
+        user_points = aggregated.filter(user=user.id).values_list("total_points", flat=True).first()
+        total_participants = aggregated.count()
+        has_points = bool(user_points)
+
+        position = None
+        if has_points:
+            better_count = aggregated.filter(total_points__gt=user_points).count()
+            equal_before_count = aggregated.filter(total_points=user_points, user__lt=user.id).count()
+            position = better_count + equal_before_count + 1
+
+        snapshot[key] = {
+            "label": period.label,
+            "period": period.value,
+            "points": int(user_points or 0),
+            "position": position,
+            "total_participants": total_participants,
+            "has_points": has_points,
+        }
+
+    overall_totals = (
+        UserPointEvent.objects
+        .values("user")
+        .annotate(total_points=Sum("points"))
+    )
+    overall_points = overall_totals.filter(user=user.id).values_list("total_points", flat=True).first()
+    overall_participants = overall_totals.count()
+    overall_has_points = bool(overall_points)
+    overall_position = None
+    if overall_has_points:
+        better_count = overall_totals.filter(total_points__gt=overall_points).count()
+        equal_before_count = overall_totals.filter(total_points=overall_points, user__lt=user.id).count()
+        overall_position = better_count + equal_before_count + 1
+
+    snapshot["all_time"] = {
+        "label": "За всё время",
+        "period": "all_time",
+        "points": int(overall_points or 0),
+        "position": overall_position,
+        "total_participants": overall_participants,
+        "has_points": overall_has_points,
+    }
+
+    snapshot["has_any_points"] = any(
+        entry.get("has_points") for entry in snapshot.values() if isinstance(entry, dict)
+    )
+
+    return snapshot
+
+
 def _build_absolute_url(request, url: str | None) -> str | None:
     if not url:
         return None
@@ -1449,6 +1518,8 @@ def profile(request, username=None):
         games_has_data or marathons_has_data or clubs_has_data
     )
 
+    leaderboard_snapshot = _collect_leaderboard_snapshot(user_obj)
+
     default_read_adj = next(
         (
             alias
@@ -1515,6 +1586,9 @@ def profile(request, username=None):
         "coin_balance": profile_obj.coin_balance,
         "has_unlimited_coins": profile_obj.has_unlimited_coins,
         "profile_activities": profile_activities,
+        "leaderboard_snapshot": leaderboard_snapshot,
+        "lead_all": leaderboard_snapshot.get("all_time"),
+        "lead_al": leaderboard_snapshot.get("all_time"),
     }
     return render(request, "accounts/profile.html", context)
 

@@ -279,11 +279,12 @@ class PremiumPayment(models.Model):
         is_new = self.pk is None
         previous_status = None
         if not is_new:
-            previous_status = (
-                PremiumPayment.objects.filter(pk=self.pk)
-                .values_list("status", flat=True)
-                .first()
-            )
+            try:
+                previous_status = (
+                    PremiumPayment.objects.only("status").get(pk=self.pk).status
+                )
+            except PremiumPayment.DoesNotExist:  # pragma: no cover - defensive
+                previous_status = None
         if not self.reference:
             self.reference = uuid.uuid4().hex[:12].upper()
         if not self.amount:
