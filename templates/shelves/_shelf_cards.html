@@ -257,13 +257,23 @@
                     {# 1) Полка «Прочитано»: показать дату добавления на эту полку #}
                     {% if normalized_name == normalized_read %}
                       {% with home_entry=it.home_entry %}
-                        {% with read_date=home_entry.date_read|default:home_entry.read_at|default:it.added_at %}
-                          <div class="book-actions">
-                            <div class="small text-muted fw-semibold">
-                              Прочитал{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}
+                        {% if home_entry %}
+                          {% with read_date=home_entry.date_read|default:home_entry.read_at|default:it.added_at %}
+                            <div class="book-actions">
+                              <div class="small text-muted fw-semibold">
+                                Прочитал{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}
+                              </div>
                             </div>
-                          </div>
-                        {% endwith %}
+                          {% endwith %}
+                        {% else %}
+                          {% with read_date=it.added_at %}
+                            <div class="book-actions">
+                              <div class="small text-muted fw-semibold">
+                                Прочитал{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}
+                              </div>
+                            </div>
+                          {% endwith %}
+                        {% endif %}
                       {% endwith %}
 
                     {# 2) «Моя домашняя библиотека»: если статус read — показать дату из статуса (fallback к it.added_at) #}
