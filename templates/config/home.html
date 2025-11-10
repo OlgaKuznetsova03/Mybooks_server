@@ -99,6 +99,7 @@
   }
 
   .hero-highlight__card {
+    display: block;
     backdrop-filter: blur(12px);
     background: rgba(255, 255, 255, 0.75);
     border-radius: 1.25rem;
@@ -110,6 +111,13 @@
     overflow: hidden;
     opacity: 0;
     transform: translateY(30px);
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .hero-highlight__card:focus-visible {
+    outline: 2px solid rgba(171, 120, 67, 0.65);
+    outline-offset: 4px;
   }
 
   .hero-highlight__card:nth-child(1) { animation: fadeInUp 0.6s ease-out 0.5s forwards; }
@@ -535,34 +543,54 @@
 
 <section class="hero-section mb-5">
   <div class="hero-highlight">
-    <div class="hero-highlight__card h-100" onclick="showFeatureMessage('Домашняя библиотека', 'Создайте свою уникальную коллекцию книг! 📚')">
+    <a
+      class="hero-highlight__card h-100"
+      href="{% url 'shelves:home_library' %}"
+      data-feature-title="Домашняя библиотека"
+      data-feature-message="Создайте свою уникальную коллекцию книг! 📚"
+    >
       <div class="d-flex align-items-center gap-2 mb-3">
         <i class="bi bi-house-heart fs-4 animate-pulse" style="color:#ab7843"></i>
         <h3 class="h5 fw-semibold mb-0">Домашняя библиотека</h3>
       </div>
-      <p class="mb-0">Всегда знайте, сколько книг стоит на ваших полках, какие ещё ждают прочтения и что вы делаете чаще — читаете или пополняете коллекцию.</p>
-    </div>
-    <div class="hero-highlight__card h-100" onclick="showFeatureMessage('Совместные чтения', 'Читайте вместе с друзьями! 👥')">
+      <p class="mb-0">Всегда знайте, сколько книг стоит на ваших полках, какие ещё ожидают прочтения и что вы делаете чаще — читаете или пополняете коллекцию.</p>
+    </a>
+    <a
+      class="hero-highlight__card h-100"
+      href="{% url 'reading_clubs:list' %}"
+      data-feature-title="Совместные чтения"
+      data-feature-message="Читайте вместе с друзьями! 👥"
+    >
       <div class="d-flex align-items-center gap-2 mb-3">
         <i class="bi bi-people-fill fs-4 animate-pulse" style="color:#ab7843"></i>
         <h3 class="h5 fw-semibold mb-0">Совместные чтения</h3>
       </div>
       <p class="mb-0">Вступайте в существующие совместные чтения или создавайте свои и наслаждайтесь книгами в компании единомышленников.</p>
-    </div>
-    <div class="hero-highlight__card h-100" onclick="showFeatureMessage('Игры', 'Сделайте чтение увлекательной игрой! 🎮')">
+    </a>
+    <a
+      class="hero-highlight__card h-100"
+      href="{% url 'games:index' %}"
+      data-feature-title="Игры"
+      data-feature-message="Сделайте чтение увлекательной игрой! 🎮"
+    >
       <div class="d-flex align-items-center gap-2 mb-3">
         <i class="bi bi-controller fs-4 animate-pulse" style="color:#ab7843"></i>
         <h3 class="h5 fw-semibold mb-0">Игры</h3>
       </div>
       <p class="mb-0">Бросьте себе вызов, познакомьтесь с новыми авторами или отправьтесь в книжное путешествие с нашими игровыми форматами.</p>
-    </div>
-    <div class="hero-highlight__card h-100" onclick="showFeatureMessage('Сотрудничество', 'Станьте частью книжного сообщества! 🤝')">
+     </a>
+    <a
+      class="hero-highlight__card h-100"
+      href="{% url 'collaborations:offer_list' %}"
+      data-feature-title="Сотрудничество"
+      data-feature-message="Станьте частью книжного сообщества! 🤝"
+    >
       <div class="d-flex align-items-center gap-2 mb-3">
         <i class="bi bi-heart-fill fs-4 animate-pulse" style="color:#ab7843"></i>
         <h3 class="h5 fw-semibold mb-0">Сотрудничество</h3>
       </div>
       <p class="mb-0">Авторы ищут читателей и блогеров: отправьте заявку и получите книгу бесплатно, чтобы поделиться впечатлениями.</p>
-    </div>
+    </a>
   </div>
 </section>
 
@@ -680,22 +708,20 @@
     });
   }
 
-  // Показ сообщений о функциях
-  function showFeatureMessage(title, message) {
-    const toast = new bootstrap.Toast(document.getElementById('liveToast'));
-    document.getElementById('toastMessage').textContent = `${title}: ${message}`;
-    toast.show();
-    
-    // Анимация клика на карточке
-    event.currentTarget.style.transform = 'scale(0.95)';
-    setTimeout(() => {
-      event.currentTarget.style.transform = '';
-    }, 300);
+   // Анимация клика на карточке
+    const animationEvent = triggerEvent ?? window.event ?? null;
+    if (animationEvent && animationEvent.currentTarget) {
+      const target = animationEvent.currentTarget;
+      target.style.transform = 'scale(0.95)';
+      setTimeout(() => {
+        target.style.transform = '';
+      }, 300);
+    }
   }
 
   // Превью книги
   function showBookPreview(title, author) {
-    showFeatureMessage(title, `Автор: ${author}. Нажмите для подробностей! 📖`);
+    showFeatureMessage(title, `Автор: ${author}. Нажмите для подробностей! 📖`, event);
   }
 
   // Анимация при скролле
@@ -732,9 +758,20 @@
       card.addEventListener('mouseenter', function() {
         this.style.zIndex = '10';
       });
-      
+
       card.addEventListener('mouseleave', function() {
         this.style.zIndex = '1';
+      });
+    });
+
+    const featureCards = document.querySelectorAll('.hero-highlight__card[data-feature-title]');
+    featureCards.forEach(card => {
+      card.addEventListener('focus', event => {
+        const title = card.getAttribute('data-feature-title');
+        const message = card.getAttribute('data-feature-message');
+        if (title && message) {
+          showFeatureMessage(title, message, event);
+        }
       });
     });
   });
