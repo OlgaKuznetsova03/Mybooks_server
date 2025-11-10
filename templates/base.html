@@ -220,7 +220,16 @@
     </button>
 
     <!-- Бренд -->
-    <a class="navbar-brand fw-bold me-3" href="/">📚 Калейдоскоп Книг</a>
+    <a class="navbar-brand fw-bold me-3 d-flex align-items-center" href="/">
+      <img
+        src="{% static 'img/logo_1.png' %}"
+        alt="Логотип Калейдоскоп Книг"
+        class="me-2"
+        width="36"
+        height="36"
+      >
+      <span>Калейдоскоп Книг</span>
+    </a>
 
     <!-- Горизонтальное меню (десктоп) -->
     <ul class="navbar-nav me-auto d-none d-lg-flex">
@@ -235,11 +244,6 @@
       <input class="form-control me-2" name="q" value="{{ q|default:'' }}" placeholder="Название, автор, жанр">
       <button class="btn" type="submit"><i class="bi bi-search"></i></button>
     </form>
-
-    <!-- Переключатель темы -->
-    <button class="btn btn-outline-secondary me-2" id="themeToggle" type="button" aria-label="Переключить тему">
-      <i class="bi bi-moon"></i>
-    </button>
 
       {% with notifications=collaboration_notifications %}
       <a

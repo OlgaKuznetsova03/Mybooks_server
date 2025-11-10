@@ -20,7 +20,7 @@ from accounts.services import (
 
 from user_ratings.services import award_for_marathon_confirmation
 
-from accounts.services import charge_feature_access, InsufficientCoinsError
+from .forms import MarathonEntryForm, MarathonEntryStatusForm, ReadingMarathonForm
 from .models import MarathonEntry, MarathonParticipant, ReadingMarathon
 
 

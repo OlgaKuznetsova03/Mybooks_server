@@ -1084,7 +1084,6 @@
   <div class="tab-content mt-3" id="profileTabsContent">
     <!-- Обзор -->
     <div class="tab-pane fade{% if current_tab == 'overview' %} show active{% endif %}" id="overview" role="tabpanel">
-      <p class="text-muted">Здесь отображается основная информация пользователя.</p>
 
       <!-- Соцсети блогера -->
       {% if is_blogger %}
@@ -1100,11 +1099,13 @@
 
       <div class="shelf-page__header mt-4">
         <h2 class="h5 shelf-page__title mb-0">Книжные полки</h2>
-        {% if request.user == u %}
+        {% comment %}
+      {% if request.user == u %}
           <a class="btn btn-outline-primary btn-sm" href="{% url 'shelves:shelf_create' %}">
             <i class="bi bi-plus-lg me-1"></i>Добавить полку
           </a>
         {% endif %}
+      {% endcomment %}
       </div>
       {% include "shelves/_shelf_cards.html" with shelves=user_shelves allow_manage=allow_shelf_management empty_message=allow_shelf_management|yesno:"У вас пока нет полок.,Пока нет полок.,Пока нет полок." next_url=request.get_full_path default_reading_shelf_name=default_reading_shelf_name default_home_library_shelf_name=default_home_library_shelf_name default_read_shelf_name=default_read_shelf_name reading_progress_label=reading_progress_label status_user_override=u %}
     </div>
