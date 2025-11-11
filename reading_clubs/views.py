@@ -13,7 +13,6 @@ from django.http import Http404, HttpRequest, HttpResponse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
-from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.generic import DetailView, FormView, ListView
 
@@ -21,6 +20,8 @@ from django.db.models.functions import Coalesce
 
 from accounts.services import charge_feature_access, InsufficientCoinsError
 from user_ratings.services import award_for_discussion_post
+
+from django.shortcuts import redirect
 
 from .forms import DiscussionPostForm, ReadingClubForm, ReadingNormForm
 from .models import DiscussionPost, ReadingClub, ReadingNorm, ReadingParticipant

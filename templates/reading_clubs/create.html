@@ -61,6 +61,18 @@
               <div class="mb-3">
                 <label class="form-label" for="id_{{ field.name }}">{{ field.label }}</label>
 
+                {% if field.name == "book" %}
+                  <div class="mb-2">
+                    <input
+                      type="search"
+                      class="form-control form-control-sm"
+                      placeholder="Начните вводить название книги"
+                      aria-label="Поиск книги по названию"
+                      data-reading-book-search
+                    >
+                  </div>
+                {% endif %}
+
                 {{ field }} {# классы и is-invalid проставляются в форме #}
 
                 {% if field.help_text %}
@@ -93,5 +105,83 @@
         }, false);
       });
     })();
+
+    document.addEventListener('DOMContentLoaded', function () {
+      var searchInput = document.querySelector('[data-reading-book-search]');
+      var select = document.getElementById('id_book');
+
+      if (!searchInput || !select) {
+        return;
+      }
+
+      var originalOptions = Array.prototype.slice.call(select.options).map(function (option) {
+        return {
+          value: option.value,
+          text: option.text.toLowerCase(),
+          html: option.innerHTML,
+          disabled: option.disabled
+        };
+      });
+
+      function renderOptions(query) {
+        var normalizedQuery = (query || '').trim().toLowerCase();
+        var currentValue = select.value;
+        var selectionPreserved = false;
+
+        select.innerHTML = '';
+
+        originalOptions.forEach(function (optionData) {
+          var matchesQuery = !normalizedQuery || optionData.value === '' || optionData.text.indexOf(normalizedQuery) !== -1;
+
+          if (!matchesQuery) {
+            return;
+          }
+
+          var option = document.createElement('option');
+          option.value = optionData.value;
+          option.innerHTML = optionData.html;
+
+          if (optionData.disabled) {
+            option.disabled = true;
+          }
+
+          if (optionData.value === currentValue) {
+            option.selected = true;
+            selectionPreserved = true;
+          }
+
+          select.appendChild(option);
+        });
+
+        if (!selectionPreserved) {
+          var firstAvailable = null;
+          for (var i = 0; i < select.options.length; i += 1) {
+            var option = select.options[i];
+            if (option.value && !option.disabled) {
+              firstAvailable = option;
+              break;
+            }
+          }
+
+          if (firstAvailable) {
+            firstAvailable.selected = true;
+          } else if (select.options.length) {
+            select.selectedIndex = 0;
+          }
+        }
+      }
+
+      renderOptions(searchInput.value);
+
+      searchInput.addEventListener('input', function (event) {
+        renderOptions(event.target.value);
+      });
+
+      searchInput.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+        }
+      });
+    });
   </script>
 {% endblock %}
