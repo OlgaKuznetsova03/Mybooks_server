@@ -32,6 +32,7 @@ from .forms import (
     CollaborationApprovalForm,
     CollaborationReviewForm,
     CollaborationMessageForm,
+    CollaborationStatusForm,
 )
 from .models import (
     AuthorOffer,
@@ -1609,11 +1610,28 @@ class CollaborationDetailView(LoginRequiredMixin, View):
         )
         return False
 
-    def _get_context(self, collaboration: Collaboration, form: CollaborationMessageForm):
+    def _get_status_form(
+        self,
+        collaboration: Collaboration,
+        user: User,
+        data: dict | None = None,
+    ) -> CollaborationStatusForm | None:
+        if getattr(user, "id", None) != collaboration.author_id:
+            return None
+        return CollaborationStatusForm(data=data, instance=collaboration)
+
+    def _get_context(
+        self,
+        collaboration: Collaboration,
+        form: CollaborationMessageForm,
+        *,
+        status_form: CollaborationStatusForm | None = None,
+    ):
         return {
             "collaboration": collaboration,
             "conversation_messages": collaboration.messages.select_related("author"),
             "form": form,
+            "status_form": status_form,
             "can_post": collaboration.allows_discussion(),
             "deadline_passed": collaboration.deadline < timezone.now().date(),
         }
@@ -1624,16 +1642,51 @@ class CollaborationDetailView(LoginRequiredMixin, View):
             return redirect("collaborations:collaboration_list")
         collaboration.mark_read(request.user)
         form = CollaborationMessageForm(collaboration=collaboration, user=request.user)
+        status_form = self._get_status_form(collaboration, request.user)
         return render(
             request,
             self.template_name,
-            self._get_context(collaboration, form),
+            self._get_context(collaboration, form, status_form=status_form),
         )
 
     def post(self, request, pk: int):
         collaboration = self.get_object(pk)
         if not self._ensure_participant(request, collaboration):
             return redirect("collaborations:collaboration_list")
+
+        action = request.POST.get("action")
+        if action == "update_status":
+            status_form = self._get_status_form(
+                collaboration,
+                request.user,
+                data=request.POST,
+            )
+            if status_form is None:
+                messages.error(
+                    request,
+                    _("Только автор может менять статус сотрудничества."),
+                )
+                return redirect("collaborations:collaboration_detail", pk=collaboration.pk)
+
+            message_form = CollaborationMessageForm(
+                collaboration=collaboration,
+                user=request.user,
+            )
+            if status_form.is_valid():
+                if status_form.has_changed():
+                    updated_collaboration = status_form.save()
+                    updated_collaboration.register_activity(request.user)
+                    messages.success(request, _("Статус сотрудничества обновлён."))
+                else:
+                    messages.info(request, _("Статус сотрудничества не изменился."))
+                return redirect("collaborations:collaboration_detail", pk=collaboration.pk)
+
+            context = self._get_context(
+                collaboration,
+                message_form,
+                status_form=status_form,
+            )
+            return render(request, self.template_name, context, status=400)
 
         form = CollaborationMessageForm(
             request.POST,
@@ -1658,7 +1711,12 @@ class CollaborationDetailView(LoginRequiredMixin, View):
             return redirect("collaborations:collaboration_detail", pk=collaboration.pk)
 
         collaboration.mark_read(request.user)
-        context = self._get_context(collaboration, form)
+        status_form = self._get_status_form(collaboration, request.user)
+        context = self._get_context(
+            collaboration,
+            form,
+            status_form=status_form,
+        )
         return render(request, self.template_name, context, status=400)
 
 

@@ -28,6 +28,26 @@
             <dt class="col-5 text-muted">{% trans "Статус" %}</dt>
             <dd class="col-7">
               <span class="badge text-bg-secondary">{{ collaboration.get_status_display }}</span>
+              {% if status_form %}
+                <form method="post" action="{% url 'collaborations:collaboration_detail' collaboration.pk %}" class="mt-2">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="update_status">
+                  <div class="input-group input-group-sm">
+                    {{ status_form.status }}
+                    <button type="submit" class="btn btn-outline-primary">
+                      <i class="bi bi-arrow-repeat me-1"></i>{% trans "Обновить" %}
+                    </button>
+                  </div>
+                  {% if status_form.non_field_errors %}
+                    {% for error in status_form.non_field_errors %}
+                      <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                  {% endif %}
+                  {% for error in status_form.status.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  {% endfor %}
+                </form>
+              {% endif %}
             </dd>
             <dt class="col-5 text-muted">{% trans "Дедлайн" %}</dt>
             <dd class="col-7">

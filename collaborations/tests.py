@@ -809,19 +809,20 @@ class CollaborationMessageAttachmentTests(TestCase):
         self.assertIn("epub_file", form.errors)
         self.assertEqual(self.collaboration.messages.count(), 0)
 
-    def test_author_cannot_attach_epub_before_confirmation(self):
+    def test_author_can_attach_epub_during_negotiation(self):
+        self.collaboration.status = Collaboration.Status.NEGOTIATION
         self.collaboration.partner_approved = False
-        self.collaboration.save(update_fields=["partner_approved"])
+        self.collaboration.save(update_fields=["status", "partner_approved"])
 
         self.client.force_login(self.author)
         response = self.client.post(
             reverse("collaborations:collaboration_detail", args=[self.collaboration.pk]),
-            {"text": "Пока рано", "epub_file": self._build_epub()},
+            {"text": "Файл во время переговоров", "epub_file": self._build_epub()},
         )
-        self.assertEqual(response.status_code, 400)
-        form = response.context["form"]
-        self.assertIn("epub_file", form.errors)
-        self.assertEqual(self.collaboration.messages.count(), 0)
+        self.assertEqual(response.status_code, 302)
+        message = self.collaboration.messages.get()
+        self.assertEqual(message.author, self.author)
+        self.assertTrue(message.epub_file.name.endswith(".epub"))
 
     def test_rejects_epub_with_dangerous_content(self):
         self.client.force_login(self.author)
@@ -834,3 +835,56 @@ class CollaborationMessageAttachmentTests(TestCase):
         form = response.context["form"]
         self.assertIn("epub_file", form.errors)
         self.assertEqual(self.collaboration.messages.count(), 0)
+
+
+class CollaborationStatusUpdateTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.author = user_model.objects.create_user(
+            username="status_author",
+            password="password123",
+            email="status-author@example.com",
+        )
+        self.partner = user_model.objects.create_user(
+            username="status_partner",
+            password="password123",
+            email="status-partner@example.com",
+        )
+        self.collaboration = Collaboration.objects.create(
+            author=self.author,
+            partner=self.partner,
+            deadline=date.today() + timedelta(days=5),
+            status=Collaboration.Status.NEGOTIATION,
+        )
+
+    def test_author_can_update_status_to_active(self):
+        self.client.force_login(self.author)
+        response = self.client.post(
+            reverse("collaborations:collaboration_detail", args=[self.collaboration.pk]),
+            {"action": "update_status", "status": Collaboration.Status.ACTIVE},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.collaboration.refresh_from_db()
+        self.assertEqual(self.collaboration.status, Collaboration.Status.ACTIVE)
+
+    def test_partner_cannot_update_status(self):
+        self.client.force_login(self.partner)
+        response = self.client.post(
+            reverse("collaborations:collaboration_detail", args=[self.collaboration.pk]),
+            {"action": "update_status", "status": Collaboration.Status.ACTIVE},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.collaboration.refresh_from_db()
+        self.assertEqual(self.collaboration.status, Collaboration.Status.NEGOTIATION)
+
+    def test_author_cannot_set_disallowed_status(self):
+        self.client.force_login(self.author)
+        response = self.client.post(
+            reverse("collaborations:collaboration_detail", args=[self.collaboration.pk]),
+            {"action": "update_status", "status": Collaboration.Status.COMPLETED},
+        )
+        self.assertEqual(response.status_code, 400)
+        form = response.context["status_form"]
+        self.assertIn("status", form.errors)
+        self.collaboration.refresh_from_db()
+        self.assertEqual(self.collaboration.status, Collaboration.Status.NEGOTIATION)

@@ -358,10 +358,6 @@ class CollaborationMessageForm(BootstrapModelForm):
     )
 
     def __init__(self, *args, **kwargs):
-        # Устанавливаем значение по умолчанию заранее, чтобы свойство оставалось
-        # доступным даже если инициализация формы будет прервана (например,
-        # при ошибке валидации во время создания bound-формы).
-        self.can_upload_epub = False
         self.collaboration = kwargs.pop("collaboration", None)
         self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
@@ -376,8 +372,11 @@ class CollaborationMessageForm(BootstrapModelForm):
             return False
         if getattr(self.user, "id", None) != getattr(self.collaboration, "author_id", None):
             return False
-        return bool(self.collaboration.author_approved and self.collaboration.partner_approved)
-
+        return self.collaboration.status in {
+            Collaboration.Status.NEGOTIATION,
+            Collaboration.Status.ACTIVE,
+        }
+        
     class Meta:
         model = CollaborationMessage
         fields = ["text", "epub_file"]
@@ -404,6 +403,47 @@ class CollaborationMessageForm(BootstrapModelForm):
             )
         validate_epub_attachment(upload)
         return upload
+
+
+class CollaborationStatusForm(BootstrapModelForm):
+    """Форма для ручного переключения рабочего статуса автором."""
+
+    _manual_statuses = {
+        Collaboration.Status.NEGOTIATION,
+        Collaboration.Status.ACTIVE,
+    }
+
+    class Meta:
+        model = Collaboration
+        fields = ["status"]
+        labels = {"status": _("Статус")}
+        widgets = {
+            "status": forms.Select(attrs={"class": "form-select form-select-sm"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        field = self.fields.get("status")
+        self._allowed_statuses = self._resolve_allowed_statuses()
+        if field is not None:
+            field.choices = [
+                (value, label)
+                for value, label in Collaboration.Status.choices
+                if value in self._allowed_statuses
+            ]
+
+    def _resolve_allowed_statuses(self) -> set[str]:
+        allowed = set(self._manual_statuses)
+        current = getattr(self.instance, "status", None)
+        if current:
+            allowed.add(current)
+        return allowed
+
+    def clean_status(self):
+        status = self.cleaned_data.get("status")
+        if status not in self._allowed_statuses:
+            raise forms.ValidationError(_("Этот статус нельзя выбрать вручную."))
+        return status
 
 
 class BloggerInvitationForm(BootstrapModelForm):
