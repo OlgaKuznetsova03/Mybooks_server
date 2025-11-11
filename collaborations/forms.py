@@ -358,6 +358,10 @@ class CollaborationMessageForm(BootstrapModelForm):
     )
 
     def __init__(self, *args, **kwargs):
+        # Устанавливаем значение по умолчанию заранее, чтобы свойство оставалось
+        # доступным даже если инициализация формы будет прервана (например,
+        # при ошибке валидации во время создания bound-формы).
+        self.can_upload_epub = False
         self.collaboration = kwargs.pop("collaboration", None)
         self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
