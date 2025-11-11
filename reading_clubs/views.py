@@ -21,7 +21,7 @@ from django.db.models.functions import Coalesce
 from accounts.services import charge_feature_access, InsufficientCoinsError
 from user_ratings.services import award_for_discussion_post
 
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import DiscussionPostForm, ReadingClubForm, ReadingNormForm
 from .models import DiscussionPost, ReadingClub, ReadingNorm, ReadingParticipant
