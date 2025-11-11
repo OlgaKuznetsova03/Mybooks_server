@@ -1130,17 +1130,11 @@
     </div>
   </div>
 </div>
+{% endblock %}
 
-<!-- Yandex.RTB R-A-17641153-4 -->
+{% block scripts %}
+{{ block.super }}
 <script>
-window.yaContextCb.push(() => {
-    Ya.Context.AdvManager.render({
-        "blockId": "R-A-17641153-4",
-        "type": "floorAd",
-        "platform": "touch"
-    })
-})
-
 // Дополнительные анимации при загрузке
 document.addEventListener('DOMContentLoaded', function() {
   // Анимация для переключения табов
@@ -1176,5 +1170,27 @@ document.addEventListener('DOMContentLoaded', function() {
     observer.observe(card);
   });
 });
+
+// Яндекс реклама для не-премиум пользователей
+{% if not user.is_authenticated or not user.profile.has_active_premium %}
+// Yandex.RTB R-A-17641153-1
+window.yaContextCb = window.yaContextCb || [];
+window.yaContextCb.push(() => {
+    Ya.Context.AdvManager.render({
+        "blockId": "R-A-17641153-1",
+        "type": "floorAd", 
+        "platform": "desktop"
+    })
+});
+
+// Yandex.RTB R-A-17641153-4
+window.yaContextCb.push(() => {
+    Ya.Context.AdvManager.render({
+        "blockId": "R-A-17641153-4",
+        "type": "floorAd",
+        "platform": "touch"
+    })
+});
+{% endif %}
 </script>
 {% endblock %}

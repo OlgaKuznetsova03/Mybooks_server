@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import date
 
+from typing import List, Sequence, Tuple
+
 from django import forms
 from django.forms import inlineformset_factory
 from django.utils.translation import gettext_lazy as _
@@ -21,6 +23,7 @@ from .models import (
     BloggerRequestResponseComment,
     Collaboration,
     CollaborationMessage,
+    CollaborationStatusUpdate,
 )
 from .validators import validate_epub_attachment
 
@@ -632,3 +635,121 @@ class CollaborationApprovalForm(forms.Form):
         if deadline < date.today():
             raise forms.ValidationError(_("Дата не может быть в прошлом."))
         return deadline
+
+
+class CollaborationStatusForm(forms.ModelForm):
+    """Форма для смены статуса сотрудничества участниками."""
+
+    status = forms.ChoiceField(
+        label=_("Новый статус"),
+        required=True,
+        choices=(),
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+        self.allowed_statuses: List[Tuple[str, str]] = self._resolve_allowed_statuses()
+        field = self.fields["status"]
+        field.choices = self.allowed_statuses
+        if self.instance.pk:
+            field.initial = self.instance.status
+        self.current_status = self.instance.status if self.instance.pk else None
+        self.current_status_label = (
+            dict(Collaboration.Status.choices).get(self.current_status)
+            if self.current_status
+            else None
+        )
+
+    class Meta:
+        model = Collaboration
+        fields = ["status"]
+
+    @staticmethod
+    def _available_for_author() -> Sequence[str]:
+        return (
+            Collaboration.Status.NEGOTIATION,
+            Collaboration.Status.ACTIVE,
+            Collaboration.Status.COMPLETED,
+            Collaboration.Status.FAILED,
+            Collaboration.Status.CANCELLED,
+        )
+
+    @staticmethod
+    def _available_for_partner() -> Sequence[str]:
+        return (
+            Collaboration.Status.NEGOTIATION,
+            Collaboration.Status.ACTIVE,
+            Collaboration.Status.CANCELLED,
+        )
+
+    def _resolve_allowed_statuses(self) -> List[Tuple[str, str]]:
+        instance = self.instance
+        choices_map = dict(Collaboration.Status.choices)
+        if not instance.pk or self.user is None:
+            return []
+        if not instance.is_participant(self.user):
+            return []
+
+        if self.user.id == instance.author_id:
+            codes: Sequence[str] = self._available_for_author()
+        else:
+            codes = self._available_for_partner()
+
+        codes = list(codes)
+        if instance.status not in codes:
+            codes.insert(0, instance.status)
+
+        if not instance.get_review_links():
+            codes = [code for code in codes if code != Collaboration.Status.COMPLETED]
+
+        seen = set()
+        allowed: List[Tuple[str, str]] = []
+        for code in codes:
+            if code in seen:
+                continue
+            label = choices_map.get(code)
+            if label is None:
+                continue
+            seen.add(code)
+            allowed.append((code, label))
+        return allowed
+
+    @property
+    def has_available_options(self) -> bool:
+        return any(code != self.instance.status for code, _ in self.allowed_statuses)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if not self.allowed_statuses:
+            raise forms.ValidationError(
+                _("Вы не можете изменять статус этого сотрудничества."),
+            )
+        return cleaned_data
+
+    def clean_status(self):
+        status = self.cleaned_data["status"]
+        if status == Collaboration.Status.COMPLETED and not self.instance.get_review_links():
+            raise forms.ValidationError(
+                _("Добавьте ссылки на отзывы, прежде чем завершать сотрудничество."),
+            )
+        return status
+
+    def apply(self) -> CollaborationStatusUpdate | None:
+        """Изменяет статус экземпляра и возвращает информацию об обновлении."""
+
+        collaboration = self.instance
+        new_status = self.cleaned_data["status"]
+        if new_status == Collaboration.Status.COMPLETED:
+            return CollaborationStatusUpdate.confirm_completion(
+                collaboration, collaboration.get_review_links()
+            )
+        if new_status == Collaboration.Status.FAILED:
+            return CollaborationStatusUpdate.mark_failed(collaboration)
+
+        collaboration.status = new_status
+        if new_status != Collaboration.Status.COMPLETED and collaboration.completed_at:
+            collaboration.completed_at = None
+        collaboration.save(update_fields=["status", "updated_at", "completed_at"])
+        return None

@@ -120,8 +120,17 @@
     </a>
   </div>
 </div>
-<!-- Yandex.RTB R-A-17641153-2 -->
-<div id="yandex_rtb_R-A-17641153-2"></div>
+{% if not user.profile.has_active_premium %}
+<!-- Yandex.RTB R-A-17641153-1 -->
+<script>
+window.yaContextCb.push(() => {
+    Ya.Context.AdvManager.render({
+        "blockId": "R-A-17641153-1",
+        "type": "floorAd",
+        "platform": "desktop"
+    })
+})
+</script>
 <!-- Yandex.RTB R-A-17641153-4 -->
 <script>
 window.yaContextCb.push(() => {
@@ -132,4 +141,5 @@ window.yaContextCb.push(() => {
     })
 })
 </script>
+{% endif %}
 {% endblock %}

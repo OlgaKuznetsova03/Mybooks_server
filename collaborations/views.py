@@ -24,15 +24,15 @@ from .forms import (
     BloggerGiveawayForm,
     BloggerInvitationForm,
     CommunityBookClubForm,
-    BloggerPlatformPresenceFormSet,
     BloggerRequestForm,
+    BloggerPlatformPresenceFormSet,
     BloggerRequestResponseAcceptForm,
     BloggerRequestResponseCommentForm,
     BloggerRequestResponseForm,
     CollaborationApprovalForm,
+    CollaborationStatusForm,
     CollaborationReviewForm,
     CollaborationMessageForm,
-    CollaborationStatusForm,
 )
 from .models import (
     AuthorOffer,
@@ -1610,27 +1610,16 @@ class CollaborationDetailView(LoginRequiredMixin, View):
         )
         return False
 
-    def _get_status_form(
-        self,
-        collaboration: Collaboration,
-        user: User,
-        data: dict | None = None,
-    ) -> CollaborationStatusForm | None:
-        if getattr(user, "id", None) != collaboration.author_id:
-            return None
-        return CollaborationStatusForm(data=data, instance=collaboration)
-
     def _get_context(
         self,
         collaboration: Collaboration,
-        form: CollaborationMessageForm,
-        *,
-        status_form: CollaborationStatusForm | None = None,
+        message_form: CollaborationMessageForm,
+        status_form: CollaborationStatusForm,
     ):
         return {
             "collaboration": collaboration,
             "conversation_messages": collaboration.messages.select_related("author"),
-            "form": form,
+            "form": message_form,
             "status_form": status_form,
             "can_post": collaboration.allows_discussion(),
             "deadline_passed": collaboration.deadline < timezone.now().date(),
@@ -1641,52 +1630,134 @@ class CollaborationDetailView(LoginRequiredMixin, View):
         if not self._ensure_participant(request, collaboration):
             return redirect("collaborations:collaboration_list")
         collaboration.mark_read(request.user)
-        form = CollaborationMessageForm(collaboration=collaboration, user=request.user)
-        status_form = self._get_status_form(collaboration, request.user)
+        message_form = CollaborationMessageForm(
+            collaboration=collaboration,
+            user=request.user,
+        )
+        status_form = CollaborationStatusForm(
+            instance=collaboration,
+            user=request.user,
+        )
         return render(
             request,
             self.template_name,
-            self._get_context(collaboration, form, status_form=status_form),
+            self._get_context(collaboration, message_form, status_form),
         )
 
     def post(self, request, pk: int):
         collaboration = self.get_object(pk)
         if not self._ensure_participant(request, collaboration):
             return redirect("collaborations:collaboration_list")
+        action = request.POST.get("action", "message")
 
-        action = request.POST.get("action")
         if action == "update_status":
-            status_form = self._get_status_form(
-                collaboration,
-                request.user,
-                data=request.POST,
+            status_form = CollaborationStatusForm(
+                request.POST,
+                instance=collaboration,
+                user=request.user,
             )
-            if status_form is None:
-                messages.error(
-                    request,
-                    _("Только автор может менять статус сотрудничества."),
-                )
-                return redirect("collaborations:collaboration_detail", pk=collaboration.pk)
-
             message_form = CollaborationMessageForm(
                 collaboration=collaboration,
                 user=request.user,
             )
             if status_form.is_valid():
-                if status_form.has_changed():
-                    updated_collaboration = status_form.save()
-                    updated_collaboration.register_activity(request.user)
-                    messages.success(request, _("Статус сотрудничества обновлён."))
-                else:
-                    messages.info(request, _("Статус сотрудничества не изменился."))
-                return redirect("collaborations:collaboration_detail", pk=collaboration.pk)
+                return self._handle_status_update(request, collaboration, status_form)
 
-            context = self._get_context(
-                collaboration,
-                message_form,
-                status_form=status_form,
-            )
+            collaboration.mark_read(request.user)
+            context = self._get_context(collaboration, message_form, status_form)
             return render(request, self.template_name, context, status=400)
+
+        message_form = CollaborationMessageForm(
+            request.POST,
+            request.FILES,
+            collaboration=collaboration,
+            user=request.user,
+        )
+        status_form = CollaborationStatusForm(
+            instance=collaboration,
+            user=request.user,
+        )
+
+        if not collaboration.allows_discussion():
+            messages.error(
+                request,
+                _("Переписка недоступна: сотрудничество завершено или отменено."),
+            )
+            return redirect("collaborations:collaboration_detail", pk=collaboration.pk)
+
+        if message_form.is_valid():
+            message = message_form.save(commit=False)
+            message.collaboration = collaboration
+            message.author = request.user
+            message.save()
+            collaboration.register_activity(request.user, message.created_at)
+            messages.success(request, _("Сообщение отправлено."))
+            return redirect("collaborations:collaboration_detail", pk=collaboration.pk)
+
+        collaboration.mark_read(request.user)
+        context = self._get_context(collaboration, message_form, status_form)
+        return render(request, self.template_name, context, status=400)
+
+    def _handle_status_update(
+        self,
+        request,
+        collaboration: Collaboration,
+        form: CollaborationStatusForm,
+    ):
+        if not form.allowed_statuses:
+            messages.error(
+                request,
+                _("Вы не можете изменять статус этого сотрудничества."),
+            )
+            return redirect("collaborations:collaboration_detail", pk=collaboration.pk)
+
+        new_status = form.cleaned_data["status"]
+        if new_status == collaboration.status:
+            messages.info(request, _("Статус сотрудничества не изменился."))
+            return redirect("collaborations:collaboration_detail", pk=collaboration.pk)
+
+        update = form.apply()
+        collaboration.register_activity(request.user)
+
+        if new_status == Collaboration.Status.COMPLETED:
+            collaboration.author_confirmed = True
+            collaboration.save(update_fields=["author_confirmed"])
+            if update and update.rating_change is not None:
+                messages.success(
+                    request,
+                    _(
+                        "Сотрудничество завершено. Рейтинг блогера изменился на %(delta)s баллов."
+                    )
+                    % {"delta": update.rating_change},
+                )
+            else:
+                messages.success(request, _("Сотрудничество завершено."))
+        elif new_status == Collaboration.Status.FAILED:
+            if update and update.rating_change is not None:
+                messages.warning(
+                    request,
+                    _(
+                        "Сотрудничество отмечено как просроченное. Рейтинг блогера изменился на %(delta)s баллов."
+                    )
+                    % {"delta": update.rating_change},
+                    extra_tags="warning",
+                )
+            else:
+                messages.warning(
+                    request,
+                    _("Сотрудничество отмечено как просроченное."),
+                    extra_tags="warning",
+                )
+        elif new_status == Collaboration.Status.CANCELLED:
+            messages.info(request, _("Сотрудничество отменено."))
+        elif new_status == Collaboration.Status.ACTIVE:
+            messages.success(request, _("Сотрудничество отмечено как активное."))
+        elif new_status == Collaboration.Status.NEGOTIATION:
+            messages.success(request, _("Сотрудничество вернулось к стадии переговоров."))
+        else:
+            messages.success(request, _("Статус сотрудничества обновлён."))
+
+        return redirect("collaborations:collaboration_detail", pk=collaboration.pk)
 
         form = CollaborationMessageForm(
             request.POST,

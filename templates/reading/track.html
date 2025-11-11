@@ -1677,6 +1677,8 @@ function confetti(options) {
 </script>
 
 <!-- Yandex.RTB R-A-17641153-1 -->
+{% if not user.profile.has_active_premium %}
+<!-- Yandex.RTB R-A-17641153-1 -->
 <script>
 window.yaContextCb.push(() => {
     Ya.Context.AdvManager.render({
@@ -1696,4 +1698,5 @@ window.yaContextCb.push(() => {
     })
 })
 </script>
+{% endif %}
 {% endblock %}

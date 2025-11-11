@@ -12,7 +12,7 @@ from django.urls import reverse
 
 from books.models import Book
 
-from .forms import AuthorOfferForm, BloggerRequestForm
+from .forms import AuthorOfferForm, BloggerRequestForm, CollaborationStatusForm
 from .models import (
     AuthorOffer,
     AuthorOfferResponse,
@@ -282,6 +282,57 @@ class BloggerRequestUpdateViewTests(TestCase):
         url = reverse("collaborations:blogger_request_edit", args=[self.request_obj.pk])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
+
+
+class CollaborationStatusFormTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        author_group, _ = Group.objects.get_or_create(name="author")
+        blogger_group, _ = Group.objects.get_or_create(name="blogger")
+
+        self.author = user_model.objects.create_user(
+            username="status_author",
+            password="password123",
+            email="status-author@example.com",
+        )
+        self.author.groups.add(author_group)
+
+        self.partner = user_model.objects.create_user(
+            username="status_partner",
+            password="password123",
+            email="status-partner@example.com",
+        )
+        self.partner.groups.add(blogger_group)
+
+        self.collaboration = Collaboration.objects.create(
+            author=self.author,
+            partner=self.partner,
+            deadline=date.today(),
+            status=Collaboration.Status.ACTIVE,
+            partner_confirmed=True,
+            author_confirmed=True,
+        )
+
+    def test_author_sees_completion_option_when_links_present(self):
+        self.collaboration.review_links = "https://example.com/review"
+        self.collaboration.save(update_fields=["review_links"])
+
+        form = CollaborationStatusForm(instance=self.collaboration, user=self.author)
+        status_codes = [code for code, _ in form.allowed_statuses]
+        self.assertIn(Collaboration.Status.COMPLETED, status_codes)
+
+    def test_author_cannot_complete_without_links(self):
+        form = CollaborationStatusForm(instance=self.collaboration, user=self.author)
+        status_codes = [code for code, _ in form.allowed_statuses]
+        self.assertNotIn(Collaboration.Status.COMPLETED, status_codes)
+
+    def test_partner_does_not_see_completion_status(self):
+        self.collaboration.review_links = "https://example.com/review"
+        self.collaboration.save(update_fields=["review_links"])
+
+        form = CollaborationStatusForm(instance=self.collaboration, user=self.partner)
+        status_codes = [code for code, _ in form.allowed_statuses]
+        self.assertNotIn(Collaboration.Status.COMPLETED, status_codes)
 
 
 class OfferResponseViewsTests(TestCase):

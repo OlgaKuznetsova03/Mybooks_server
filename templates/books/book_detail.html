@@ -890,6 +890,7 @@
     });
   });
 </script>
+{% if not user.profile.has_active_premium %}
 <!-- Yandex.RTB R-A-17641153-1 -->
 <script>
 window.yaContextCb.push(() => {
@@ -910,4 +911,5 @@ window.yaContextCb.push(() => {
     })
 })
 </script>
+{% endif %}
 {% endblock %}
