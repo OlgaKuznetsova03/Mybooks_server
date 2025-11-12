@@ -1,11 +1,9 @@
 import json
-from decimal import Decimal
-
-from django.conf import settings
-import json
 from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import patch
+
+from django.conf import settings
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -652,6 +650,7 @@ class PremiumCreatePaymentViewTests(TestCase):
                 "payment_method": PremiumPayment.PaymentMethod.YOOMONEY,
                 "agree_offer": "on",
             },
+        )
 
         self.assertRedirects(
             response,
@@ -707,3 +706,56 @@ class YooKassaWebhookTests(TestCase):
         self.assertEqual(payment.status, PremiumPayment.Status.PAID)
         self.assertIsNotNone(payment.paid_at)
         self.assertIsNotNone(payment.subscription)
+
+@override_settings(YOOKASSA_SHOP_ID="test_shop", YOOKASSA_SECRET_KEY="test_secret")
+class YooKassaHTTPFallbackTests(TestCase):
+    @patch("accounts.yookassa.Configuration", new=None)
+    @patch("accounts.yookassa.Payment", new=None)
+    @patch("accounts.yookassa.urllib_request.urlopen")
+    def test_create_payment_without_sdk_uses_http(self, mock_urlopen):
+        from accounts import yookassa
+
+        response_payload = {
+            "id": "123456",
+            "status": "pending",
+            "amount": {"value": "10.50", "currency": "RUB"},
+            "confirmation": {
+                "type": "redirect",
+                "confirmation_url": "https://example.com/pay",
+            },
+        }
+
+        class DummyResponse:
+            def __init__(self, body: str) -> None:
+                self._body = body.encode("utf-8")
+
+            def read(self) -> bytes:
+                return self._body
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        mock_urlopen.return_value = DummyResponse(json.dumps(response_payload))
+
+        result = yookassa.create_payment(
+            amount=Decimal("10.50"),
+            currency="RUB",
+            return_url="https://example.com/return",
+            description="Test payment",
+            metadata={"order": "42"},
+            idempotence_key="idem-key",
+        )
+
+        self.assertEqual(result.payment_id, "123456")
+        self.assertEqual(result.confirmation_url, "https://example.com/pay")
+        self.assertEqual(result.payload, response_payload)
+        self.assertEqual(result.idempotence_key, "idem-key")
+
+        request = mock_urlopen.call_args[0][0]
+        self.assertEqual(request.get_full_url(), "https://api.yookassa.ru/v3/payments")
+        self.assertEqual(request.get_method(), "POST")
+        self.assertEqual(request.headers.get("Idempotence-key"), "idem-key")
+        self.assertTrue(request.get_header("Authorization").startswith("Basic "))
