@@ -4,6 +4,7 @@ import calendar
 import json
 import math
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, redirect, get_object_or_404
 
 from django.conf import settings
@@ -1308,6 +1309,60 @@ def _parse_provider_datetime(value):
     return parsed
 
 
+def _resolve_premium_payment(payment_id, metadata):
+    metadata = metadata or {}
+    queryset = PremiumPayment.objects.select_related("user")
+
+    if payment_id:
+        try:
+            return queryset.get(provider_payment_id=payment_id)
+        except PremiumPayment.DoesNotExist:
+            pass
+
+    payment_pk = metadata.get("premium_payment_id")
+    if payment_pk not in (None, ""):
+        try:
+            return queryset.get(pk=int(payment_pk))
+        except (ValueError, PremiumPayment.DoesNotExist):
+            pass
+
+    reference = metadata.get("reference")
+    if reference:
+        try:
+            return queryset.get(reference=reference)
+        except PremiumPayment.DoesNotExist:
+            pass
+
+    return None
+
+
+def _normalize_metadata_flag(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"1", "true", "yes", "y", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "n", "off"}:
+            return False
+    return None
+
+
+def _apply_auto_renew_from_metadata(payment, metadata):
+    auto_renew_flag = _normalize_metadata_flag(metadata.get("auto_renew"))
+    if auto_renew_flag is None:
+        return
+    try:
+        profile = payment.user.profile
+    except ObjectDoesNotExist:
+        return
+    if profile.premium_auto_renew != auto_renew_flag:
+        profile.premium_auto_renew = auto_renew_flag
+        profile.save(update_fields=["premium_auto_renew"])
+
+
 @csrf_exempt
 @require_POST
 def yookassa_webhook(request):
@@ -1322,14 +1377,16 @@ def yookassa_webhook(request):
     if not payment_id:
         return JsonResponse({"error": "missing_payment_id"}, status=400)
 
-    try:
-        payment = PremiumPayment.objects.select_related("user").get(
-            provider_payment_id=payment_id
-        )
-    except PremiumPayment.DoesNotExist:
+    metadata = data.get("metadata") or {}
+    payment = _resolve_premium_payment(payment_id, metadata)
+    if payment is None:
         return JsonResponse({"status": "not_found"}, status=404)
 
     payment.provider_payload = payload
+    update_fields = {"provider_payload", "updated_at"}
+    if payment.provider_payment_id != payment_id:
+        payment.provider_payment_id = payment_id
+        update_fields.add("provider_payment_id")
 
     if event == "payment.succeeded":
         paid_at = (
@@ -1339,17 +1396,22 @@ def yookassa_webhook(request):
         )
         if paid_at:
             payment.paid_at = paid_at
+            update_fields.add("paid_at")
         payment.status = PremiumPayment.Status.PAID
-        payment.save()
-    elif event == "payment.canceled":
+        update_fields.add("status")
+        payment.save(update_fields=list(update_fields))
+        _apply_auto_renew_from_metadata(payment, metadata)
+    elif event in {"payment.canceled", "payment.expired"}:
         cancellation_details = data.get("cancellation_details") or {}
         reason = cancellation_details.get("reason")
         if reason:
             payment.notes = reason
+            update_fields.add("notes")
         payment.status = PremiumPayment.Status.CANCELLED
-        payment.save()
+        update_fields.add("status")
+        payment.save(update_fields=list(update_fields))
     else:
-        payment.save(update_fields=["provider_payload", "updated_at"])
+        payment.save(update_fields=list(update_fields))
 
     return JsonResponse({"status": "ok"})
 
