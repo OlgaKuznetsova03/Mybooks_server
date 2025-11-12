@@ -40,11 +40,11 @@ from user_ratings.models import LeaderboardPeriod, UserPointEvent
 
 from .forms import SignUpForm, ProfileForm, RoleForm, PremiumPurchaseForm
 from .models import YANDEX_AD_REWARD_COINS
-# from .yookassa import (
-#    YooKassaConfigurationError,
-#    YooKassaPaymentError,
-#    create_payment as yookassa_create_payment,
-#)
+from .yookassa import (
+    YooKassaConfigurationError,
+    YooKassaPaymentError,
+    create_payment as yookassa_create_payment,
+)
 
 from games.models import (
     BookExchangeChallenge,
@@ -1210,9 +1210,8 @@ def premium_create_payment(request):
         settings.YOOKASSA_RETURN_URL
         or request.build_absolute_uri(reverse("premium_overview"))
     )
-    description = (
-        f"Подписка MyBooks — {payment.get_plan_display()} (#{payment.reference})"
-    )
+    description = f"Подписка Калейдоскоп книг — 1 месяц (#{payment.reference})"
+    save_payment_method = bool(profile.premium_auto_renew)
     metadata = {
         "premium_payment_id": payment.pk,
         "premium_plan": payment.plan,

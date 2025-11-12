@@ -627,7 +627,7 @@ class PremiumCreatePaymentViewTests(TestCase):
         response = self.client.post(
             reverse("premium_create_payment"),
             {
-                "plan": PremiumPayment.Plan.MONTH,
+                "plan": PremiumPayment.Plan.SUBSCRIPTION_300,
                 "payment_method": PremiumPayment.PaymentMethod.YOOMONEY,
             },
         )
@@ -648,11 +648,10 @@ class PremiumCreatePaymentViewTests(TestCase):
         response = self.client.post(
             reverse("premium_create_payment"),
             {
-                "plan": PremiumPayment.Plan.MONTH,
+                "plan": PremiumPayment.Plan.SUBSCRIPTION_300,
                 "payment_method": PremiumPayment.PaymentMethod.YOOMONEY,
                 "agree_offer": "on",
             },
-        )
 
         self.assertRedirects(
             response,
@@ -680,7 +679,7 @@ class YooKassaWebhookTests(TestCase):
         )
         payment = PremiumPayment.objects.create(
             user=user,
-            plan=PremiumPayment.Plan.MONTH,
+            plan=PremiumPayment.Plan.SUBSCRIPTION_300,
             method=PremiumPayment.PaymentMethod.YOOMONEY,
             amount=Decimal("300.00"),
             status=PremiumPayment.Status.PENDING,

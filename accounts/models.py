@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
+from functools import lru_cache
 from datetime import timedelta
 from decimal import Decimal
 
@@ -10,6 +11,9 @@ from django.core.validators import MinValueValidator
 from django.db import models, transaction
 from django.db.models import F
 from django.utils import timezone
+from django.conf import settings
+from django.core.signals import setting_changed
+from django.dispatch import receiver
 
 
 WELCOME_BONUS_COINS = 100
@@ -213,15 +217,52 @@ class PremiumPayment(models.Model):
 
     class Plan(models.TextChoices):
         MONTH = ("month", "1 месяц")
+        SUBSCRIPTION_300 = (
+            "subscription_300",
+            getattr(settings, "PREMIUM_PLAN_LABEL", "Подписка 300 ₽"),
+        )
 
-    PLAN_CONFIGURATION: dict[str, PremiumPlan] = {
-        Plan.MONTH: PremiumPlan(
-            code=Plan.MONTH,
-            label="1 месяц",
-            duration=timedelta(days=30),
-            price=Decimal("300.00"),
-        ),
-    }
+    @classmethod
+    @lru_cache(maxsize=1)
+    def plan_configuration(cls) -> dict[str, PremiumPlan]:
+        configured_price = getattr(settings, "PREMIUM_PLAN_PRICE", Decimal("300.00"))
+        configured_label = getattr(settings, "PREMIUM_PLAN_LABEL", "Подписка 300 ₽")
+        configured_duration = getattr(settings, "PREMIUM_PLAN_DURATION_DAYS", 30)
+
+        return {
+            cls.Plan.MONTH: PremiumPlan(
+                code=cls.Plan.MONTH,
+                label="1 месяц",
+                duration=timedelta(days=30),
+                price=Decimal("300.00"),
+            ),
+            cls.Plan.SUBSCRIPTION_300: PremiumPlan(
+                code=cls.Plan.SUBSCRIPTION_300,
+                label=configured_label,
+                duration=timedelta(days=int(configured_duration)),
+                price=Decimal(configured_price),
+            ),
+        }
+
+    @classmethod
+    @lru_cache(maxsize=1)
+    def available_plan_codes(cls) -> tuple[str, ...]:
+        configured_codes = getattr(settings, "PREMIUM_PLAN_AVAILABLE_CODES", None)
+        plan_configuration = cls.plan_configuration()
+
+        if configured_codes:
+            normalized: list[str] = []
+            for code in configured_codes:
+                code_str = str(code)
+                if code_str in plan_configuration:
+                    normalized.append(code_str)
+            if normalized:
+                return tuple(normalized)
+
+        # Fall back to the new subscription plan while keeping legacy plans resolvable.
+        return (cls.Plan.SUBSCRIPTION_300,)
+
+    AVAILABLE_PLAN_CODES: tuple[str, ...] = (Plan.SUBSCRIPTION_300,)
 
     user = models.ForeignKey(
         User,
@@ -264,15 +305,25 @@ class PremiumPayment(models.Model):
 
     @classmethod
     def get_plan(cls, code: str) -> PremiumPlan:
-        plan = cls.PLAN_CONFIGURATION.get(code)
+        plan = cls.plan_configuration().get(str(code))
         if not plan:
             raise ValueError(f"Unknown premium plan: {code}")
         return plan
 
     @classmethod
     def get_plan_choices_with_price(cls):
-        for plan in cls.PLAN_CONFIGURATION.values():
-            yield (plan.code, f"{plan.label} — {plan.price} ₽")
+        for code in cls.available_plan_codes():
+            plan = cls.get_plan(code)
+            price_display = format(plan.price.normalize(), "f")
+            price_text = f"{price_display} ₽"
+            label = plan.label
+            if price_text not in label:
+                label = f"{label} — {price_text}"
+            yield (plan.code, label)
+
+    def get_plan_display(self):
+        plan = self.get_plan(self.plan)
+        return plan.label
 
     def get_plan_duration(self) -> timedelta:
         return self.get_plan(self.plan).duration
@@ -377,3 +428,15 @@ class PremiumSubscription(models.Model):
 
     def remaining_timedelta(self):
         return max(self.end_at - timezone.now(), timedelta())
+
+
+@receiver(setting_changed)
+def _refresh_premium_plan_cache(sender, setting, **kwargs):
+    if setting in {
+        "PREMIUM_PLAN_PRICE",
+        "PREMIUM_PLAN_LABEL",
+        "PREMIUM_PLAN_DURATION_DAYS",
+        "PREMIUM_PLAN_AVAILABLE_CODES",
+    }:
+        PremiumPayment.plan_configuration.cache_clear()
+        PremiumPayment.available_plan_codes.cache_clear()

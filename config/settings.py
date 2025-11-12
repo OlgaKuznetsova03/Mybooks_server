@@ -14,6 +14,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse, unquote
 import sys
 import os
+from decimal import Decimal, InvalidOperation
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -67,6 +68,67 @@ def env_int(*names: str, default: int = 0, min_value: int | None = None) -> int:
         return parsed
 
     return default
+
+
+def env_decimal(
+    *names: str,
+    default: str | Decimal = "0",
+    min_value: Decimal | None = None,
+) -> Decimal:
+    if not names:
+        raise ValueError("At least one environment variable name must be provided")
+
+    if isinstance(default, Decimal):
+        default_decimal = default
+    else:
+        default_decimal = Decimal(str(default))
+
+    for name in names:
+        value = os.getenv(name)
+        if value is None or value == "":
+            continue
+        try:
+            parsed = Decimal(value)
+        except (InvalidOperation, ValueError):
+            print(
+                f"⚠️  Invalid decimal for {name}={value!r} – using default {default_decimal}",
+            )
+            return default_decimal
+
+        if min_value is not None and parsed < min_value:
+            print(
+                f"⚠️  {name} is below the minimum of {min_value}; using {min_value}",
+            )
+            return max(default_decimal, min_value)
+
+        return parsed
+
+    return default_decimal
+
+
+PREMIUM_PLAN_PRICE = env_decimal(
+    "PREMIUM_PLAN_PRICE",
+    default="300.00",
+    min_value=Decimal("0.00"),
+)
+PREMIUM_PLAN_DURATION_DAYS = env_int(
+    "PREMIUM_PLAN_DURATION_DAYS",
+    default=30,
+    min_value=1,
+)
+_premium_price_display = format(PREMIUM_PLAN_PRICE.normalize(), "f")
+PREMIUM_PLAN_LABEL = os.getenv(
+    "PREMIUM_PLAN_LABEL",
+    f"Подписка {_premium_price_display} ₽",
+)
+PREMIUM_PLAN_AVAILABLE_CODES = tuple(
+    code.strip()
+    for code in os.getenv(
+        "PREMIUM_PLAN_AVAILABLE_CODES",
+        "subscription_300",
+    ).split(",")
+    if code.strip()
+) or ("subscription_300",)
 
 
 # Provide a minimal Pillow stub for environments where the library is unavailable
