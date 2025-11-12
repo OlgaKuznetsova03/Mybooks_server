@@ -224,7 +224,7 @@ class PremiumPurchaseForm(forms.Form):
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
-        splan_choices = list(PremiumPayment.get_plan_choices_with_price())
+        plan_choices = list(PremiumPayment.get_plan_choices_with_price())
         self.fields["plan"].choices = plan_choices
         if plan_choices:
             self.fields["plan"].initial = plan_choices[0][0]
