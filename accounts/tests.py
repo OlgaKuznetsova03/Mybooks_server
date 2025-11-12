@@ -2,35 +2,38 @@ import json
 from decimal import Decimal
 
 from django.conf import settings
+import json
+from datetime import timedelta
+from decimal import Decimal
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
-from django.contrib.messages import get_messages
 from django.contrib.auth.models import Group
 from django.contrib.auth.tokens import default_token_generator
+from django.contrib.messages import get_messages
 from django.core import mail
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
-
-from datetime import timedelta
-
-from django.utils import timezone
 
 from accounts.forms import SignUpForm
 from accounts.models import (
     DAILY_LOGIN_REWARD_COINS,
     WELCOME_BONUS_COINS,
     CoinTransaction,
+    PremiumPayment,
     PremiumSubscription,
     Profile,
     YANDEX_AD_REWARD_COINS,
 )
+from accounts.views import _collect_profile_stats
+from accounts.yookassa import YooKassaPaymentResult
 from books.models import Author, Book
+from games.models import NobelLaureateAssignment
 from shelves.models import BookProgress, Shelf, ShelfItem, ReadingLog
 from shelves.services import DEFAULT_READ_SHELF
-
-from accounts.views import _collect_profile_stats
-from games.models import NobelLaureateAssignment
 
 
 @override_settings(
@@ -600,3 +603,108 @@ class RewardAdApiTests(TestCase):
         )
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.json()["error"], "reward_unavailable")
+
+
+@override_settings(
+    SECURE_SSL_REDIRECT=False,
+    SESSION_COOKIE_SECURE=False,
+    CSRF_COOKIE_SECURE=False,
+)
+class PremiumCreatePaymentViewTests(TestCase):
+    def setUp(self):
+        self.client.defaults["HTTP_HOST"] = "localhost"
+        self.client.defaults["wsgi.url_scheme"] = "https"
+        self.client.defaults["HTTP_X_FORWARDED_PROTO"] = "https"
+        self.user = get_user_model().objects.create_user(
+            username="buyer",
+            email="buyer@example.com",
+            password="BuyerPass123!",
+        )
+
+    @patch("accounts.views.yookassa_create_payment")
+    def test_requires_offer_agreement(self, create_payment_mock):
+        self.client.login(username=self.user.username, password="BuyerPass123!")
+        response = self.client.post(
+            reverse("premium_create_payment"),
+            {
+                "plan": PremiumPayment.Plan.MONTH,
+                "payment_method": PremiumPayment.PaymentMethod.YOOMONEY,
+            },
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("invalid-feedback", response.content.decode())
+        create_payment_mock.assert_not_called()
+
+    @patch("accounts.views.yookassa_create_payment")
+    def test_success_redirects_to_confirmation_url(self, create_payment_mock):
+        self.client.login(username=self.user.username, password="BuyerPass123!")
+        create_payment_mock.return_value = YooKassaPaymentResult(
+            payment_id="pay_test",
+            confirmation_url="https://example.com/confirm",
+            payload={"id": "pay_test"},
+            idempotence_key="idem123",
+        )
+
+        response = self.client.post(
+            reverse("premium_create_payment"),
+            {
+                "plan": PremiumPayment.Plan.MONTH,
+                "payment_method": PremiumPayment.PaymentMethod.YOOMONEY,
+                "agree_offer": "on",
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            "https://example.com/confirm",
+            fetch_redirect_response=False,
+        )
+        payment = self.user.premium_payments.latest("created_at")
+        self.assertEqual(payment.provider_payment_id, "pay_test")
+        self.assertEqual(payment.confirmation_url, "https://example.com/confirm")
+        self.assertEqual(payment.idempotence_key, "idem123")
+        self.assertEqual(payment.provider_payload.get("id"), "pay_test")
+
+
+@override_settings(
+    SECURE_SSL_REDIRECT=False,
+    SESSION_COOKIE_SECURE=False,
+    CSRF_COOKIE_SECURE=False,
+)
+class YooKassaWebhookTests(TestCase):
+    def test_payment_succeeded_marks_paid(self):
+        user = get_user_model().objects.create_user(
+            username="subscriber",
+            email="sub@example.com",
+            password="SubPass123!",
+        )
+        payment = PremiumPayment.objects.create(
+            user=user,
+            plan=PremiumPayment.Plan.MONTH,
+            method=PremiumPayment.PaymentMethod.YOOMONEY,
+            amount=Decimal("300.00"),
+            status=PremiumPayment.Status.PENDING,
+            provider_payment_id="pay_success",
+        )
+
+        payload = {
+            "event": "payment.succeeded",
+            "object": {
+                "id": "pay_success",
+                "status": "succeeded",
+                "amount": {"value": "300.00", "currency": "RUB"},
+                "captured_at": "2024-05-06T12:34:56.000Z",
+            },
+        }
+
+        response = self.client.post(
+            reverse("yookassa_webhook"),
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, PremiumPayment.Status.PAID)
+        self.assertIsNotNone(payment.paid_at)
+        self.assertIsNotNone(payment.subscription)

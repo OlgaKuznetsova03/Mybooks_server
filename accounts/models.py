@@ -204,7 +204,7 @@ class CoinTransaction(models.Model):
 
 class PremiumPayment(models.Model):
     class PaymentMethod(models.TextChoices):
-        YOOMONEY = ("yoomoney", "ЮMoney кошелёк")
+        YOOMONEY = ("yoomoney", "YooKassa")
 
     class Status(models.TextChoices):
         PENDING = ("pending", "Ожидает оплаты")
@@ -242,6 +242,15 @@ class PremiumPayment(models.Model):
     )
     currency = models.CharField(max_length=3, default="RUB")
     reference = models.CharField(max_length=40, unique=True, editable=False)
+    provider_payment_id = models.CharField(
+        max_length=64,
+        blank=True,
+        null=True,
+        unique=True,
+    )
+    confirmation_url = models.URLField(blank=True)
+    idempotence_key = models.CharField(max_length=36, blank=True)
+    provider_payload = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     paid_at = models.DateTimeField(blank=True, null=True)
@@ -291,6 +300,8 @@ class PremiumPayment(models.Model):
             self.amount = self.get_plan(self.plan).price
         if not self.currency:
             self.currency = "RUB"
+        if self.provider_payload is None:
+            self.provider_payload = {}
         super().save(*args, **kwargs)
 
         status_changed_to_paid = (

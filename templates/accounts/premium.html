@@ -82,10 +82,46 @@
           <li class="mb-2">Подтвердите ежемесячный платеж на 300 ₽.</li>
           <li class="mb-0">После успешной оплаты премиум активируется автоматически. Если что-то пошло не так, напишите нам в поддержку.</li>
         </ol>
-        <a class="btn btn-primary" href="{{ premium_checkout_url }}" target="_blank" rel="noopener">
-          Оформить подписку в YooKassa
-        </a>
-        <p class="small text-muted mt-3">Управлять подпиской и отменять автопродление можно в личном кабинете YooKassa.</p>
+        {% if purchase_form.non_field_errors %}
+        <div class="alert alert-danger">
+          {% for error in purchase_form.non_field_errors %}
+          <div>{{ error }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        <form method="post" action="{% url 'premium_create_payment' %}" class="mb-3">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label" for="{{ purchase_form.plan.id_for_label }}">{{ purchase_form.plan.label }}</label>
+            {{ purchase_form.plan }}
+            {% for error in purchase_form.plan.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+          <div class="mb-3">
+            <span class="form-label d-block">{{ purchase_form.payment_method.label }}</span>
+            {% for radio in purchase_form.payment_method %}
+            <div class="form-check">
+              {{ radio.tag }}
+              <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+            </div>
+            {% endfor %}
+            {% for error in purchase_form.payment_method.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+          <div class="form-check mb-4">
+            {{ purchase_form.agree_offer }}
+            <label class="form-check-label" for="{{ purchase_form.agree_offer.id_for_label }}">
+              {{ purchase_form.agree_offer.label }}
+            </label>
+            {% for error in purchase_form.agree_offer.errors %}
+            <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+          <button class="btn btn-primary" type="submit">Перейти к оплате в YooKassa</button>
+        </form>
+        <p class="small text-muted">Управлять подпиской и отменять автопродление можно в личном кабинете YooKassa.</p>
         <div id="premium-offer" class="mt-4 border rounded-3 p-3 bg-body-tertiary">
           <h3 class="h6 mb-3">🧾 Публичная оферта на заключение договора оказания услуг (подписка)</h3>
           <p class="mb-2"><strong>1. Общие положения</strong></p>
@@ -129,7 +165,7 @@
           <p class="mb-2">11.1. Все споры решаются путём переговоров. В случае невозможности урегулирования — в судебном порядке по месту нахождения Исполнителя.</p>
           <p class="mb-2">11.2. Во всём остальном стороны руководствуются действующим законодательством Российской Федерации.</p>
           <p class="mb-2"><strong>12. Реквизиты Исполнителя</strong></p>
-          <p class="mb-0">Кузнецов Сергей Валентиновис<br>ИНН 774391787507<br>Юридический адрес: 125130 Москва, 3-й Новоподмосковный пер. д.8 корп.1 кв. 11<br>E-mail для связи: info@kalejdoskopknig.ru</p>
+          <p class="mb-0">Кузнецов Сергей Валентинович<br>ИНН 774391787507<br>Юридический адрес: 125130 Москва, 3-й Новоподмосковный пер. д.8 корп.1 кв. 11<br>E-mail для связи: info@kalejdoskopknig.ru</p>
         </div>
       </div>
     </div>

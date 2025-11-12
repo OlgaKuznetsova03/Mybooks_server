@@ -41,7 +41,16 @@ class PremiumPaymentAdmin(admin.ModelAdmin):
     list_filter = ("status", "method", "plan")
     search_fields = ("user__username", "user__email", "reference")
     autocomplete_fields = ("user",)
-    readonly_fields = ("created_at", "updated_at", "paid_at", "reference")
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+        "paid_at",
+        "reference",
+        "provider_payment_id",
+        "idempotence_key",
+        "confirmation_url",
+        "provider_payload",
+    )
     actions = ("mark_selected_as_paid",)
 
     @admin.action(description="Отметить как оплаченные и активировать премиум")

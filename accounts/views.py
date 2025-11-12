@@ -16,6 +16,7 @@ from django.db.models import Count, Sum, Prefetch
 from django.http import JsonResponse, Http404, HttpResponse, QueryDict
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.utils.text import slugify
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
@@ -39,6 +40,11 @@ from user_ratings.models import LeaderboardPeriod, UserPointEvent
 
 from .forms import SignUpForm, ProfileForm, RoleForm, PremiumPurchaseForm
 from .models import YANDEX_AD_REWARD_COINS
+# from .yookassa import (
+#    YooKassaConfigurationError,
+#    YooKassaPaymentError,
+#    create_payment as yookassa_create_payment,
+#)
 
 from games.models import (
     BookExchangeChallenge,
@@ -79,12 +85,6 @@ WEEKDAY_LABELS = [
     "Сб",
     "Вс",
 ]
-
-YOO_KASSA_CHECKOUT_URL = (
-    "https://yookassa.ru/yooid/signup/step/phone?origin=Checkout&returnUrl="
-    "https%3A%2F%2Fyookassa.ru%2Fjoinups%2F%3Fsource%3Dpayouts"
-)
-
 
 MARATHON_STATUS_LABELS = {
     "upcoming": "Скоро старт",
@@ -1123,12 +1123,37 @@ def signup(request):
     return render(request, "accounts/signup.html", {"form": form})
 
 
+def _build_premium_overview_context(
+    request,
+    *,
+    profile=None,
+    active_subscription=None,
+    purchase_form=None,
+) -> dict[str, object]:
+    profile = profile or request.user.profile
+    if active_subscription is None:
+        active_subscription = profile.active_premium
+    recent_payments = (
+        request.user.premium_payments.select_related("subscription").order_by("-created_at")[:10]
+    )
+    recent_subscriptions = (
+        request.user.premium_subscriptions
+        .select_related("payment", "granted_by")
+        .order_by("-start_at")[:5]
+    )
+    return {
+        "profile": profile,
+        "active_subscription": active_subscription,
+        "recent_payments": recent_payments,
+        "recent_subscriptions": recent_subscriptions,
+        "purchase_form": purchase_form or PremiumPurchaseForm(user=request.user),
+    }
+
+
 @login_required
 def premium_overview(request):
     profile = request.user.profile
     active_subscription = profile.active_premium
-    
-    form = PremiumPurchaseForm(user=request.user)
 
     if request.method == "POST":
         action = request.POST.get("action")
@@ -1154,22 +1179,180 @@ def premium_overview(request):
             else:
                 messages.info(request, "Автопродление уже включено.")
             return redirect("premium_overview")
-
-    recent_payments = (
-        request.user.premium_payments.select_related("subscription").order_by("-created_at")[:10]
+    purchase_form = PremiumPurchaseForm(user=request.user)
+    context = _build_premium_overview_context(
+        request,
+        profile=profile,
+        active_subscription=active_subscription,
+        purchase_form=purchase_form,
     )
-    recent_subscriptions = (
-        request.user.premium_subscriptions.select_related("payment", "granted_by").order_by("-start_at")[:5]
-    )
-
-    context = {
-        "profile": profile,
-        "active_subscription": active_subscription,
-        "recent_payments": recent_payments,
-        "recent_subscriptions": recent_subscriptions,
-        "premium_checkout_url": YOO_KASSA_CHECKOUT_URL,
-    }
     return render(request, "accounts/premium.html", context)
+
+
+@login_required
+@require_POST
+def premium_create_payment(request):
+    profile = request.user.profile
+    active_subscription = profile.active_premium
+    form = PremiumPurchaseForm(request.POST, user=request.user)
+
+    if not form.is_valid():
+        context = _build_premium_overview_context(
+            request,
+            profile=profile,
+            active_subscription=active_subscription,
+            purchase_form=form,
+        )
+        return render(request, "accounts/premium.html", context, status=400)
+
+    payment = form.save()
+    return_url = (
+        settings.YOOKASSA_RETURN_URL
+        or request.build_absolute_uri(reverse("premium_overview"))
+    )
+    description = (
+        f"Подписка MyBooks — {payment.get_plan_display()} (#{payment.reference})"
+    )
+    metadata = {
+        "premium_payment_id": payment.pk,
+        "premium_plan": payment.plan,
+        "user_id": payment.user_id,
+        "reference": payment.reference,
+        "auto_renew": save_payment_method,
+    }
+    save_payment_method = bool(profile.premium_auto_renew)
+
+    try:
+        result = yookassa_create_payment(
+            amount=payment.amount,
+            currency=payment.currency,
+            return_url=return_url,
+            description=description,
+            metadata=metadata,
+            idempotence_key=payment.idempotence_key or None,
+            save_payment_method=save_payment_method,
+        )
+    except YooKassaConfigurationError:
+        error_message = (
+            "Платёжный шлюз не настроен. Свяжитесь с поддержкой, пожалуйста."
+        )
+        form.add_error(None, error_message)
+        payment.status = PremiumPayment.Status.CANCELLED
+        payment.notes = error_message
+        payment.save(update_fields=["status", "notes", "updated_at"])
+        context = _build_premium_overview_context(
+            request,
+            profile=profile,
+            active_subscription=active_subscription,
+            purchase_form=form,
+        )
+        return render(request, "accounts/premium.html", context, status=500)
+    except YooKassaPaymentError as exc:
+        error_message = (
+            "Не удалось создать счёт в YooKassa. Попробуйте позже или обратитесь в поддержку."
+        )
+        form.add_error(None, error_message)
+        payment.status = PremiumPayment.Status.CANCELLED
+        payment.notes = str(exc)
+        payment.save(update_fields=["status", "notes", "updated_at"])
+        context = _build_premium_overview_context(
+            request,
+            profile=profile,
+            active_subscription=active_subscription,
+            purchase_form=form,
+        )
+        return render(request, "accounts/premium.html", context, status=502)
+
+    payment.provider_payment_id = result.payment_id
+    payment.confirmation_url = result.confirmation_url
+    payment.provider_payload = result.payload
+    payment.idempotence_key = result.idempotence_key
+    payment.save(
+        update_fields=[
+            "provider_payment_id",
+            "confirmation_url",
+            "provider_payload",
+            "idempotence_key",
+            "updated_at",
+        ]
+    )
+
+    if not payment.confirmation_url:
+        form.add_error(
+            None,
+            "YooKassa не вернула ссылку для подтверждения оплаты. Обратитесь в поддержку.",
+        )
+        payment.status = PremiumPayment.Status.CANCELLED
+        payment.save(update_fields=["status", "updated_at"])
+        context = _build_premium_overview_context(
+            request,
+            profile=profile,
+            active_subscription=active_subscription,
+            purchase_form=form,
+        )
+        return render(request, "accounts/premium.html", context, status=502)
+
+    return redirect(payment.confirmation_url)
+
+
+def _parse_provider_datetime(value):
+    if not value:
+        return None
+    parsed = parse_datetime(value)
+    if parsed is None:
+        return None
+    if timezone.is_naive(parsed):
+        try:
+            return timezone.make_aware(parsed, timezone=timezone.utc)
+        except Exception:  # pragma: no cover - fallback
+            return timezone.make_aware(parsed)
+    return parsed
+
+
+@csrf_exempt
+@require_POST
+def yookassa_webhook(request):
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return JsonResponse({"error": "invalid_json"}, status=400)
+
+    event = payload.get("event")
+    data = payload.get("object") or {}
+    payment_id = data.get("id")
+    if not payment_id:
+        return JsonResponse({"error": "missing_payment_id"}, status=400)
+
+    try:
+        payment = PremiumPayment.objects.select_related("user").get(
+            provider_payment_id=payment_id
+        )
+    except PremiumPayment.DoesNotExist:
+        return JsonResponse({"status": "not_found"}, status=404)
+
+    payment.provider_payload = payload
+
+    if event == "payment.succeeded":
+        paid_at = (
+            _parse_provider_datetime(data.get("captured_at"))
+            or _parse_provider_datetime(data.get("paid_at"))
+            or _parse_provider_datetime(data.get("succeeded_at"))
+        )
+        if paid_at:
+            payment.paid_at = paid_at
+        payment.status = PremiumPayment.Status.PAID
+        payment.save()
+    elif event == "payment.canceled":
+        cancellation_details = data.get("cancellation_details") or {}
+        reason = cancellation_details.get("reason")
+        if reason:
+            payment.notes = reason
+        payment.status = PremiumPayment.Status.CANCELLED
+        payment.save()
+    else:
+        payment.save(update_fields=["provider_payload", "updated_at"])
+
+    return JsonResponse({"status": "ok"})
 
 
 @login_required

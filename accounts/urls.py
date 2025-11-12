@@ -15,6 +15,12 @@ urlpatterns = [
     ),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("premium/", views.premium_overview, name="premium_overview"),
+    path("premium/checkout/", views.premium_create_payment, name="premium_create_payment"),
+    path(
+        "api/premium/yookassa/webhook/",
+        views.yookassa_webhook,
+        name="yookassa_webhook",
+    ),
     path("me/print/monthly/", views.profile_monthly_print, name="profile_monthly_print"),
     path(
         "password-reset/",

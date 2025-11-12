@@ -3,7 +3,10 @@ from django.db import migrations, models
 
 def mark_game_shelves(apps, schema_editor):
     Shelf = apps.get_model("shelves", "Shelf")
-    Challenge = apps.get_model("games", "BookExchangeChallenge")
+    try:
+        Challenge = apps.get_model("games", "BookExchangeChallenge")
+    except LookupError:  # pragma: no cover - games app may be absent
+        return
     shelf_ids = list(Challenge.objects.values_list("shelf_id", flat=True).distinct())
     if not shelf_ids:
         return
@@ -12,12 +15,14 @@ def mark_game_shelves(apps, schema_editor):
 
 def unmark_game_shelves(apps, schema_editor):
     Shelf = apps.get_model("shelves", "Shelf")
-    Challenge = apps.get_model("games", "BookExchangeChallenge")
+    try:
+        Challenge = apps.get_model("games", "BookExchangeChallenge")
+    except LookupError:  # pragma: no cover - games app may be absent
+        return
     shelf_ids = list(Challenge.objects.values_list("shelf_id", flat=True).distinct())
     if not shelf_ids:
         return
     Shelf.objects.filter(id__in=shelf_ids).update(is_managed=False)
-
 
 class Migration(migrations.Migration):
 
