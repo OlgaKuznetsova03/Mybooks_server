@@ -93,7 +93,12 @@ def create_payment(
     }
 
     try:
-        response = Payment.create(payload, idempotence_key=key)
+        try:
+            response = Payment.create(payload, idempotence_key=key)
+        except TypeError as exc:
+            if "idempotence_key" not in str(exc):
+                raise
+            response = Payment.create(payload, key)
     except (ApiError, ResponseProcessingError) as exc:  # pragma: no cover - network
         raise YooKassaPaymentError(str(exc)) from exc
 
