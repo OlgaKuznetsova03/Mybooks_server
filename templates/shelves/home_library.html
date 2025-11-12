@@ -608,7 +608,9 @@
       <p class="home-hero__subtitle mb-4">Отслеживайте бумажные и электронные экземпляры, расставляйте их по полкам и возвращайтесь к любимым сериям.</p>
       <div class="home-hero__actions mb-3">
         <a class="btn btn-light home-hero__btn" href="{% url 'book_list' %}"><i class="bi bi-plus-circle me-2"></i> Добавить книгу</a>
-        <a class="btn btn-outline-light home-hero__btn" href="{% url 'shelves:my_shelves' %}"><i class="bi bi-card-list me-2"></i> К полкам</a>
+        <a class="btn btn-outline-secondary me-2" href="{% url 'profile' request.user.username %}">
+          <i class="bi bi-person-circle me-1"></i>К полкам
+        </a>
       </div>
     </div>
 
@@ -956,6 +958,28 @@
     </div>
   </div>
 </div>
+{% if not user.profile.has_active_premium %}
+<!-- Yandex.RTB R-A-17641153-1 -->
+<script>
+window.yaContextCb.push(() => {
+    Ya.Context.AdvManager.render({
+        "blockId": "R-A-17641153-1",
+        "type": "floorAd",
+        "platform": "desktop"
+    })
+})
+</script>
+<!-- Yandex.RTB R-A-17641153-4 -->
+<script>
+window.yaContextCb.push(() => {
+    Ya.Context.AdvManager.render({
+        "blockId": "R-A-17641153-4",
+        "type": "floorAd",
+        "platform": "touch"
+    })
+})
+</script>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
@@ -1373,26 +1397,4 @@
   });
 
 })();
-{% if not user.profile.has_active_premium %}
-<!-- Yandex.RTB R-A-17641153-1 -->
-<script>
-window.yaContextCb.push(() => {
-    Ya.Context.AdvManager.render({
-        "blockId": "R-A-17641153-1",
-        "type": "floorAd",
-        "platform": "desktop"
-    })
-})
-</script>
-<!-- Yandex.RTB R-A-17641153-4 -->
-<script>
-window.yaContextCb.push(() => {
-    Ya.Context.AdvManager.render({
-        "blockId": "R-A-17641153-4",
-        "type": "floorAd",
-        "platform": "touch"
-    })
-})
-</script>
-{% endif %}
 {% endblock %}
