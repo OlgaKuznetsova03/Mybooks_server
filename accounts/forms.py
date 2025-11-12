@@ -224,7 +224,10 @@ class PremiumPurchaseForm(forms.Form):
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
-        self.fields["plan"].choices = list(PremiumPayment.get_plan_choices_with_price())
+        splan_choices = list(PremiumPayment.get_plan_choices_with_price())
+        self.fields["plan"].choices = plan_choices
+        if plan_choices:
+            self.fields["plan"].initial = plan_choices[0][0]
         self.fields["plan"].widget = forms.Select(attrs={"class": "form-select"})
         self.fields["payment_method"].widget.attrs.update({"class": "form-check-input"})
         self.fields["agree_offer"].widget.attrs.update({"class": "form-check-input"})

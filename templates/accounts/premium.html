@@ -93,7 +93,18 @@
           {% csrf_token %}
           <div class="mb-3">
             <label class="form-label" for="{{ purchase_form.plan.id_for_label }}">{{ purchase_form.plan.label }}</label>
+            {% with plan_choices=purchase_form.fields.plan.choices %}
+            {% if plan_choices|length <= 1 %}
+            {{ purchase_form.plan.as_hidden }}
+            {% if plan_choices %}
+            <div class="form-control-plaintext">{{ plan_choices.0.1 }}</div>
+            {% else %}
+            <div class="form-control-plaintext text-muted">Тарифы временно недоступны</div>
+            {% endif %}
+            {% else %}
             {{ purchase_form.plan }}
+            {% endif %}
+            {% endwith %}
             {% for error in purchase_form.plan.errors %}
             <div class="invalid-feedback d-block">{{ error }}</div>
             {% endfor %}
