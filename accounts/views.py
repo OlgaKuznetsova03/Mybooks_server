@@ -41,11 +41,7 @@ from user_ratings.models import LeaderboardPeriod, UserPointEvent
 
 from .forms import SignUpForm, ProfileForm, RoleForm, PremiumPurchaseForm
 from .models import YANDEX_AD_REWARD_COINS
-from .yookassa import (
-    YooKassaConfigurationError,
-    YooKassaPaymentError,
-    create_payment as yookassa_create_payment,
-)
+from .yookassa import create_payment
 
 from games.models import (
     BookExchangeChallenge,
@@ -1193,106 +1189,44 @@ def premium_overview(request):
 @login_required
 @require_POST
 def premium_create_payment(request):
-    profile = request.user.profile
-    active_subscription = profile.active_premium
-    form = PremiumPurchaseForm(request.POST, user=request.user)
-
-    if not form.is_valid():
-        context = _build_premium_overview_context(
-            request,
-            profile=profile,
-            active_subscription=active_subscription,
-            purchase_form=form,
-        )
-        return render(request, "accounts/premium.html", context, status=400)
-
-    payment = form.save()
-    return_url = (
-        settings.YOOKASSA_RETURN_URL
-        or request.build_absolute_uri(reverse("premium_overview"))
-    )
-    description = f"Подписка Калейдоскоп книг — 1 месяц (#{payment.reference})"
-    save_payment_method = bool(profile.premium_auto_renew)
-    metadata = {
-        "premium_payment_id": payment.pk,
-        "premium_plan": payment.plan,
-        "user_id": payment.user_id,
-        "reference": payment.reference,
-        "auto_renew": save_payment_method,
-    }
-    save_payment_method = bool(profile.premium_auto_renew)
-
+    """Упрощенная функция создания платежа"""
+    print("🎯 ДЕБАГ: premium_create_payment вызвана")
+    
     try:
-        result = yookassa_create_payment(
+        profile = request.user.profile
+        form = PremiumPurchaseForm(request.POST, user=request.user)
+
+        if not form.is_valid():
+            print("❌ ДЕБАГ: Форма невалидна")
+            messages.error(request, "Ошибка в форме")
+            return redirect("premium_overview")
+
+        payment = form.save()
+        print(f"✅ ДЕБАГ: Платеж создан в БД, ID: {payment.id}")
+
+        # Создаем платеж в YooKassa
+        print("🔍 ДЕБАГ: Пробуем создать платеж в YooKassa...")
+        
+        result = create_payment(
             amount=payment.amount,
-            currency=payment.currency,
-            return_url=return_url,
-            description=description,
-            metadata=metadata,
-            idempotence_key=payment.idempotence_key or None,
-            save_payment_method=save_payment_method,
+            description=f"Подписка Калейдоскоп книг (#{payment.reference})",
+            return_url=request.build_absolute_uri(reverse("premium_overview")),
+            metadata={'premium_payment_id': payment.id}
         )
-    except YooKassaConfigurationError:
-        error_message = (
-            "Платёжный шлюз не настроен. Свяжитесь с поддержкой, пожалуйста."
-        )
-        form.add_error(None, error_message)
-        payment.status = PremiumPayment.Status.CANCELLED
-        payment.notes = error_message
-        payment.save(update_fields=["status", "notes", "updated_at"])
-        context = _build_premium_overview_context(
-            request,
-            profile=profile,
-            active_subscription=active_subscription,
-            purchase_form=form,
-        )
-        return render(request, "accounts/premium.html", context, status=500)
-    except YooKassaPaymentError as exc:
-        error_message = (
-            "Не удалось создать счёт в YooKassa. Попробуйте позже или обратитесь в поддержку."
-        )
-        form.add_error(None, error_message)
-        payment.status = PremiumPayment.Status.CANCELLED
-        payment.notes = str(exc)
-        payment.save(update_fields=["status", "notes", "updated_at"])
-        context = _build_premium_overview_context(
-            request,
-            profile=profile,
-            active_subscription=active_subscription,
-            purchase_form=form,
-        )
-        return render(request, "accounts/premium.html", context, status=502)
-
-    payment.provider_payment_id = result.payment_id
-    payment.confirmation_url = result.confirmation_url
-    payment.provider_payload = result.payload
-    payment.idempotence_key = result.idempotence_key
-    payment.save(
-        update_fields=[
-            "provider_payment_id",
-            "confirmation_url",
-            "provider_payload",
-            "idempotence_key",
-            "updated_at",
-        ]
-    )
-
-    if not payment.confirmation_url:
-        form.add_error(
-            None,
-            "YooKassa не вернула ссылку для подтверждения оплаты. Обратитесь в поддержку.",
-        )
-        payment.status = PremiumPayment.Status.CANCELLED
-        payment.save(update_fields=["status", "updated_at"])
-        context = _build_premium_overview_context(
-            request,
-            profile=profile,
-            active_subscription=active_subscription,
-            purchase_form=form,
-        )
-        return render(request, "accounts/premium.html", context, status=502)
-
-    return redirect(payment.confirmation_url)
+        
+        print(f"✅ ДЕБАГ: YooKassa ответил! ID: {result['id']}")
+        
+        # Сохраняем результат
+        payment.provider_payment_id = result['id']
+        payment.confirmation_url = result['confirmation_url']
+        payment.save()
+        
+        return redirect(result['confirmation_url'])
+        
+    except Exception as e:
+        print(f"❌ ДЕБАГ: ОШИБКА: {e}")
+        messages.error(request, f"Ошибка: {str(e)}")
+        return redirect("premium_overview")
 
 
 def _parse_provider_datetime(value):
