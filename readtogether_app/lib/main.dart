@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -13,8 +11,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
-
-import 'services/reward_ads_service.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:developer';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,14 +47,11 @@ class _KaleidoscopeHomeState extends State<KaleidoscopeHome> {
   final ValueNotifier<bool> _isOnlineNotifier = ValueNotifier(true);
   final Connectivity _connectivity = Connectivity();
 
-  MainWebViewPage? _webViewPage;
-  int _currentIndex = 0;
   StreamSubscription<dynamic>? _connectivitySubscription;
 
   @override
   void initState() {
     super.initState();
-    _webViewPage = MainWebViewPage(onlineNotifier: _isOnlineNotifier);
     _initConnectivity();
   }
 
@@ -89,715 +84,13 @@ class _KaleidoscopeHomeState extends State<KaleidoscopeHome> {
     super.dispose();
   }
 
-  void _setIndex(int index) {
-    if (_currentIndex == index) return;
-    setState(() => _currentIndex = index);
-  }
-
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: _isOnlineNotifier,
-      builder: (context, isOnline, _) {
-        final pages = [
-          HomeDashboard(
-            isOnline: isOnline,
-            onOpenMarathons: () => _setIndex(2),
-          ),
-          LocalLibraryTab(isOnline: isOnline),
-          _webViewPage!,
-          ProfileTab(
-            isOnline: isOnline,
-            onOpenWebProfile: () => _setIndex(2),
-          ),
-        ];
-
-        return Scaffold(
-          body: SafeArea(
-            child: IndexedStack(
-              index: _currentIndex,
-              children: pages,
-            ),
-          ),
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: _currentIndex,
-            onDestinationSelected: _setIndex,
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.spa_outlined),
-                selectedIcon: Icon(Icons.spa),
-                label: 'Главная',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.book_outlined),
-                selectedIcon: Icon(Icons.book),
-                label: 'Мои книги',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.emoji_events_outlined),
-                selectedIcon: Icon(Icons.emoji_events),
-                label: 'Марафоны',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.person_outline),
-                selectedIcon: Icon(Icons.person),
-                label: 'Профиль',
-              ),
-            ],
-          ),
-        );
-      },
-    );
+    return MainWebViewPage(onlineNotifier: _isOnlineNotifier);
   }
 }
 
-class HomeDashboard extends StatelessWidget {
-  const HomeDashboard({
-    super.key,
-    required this.isOnline,
-    required this.onOpenMarathons,
-  });
 
-  final bool isOnline;
-  final VoidCallback onOpenMarathons;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _HeroHeader(isOnline: isOnline, onOpenMarathons: onOpenMarathons),
-        const SizedBox(height: 16),
-        if (!isOnline) const OfflineIllustration(),
-        SectionTitle(
-          icon: Icons.auto_stories,
-          title: 'Рекомендуем прочитать',
-          subtitle: 'Сохранено в приложении',
-        ),
-        const SizedBox(height: 8),
-        FutureBuilder<List<RecommendedBook>>(
-          future: LocalContentRepository.loadRecommendedBooks(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            final books = snapshot.data ?? [];
-            if (books.isEmpty) {
-              return const Text('Добавляем подборку...');
-            }
-            return Column(
-              children: books
-                  .map(
-                    (book) => Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
-                        leading: CircleAvatar(
-                          backgroundColor: theme.colorScheme.primaryContainer,
-                          child: Text(
-                            book.title.isNotEmpty
-                                ? book.title.substring(0, 1)
-                                : '?',
-                            style: theme.textTheme.titleMedium,
-                          ),
-                        ),
-                        title: Text(book.title),
-                        subtitle: Text('${book.author}\n${book.description}'),
-                        isThreeLine: true,
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.timer_outlined, size: 18),
-                            Text(book.duration),
-                          ],
-                        ),
-                      ),
-                    ),
-                  )
-                  .toList(),
-            );
-          },
-        ),
-        const SizedBox(height: 24),
-        SectionTitle(
-          icon: Icons.emoji_events,
-          title: 'Марафоны недели',
-          subtitle: 'Задания доступны онлайн и офлайн',
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: LinearGradient(
-              colors: [
-                Theme.of(context).colorScheme.primaryContainer,
-                Theme.of(context).colorScheme.secondaryContainer,
-              ],
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Зимний марафон «Калейдоскоп чувств»',
-                style: theme.textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Получайте задания и отслеживайте прогресс прямо в приложении. '
-                'Если интернет пропал — последние шаги сохранены локально.',
-                style: theme.textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: onOpenMarathons,
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Открыть марафоны'),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _HeroHeader extends StatelessWidget {
-  const _HeroHeader({
-    required this.isOnline,
-    required this.onOpenMarathons,
-  });
-
-  final bool isOnline;
-  final VoidCallback onOpenMarathons;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        gradient: LinearGradient(
-          colors: [
-            theme.colorScheme.primary,
-            theme.colorScheme.secondary,
-          ],
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const CircleAvatar(
-                radius: 28,
-                backgroundColor: Colors.white,
-                child: Icon(Icons.menu_book, color: Colors.black87, size: 32),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  'Калейдоскоп книг',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              Chip(
-                label: Text(isOnline ? 'Онлайн' : 'Оффлайн'),
-                backgroundColor: Colors.white.withOpacity(0.2),
-                labelStyle: const TextStyle(color: Colors.white),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          const BookFlipAnimation(),
-          const SizedBox(height: 24),
-          Text(
-            'Участвуйте в марафонах, собирайте любимые книги и читайте новости '
-            'проекта в одном приложении.',
-            style: theme.textTheme.bodyLarge?.copyWith(color: Colors.white),
-          ),
-          const SizedBox(height: 16),
-          FilledButton.tonalIcon(
-            onPressed: onOpenMarathons,
-            icon: const Icon(Icons.explore),
-            label: const Text('Начать путешествие'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class LocalLibraryTab extends StatefulWidget {
-  const LocalLibraryTab({super.key, required this.isOnline});
-
-  final bool isOnline;
-
-  @override
-  State<LocalLibraryTab> createState() => _LocalLibraryTabState();
-}
-
-class _LocalLibraryTabState extends State<LocalLibraryTab> {
-  late Future<List<RecommendedBook>> _booksFuture;
-  final Set<String> _favoriteIds = {'artists_way', 'winter_tales'};
-
-  @override
-  void initState() {
-    super.initState();
-    _booksFuture = LocalContentRepository.loadRecommendedBooks();
-  }
-
-  void _toggleFavorite(String id) {
-    setState(() {
-      if (!_favoriteIds.remove(id)) {
-        _favoriteIds.add(id);
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return FutureBuilder<List<RecommendedBook>>(
-      future: _booksFuture,
-      builder: (context, snapshot) {
-        final books = snapshot.data ?? [];
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            SectionTitle(
-              icon: Icons.favorite,
-              title: 'Избранное',
-              subtitle: 'Доступно офлайн',
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: _favoriteIds
-                  .map(
-                    (id) => FilterChip(
-                      selected: true,
-                      label: Text(
-                        books.firstWhere(
-                          (b) => b.id == id,
-                          orElse: () =>
-                              RecommendedBook(id: id, title: id, author: '', description: '', duration: ''),
-                        ).title,
-                      ),
-                      onSelected: (_) => _toggleFavorite(id),
-                    ),
-                  )
-                  .toList(),
-            ),
-            const SizedBox(height: 16),
-            SectionTitle(
-              icon: Icons.library_books,
-              title: 'Последние книги',
-              subtitle: widget.isOnline
-                  ? 'Синхронизировано с сайтом'
-                  : 'Показаны сохранённые подборки',
-            ),
-            const SizedBox(height: 8),
-            if (snapshot.connectionState == ConnectionState.waiting)
-              const Center(child: CircularProgressIndicator())
-            else ...books.map(
-                (book) => Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                    side: BorderSide(
-                      color: theme.colorScheme.outlineVariant,
-                    ),
-                  ),
-                  child: ListTile(
-                    title: Text(book.title),
-                    subtitle: Text(book.description),
-                    trailing: IconButton(
-                      icon: Icon(
-                        _favoriteIds.contains(book.id)
-                            ? Icons.bookmark
-                            : Icons.bookmark_outline,
-                      ),
-                      onPressed: () => _toggleFavorite(book.id),
-                    ),
-                  ),
-                ),
-              ),
-            const SizedBox(height: 24),
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Локальные заметки',
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Добавьте короткие заметки о текущем чтении. Записи хранятся '
-                      'на устройстве и помогут продолжить чтение без интернета.',
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 12),
-                    FilledButton.tonalIcon(
-                      onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Редактор заметок появится в следующем обновлении.'),
-                        ),
-                      ),
-                      icon: const Icon(Icons.edit_note),
-                      label: const Text('Написать заметку'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class ProfileTab extends StatefulWidget {
-  const ProfileTab({
-    super.key,
-    required this.isOnline,
-    required this.onOpenWebProfile,
-  });
-
-  final bool isOnline;
-  final VoidCallback onOpenWebProfile;
-
-  @override
-  State<ProfileTab> createState() => _ProfileTabState();
-}
-
-class _ProfileTabState extends State<ProfileTab> {
-  late Future<String> _aboutFuture;
-  late Future<List<ProjectNews>> _newsFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _aboutFuture = LocalContentRepository.loadAboutProject();
-    _newsFuture = LocalContentRepository.loadNews();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        SectionTitle(
-          icon: Icons.person,
-          title: 'Профиль участника',
-          subtitle: widget.isOnline
-              ? 'Вы в сети — данные синхронизируются'
-              : 'Вы офлайн — показываем сохранённую информацию',
-        ),
-        const SizedBox(height: 12),
-        FutureBuilder<String>(
-          future: _aboutFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            return Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('О проекте', style: theme.textTheme.titleMedium),
-                    const SizedBox(height: 12),
-                    Text(snapshot.data ?? ''),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-        const SizedBox(height: 16),
-        SectionTitle(
-          icon: Icons.campaign,
-          title: 'Новости проекта',
-          subtitle: 'Обновляется при подключении к интернету',
-        ),
-        const SizedBox(height: 8),
-        FutureBuilder<List<ProjectNews>>(
-          future: _newsFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            final news = snapshot.data ?? [];
-            return Column(
-              children: news
-                  .map(
-                    (item) => Card(
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          child: Text(
-                            item.tag.isNotEmpty
-                                ? item.tag.substring(0, 1).toUpperCase()
-                                : '•',
-                          ),
-                        ),
-                        title: Text(item.title),
-                        subtitle: Text('${item.dateLabel}\n${item.summary}'),
-                        isThreeLine: true,
-                      ),
-                    ),
-                  )
-                  .toList(),
-            );
-          },
-        ),
-        const SizedBox(height: 16),
-        FilledButton.icon(
-          onPressed: widget.onOpenWebProfile,
-          icon: const Icon(Icons.open_in_new),
-          label: const Text('Открыть профиль в веб-вкладке'),
-        ),
-      ],
-    );
-  }
-}
-
-class SectionTitle extends StatelessWidget {
-  const SectionTitle({
-    super.key,
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Icon(icon, color: theme.colorScheme.primary),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: theme.textTheme.titleMedium),
-              Text(
-                subtitle,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class OfflineIllustration extends StatelessWidget {
-  const OfflineIllustration({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      color: theme.colorScheme.surfaceTint.withOpacity(0.1),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            const Icon(Icons.wifi_off, size: 40),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    'Проверьте интернет-соединение. Ваши последние книги сохранены офлайн.',
-                  ),
-                  SizedBox(height: 8),
-                  Text('Мы покажем свежие новости, как только появится связь.'),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class BookFlipAnimation extends StatefulWidget {
-  const BookFlipAnimation({super.key});
-
-  @override
-  State<BookFlipAnimation> createState() => _BookFlipAnimationState();
-}
-
-class _BookFlipAnimationState extends State<BookFlipAnimation>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 4),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final angle = (_controller.value * math.pi) % (2 * math.pi);
-        return Transform(
-          alignment: Alignment.center,
-          transform: Matrix4.identity()
-            ..setEntry(3, 2, 0.001)
-            ..rotateY(angle),
-          child: child,
-        );
-      },
-      child: Container(
-        height: 90,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: Colors.white.withOpacity(0.2),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: const [
-            Text(
-              'Перелистываем идеи',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-            ),
-            Icon(Icons.menu_book, color: Colors.white, size: 32),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class RecommendedBook {
-  const RecommendedBook({
-    required this.id,
-    required this.title,
-    required this.author,
-    required this.description,
-    required this.duration,
-  });
-
-  final String id;
-  final String title;
-  final String author;
-  final String description;
-  final String duration;
-
-  factory RecommendedBook.fromJson(Map<String, dynamic> json) {
-    return RecommendedBook(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      author: json['author'] as String,
-      description: json['description'] as String,
-      duration: json['duration'] as String,
-    );
-  }
-}
-
-class ProjectNews {
-  const ProjectNews({
-    required this.title,
-    required this.dateLabel,
-    required this.summary,
-    required this.tag,
-  });
-
-  final String title;
-  final String dateLabel;
-  final String summary;
-  final String tag;
-
-  factory ProjectNews.fromJson(Map<String, dynamic> json) {
-    return ProjectNews(
-      title: json['title'] as String,
-      dateLabel: json['date'] as String,
-      summary: json['summary'] as String,
-      tag: json['tag'] as String,
-    );
-  }
-}
-
-class LocalContentRepository {
-  static Future<List<RecommendedBook>> loadRecommendedBooks() async {
-    try {
-      final raw = await rootBundle.loadString('assets/data/recommended_books.json');
-      final List<dynamic> data = jsonDecode(raw) as List<dynamic>;
-      return data
-          .map((item) => RecommendedBook.fromJson(item as Map<String, dynamic>))
-          .toList();
-    } catch (_) {
-      return const [];
-    }
-  }
-
-  static Future<List<ProjectNews>> loadNews() async {
-    try {
-      final raw = await rootBundle.loadString('assets/data/news.json');
-      final List<dynamic> data = jsonDecode(raw) as List<dynamic>;
-      return data
-          .map((item) => ProjectNews.fromJson(item as Map<String, dynamic>))
-          .toList();
-    } catch (_) {
-      return const [];
-    }
-  }
-
-  static Future<String> loadAboutProject() async {
-    try {
-      return await rootBundle.loadString('assets/data/about_project.md');
-    } catch (_) {
-      return 'Мы развиваем культуру чтения и создаём безопасное пространство для общения.';
-    }
-  }
-}
 
 class MainWebViewPage extends StatefulWidget {
   const MainWebViewPage({super.key, this.onlineNotifier});
@@ -826,11 +119,13 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
   late final WebViewController _controller;
   late final Uri _siteOrigin;
   late final String _startUrl;
-  late final RewardAdsService _rewardAdsService;
+  late final OfflineNotesStorage _offlineNotesStorage;
+  final TextEditingController _noteController = TextEditingController();
+  List<OfflineNote> _offlineNotes = [];
+  bool _savingNote = false;
   ValueListenable<bool>? _connectivityListenable;
 
   bool _loading = true;
-  bool _rewardLoading = false;
   bool _webViewError = false;
   bool _isOffline = false;
 
@@ -840,12 +135,9 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
 
     _startUrl = _prepareStartUrl(_defaultSiteUrl);
     _siteOrigin = Uri.parse(_startUrl);
-    _rewardAdsService = RewardAdsService(
-      siteOrigin: _siteOrigin,
-      clientHeader: _defaultClientHeader,
-      clientId: _defaultClientId,
-    );
+    _offlineNotesStorage = OfflineNotesStorage();
     _attachConnectivity(widget.onlineNotifier);
+    _loadOfflineNotes();
 
     final PlatformWebViewControllerCreationParams params;
     if (WebViewPlatform.instance is WebKitWebViewPlatform) {
@@ -901,7 +193,7 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
   @override
   void dispose() {
     _detachConnectivity();
-    _rewardAdsService.dispose();
+    _noteController.dispose();
     super.dispose();
   }
 
@@ -1381,101 +673,178 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     _controller.reload();
   }
 
+  Future<void> _loadOfflineNotes() async {
+    try {
+      final stored = await _offlineNotesStorage.readNotes();
+      if (!mounted) return;
+      setState(() => _offlineNotes = stored);
+    } catch (_) {}
+  }
+
+  Future<void> _handleSaveOfflineNote() async {
+    final text = _noteController.text.trim();
+    if (text.isEmpty || _savingNote) {
+      return;
+    }
+
+    setState(() => _savingNote = true);
+    try {
+      final note = OfflineNote(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        text: text,
+        createdAt: DateTime.now(),
+      );
+      final updated = [note, ..._offlineNotes];
+      await _offlineNotesStorage.writeNotes(updated);
+      if (!mounted) return;
+      setState(() {
+        _offlineNotes = updated;
+        _noteController.clear();
+      });
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось сохранить заметку: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _savingNote = false);
+      }
+    }
+  }
+
+  Future<void> _handleDeleteOfflineNote(String id) async {
+    final updated = _offlineNotes.where((note) => note.id != id).toList();
+    setState(() => _offlineNotes = updated);
+    try {
+      await _offlineNotesStorage.writeNotes(updated);
+    } catch (_) {}
+  }
+
+  String _formatNoteDate(DateTime date) {
+    final twoDigits = (int value) => value.toString().padLeft(2, '0');
+    final day = twoDigits(date.day);
+    final month = twoDigits(date.month);
+    final hours = twoDigits(date.hour);
+    final minutes = twoDigits(date.minute);
+    return '$day.$month.${date.year} · $hours:$minutes';
+  }
+
+  Widget _buildOfflineNotesPanel() {
+    final theme = Theme.of(context);
+    final recentNotes = _offlineNotes.take(3).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Запишите идею', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        Text(
+          'Последние действия уже сохранены на устройстве. '
+          'Добавьте заметку — мы подскажем, когда её можно синхронизировать.',
+          style: theme.textTheme.bodySmall,
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _noteController,
+          minLines: 2,
+          maxLines: 4,
+          decoration: InputDecoration(
+            hintText: 'Напишите короткую заметку о чтении или идею для марафона',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+        ),
+        const SizedBox(height: 8),
+        FilledButton.icon(
+          onPressed: _savingNote ? null : _handleSaveOfflineNote,
+          icon: _savingNote
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : const Icon(Icons.edit_note),
+          label: Text(_savingNote ? 'Сохраняем…' : 'Сохранить заметку'),
+        ),
+        const SizedBox(height: 16),
+        Text('Сохранённые заметки', style: theme.textTheme.titleSmall),
+        const SizedBox(height: 8),
+        if (recentNotes.isEmpty)
+          Text(
+            'Здесь появятся ваши заметки. Они будут синхронизированы, когда связь восстановится.',
+            style: theme.textTheme.bodySmall,
+          )
+        else
+          ...recentNotes.map(
+            (note) => Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                title: Text(
+                  note.text,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text('Создано ${_formatNoteDate(note.createdAt)}'),
+                trailing: IconButton(
+                  tooltip: 'Удалить',
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () => _handleDeleteOfflineNote(note.id),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildStatusOverlay({
     required IconData icon,
     required String title,
     required String description,
     VoidCallback? onPressed,
     String actionLabel = 'Повторить',
+    Widget? extraContent,
   }) {
     final theme = Theme.of(context);
-    return Container(
+    return Material(
       color: theme.colorScheme.surface.withOpacity(0.98),
-      padding: const EdgeInsets.all(24),
       child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 360),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 48, color: theme.colorScheme.primary),
-              const SizedBox(height: 16),
-              Text(
-                title,
-                style: theme.textTheme.titleLarge,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                description,
-                style: theme.textTheme.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: onPressed,
-                child: Text(actionLabel),
-              ),
-            ],
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Icon(icon, size: 48, color: theme.colorScheme.primary),
+                const SizedBox(height: 16),
+                Text(
+                  title,
+                  style: theme.textTheme.titleLarge,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  description,
+                  style: theme.textTheme.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: onPressed,
+                  child: Text(actionLabel),
+                ),
+                if (extraContent != null) ...[
+                  const SizedBox(height: 24),
+                  extraContent,
+                ],
+              ],
+            ),
           ),
         ),
       ),
     );
-  }
-
-  Future<void> _openRewardPanel() async {
-    if (_rewardLoading) return;
-
-    setState(() => _rewardLoading = true);
-    try {
-      final cookies = await _collectCookies();
-      final config = await _rewardAdsService.fetchConfig(cookies: cookies);
-
-      if (!config.isReady) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Рекламный модуль временно отключён.'),
-          ),
-        );
-        return;
-      }
-
-      if (!mounted) return;
-      final result = await showModalBottomSheet<RewardAdClaimResult>(
-        context: context,
-        isScrollControlled: true,
-        builder: (context) => RewardAdSheet(
-          config: config,
-          service: _rewardAdsService,
-          cookieProvider: _collectCookies,
-        ),
-      );
-
-      if (result != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Начислено ${result.coinsAwarded} монет.',
-            ),
-          ),
-        );
-      }
-    } on RewardAdsException catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message)),
-      );
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось открыть панель рекламы: $error')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _rewardLoading = false);
-      }
-    }
   }
 
   @override
@@ -1491,41 +860,10 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Мир в книгах'),
-          backgroundColor: Colors.white,
-          foregroundColor: const Color.fromARGB(255,174,181,184),
-          elevation: 4,
-          actions: [
-            _rewardLoading
-                ? const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0),
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    ),
-                  )
-                : Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: TextButton.icon(
-                      onPressed: _openRewardPanel,
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        backgroundColor: const Color.fromARGB(255, 140, 143, 144),
-                      ),
-                      icon: const Icon(Icons.play_circle_outline, size: 18),
-                      label: const Text('20 монет'),
-                    ),
-                  ),
-          ],
-        ),
+        backgroundColor: Colors.white,
         body: Stack(
           children: [
-            WebViewWidget(controller: _controller),
+            Positioned.fill(child: WebViewWidget(controller: _controller)),
             if (_loading) const Center(child: CircularProgressIndicator()),
             if (_webViewError && !_isOffline)
               Positioned.fill(
@@ -1544,9 +882,10 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
                   icon: Icons.wifi_off,
                   title: 'Вы офлайн',
                   description:
-                      'Проверьте интернет-соединение. Ваши последние книги и подборки уже сохранены в приложении.',
+                      'Последняя версия сайта сохранена. Мы автоматически обновим страницу, как только интернет появится.',
                   onPressed: _reloadWebView,
-                  actionLabel: 'Проверить снова',
+                  actionLabel: 'Проверить соединение',
+                  extraContent: _buildOfflineNotesPanel(),
                 ),
               ),
           ],
@@ -1556,133 +895,64 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
   }
 }
 
-class RewardAdSheet extends StatefulWidget {
-  const RewardAdSheet({
-    super.key,
-    required this.config,
-    required this.service,
-    required this.cookieProvider,
+class OfflineNote {
+  OfflineNote({
+    required this.id,
+    required this.text,
+    required this.createdAt,
   });
 
-  final RewardAdConfig config;
-  final RewardAdsService service;
-  final Future<Map<String, String>> Function() cookieProvider;
+  final String id;
+  final String text;
+  final DateTime createdAt;
 
-  @override
-  State<RewardAdSheet> createState() => _RewardAdSheetState();
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'text': text,
+      'created_at': createdAt.toIso8601String(),
+    };
+  }
+
+  factory OfflineNote.fromJson(Map<String, dynamic> json) {
+    return OfflineNote(
+      id: (json['id'] as String?) ?? '',
+      text: (json['text'] as String?) ?? '',
+      createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ?? DateTime.now(),
+    );
+  }
 }
 
-class _RewardAdSheetState extends State<RewardAdSheet> {
-  bool _claiming = false;
-  RewardAdsException? _error;
+class OfflineNotesStorage {
+  Future<File> _notesFile() async {
+    final directory = await getApplicationSupportDirectory();
+    return File('${directory.path}/offline_notes.json');
+  }
 
-  Future<void> _claimReward() async {
-    setState(() {
-      _claiming = true;
-      _error = null;
-    });
-
+  Future<List<OfflineNote>> readNotes() async {
     try {
-      final cookies = await widget.cookieProvider();
-      final result = await widget.service.claimReward(
-        config: widget.config,
-        cookies: cookies,
-      );
-      if (!mounted) return;
-      Navigator.of(context).pop(result);
-    } on RewardAdsException catch (error) {
-      if (!mounted) return;
-      setState(() => _error = error);
-    } catch (error) {
-      if (!mounted) return;
-      setState(
-        () => _error = RewardAdsException(
-          'Не удалось начислить монеты: $error',
-          code: RewardAdsError.network,
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _claiming = false);
+      final file = await _notesFile();
+      if (!await file.exists()) {
+        return const [];
       }
+      final raw = await file.readAsString();
+      if (raw.trim().isEmpty) {
+        return const [];
+      }
+      final List<dynamic> data = jsonDecode(raw) as List<dynamic>;
+      return data
+          .whereType<Map<String, dynamic>>()
+          .map(OfflineNote.fromJson)
+          .where((note) => note.text.trim().isNotEmpty)
+          .toList();
+    } catch (_) {
+      return const [];
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 24,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Рекламная награда', style: theme.textTheme.titleLarge),
-            const SizedBox(height: 8),
-            Text(
-              'Яндекс · ${widget.config.rewardAmount} ${widget.config.currency}',
-              style: theme.textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Просмотрите рекламный ролик и подтвердите получение награды, '
-              'чтобы монеты были начислены на счёт.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                _error!.message,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.error,
-                ),
-              ),
-            ],
-            const SizedBox(height: 16),
-            if (kDebugMode)
-              FilledButton.icon(
-                onPressed: _claiming ? null : _claimReward,
-                icon: _claiming
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.play_circle_fill),
-                label: const Text('Симулировать получение награды'),
-              )
-            else
-              Text(
-                'В релизной сборке интегрируйте SDK рекламы и вызывайте '
-                'RewardAdsService.claimReward(...) после события rewarded. '
-                'Эта панель служит для проверки конфигурации.',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            const SizedBox(height: 16),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: _claiming ? null : () => Navigator.of(context).maybePop(),
-                child: const Text('Закрыть'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  Future<void> writeNotes(List<OfflineNote> notes) async {
+    final file = await _notesFile();
+    final payload = jsonEncode(notes.map((note) => note.toJson()).toList());
+    await file.writeAsString(payload);
   }
 }
