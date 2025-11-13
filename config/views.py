@@ -123,3 +123,13 @@ def _build_group(
         "extra": max(total - len(preview), 0),
         "anchor": anchor,
     }
+    
+def rules(request):
+    """
+    Отображает страницу с правилами пользования сайтом kalejdoskopknig.ru.
+    """
+    context = {
+        "page_title": "Правила пользования сайтом",
+        "last_updated": "12.11.2025",
+    }
+    return render(request, "config/terms.html", context)

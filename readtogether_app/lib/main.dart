@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
@@ -27,19 +30,19 @@ class ReadTogetherApp extends StatelessWidget {
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
-      home: const WebViewPage(),
+      home: const MainWebViewPage(),
     );
   }
 }
 
-class WebViewPage extends StatefulWidget {
-  const WebViewPage({super.key});
+class MainWebViewPage extends StatefulWidget {
+  const MainWebViewPage({super.key});
 
   @override
-  State<WebViewPage> createState() => _WebViewPageState();
+  State<MainWebViewPage> createState() => _MainWebViewPageState();
 }
 
-class _WebViewPageState extends State<WebViewPage> {
+class _MainWebViewPageState extends State<MainWebViewPage> {
   static const String _fallbackSiteUrl = 'https://kalejdoskopknig.ru/';
   static const String _defaultSiteUrl = String.fromEnvironment(
     'MYBOOKS_SITE_URL',
@@ -58,7 +61,6 @@ class _WebViewPageState extends State<WebViewPage> {
   late final Uri _siteOrigin;
   late final String _startUrl;
   late final RewardAdsService _rewardAdsService;
-  final WebViewCookieManager _cookieManager = WebViewCookieManager();
 
   bool _loading = true;
   bool _rewardLoading = false;
@@ -94,8 +96,7 @@ class _WebViewPageState extends State<WebViewPage> {
           onWebResourceError: (_) => setState(() => _loading = false),
           onNavigationRequest: _handleNavigationRequest,
         ),
-      )
-      ..loadRequest(Uri.parse(_startUrl));
+      );
 
     if (controller.platform is AndroidWebViewController) {
       final android = controller.platform as AndroidWebViewController;
@@ -105,6 +106,9 @@ class _WebViewPageState extends State<WebViewPage> {
     }
 
     _controller = controller;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkTermsAndLoad();
+    });
   }
 
   @override
@@ -120,6 +124,10 @@ class _WebViewPageState extends State<WebViewPage> {
     }
 
     if (_isSameOrigin(uri)) {
+      if (_shouldInterceptDownload(uri)) {
+        unawaited(_startDownload(uri));
+        return NavigationDecision.prevent;
+      }
       return NavigationDecision.navigate;
     }
 
@@ -209,8 +217,7 @@ class _WebViewPageState extends State<WebViewPage> {
         continue;
       }
 
-      final targetFile =
-          await _createTempFile(tempDir.path, f.name, f.extension);
+      final targetFile = await _createTempFile(tempDir.path, f.name, f.extension);
 
       if (f.bytes != null) {
         await targetFile.writeAsBytes(f.bytes!, flush: true);
@@ -251,8 +258,7 @@ class _WebViewPageState extends State<WebViewPage> {
     final sanitizedName = _sanitizeFileName(originalName);
     final generatedName =
         sanitizedName ?? _buildFallbackName(fallbackExtension: fallbackExtension);
-    final uniqueName =
-        '${DateTime.now().microsecondsSinceEpoch}_${generatedName}';
+    final uniqueName = '${DateTime.now().microsecondsSinceEpoch}_${generatedName}';
     final file = File('$dirPath/$uniqueName');
     if (!await file.exists()) {
       await file.create(recursive: true);
@@ -269,16 +275,16 @@ class _WebViewPageState extends State<WebViewPage> {
     return sanitized.isEmpty ? null : sanitized;
   }
 
-  String _buildFallbackName({String? fallbackExtension}) {
+  String _buildFallbackName({String prefix = 'upload', String? fallbackExtension}) {
     final ext = fallbackExtension?.trim();
     if (ext == null || ext.isEmpty) {
-      return 'upload';
+      return prefix;
     }
     final sanitizedExt = ext.replaceAll(RegExp(r'[^A-Za-z0-9]'), '');
     if (sanitizedExt.isEmpty) {
-      return 'upload';
+      return prefix;
     }
-    return 'upload.$sanitizedExt';
+    return '$prefix.$sanitizedExt';
   }
 
   bool _shouldAllowMultiple(FileSelectorParams params) {
@@ -313,18 +319,247 @@ class _WebViewPageState extends State<WebViewPage> {
   }
 
   Future<Map<String, String>> _collectCookies() async {
-    // TODO: Реализовать получение cookies для текущей версии webview_flutter
-    // В новых версиях методы getCookies/getCookie были удалены
-    // Возможные альтернативы:
-    // 1. Использовать JavaScript для получения cookies через evaluateJavaScript
-    // 2. Передать cookies через другие механизмы аутентификации
-    // 3. Использовать другой подход для идентификации пользователя
+    try {
+      final rawResult = await _controller.runJavaScriptReturningResult('document.cookie');
+      if (rawResult == null) {
+        return {};
+      }
+
+      String? cookieString;
+      if (rawResult is String) {
+        cookieString = rawResult;
+      } else {
+        cookieString = rawResult.toString();
+      }
+
+      if (cookieString == null) {
+        return {};
+      }
+
+      final trimmed = cookieString.trim();
+      if (trimmed.isEmpty || trimmed == 'null') {
+        return {};
+      }
+
+      final sanitized = trimmed.startsWith('"') && trimmed.endsWith('"')
+          ? trimmed.substring(1, trimmed.length - 1)
+          : trimmed;
+
+      final Map<String, String> cookies = {};
+      for (final entry in sanitized.split(';')) {
+        final parts = entry.split('=');
+        if (parts.isEmpty) {
+          continue;
+        }
+        final name = parts.first.trim();
+        if (name.isEmpty) {
+          continue;
+        }
+        final value = parts.skip(1).join('=').trim();
+        cookies[name] = value;
+      }
+      return cookies;
+    } catch (error) {
+      debugPrint('Не удалось получить cookies: $error');
+      return {};
+    }
+  }
+
+  Future<void> _checkTermsAndLoad() async {
+    final accepted = await _ensureTermsAccepted();
+    if (!mounted) return;
+    if (accepted) {
+      _controller.loadRequest(Uri.parse(_startUrl));
+    }
+  }
+
+  Future<bool> _ensureTermsAccepted() async {
+    try {
+      final marker = await _termsAcceptanceMarker();
+      if (await marker.exists()) {
+        return true;
+      }
+    } catch (error) {
+      debugPrint('Не удалось проверить соглашение с правилами: $error');
+      return true;
+    }
+
+    while (mounted) {
+      final accepted = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          final theme = Theme.of(context);
+          return AlertDialog(
+            title: const Text('Согласие с правилами'),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Перед использованием приложения подтвердите, что вы ознакомились '
+                    'и согласны с правилами сервиса «Калейдоскоп книг».',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Полные правила доступны на сайте:',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 8),
+                  SelectableText(
+                    '${_siteOrigin.scheme}://${_siteOrigin.host}/rules/',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Нажимая «Принимаю правила», вы подтверждаете, что ознакомились '
+                    'с документом и обязуетесь соблюдать требования сервиса.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Закрыть приложение'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Принимаю правила'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (accepted == true) {
+        try {
+          final marker = await _termsAcceptanceMarker();
+          if (!await marker.exists()) {
+            await marker.create(recursive: true);
+          }
+          await marker.writeAsString(DateTime.now().toIso8601String());
+        } catch (error) {
+          debugPrint('Не удалось сохранить подтверждение правил: $error');
+        }
+        return true;
+      }
+
+      if (accepted == false) {
+        await _closeApplication();
+        return false;
+      }
+    }
+
+    return false;
+  }
+
+  Future<File> _termsAcceptanceMarker() async {
+    final directory = await getApplicationSupportDirectory();
+    return File('${directory.path}/mybooks_terms_v1.txt');
+  }
+
+  Future<void> _closeApplication() async {
+    if (Platform.isAndroid) {
+      await SystemNavigator.pop();
+    } else {
+      exit(0);
+    }
+  }
+
+  bool _shouldInterceptDownload(Uri uri) {
+    final path = uri.path;
+    if (path == '/accounts/me/print/monthly/' || path == '/accounts/me/print/monthly') {
+      return true;
+    }
+
+    final segments = uri.pathSegments;
+    if (segments.length >= 3 && segments.first == 'books' && segments.last == 'print-review') {
+      return true;
+    }
+
+    return false;
+  }
+
+  Future<void> _startDownload(Uri uri) async {
+    if (!mounted) return;
     
-    final Map<String, String> result = {};
-    
-    // Временное решение - возвращаем пустой Map
-    // Для рабочего решения нужно интегрировать с вашим бэкендом
-    return result;
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.download, color: Colors.deepPurple),
+              SizedBox(width: 8),
+              Text('Скачивание файлов'),
+            ],
+          ),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Скачивание файлов доступно только в веб-версии сайта.',
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Чтобы скачать файлы:',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+              SizedBox(height: 8),
+              Text('1. Откройте браузер на вашем устройстве'),
+              Text('2. Перейдите на сайт kalejdoskopknig.ru'),
+              Text('3. Войдите в свой аккаунт'),
+              Text('4. Скачайте нужные файлы'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Закрыть'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _openInBrowser();
+              },
+              child: const Text('Открыть в браузере'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _openInBrowser() async {
+    try {
+      final url = _startUrl;
+      if (await canLaunchUrl(Uri.parse(url))) {
+        await launchUrl(
+          Uri.parse(url),
+          mode: LaunchMode.externalApplication,
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось открыть браузер')),
+        );
+      }
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка при открытии браузера: $error')),
+      );
+    }
   }
 
   Future<void> _openRewardPanel() async {
@@ -384,23 +619,47 @@ class _WebViewPageState extends State<WebViewPage> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _handleBack,
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (bool didPop) async {
+        if (!didPop) {
+          final shouldPop = await _handleBack();
+          if (shouldPop && mounted) {
+            Navigator.of(context).pop();
+          }
+        }
+      },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Калейдоскоп книг'),
+          title: const Text('Мир в книгах'),
+          backgroundColor: Colors.white,
+          foregroundColor: const Color.fromARGB(255,174,181,184),
+          elevation: 4,
           actions: [
-            IconButton(
-              onPressed: _rewardLoading ? null : _openRewardPanel,
-              tooltip: 'Монеты за просмотр рекламы',
-              icon: _rewardLoading
-                  ? const SizedBox(
+            _rewardLoading
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    child: SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.play_circle_outline),
-            ),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    ),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: TextButton.icon(
+                      onPressed: _openRewardPanel,
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor: const Color.fromARGB(255, 140, 143, 144),
+                      ),
+                      icon: const Icon(Icons.play_circle_outline, size: 18),
+                      label: const Text('20 монет'),
+                    ),
+                  ),
           ],
         ),
         body: Stack(

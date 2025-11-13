@@ -17,59 +17,175 @@
     --home-divider: rgba(158,182,201,.35);
   }
 
-  /* Анимации появления */
+  /* Анимации */
   @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(30px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { 
+      opacity: 0; 
+      transform: translateY(30px); 
+    }
+    to { 
+      opacity: 1; 
+      transform: translateY(0); 
+    }
+  }
+  
+  @keyframes slideInRight {
+    from { 
+      transform: translateX(400px); 
+      opacity: 0; 
+    }
+    to { 
+      transform: translateX(0); 
+      opacity: 1; 
+    }
   }
   
   @keyframes pulseGlow {
-    0%, 100% { box-shadow: 0 0 20px rgba(194, 224, 239, 0.3); }
-    50% { box-shadow: 0 0 30px rgba(194, 224, 239, 0.6); }
+    0%, 100% { 
+      box-shadow: 0 0 20px rgba(194, 224, 239, 0.3); 
+    }
+    50% { 
+      box-shadow: 0 0 30px rgba(194, 224, 239, 0.6); 
+    }
   }
 
-  .animate-fade-in {
-    animation: fadeInUp 0.6s ease-out forwards;
+  @keyframes numberCountUp {
+    from { 
+      transform: scale(0.8);
+      opacity: 0.5;
+    }
+    to { 
+      transform: scale(1);
+      opacity: 1;
+    }
   }
 
+  @keyframes slideInLeft {
+    from { 
+      transform: translateX(-20px);
+      opacity: 0;
+    }
+    to { 
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  /* Основные стили с анимациями */
   .home-hero{
-    position:relative;border-radius:24px;overflow:hidden;
-    background:var(--home-hero-gradient);color:#f5f7ff;
-    padding:2.5rem 2rem;box-shadow:0 25px 55px rgba(24,32,39,.45);
-    opacity: 0;
-    animation: fadeInUp 0.8s ease-out 0.2s forwards;
+    position:relative;
+    border-radius:24px;
+    overflow:hidden;
+    background:var(--home-hero-gradient);
+    color:#f5f7ff;
+    padding:2.5rem 2rem;
+    box-shadow:0 25px 55px rgba(24,32,39,.45);
+    animation: fadeInUp 0.8s ease-out;
   }
-  .home-hero::before,.home-hero::after{
-    content:"";position:absolute;border-radius:100%;filter:blur(65px);opacity:.8;z-index:0;
+  
+  .home-hero::before,
+  .home-hero::after{
+    content:"";
+    position:absolute;
+    border-radius:100%;
+    filter:blur(65px);
+    opacity:.8;
+    z-index:0;
   }
-  .home-hero::before{width:360px;height:360px;top:-120px;right:-140px;background:rgba(216,232,242,.45);}
-  .home-hero::after{width:280px;height:280px;bottom:-140px;left:-110px;background:rgba(247,209,176,.4);}
-  .home-hero__content,.home-hero__actions{position:relative;z-index:1;}
-  .home-hero__title{font-family:"Montserrat","Segoe UI",system-ui,sans-serif;font-weight:700;letter-spacing:.02em;}
-  .home-hero__subtitle{max-width:520px;color:var(--home-text-soft);}
-  .home-hero__actions{display:flex;flex-wrap:wrap;gap:.75rem;}
+  
+  .home-hero::before{
+    width:360px;
+    height:360px;
+    top:-120px;
+    right:-140px;
+    background:rgba(216,232,242,.45);
+  }
+  
+  .home-hero::after{
+    width:280px;
+    height:280px;
+    bottom:-140px;
+    left:-110px;
+    background:rgba(247,209,176,.4);
+  }
+  
+  .home-hero__content,
+  .home-hero__actions{
+    position:relative;
+    z-index:1;
+  }
+  
+  .home-hero__title{
+    font-family:"Montserrat","Segoe UI",system-ui,sans-serif;
+    font-weight:700;
+    letter-spacing:.02em;
+  }
+  
+  .home-hero__subtitle{
+    max-width:520px;
+    color:var(--home-text-soft);
+  }
+  
+  .home-hero__actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:.75rem;
+  }
+  
   .home-hero__btn{
-    border-radius:999px;font-weight:600;box-shadow:0 12px 28px rgba(8,10,44,.45);border:none;
+    border-radius:999px;
+    font-weight:600;
+    box-shadow:0 12px 28px rgba(8,10,44,.45);
+    border:none;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative; overflow: hidden;
+    position: relative;
+    overflow: hidden;
+    animation: fadeInUp 0.8s ease-out 0.3s both;
   }
+  
   .home-hero__btn::before {
-    content: ''; position: absolute; top: 0; left: -100%;
-    width: 100%; height: 100%;
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
     transition: left 0.5s;
   }
-  .home-hero__btn:hover::before { left: 100%; }
-  .home-hero__btn:hover,.home-hero__btn:focus{
+  
+  .home-hero__btn:hover::before {
+    left: 100%;
+  }
+  
+  .home-hero__btn:hover,
+  .home-hero__btn:focus{
     transform:translateY(-3px) scale(1.02);
     box-shadow:0 18px 32px rgba(8,10,44,.55);
   }
-  .home-hero__btn.btn-outline-light{border:1px solid rgba(255,255,255,.55);background:rgba(46,58,68,.55);color:#fff;}
-  .home-hero__btn.btn-light{color:#1c242b;}
-  .home-hero__btn.btn-outline-light:hover,.home-hero__btn.btn-outline-light:focus{background:rgba(255,255,255,.15);}
-  .home-hero__btn.btn-light:hover,.home-hero__btn.btn-light:focus{background:linear-gradient(130deg,#d3e6f1 0%,#f1f6fa 100%);color:#11171c;}
+  
+  .home-hero__btn.btn-outline-light{
+    border:1px solid rgba(255,255,255,.55);
+    background:rgba(46,58,68,.55);
+    color:#fff;
+  }
+  
+  .home-hero__btn.btn-light{
+    color:#1c242b;
+  }
+  
+  .home-hero__btn.btn-outline-light:hover,
+  .home-hero__btn.btn-outline-light:focus{
+    background:rgba(255,255,255,.15);
+  }
+  
+  .home-hero__btn.btn-light:hover,
+  .home-hero__btn.btn-light:focus{
+    background:linear-gradient(130deg,#d3e6f1 0%,#f1f6fa 100%);
+    color:#11171c;
+  }
 
-  /* Карточка с декоративной рамкой */
+  /* Карточки с анимациями */
   .home-glow-card{
     background:var(--home-card-bg);
     border:1px solid var(--home-card-border);
@@ -80,174 +196,32 @@
     position:relative;
     overflow:hidden;
     z-index:0;
-    opacity: 0;
-    animation: fadeInUp 0.6s ease-out forwards;
+    animation: fadeInUp 0.6s ease-out;
   }
-  .home-glow-card:nth-child(1) { animation-delay: 0.3s; }
-  .home-glow-card:nth-child(2) { animation-delay: 0.4s; }
-  .home-glow-card:nth-child(3) { animation-delay: 0.5s; }
-  .home-glow-card:nth-child(4) { animation-delay: 0.6s; }
+  
+  .home-glow-card:nth-child(1) { animation-delay: 0.1s; }
+  .home-glow-card:nth-child(2) { animation-delay: 0.2s; }
   
   .home-glow-card::after{
-    content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;
+    content:"";
+    position:absolute;
+    inset:0;
+    border-radius:inherit;
+    padding:1px;
     background:linear-gradient(135deg,rgba(194,224,239,.35),rgba(246,200,162,.18));
     -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
-    -webkit-mask-composite:xor;mask-composite:exclude;
-    pointer-events:none;z-index:0;
+    -webkit-mask-composite:xor;
+    mask-composite:exclude;
+    pointer-events:none;
+    z-index:0;
   }
-  .home-glow-card>*{position:relative;z-index:1;}
-
-  .home-stats-button{
-    padding:0;border:none;background:none;color:inherit;font:inherit;font-weight:600;cursor:pointer;
-    transition: all 0.3s ease; display:inline-flex;align-items:baseline;gap:.35rem;
-    position: relative;
-  }
-  .home-stats-button:hover,.home-stats-button:focus{
-    color:var(--home-accent-strong);
-    transform: scale(1.05);
-  }
-  .home-stats-button:focus-visible{outline:2px solid rgba(255,255,255,.45);outline-offset:2px;}
-  .home-stats-button--block{display:flex;width:100%;justify-content:flex-start;}
-  .home-stats-button--inline{display:inline;font-weight:inherit;}
-  .home-stats-button--inline:hover,.home-stats-button--inline:focus{text-decoration:underline;}
-  .home-stats-button--compact{font-size:.95rem;font-weight:700;}
-
-  .home-glow-card .badge[data-summary-trigger]{
-    cursor:pointer;transition:all 0.3s ease;
-  }
-  .home-glow-card .badge[data-summary-trigger]:hover,.home-glow-card .badge[data-summary-trigger]:focus{
-    background:rgba(194,224,239,.35)!important;
-    color:var(--home-accent-strong);
-    transform: scale(1.1);
+  
+  .home-glow-card>*{
+    position:relative;
+    z-index:1;
   }
 
-  .home-progress-card{--home-progress-bought:#38bdf8;--home-progress-read:#f97316;}
-
-  .home-progress-controls{display:flex;flex-wrap:wrap;gap:.75rem;}
-  .home-progress-controls .form-select,.home-progress-controls .form-label{font-size:.85rem;}
-
-  .home-progress-stats{display:flex;align-items:center;gap:1.25rem;min-width:0;}
-  .home-progress-side{min-width:120px;}
-  .home-progress-value{font-size:2.25rem;line-height:1;display:inline-flex;align-items:center;gap:.25rem;}
-  .home-progress-value .home-progress-number{font-variant-numeric:tabular-nums;}
-
-  /* Линия прогресса */
-  .home-progress-line{
-    --bar-h: 10px;
-    position:relative;flex:1 1 auto;min-width:160px;height:var(--bar-h);border-radius:999px;
-    background:rgba(255,255,255,.16);overflow:hidden;z-index:1;
-  }
-  .home-progress-fill-left,
-  .home-progress-fill-right{
-    position:absolute;top:0;bottom:0;width:0%;
-  }
-  .home-progress-fill-left{
-    left:0;border-top-left-radius:999px;border-bottom-left-radius:999px;
-    background:var(--home-progress-bought);
-    transition:width 900ms ease;
-  }
-  .home-progress-fill-right{
-    right:0;border-top-right-radius:999px;border-bottom-right-radius:999px;
-    background:var(--home-progress-read);
-    transition:width 900ms ease;
-  }
-
-  /* Свечение */
-  .home-progress-fill-left::after,
-  .home-progress-fill-right::after{
-    content:"";position:absolute;left:-6px;right:-6px;top:-6px;bottom:-6px;
-    background:inherit;opacity:.55;filter:blur(8px);
-    pointer-events:none;z-index:-1;
-    animation:glow-pulse 3.2s ease-in-out infinite;
-  }
-  @keyframes glow-pulse{
-    0%,100%{opacity:.45;filter:blur(7px)}
-    50%    {opacity:.75;filter:blur(10px)}
-  }
-
-  .home-progress-line::before{
-    content:"";position:absolute;inset:0;
-    background:linear-gradient(120deg, transparent 0%, rgba(255,255,255,.14) 30%, transparent 60%) 0 0 / 160% 100% no-repeat;
-    opacity:0;pointer-events:none;z-index:2;
-  }
-  .home-progress-line.is-animating::before{
-    opacity:1;animation:home-shimmer 1.2s ease-in-out;
-  }
-  @keyframes home-shimmer{
-    0%{background-position:-60% 0;opacity:0}
-    25%{opacity:.6}
-    100%{background-position:100% 0;opacity:0}
-  }
-
-  .home-progress-label{
-    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-    font-size:.75rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
-    color:#0f172a;text-shadow:0 1px 2px rgba(255,255,255,.8);z-index:3;
-    will-change: transform;
-  }
-  .home-progress-label.pop{
-    animation:label-pop .38s cubic-bezier(.2,1.4,.2,1) 1;
-  }
-  @keyframes label-pop{
-    0%{transform:translate(-50%,-50%) scale(1)}
-    60%{transform:translate(-50%,-52%) scale(1.18)}
-    100%{transform:translate(-50%,-50%) scale(1)}
-  }
-
-  .home-progress-lightning{
-    --size: calc(var(--bar-h) * 2.2);
-    position:absolute;top:50%;
-    width:var(--size);height:var(--size);
-    transform:translate(-50%,-50%) scale(.6);
-    background:radial-gradient(circle at center,#ffffffd0,#ffffff40 60%,transparent 80%);
-    clip-path:polygon(45% 0,60% 40%,88% 40%,56% 100%,45% 62%,18% 62%);
-    filter:drop-shadow(0 0 6px #fff) drop-shadow(0 0 12px #ffcc70);
-    opacity:0;pointer-events:none;z-index:4;
-  }
-  .home-progress-lightning.reflash{
-    animation:
-      lightning-flash .9s ease-out forwards,
-      lightning-jitter .18s ease-in-out 2;
-  }
-  @keyframes lightning-flash{
-    0%  {opacity:0;transform:translate(-50%,-50%) scale(.5)}
-    25% {opacity:1;transform:translate(-50%,-50%) scale(1.12)}
-    60% {opacity:.95;transform:translate(-50%,-50%) scale(.95)}
-    100%{opacity:1;transform:translate(-50%,-50%) scale(.9)}
-  }
-  @keyframes lightning-jitter{
-    0%,100%{ transform:translate(-50%,-50%) scale(1); }
-    50%    { transform:translate(calc(-50% + .6px), calc(-50% - .6px)) scale(1.02); }
-  }
-  .home-progress-lightning.is-static{
-    opacity:1;transform:translate(-50%,-50%) scale(.9);
-    animation: bolt-breathe 3s ease-in-out infinite;
-  }
-  @keyframes bolt-breathe{
-    0%,100%{ filter:drop-shadow(0 0 6px #fff) drop-shadow(0 0 12px #ffcc70); }
-    50%    { filter:drop-shadow(0 0 10px #fff) drop-shadow(0 0 18px #ffd892); }
-  }
-
-  .home-progress-spark{
-    position:absolute; top:50%;
-    width:6px;height:6px;border-radius:50%;
-    background: radial-gradient(circle, #fff, #ffd27a 60%, transparent 70%);
-    box-shadow: 0 0 6px #ffe6b0, 0 0 10px #ffd27a;
-    transform: translate(-50%,-50%) scale(.6);
-    opacity:0;pointer-events:none;z-index:4;
-    animation: spark-fly .7s ease-out forwards;
-  }
-  @keyframes spark-fly{
-    0%   { opacity:.95; transform:translate(-50%,-50%) scale(.6); }
-    100% { opacity:0;   transform:translate(var(--dx,6px), calc(-50% + var(--dy,-8px))) scale(.2); }
-  }
-
-  .home-glow-card h2,.home-glow-card h3{color:#fff;text-transform:none;letter-spacing:.05em;font-weight:700;}
-  .home-glow-card .text-muted,.home-glow-card .small,.home-glow-card .badge.text-bg-light{color:var(--home-text-soft)!important;}
-  .home-glow-card ul li span:first-child{color:var(--home-text-soft);}
-  .home-glow-card .badge{border-radius:12px;background:rgba(194,224,239,.22)!important;color:var(--home-accent);border:1px solid rgba(194,224,239,.5);}
-
-  /* Компактная статистика */
+  /* Статистика */
   .stats-compact {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -263,7 +237,13 @@
     transition: all 0.3s ease;
     border: 1px solid rgba(255,255,255,0.1);
     cursor: pointer;
+    animation: fadeInUp 0.6s ease-out;
   }
+
+  .stat-item:nth-child(1) { animation-delay: 0.3s; }
+  .stat-item:nth-child(2) { animation-delay: 0.4s; }
+  .stat-item:nth-child(3) { animation-delay: 0.5s; }
+  .stat-item:nth-child(4) { animation-delay: 0.6s; }
 
   .stat-item:hover {
     transform: translateY(-3px);
@@ -277,6 +257,7 @@
     color: var(--home-accent);
     line-height: 1;
     margin-bottom: 0.25rem;
+    animation: numberCountUp 1s ease-out;
   }
 
   .stat-label {
@@ -312,6 +293,7 @@
     text-decoration: none;
     transition: all 0.3s ease;
     cursor: pointer;
+    animation: fadeInUp 0.6s ease-out 0.7s both;
   }
 
   .action-btn:hover {
@@ -345,6 +327,7 @@
   /* Поиск и фильтры */
   .search-box {
     margin-bottom: 1.5rem;
+    animation: fadeInUp 0.6s ease-out 0.8s both;
   }
 
   .search-box .input-group {
@@ -358,6 +341,7 @@
     flex-wrap: wrap;
     gap: 0.5rem;
     margin-bottom: 1.5rem;
+    animation: fadeInUp 0.6s ease-out 0.9s both;
   }
 
   .filter-chip {
@@ -383,21 +367,151 @@
     animation: pulseGlow 2s infinite;
   }
 
-  /* Таблица - исправленные цвета для белого фона */
-  .home-library-table{background:#fff;border-radius:24px;border:1px solid #dbe3f0;box-shadow:0 18px 40px rgba(15,23,42,.12);overflow:hidden;color:#1e293b !important;}
-  .home-library-table .table{color:#1e293b !important;margin-bottom:0;border-color:#e2e8f0;}
-  .home-library-table .table thead{background:#f8fafc;}
-  .home-library-table .table thead th{border-color:#e2e8f0;font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:.7rem;color:#0f172a !important;cursor:pointer;transition:background 0.3s ease;}
-  .home-library-table .table thead th:hover{background:#e2e8f0;}
-  .home-library-table .table tbody td{border-color:#e2e8f0;vertical-align:top;background:#fff;color:#1e293b !important;transition:all 0.3s ease;}
-  .home-library-table .table tbody tr:hover td{background:#f1f5f9;transform:translateY(-2px);}
-  .home-table-actions .btn{border-radius:12px;transition:all 0.3s ease;}
-  .home-table-actions .btn-outline-secondary{color:#475569 !important;border-color:rgba(194,224,239,.55);background:rgba(82,106,122,.65);}
-  .home-table-actions .btn-outline-secondary:hover,.home-table-actions .btn-outline-secondary:focus{background:rgba(194,224,239,.2);color:#1c242b;border-color:rgba(194,224,239,.85);transform:scale(1.05);}
-  .home-table-actions .btn-outline-danger{color:#dc2626 !important;border-color:rgba(248,113,113,.55);background:rgba(244,63,94,.12);}
-  .home-table-actions .btn-outline-danger:hover,.home-table-actions .btn-outline-danger:focus{background:rgba(244,63,94,.25);color:#dc2626;border-color:rgba(244,63,94,.65);transform:scale(1.05);}
-  .tag-chip{display:inline-flex;align-items:center;padding:.25rem .6rem;border-radius:999px;background:rgba(194,224,239,.18);color:#0d2744 !important;font-size:.75rem;margin-right:.35rem;margin-bottom:.35rem;border:1px solid rgba(255,255,255,.28);transition:all 0.3s ease;}
-  .tag-chip:hover{transform:scale(1.05);background:rgba(194,224,239,.3);}
+  /* Прогресс бар */
+  .home-progress-card{ 
+    --home-progress-bought:#38bdf8;
+    --home-progress-read:#f97316;
+  }
+
+  .home-progress-controls{
+    display:flex;
+    flex-wrap:wrap;
+    gap:.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .home-progress-stats{
+    display:flex;
+    align-items:center;
+    gap:1.25rem;
+    min-width:0;
+  }
+
+  .home-progress-side{
+    min-width:120px;
+  }
+
+  .home-progress-value{
+    font-size:2.25rem;
+    line-height:1;
+    display:inline-flex;
+    align-items:center;
+    gap:.25rem;
+  }
+
+  .home-progress-number{
+    font-variant-numeric:tabular-nums;
+    animation: numberCountUp 1s ease-out 1s both;
+  }
+
+  /* Линия прогресса */
+  .home-progress-line{
+    --bar-h: 10px;
+    position:relative;
+    flex:1 1 auto;
+    min-width:160px;
+    height:var(--bar-h);
+    border-radius:999px;
+    background:rgba(255,255,255,.16);
+    overflow:hidden;
+    z-index:1;
+  }
+
+  .home-progress-fill-left,
+  .home-progress-fill-right{
+    position:absolute;
+    top:0;
+    bottom:0;
+    width:0%;
+    transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .home-progress-fill-left{
+    left:0;
+    border-top-left-radius:999px;
+    border-bottom-left-radius:999px;
+    background:var(--home-progress-bought);
+  }
+
+  .home-progress-fill-right{
+    right:0;
+    border-top-right-radius:999px;
+    border-bottom-right-radius:999px;
+    background:var(--home-progress-read);
+  }
+
+  .home-progress-label{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    font-size:.75rem;
+    font-weight:600;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    color:#0f172a;
+    text-shadow:0 1px 2px rgba(255,255,255,.8);
+    z-index:3;
+  }
+
+  /* Таблица */
+  .home-library-table{
+    background:#fff;
+    border-radius:24px;
+    border:1px solid #dbe3f0;
+    box-shadow:0 18px 40px rgba(15,23,42,.12);
+    overflow:hidden;
+    color:#1e293b !important;
+    animation: fadeInUp 0.6s ease-out 1s both;
+  }
+
+  .home-library-table .table{
+    color:#1e293b !important;
+    margin-bottom:0;
+    border-color:#e2e8f0;
+  }
+
+  .home-library-table .table thead{
+    background:#f8fafc;
+  }
+
+  .home-library-table .table thead th{
+    border-color:#e2e8f0;
+    font-weight:600;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    font-size:.7rem;
+    color:#0f172a !important;
+    cursor:pointer;
+    transition:background 0.3s ease;
+  }
+
+  .home-library-table .table thead th:hover{
+    background:#e2e8f0;
+  }
+
+  .home-library-table .table tbody tr{
+    animation: fadeInUp 0.5s ease-out;
+  }
+
+  .home-library-table .table tbody tr:nth-child(1) { animation-delay: 1.1s; }
+  .home-library-table .table tbody tr:nth-child(2) { animation-delay: 1.2s; }
+  .home-library-table .table tbody tr:nth-child(3) { animation-delay: 1.3s; }
+  .home-library-table .table tbody tr:nth-child(4) { animation-delay: 1.4s; }
+  .home-library-table .table tbody tr:nth-child(5) { animation-delay: 1.5s; }
+
+  .home-library-table .table tbody td{
+    border-color:#e2e8f0;
+    vertical-align:top;
+    background:#fff;
+    color:#1e293b !important;
+    transition:all 0.3s ease;
+  }
+
+  .home-library-table .table tbody tr:hover td{
+    background:#f1f5f9;
+    transform:translateY(-2px);
+  }
 
   /* Уведомления */
   .library-notification {
@@ -434,110 +548,185 @@
     font-size: 1.2rem;
     cursor: pointer;
     margin-left: 1rem;
+    transition: color 0.3s ease;
   }
 
-  /* Стили модалок */
-  .home-library-modal .modal-content,
-  .home-summary-modal .modal-content {
-    background: radial-gradient(circle at top right, rgba(194, 224, 239, 0.18), transparent 55%),
-                linear-gradient(160deg, rgba(248, 250, 252, 0.96), rgba(226, 232, 240, 0.92));
-    color: #0f172a;
-    border-radius: 24px;
+  .notification-close:hover {
+    color: var(--home-accent-strong);
+  }
+
+  /* Стили для интерактивных модалок */
+  .stats-modal .modal-content {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-radius: 20px;
     border: none;
-    box-shadow: 0 24px 65px rgba(15, 23, 42, 0.28);
-    overflow: hidden;
+    box-shadow: 0 25px 50px rgba(15, 23, 42, 0.25);
   }
 
-  .home-library-modal .modal-header,
-  .home-summary-modal .modal-header {
+  .stats-modal .modal-header {
+    background: linear-gradient(135deg, #7f9aaf 0%, #5d7283 100%);
+    color: white;
     border: none;
-    background: linear-gradient(135deg, rgba(127, 154, 175, 0.95), rgba(93, 114, 131, 0.95));
-    color: #fff;
-    padding: 1.5rem 1.75rem;
+    border-radius: 20px 20px 0 0;
+    padding: 1.5rem 2rem;
+    position: relative;
   }
 
-  .home-library-modal .modal-header {
-    border-bottom: 1px solid rgba(194, 224, 239, 0.35);
-  }
-
-  .home-summary-modal .modal-header {
-    border-bottom: 1px solid rgba(194, 224, 239, 0.28);
-  }
-
-  .home-library-modal .modal-title,
-  .home-summary-modal .modal-title {
-    color: inherit;
+  .stats-modal .modal-title {
     font-weight: 700;
-    letter-spacing: 0.01em;
+    font-size: 1.25rem;
   }
 
-  .home-library-modal .modal-body,
-  .home-summary-modal .modal-body {
-    padding: 2rem 1.75rem 2.25rem;
-    background: transparent;
-    color: #1e293b;
+  .stats-modal .modal-body {
+    padding: 2rem;
+    max-height: 60vh;
+    overflow-y: auto;
   }
 
-  .home-library-modal .badge {
-    background: rgba(194, 224, 239, 0.22);
-    color: #1d4ed8;
-    border-radius: 999px;
-    font-weight: 600;
-  }
-
-  .home-library-modal .btn-close,
-  .home-summary-modal .btn-close {
-    filter: brightness(0) invert(1);
-    opacity: 0.8;
-  }
-
-  .home-library-modal .btn-close:hover,
-  .home-summary-modal .btn-close:hover {
-    opacity: 1;
-  }
-
-  /* Списки в модалках */
-  .book-list-item {
+  /* Навигация в модалках */
+  .modal-nav {
     display: flex;
-    justify-content: between;
-    align-items: flex-start;
-    padding: 1rem 1.25rem;
-    margin-bottom: 0.75rem;
-    border-radius: 18px;
-    background: rgba(148, 163, 184, 0.12);
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
   }
 
-  .book-list-item:hover {
-    background: rgba(148, 163, 184, 0.2);
-    transform: translateY(-3px);
-    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.15);
-  }
-
-  .book-list-item:last-child {
-    margin-bottom: 0;
-  }
-
-  .book-info {
-    flex: 1;
-  }
-
-  .book-title {
-    font-weight: 600;
-    color: #0f172a;
-    margin-bottom: 0.25rem;
-  }
-
-  .book-authors {
-    font-size: 0.8rem;
+  .modal-nav-btn {
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+    font-weight: 500;
     color: #475569;
   }
 
-  .book-meta {
+  .modal-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.9);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
+  }
+
+  .modal-nav-btn.active {
+    background: linear-gradient(135deg, #7f9aaf 0%, #5d7283 100%);
+    color: white;
+    border-color: #5d7283;
+  }
+
+  .modal-back-btn {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    margin-right: auto;
+  }
+
+  .modal-back-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  /* Элементы списков */
+  .category-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    margin-bottom: 0.75rem;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .category-item:hover {
+    background: rgba(255, 255, 255, 0.95);
+    transform: translateX(5px);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
+  }
+
+  .category-name {
+    font-weight: 600;
+    color: #0f172a;
+    font-size: 1rem;
+  }
+
+  .category-count {
+    background: linear-gradient(135deg, #7f9aaf 0%, #5d7283 100%);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+
+  .book-stats-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.75rem;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    transition: all 0.3s ease;
+    animation: slideInLeft 0.4s ease-out;
+  }
+
+  .book-stats-item:hover {
+    background: rgba(255, 255, 255, 0.95);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(15, 23, 42, 0.1);
+  }
+
+  .book-stats-info {
+    flex: 1;
+  }
+
+  .book-stats-title {
+    font-weight: 600;
+    color: #0f172a;
+    margin-bottom: 0.25rem;
+    font-size: 1rem;
+  }
+
+  .book-stats-authors {
+    font-size: 0.875rem;
+    color: #475569;
+  }
+
+  .book-stats-meta {
     font-size: 0.75rem;
     color: #64748b;
     margin-top: 0.25rem;
+  }
+
+  /* Контейнеры контента */
+  .modal-content-section {
+    display: none;
+  }
+
+  .modal-content-section.active {
+    display: block;
+    animation: fadeInUp 0.4s ease-out;
+  }
+
+  .section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #0f172a;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e2e8f0;
   }
 
   /* Адаптивность */
@@ -559,18 +748,39 @@
       grid-template-columns: 1fr;
     }
 
-    .filter-chips {
-      justify-content: center;
+    .home-progress-stats{
+      flex-direction:column;
+      align-items:stretch;
+      gap:.75rem;
+    }
+    
+    .home-progress-side{
+      min-width:0;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      text-align:left;
+    }
+    
+    .home-progress-side.text-end{
+      text-align:left!important;
+    }
+    
+    .home-progress-value{
+      font-size:1.875rem;
     }
 
-    .filter-chip {
-      padding: 0.75rem 1.25rem;
+    .stats-modal .modal-body {
+      padding: 1.5rem;
     }
 
-    .home-progress-stats{flex-direction:column;align-items:stretch;gap:.75rem}
-    .home-progress-side{min-width:0;display:flex;align-items:center;justify-content:space-between;text-align:left}
-    .home-progress-side.text-end{text-align:left!important}
-    .home-progress-value{font-size:1.875rem}
+    .modal-nav {
+      flex-direction: column;
+    }
+
+    .category-item {
+      padding: 0.875rem 1.25rem;
+    }
   }
 
   @media (max-width: 480px) {
@@ -589,17 +799,17 @@
 
   /* Reduce motion */
   @media (prefers-reduced-motion: reduce){
-    .home-progress-line::before,
-    .home-progress-fill-left,.home-progress-fill-right,
-    .home-progress-lightning,
-    .home-progress-label,.home-hero__btn,.home-stats-button,
-    .table-hover tbody tr,.tag-chip,.filter-chip{animation:none!important;transition:none!important}
-    .home-progress-lightning.is-static{animation:none!important}
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 </style>
 {% endblock %}
 
 {% block content %}
+<!-- Остальной контент остается таким же -->
 <section class="home-hero mb-5">
   <div class="row g-4 align-items-stretch">
     <div class="col-12 col-lg-7 home-hero__content">
@@ -608,7 +818,7 @@
       <p class="home-hero__subtitle mb-4">Отслеживайте бумажные и электронные экземпляры, расставляйте их по полкам и возвращайтесь к любимым сериям.</p>
       <div class="home-hero__actions mb-3">
         <a class="btn btn-light home-hero__btn" href="{% url 'book_list' %}"><i class="bi bi-plus-circle me-2"></i> Добавить книгу</a>
-        <a class="btn btn-outline-secondary me-2" href="{% url 'profile' request.user.username %}">
+        <a class="btn btn-outline-light home-hero__btn" href="{% url 'profile' request.user.username %}">
           <i class="bi bi-person-circle me-1"></i>К полкам
         </a>
       </div>
@@ -618,7 +828,7 @@
       <div class="home-glow-card home-progress-card w-100 h-100">
         <h2 class="h6 text-uppercase text-muted mb-3">Куплено против прочитано</h2>
 
-        <div class="home-progress-controls mb-3">
+        <div class="home-progress-controls">
           <div class="flex-grow-1">
             <label class="form-label text-uppercase text-muted small" for="homePeriodType">Тип периода</label>
             <select class="form-select form-select-sm" id="homePeriodType" data-role="period-type">
@@ -640,35 +850,25 @@
           </div>
         </div>
 
-        <div class="home-progress-stats">
+        <div class="home-progress-stats mt-4">
           <div class="home-progress-side">
             <div class="small text-uppercase text-muted">Куплено</div>
-            <button class="home-stats-button home-progress-value summary-trigger" type="button"
-                    data-summary-trigger data-summary-category="period"
-                    data-period-kind="bought"
-                    data-period-type="{{ default_period_type }}"
-                    data-period-value="{{ default_period_value }}"
-                    data-summary-title="Куплено">
-              <span class="home-progress-number" data-role="period-bought-count">{{ default_period_stats.bought_count }}</span>
-            </button>
+            <div class="home-progress-value">
+              <span class="home-progress-number" data-role="period-bought-count" data-target="{{ default_period_stats.bought_count }}">0</span>
+            </div>
           </div>
 
           <div class="home-progress-line">
-            <div class="home-progress-fill-left"  data-role="fill-left"></div>
+            <div class="home-progress-fill-left" data-role="fill-left"></div>
             <div class="home-progress-fill-right" data-role="fill-right"></div>
-            <div class="home-progress-label"      data-role="period-progress-label">0%</div>
+            <div class="home-progress-label" data-role="period-progress-label">0%</div>
           </div>
 
           <div class="home-progress-side text-end">
             <div class="small text-uppercase text-muted">Прочитано</div>
-            <button class="home-stats-button home-progress-value summary-trigger" type="button"
-                    data-summary-trigger data-summary-category="period"
-                    data-period-kind="read"
-                    data-period-type="{{ default_period_type }}"
-                    data-period-value="{{ default_period_value }}"
-                    data-summary-title="Прочитано">
-              <span class="home-progress-number" data-role="period-read-count">{{ default_period_stats.read_count }}</span>
-            </button>
+            <div class="home-progress-value">
+              <span class="home-progress-number" data-role="period-read-count" data-target="{{ default_period_stats.read_count }}">0</span>
+            </div>
           </div>
         </div>
       </div>
@@ -676,31 +876,31 @@
   </div>
 </section>
 
-<!-- Компактная статистика под героем -->
+<!-- Компактная статистика -->
 <div class="home-glow-card mb-5">
   <h2 class="h6 text-uppercase text-muted mb-3">Обзор библиотеки</h2>
   
   <div class="stats-compact">
     <div class="stat-item" onclick="showAllBooks()">
-      <div class="stat-value" data-target="{{ summary.total|default:0 }}">{{ summary.total|default:0 }}</div>
+      <div class="stat-value" data-target="{{ summary.total|default:0 }}">0</div>
       <div class="stat-label">Всего книг</div>
       <div class="stat-details">в библиотеке</div>
     </div>
 
     <div class="stat-item" onclick="showReadBooks()">
-      <div class="stat-value" data-target="{{ summary.read_count|default:0 }}">{{ summary.read_count|default:0 }}</div>
+      <div class="stat-value" data-target="{{ summary.read_count|default:0 }}">0</div>
       <div class="stat-label">Прочитано</div>
       <div class="stat-details">книг</div>
     </div>
 
     <div class="stat-item" onclick="showGenres()">
-      <div class="stat-value" data-target="{{ summary.genre_total|default:0 }}">{{ summary.genre_total|default:0 }}</div>
+      <div class="stat-value" data-target="{{ summary.genre_total|default:0 }}">0</div>
       <div class="stat-label">Жанров</div>
       <div class="stat-details">в коллекции</div>
     </div>
 
     <div class="stat-item" onclick="showSeries()">
-      <div class="stat-value" data-target="{{ summary.series_total|default:0 }}">{{ summary.series_total|default:0 }}</div>
+      <div class="stat-value" data-target="{{ summary.series_total|default:0 }}">0</div>
       <div class="stat-label">Серий</div>
       <div class="stat-details">начато</div>
     </div>
@@ -726,7 +926,7 @@
   </div>
 </div>
 
-<!-- Быстрый поиск -->
+<!-- Поиск и фильтры -->
 <div class="search-box">
   <div class="input-group">
     <span class="input-group-text"><i class="bi bi-search"></i></span>
@@ -738,7 +938,6 @@
   </div>
 </div>
 
-<!-- Быстрые фильтры -->
 <div class="filter-chips">
   <div class="filter-chip active" data-filter="all">Все книги</div>
   <div class="filter-chip" data-filter="reading">Читаю сейчас</div>
@@ -752,6 +951,7 @@
   <div class="home-library-table mb-4">
     <div class="table-responsive">
       <table class="table align-middle table-hover" id="booksTable">
+        <!-- Содержимое таблицы -->
         <thead>
           <tr>
             <th data-sort="title">Книга</th>
@@ -836,8 +1036,82 @@
   </div>
 {% endif %}
 
-<!-- Модалки для статистики -->
-<div class="modal fade home-library-modal" id="readBooksModal" tabindex="-1" aria-hidden="true">
+<!-- Модалка для жанров -->
+<div class="modal fade stats-modal" id="genresModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="modal-back-btn d-none" onclick="goBackToGenres()">
+          <i class="bi bi-arrow-left"></i> Назад к жанрам
+        </button>
+        <h5 class="modal-title">🎭 Жанры в коллекции</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Список жанров -->
+        <div class="modal-content-section active" id="genresListSection">
+          <div class="modal-nav">
+            <button class="modal-nav-btn active" onclick="showGenresView()">Все жанры</button>
+          </div>
+          <div id="genresList">
+            {% for genre in summary.genre_counts %}
+              <div class="category-item" onclick="showGenreBooks('{{ genre.name }}')">
+                <span class="category-name">{{ genre.name }}</span>
+                <span class="category-count">{{ genre.total }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Книги выбранного жанра -->
+        <div class="modal-content-section" id="genreBooksSection">
+          <h6 class="section-title" id="genreBooksTitle">Книги жанра</h6>
+          <div id="genreBooksList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка для серий -->
+<div class="modal fade stats-modal" id="seriesModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="modal-back-btn d-none" onclick="goBackToSeries()">
+          <i class="bi bi-arrow-left"></i> Назад к сериям
+        </button>
+        <h5 class="modal-title">📚 Серии книг</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Список серий -->
+        <div class="modal-content-section active" id="seriesListSection">
+          <div class="modal-nav">
+            <button class="modal-nav-btn active" onclick="showSeriesView()">Все серии</button>
+          </div>
+          <div id="seriesList">
+            {% for series in summary.series_counts %}
+              <div class="category-item" onclick="showSeriesBooks('{{ series.series_name }}')">
+                <span class="category-name">{{ series.series_name }}</span>
+                <span class="category-count">{{ series.total }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Книги выбранной серии -->
+        <div class="modal-content-section" id="seriesBooksSection">
+          <h6 class="section-title" id="seriesBooksTitle">Книги серии</h6>
+          <div id="seriesBooksList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Остальные модалки (читанные книги, все книги) -->
+<div class="modal fade stats-modal" id="readBooksModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
@@ -848,12 +1122,12 @@
         <div id="readBooksList">
           {% for entry in entries %}
             {% if entry.is_read %}
-              <div class="book-list-item">
-                <div class="book-info">
-                  <div class="book-title">{{ entry.book.title }}</div>
-                  <div class="book-authors">{{ entry.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
+              <div class="book-stats-item">
+                <div class="book-stats-info">
+                  <div class="book-stats-title">{{ entry.book.title }}</div>
+                  <div class="book-stats-authors">{{ entry.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
                   {% if entry.date_read %}
-                    <div class="book-meta">Прочитано: {{ entry.date_read|date:"d.m.Y" }}</div>
+                    <div class="book-stats-meta">Прочитано: {{ entry.date_read|date:"d.m.Y" }}</div>
                   {% endif %}
                 </div>
               </div>
@@ -865,53 +1139,7 @@
   </div>
 </div>
 
-<div class="modal fade home-library-modal" id="genresModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">🎭 Жанры в коллекции</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-      </div>
-      <div class="modal-body">
-        <div class="row">
-          {% for genre in summary.genre_counts %}
-            <div class="col-md-6 mb-3">
-              <div class="d-flex justify-content-between align-items-center p-3 border rounded">
-                <span>{{ genre.name }}</span>
-                <span class="badge bg-primary">{{ genre.total }}</span>
-              </div>
-            </div>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal fade home-library-modal" id="seriesModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">📚 Серии книг</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-      </div>
-      <div class="modal-body">
-        <div class="row">
-          {% for series in summary.series_counts %}
-            <div class="col-md-6 mb-3">
-              <div class="d-flex justify-content-between align-items-center p-3 border rounded">
-                <span>{{ series.series_name }}</span>
-                <span class="badge bg-primary">{{ series.total }}</span>
-              </div>
-            </div>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal fade home-library-modal" id="allBooksModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade stats-modal" id="allBooksModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
@@ -921,11 +1149,11 @@
       <div class="modal-body">
         <div id="allBooksList">
           {% for entry in entries %}
-            <div class="book-list-item">
-              <div class="book-info">
-                <div class="book-title">{{ entry.book.title }}</div>
-                <div class="book-authors">{{ entry.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
-                <div class="book-meta">
+            <div class="book-stats-item">
+              <div class="book-stats-info">
+                <div class="book-stats-title">{{ entry.book.title }}</div>
+                <div class="book-stats-authors">{{ entry.book.authors.all|join:", "|default:"Автор неизвестен" }}</div>
+                <div class="book-stats-meta">
                   {% if entry.is_read %}
                     <span class="text-success">Прочитано</span>
                   {% else %}
@@ -943,458 +1171,381 @@
   </div>
 </div>
 
-<!-- Оригинальная модалка для прогресса -->
-<div class="modal fade home-summary-modal" id="homeLibrarySummaryModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h1 class="modal-title fs-5" data-role="summary-title">Список книг</h1>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-      </div>
-      <div class="modal-body">
-        <p class="text-muted mb-0" data-role="summary-empty">Для этого раздела пока нет книг.</p>
-        <div data-role="summary-list" class="list-group list-group-flush d-none"></div>
-      </div>
-    </div>
-  </div>
-</div>
-{% if not user.profile.has_active_premium %}
-<!-- Yandex.RTB R-A-17641153-1 -->
-<script>
-window.yaContextCb.push(() => {
-    Ya.Context.AdvManager.render({
-        "blockId": "R-A-17641153-1",
-        "type": "floorAd",
-        "platform": "desktop"
-    })
-})
-</script>
-<!-- Yandex.RTB R-A-17641153-4 -->
-<script>
-window.yaContextCb.push(() => {
-    Ya.Context.AdvManager.render({
-        "blockId": "R-A-17641153-4",
-        "type": "floorAd",
-        "platform": "touch"
-    })
-})
-</script>
-{% endif %}
 {% endblock %}
 
 {% block extra_js %}
-{{ summary_data|json_script:"homeLibrarySummaryData" }}
 <script>
+// Данные для модалок
+const libraryData = {
+  genres: {
+    {% for genre in summary.genre_counts %}
+      "{{ genre.name }}": [
+        {% for entry in entries %}
+          {% for genre_entry in entry.custom_genres.all %}
+            {% if genre_entry.name == genre.name %}
+              {
+                title: "{{ entry.book.title }}",
+                authors: "{{ entry.book.authors.all|join:', '|default:'Автор неизвестен' }}",
+                is_read: {% if entry.is_read %}true{% else %}false{% endif %},
+                format: "{{ entry.get_format_display }}",
+                acquired: "{% if entry.acquired_at %}{{ entry.acquired_at|date:'d.m.Y' }}{% endif %}",
+                url: "{% url 'book_detail' entry.book.pk %}"
+              },
+            {% endif %}
+          {% endfor %}
+        {% endfor %}
+      ],
+    {% endfor %}
+  },
+  series: {
+    {% for series in summary.series_counts %}
+      "{{ series.series_name }}": [
+        {% for entry in entries %}
+          {% if entry.series_name == series.series_name %}
+            {
+              title: "{{ entry.book.title }}",
+              authors: "{{ entry.book.authors.all|join:', '|default:'Автор неизвестен' }}",
+              is_read: {% if entry.is_read %}true{% else %}false{% endif %},
+              format: "{{ entry.get_format_display }}",
+              acquired: "{% if entry.acquired_at %}{{ entry.acquired_at|date:'d.m.Y' }}{% endif %}",
+              url: "{% url 'book_detail' entry.book.pk %}"
+            },
+          {% endif %}
+        {% endfor %}
+      ],
+    {% endfor %}
+  }
+};
+
+// Функции для навигации в модалках
+function showGenreBooks(genreName) {
+  const books = libraryData.genres[genreName] || [];
+  
+  // Обновляем заголовок
+  document.getElementById('genreBooksTitle').textContent = `Книги жанра: ${genreName}`;
+  
+  // Заполняем список книг
+  const booksList = document.getElementById('genreBooksList');
+  booksList.innerHTML = '';
+  
+  if (books.length === 0) {
+    booksList.innerHTML = '<p class="text-muted text-center py-4">Нет книг в этом жанре</p>';
+  } else {
+    books.forEach(book => {
+      const bookElement = document.createElement('div');
+      bookElement.className = 'book-stats-item';
+      bookElement.innerHTML = `
+        <div class="book-stats-info">
+          <div class="book-stats-title">${book.title}</div>
+          <div class="book-stats-authors">${book.authors}</div>
+          <div class="book-stats-meta">
+            ${book.is_read ? '<span class="text-success">Прочитано</span>' : '<span class="text-warning">В планах</span>'}
+            • ${book.format}
+            ${book.acquired ? `• Приобретена: ${book.acquired}` : ''}
+          </div>
+        </div>
+      `;
+      bookElement.onclick = () => window.location.href = book.url;
+      booksList.appendChild(bookElement);
+    });
+  }
+  
+  // Переключаем секции
+  document.getElementById('genresListSection').classList.remove('active');
+  document.getElementById('genreBooksSection').classList.add('active');
+  document.querySelector('#genresModal .modal-back-btn').classList.remove('d-none');
+}
+
+function showSeriesBooks(seriesName) {
+  const books = libraryData.series[seriesName] || [];
+  
+  // Обновляем заголовок
+  document.getElementById('seriesBooksTitle').textContent = `Книги серии: ${seriesName}`;
+  
+  // Заполняем список книг
+  const booksList = document.getElementById('seriesBooksList');
+  booksList.innerHTML = '';
+  
+  if (books.length === 0) {
+    booksList.innerHTML = '<p class="text-muted text-center py-4">Нет книг в этой серии</p>';
+  } else {
+    books.forEach(book => {
+      const bookElement = document.createElement('div');
+      bookElement.className = 'book-stats-item';
+      bookElement.innerHTML = `
+        <div class="book-stats-info">
+          <div class="book-stats-title">${book.title}</div>
+          <div class="book-stats-authors">${book.authors}</div>
+          <div class="book-stats-meta">
+            ${book.is_read ? '<span class="text-success">Прочитано</span>' : '<span class="text-warning">В планах</span>'}
+            • ${book.format}
+            ${book.acquired ? `• Приобретена: ${book.acquired}` : ''}
+          </div>
+        </div>
+      `;
+      bookElement.onclick = () => window.location.href = book.url;
+      booksList.appendChild(bookElement);
+    });
+  }
+  
+  // Переключаем секции
+  document.getElementById('seriesListSection').classList.remove('active');
+  document.getElementById('seriesBooksSection').classList.add('active');
+  document.querySelector('#seriesModal .modal-back-btn').classList.remove('d-none');
+}
+
+function goBackToGenres() {
+  document.getElementById('genreBooksSection').classList.remove('active');
+  document.getElementById('genresListSection').classList.add('active');
+  document.querySelector('#genresModal .modal-back-btn').classList.add('d-none');
+}
+
+function goBackToSeries() {
+  document.getElementById('seriesBooksSection').classList.remove('active');
+  document.getElementById('seriesListSection').classList.add('active');
+  document.querySelector('#seriesModal .modal-back-btn').classList.add('d-none');
+}
+
+function showGenresView() {
+  goBackToGenres();
+}
+
+function showSeriesView() {
+  goBackToSeries();
+}
+
+// Функции для открытия модалок
+window.showReadBooks = function() {
+  const modal = new bootstrap.Modal(document.getElementById('readBooksModal'));
+  modal.show();
+};
+
+window.showGenres = function() {
+  const modal = new bootstrap.Modal(document.getElementById('genresModal'));
+  // Сбрасываем состояние при открытии
+  goBackToGenres();
+  modal.show();
+};
+
+window.showSeries = function() {
+  const modal = new bootstrap.Modal(document.getElementById('seriesModal'));
+  // Сбрасываем состояние при открытии
+  goBackToSeries();
+  modal.show();
+};
+
+window.showAllBooks = function() {
+  const modal = new bootstrap.Modal(document.getElementById('allBooksModal'));
+  modal.show();
+};
+
+// Остальной JavaScript код остается таким же
 (function() {
   // Система уведомлений
   function showLibraryNotification(message, type = 'info') {
     const notification = document.createElement('div');
-    notification.className = `library-notification library-notification-${type}`;
-    const icons = { info: 'info-circle', success: 'check-circle', warning: 'exclamation-triangle', error: 'x-circle' };
+    notification.className = 'library-notification';
+    
+    const icons = { 
+      info: 'info-circle', 
+      success: 'check-circle', 
+      warning: 'exclamation-triangle', 
+      error: 'x-circle' 
+    };
+    
     notification.innerHTML = `
       <div class="notification-content">
         <i class="bi bi-${icons[type]} me-2"></i>
         ${message}
+        <button class="notification-close">&times;</button>
       </div>
-      <button class="notification-close">&times;</button>
     `;
     
     document.body.appendChild(notification);
     
-    setTimeout(() => notification.classList.add('show'), 100);
+    setTimeout(() => {
+      notification.classList.add('show');
+    }, 100);
     
-    setTimeout(() => hideNotification(notification), 5000);
+    const autoClose = setTimeout(() => {
+      hideNotification(notification);
+    }, 5000);
     
     notification.querySelector('.notification-close').addEventListener('click', () => {
+      clearTimeout(autoClose);
       hideNotification(notification);
     });
   }
 
   function hideNotification(notification) {
     notification.classList.remove('show');
-    setTimeout(() => notification.remove(), 300);
-  }
-
-  // Функции для модалок
-  window.showReadBooks = function() {
-    const modal = new bootstrap.Modal(document.getElementById('readBooksModal'));
-    modal.show();
-  };
-
-  window.showGenres = function() {
-    const modal = new bootstrap.Modal(document.getElementById('genresModal'));
-    modal.show();
-  };
-
-  window.showSeries = function() {
-    const modal = new bootstrap.Modal(document.getElementById('seriesModal'));
-    modal.show();
-  };
-
-  window.showAllBooks = function() {
-    const modal = new bootstrap.Modal(document.getElementById('allBooksModal'));
-    modal.show();
-  };
-
-  // Оригинальный код прогресса (сохранен)
-  const dataElement = document.getElementById('homeLibrarySummaryData');
-  if (!dataElement) return;
-
-  let summaryData = {};
-  try { summaryData = JSON.parse(dataElement.textContent || '{}'); }
-  catch (e) { console.error('Failed to parse home library summary data', e); summaryData = {}; }
-
-  const modalEl = document.getElementById('homeLibrarySummaryModal');
-  const titleEl = modalEl ? modalEl.querySelector('[data-role="summary-title"]') : null;
-  const listWrapper = modalEl ? modalEl.querySelector('[data-role="summary-list"]') : null;
-  const emptyEl = modalEl ? modalEl.querySelector('[data-role="summary-empty"]') : null;
-  let modalInstance = null;
-
-  function ensureModal(){
-    if (!modalEl) return null;
-    if (!modalInstance && window.bootstrap?.Modal) modalInstance = new bootstrap.Modal(modalEl);
-    return modalInstance;
-  }
-
-  function renderBooks(items){
-    if (!listWrapper || !emptyEl) return;
-    if (!Array.isArray(items) || !items.length){
-      listWrapper.innerHTML=''; listWrapper.classList.add('d-none');
-      emptyEl.classList.remove('d-none'); emptyEl.textContent='Для этого раздела пока нет книг.'; return;
-    }
-    const frag = document.createDocumentFragment();
-    items.forEach(book=>{
-      const item = document.createElement('div'); item.className='list-group-item home-summary-item';
-      const link = document.createElement('a'); link.href=book.url; link.textContent=book.title;
-      const sub = document.createElement('div'); sub.className='text-muted small mt-1'; sub.textContent=book.authors || 'Автор неизвестен';
-      item.appendChild(link); item.appendChild(sub); frag.appendChild(item);
-    });
-    listWrapper.innerHTML=''; listWrapper.appendChild(frag);
-    emptyEl.classList.add('d-none'); listWrapper.classList.remove('d-none');
-  }
-
-  function openModal(title, items){
-    if (titleEl) titleEl.textContent = title || 'Список книг';
-    renderBooks(items);
-    const m = ensureModal(); if (m) m.show();
-  }
-
-  function getSummaryItems(trigger){
-    const category = trigger.dataset.summaryCategory; if (!category) return [];
-    if (['classic','modern','active','disposed'].includes(category)) return summaryData[category] || [];
-    if (['series','genres','locations','statuses'].includes(category)){
-      const key = trigger.dataset.summaryKey; const bucket = summaryData[category] || {};
-      return key ? (bucket[key] || []) : [];
-    }
-    if (category === 'period'){
-      const kind = trigger.dataset.periodKind, type = trigger.dataset.periodType, value = trigger.dataset.periodValue;
-      const periods = summaryData.periods || {}; const typeBucket = periods[type] || {}; const stats = typeBucket[value] || {};
-      if (kind === 'bought') return stats.bought_books || [];
-      if (kind === 'read')   return stats.read_books || [];
-      return [];
-    }
-    return [];
-  }
-
-  function getPeriodOptions(type){
-    const options = summaryData.periodOptions || {}; return options[type] || [];
-  }
-  function getPeriodLabel(type, value){
-    const opts = getPeriodOptions(type); const found = opts.find(o=>o.value===value); return found ? found.label : '';
-  }
-
-  document.querySelectorAll('[data-summary-trigger]').forEach(trigger=>{
-    trigger.addEventListener('click', ()=>{
-      const title = trigger.dataset.summaryTitle || trigger.textContent.trim();
-      const items = getSummaryItems(trigger);
-      openModal(title, items);
-    });
-  });
-
-  const periodTypeSelect  = document.querySelector('[data-role="period-type"]');
-  const periodValueSelect = document.querySelector('[data-role="period-value"]');
-  const boughtCountEl     = document.querySelector('[data-role="period-bought-count"]');
-  const readCountEl       = document.querySelector('[data-role="period-read-count"]');
-  const fillLeftEl        = document.querySelector('[data-role="fill-left"]');
-  const fillRightEl       = document.querySelector('[data-role="fill-right"]');
-  const labelEl           = document.querySelector('[data-role="period-progress-label"]');
-  const lineEl            = fillLeftEl?.parentElement;
-  const PERIOD_STORAGE_KEY = 'homeLibraryPeriodSelection';
-
-  function getStorage(){ try { return window.localStorage; } catch(e){ return null; } }
-
-  function loadSavedPeriod(){
-    const storage = getStorage(); if (!storage) return null;
-    try{
-      const raw = storage.getItem(PERIOD_STORAGE_KEY); if (!raw) return null;
-      const parsed = JSON.parse(raw); if (!parsed || typeof parsed!=='object') return null;
-      const values = typeof parsed.values==='object' && parsed.values ? parsed.values : {};
-      const type = (parsed.type==='year' || parsed.type==='month') ? parsed.type : null;
-      const value = type && values[type] ? values[type] : (typeof parsed.value==='string' ? parsed.value : '');
-      return { type, value, values };
-    }catch(e){ console.warn('Failed to read saved period', e); return null; }
-  }
-  function savePeriodSelection(type, value){
-    const storage = getStorage(); if (!storage) return;
-    try{
-      const existing = loadSavedPeriod(); const values = existing?.values ? { ...existing.values } : {};
-      if (type==='year' || type==='month'){ value ? values[type]=value : delete values[type]; }
-      const payload = JSON.stringify({ type, value: value || '', values });
-      storage.setItem(PERIOD_STORAGE_KEY, payload);
-    }catch(e){ console.warn('Failed to save period', e); }
-  }
-
-  const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function animateNumber(el, to){
-    const from = parseInt(el.textContent || '0', 10) || 0;
-    if (prefersReduced || from === to){ el.textContent = to; return; }
-    const dur = 700; const start = performance.now();
-    const step = (t)=>{
-      const p = Math.min(1, (t - start) / dur);
-      const eased = 1 - Math.pow(1 - p, 3);
-      el.textContent = Math.round(from + (to - from) * eased);
-      if (p < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }
-
-  document.querySelectorAll('.stat-value[data-target]').forEach((el)=>{
-    const targetRaw = el.dataset.target;
-    if (typeof targetRaw !== 'string' || !targetRaw.trim()) return;
-    const targetValue = parseInt(targetRaw, 10);
-    if (Number.isNaN(targetValue)) return;
-    if (!prefersReduced){
-      el.textContent = '0';
-      requestAnimationFrame(()=> animateNumber(el, targetValue));
-    } else {
-      el.textContent = targetValue;
-    }
-  });
-
-  function placeLightningAt(percent){
-    if (!lineEl) return;
-    let bolt = lineEl.querySelector('.home-progress-lightning');
-    if (!bolt){
-      bolt = document.createElement('div');
-      bolt.className = 'home-progress-lightning';
-      lineEl.appendChild(bolt);
-    }
-    bolt.style.left = percent + '%';
-    bolt.classList.remove('reflash','is-static'); void bolt.offsetWidth;
-    bolt.classList.add('reflash');
-    setTimeout(()=> bolt.classList.add('is-static'), 900);
-  }
-
-  function spawnSparksAt(percent){
-    if (!lineEl || prefersReduced) return;
-    const sparks = 6;
-    for (let i=0;i<sparks;i++){
-      const s = document.createElement('div');
-      s.className = 'home-progress-spark';
-      s.style.left = percent + '%';
-      const angle = (Math.random()*70 - 35) * (Math.PI/180);
-      const dist  = 16 + Math.random()*18;
-      s.style.setProperty('--dx', `${Math.cos(angle)*dist}px`);
-      s.style.setProperty('--dy', `${Math.sin(angle)*dist - 8}px`);
-      lineEl.appendChild(s);
-      setTimeout(()=>s.remove(), 700);
-    }
-  }
-
-  function updatePeriodTriggers(type, value, label){
-    document.querySelectorAll('[data-summary-category="period"]').forEach((trigger)=>{
-      trigger.dataset.periodType = type;
-      trigger.dataset.periodValue = value || '';
-      const kind = trigger.dataset.periodKind;
-      if (label && kind){
-        const prefix = kind === 'bought' ? 'Куплено — ' : 'Прочитано — ';
-        trigger.dataset.summaryTitle = prefix + label;
-      } else if (kind){
-        trigger.dataset.summaryTitle = kind === 'bought' ? 'Куплено' : 'Прочитано';
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
       }
-    });
+    }, 500);
   }
 
-  function updatePeriodCard(){
-    if (!fillLeftEl || !fillRightEl) return;
-
-    const type = periodTypeSelect?.value || 'year';
-    const options = getPeriodOptions(type);
-    let value = '';
-    if (options.length){
-      value = periodValueSelect?.value || options[0].value;
-      if (periodValueSelect && !options.some(o=>o.value===value)){
-        periodValueSelect.value = options[0].value;
-        value = periodValueSelect.value;
-      }
-    }
-
-    const periods = summaryData.periods || {};
-    const stats = (periods[type] && periods[type][value]) || {};
-    const boughtCount = stats.bought_count || 0;
-    const readCount   = stats.read_count   || 0;
-
-    animateNumber(boughtCountEl, boughtCount);
-    animateNumber(readCountEl,   readCount);
-
-    const total = boughtCount + readCount;
-    const boughtPercent = total ? Math.round((boughtCount / total) * 100) : 0;
-    const readPercent   = 100 - boughtPercent;
-
-    lineEl?.classList.add('is-animating');
-    setTimeout(()=> lineEl?.classList.remove('is-animating'), 1200);
-
-    fillLeftEl.style.transition = 'none';
-    fillRightEl.style.transition = 'none';
-    fillLeftEl.style.width  = '0%';
-    fillRightEl.style.width = '0%';
-    void fillLeftEl.offsetWidth;
-    fillLeftEl.style.transition  = 'width 900ms ease';
-    fillRightEl.style.transition = 'width 900ms ease';
-    fillLeftEl.style.width  = boughtPercent + '%';
-    fillRightEl.style.width = readPercent   + '%';
-
-    placeLightningAt(boughtPercent);
-    spawnSparksAt(boughtPercent);
-
-    if (labelEl){
-      labelEl.classList.remove('pop');
-      labelEl.textContent = `${boughtPercent}% / ${readPercent}%`;
-      setTimeout(()=> labelEl.classList.add('pop'), 920);
-    }
-
-    const label = getPeriodLabel(type, value);
-    updatePeriodTriggers(type, value, label);
-    savePeriodSelection(type, value);
-  }
-
-  function populatePeriodOptions(type, preferredValue){
-    if (!periodValueSelect) return;
-    const options = getPeriodOptions(type);
-    periodValueSelect.innerHTML = '';
-    if (!options.length){
-      const opt = document.createElement('option'); opt.value=''; opt.textContent='Нет данных'; opt.selected=true;
-      periodValueSelect.appendChild(opt); periodValueSelect.disabled = true;
-      if (labelEl) labelEl.textContent = '0% / 0%';
-      if (fillLeftEl && fillRightEl){
-        fillLeftEl.style.width = '0%'; fillRightEl.style.width = '0%';
-      }
-      return;
-    }
-    periodValueSelect.disabled = false;
-    let selectedDone = false;
-    options.forEach(o=>{
-      const el = document.createElement('option'); el.value=o.value; el.textContent=o.label;
-      if (!selectedDone && preferredValue && o.value===preferredValue){ el.selected=true; selectedDone=true; }
-      periodValueSelect.appendChild(el);
-    });
-    if (!selectedDone && summaryData?.defaultPeriod?.type===type){
-      const def = summaryData.defaultPeriod.value;
-      const opt = Array.from(periodValueSelect.options).find(x=>x.value===def);
-      if (opt) opt.selected = true;
-    }
-    if (!Array.from(periodValueSelect.options).some(x=>x.selected) && periodValueSelect.options.length){
-      periodValueSelect.options[0].selected = true;
-    }
-  }
-
-  periodTypeSelect?.addEventListener('change', ()=>{
-    const t = periodTypeSelect.value || 'year';
-    const saved = loadSavedPeriod(); const preferred = saved?.values ? saved.values[t] : undefined;
-    populatePeriodOptions(t, preferred); updatePeriodCard();
-  });
-  periodValueSelect?.addEventListener('change', updatePeriodCard);
-
-  let initialType = periodTypeSelect?.value || 'year';
-  let initialValue;
-  const saved = loadSavedPeriod();
-  if (saved){
-    if (saved.type && getPeriodOptions(saved.type).length){
-      initialType = saved.type; if (periodTypeSelect) periodTypeSelect.value = saved.type;
-    }
-    initialValue = saved.values?.[initialType] || saved.value;
-  }
-  populatePeriodOptions(initialType, initialValue);
-  updatePeriodCard();
-
-  // Быстрый поиск
-  const searchInput = document.getElementById('bookSearch');
-  const clearSearch = document.getElementById('clearSearch');
-  
-  if (searchInput) {
-    searchInput.addEventListener('input', function(e) {
-      const searchTerm = e.target.value.toLowerCase();
-      const rows = document.querySelectorAll('#booksTable tbody tr');
-      let visibleCount = 0;
-      
-      rows.forEach(row => {
-        const title = row.dataset.title || '';
-        const authors = row.dataset.authors || '';
-        const genres = row.dataset.genres || '';
-        const text = title + ' ' + authors + ' ' + genres;
-        const isVisible = text.includes(searchTerm);
-        
-        row.style.display = isVisible ? '' : 'none';
-        if (isVisible) visibleCount++;
-      });
-      
-      if (searchTerm && visibleCount === 0) {
-        showLibraryNotification('По вашему запросу ничего не найдено', 'warning');
-      }
-    });
+  // Анимация чисел
+  function animateNumber(element, targetValue, duration = 1000) {
+    const startValue = parseInt(element.textContent) || 0;
+    const startTime = performance.now();
     
-    clearSearch.addEventListener('click', function() {
-      searchInput.value = '';
-      const rows = document.querySelectorAll('#booksTable tbody tr');
-      rows.forEach(row => row.style.display = '');
-      showLibraryNotification('Поиск очищен', 'info');
-    });
+    function updateNumber(currentTime) {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+      const currentValue = Math.floor(startValue + (targetValue - startValue) * easeOutQuart);
+      
+      element.textContent = currentValue.toLocaleString();
+      
+      if (progress < 1) {
+        requestAnimationFrame(updateNumber);
+      } else {
+        element.textContent = targetValue.toLocaleString();
+      }
+    }
+    
+    requestAnimationFrame(updateNumber);
   }
 
-  // Быстрые фильтры
-  const filterChips = document.querySelectorAll('.filter-chip');
-  filterChips.forEach(chip => {
-    chip.addEventListener('click', function() {
-      const filter = this.dataset.filter;
-      
-      // Обновить активный чип
-      filterChips.forEach(c => c.classList.remove('active'));
-      this.classList.add('active');
-      
-      // Применить фильтр
-      const rows = document.querySelectorAll('#booksTable tbody tr');
-      rows.forEach(row => {
-        let matchesFilter = true;
-        switch (filter) {
-          case 'reading':
-            matchesFilter = row.dataset.reading === 'reading';
-            break;
-          case 'unread':
-            matchesFilter = row.dataset.reading === 'unread';
-            break;
-          case 'classic':
-            matchesFilter = row.dataset.classic === 'classic';
-            break;
-          case 'modern':
-            matchesFilter = row.dataset.classic === 'modern';
-            break;
-          default:
-            matchesFilter = true;
-        }
-        row.style.display = (filter === 'all' || matchesFilter) ? '' : 'none';
-      });
-      
-      showLibraryNotification(`Показаны: ${this.textContent}`, 'info');
+  // Запуск всех анимаций после загрузки
+  function initializeAnimations() {
+    document.querySelectorAll('.stat-value[data-target]').forEach(stat => {
+      const target = parseInt(stat.getAttribute('data-target'));
+      if (!isNaN(target)) {
+        setTimeout(() => {
+          animateNumber(stat, target);
+        }, 800);
+      }
     });
-  });
 
-  // Инициализация
-  document.addEventListener('DOMContentLoaded', function() {
-    // Показать приветственное уведомление
+    setTimeout(() => {
+      const boughtCount = parseInt("{{ default_period_stats.bought_count }}") || 0;
+      const readCount = parseInt("{{ default_period_stats.read_count }}") || 0;
+      const total = boughtCount + readCount;
+      
+      if (total > 0) {
+        const boughtPercent = (boughtCount / total) * 100;
+        const readPercent = 100 - boughtPercent;
+        
+        const fillLeft = document.querySelector('[data-role="fill-left"]');
+        const fillRight = document.querySelector('[data-role="fill-right"]');
+        const label = document.querySelector('[data-role="period-progress-label"]');
+        
+        if (fillLeft && fillRight && label) {
+          fillLeft.style.width = boughtPercent + '%';
+          fillRight.style.width = readPercent + '%';
+          label.textContent = Math.round(boughtPercent) + '% / ' + Math.round(readPercent) + '%';
+        }
+      }
+      
+      const boughtNumber = document.querySelector('[data-role="period-bought-count"]');
+      const readNumber = document.querySelector('[data-role="period-read-count"]');
+      
+      if (boughtNumber) {
+        const targetBought = parseInt(boughtNumber.getAttribute('data-target')) || 0;
+        animateNumber(boughtNumber, targetBought, 1200);
+      }
+      
+      if (readNumber) {
+        const targetRead = parseInt(readNumber.getAttribute('data-target')) || 0;
+        animateNumber(readNumber, targetRead, 1200);
+      }
+    }, 1000);
+
     setTimeout(() => {
       showLibraryNotification('Добро пожаловать в вашу библиотеку! Нажмите на любую статистику для детальной информации.', 'info');
-    }, 1000);
+    }, 2000);
+  }
+
+  // Поиск книг
+  function initializeSearch() {
+    const searchInput = document.getElementById('bookSearch');
+    const clearSearch = document.getElementById('clearSearch');
+    
+    if (searchInput) {
+      searchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase().trim();
+        const rows = document.querySelectorAll('#booksTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+          const title = row.dataset.title || '';
+          const authors = row.dataset.authors || '';
+          const genres = row.dataset.genres || '';
+          const searchText = title + ' ' + authors + ' ' + genres;
+          const isVisible = searchText.includes(searchTerm);
+          
+          row.style.display = isVisible ? '' : 'none';
+          if (isVisible) visibleCount++;
+        });
+        
+        if (searchTerm && visibleCount === 0) {
+          showLibraryNotification('По вашему запросу ничего не найдено', 'warning');
+        }
+      });
+      
+      clearSearch.addEventListener('click', function() {
+        searchInput.value = '';
+        const rows = document.querySelectorAll('#booksTable tbody tr');
+        rows.forEach(row => row.style.display = '');
+        showLibraryNotification('Поиск очищен', 'info');
+      });
+    }
+  }
+
+  // Фильтры
+  function initializeFilters() {
+    const filterChips = document.querySelectorAll('.filter-chip');
+    
+    filterChips.forEach(chip => {
+      chip.addEventListener('click', function() {
+        const filter = this.dataset.filter;
+        
+        filterChips.forEach(c => c.classList.remove('active'));
+        this.classList.add('active');
+        
+        const rows = document.querySelectorAll('#booksTable tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+          let matchesFilter = true;
+          
+          switch (filter) {
+            case 'reading':
+              matchesFilter = row.dataset.reading === 'reading';
+              break;
+            case 'unread':
+              matchesFilter = row.dataset.reading === 'unread';
+              break;
+            case 'classic':
+              matchesFilter = row.dataset.classic === 'classic';
+              break;
+            case 'modern':
+              matchesFilter = row.dataset.classic === 'modern';
+              break;
+            default:
+              matchesFilter = true;
+          }
+          
+          row.style.display = matchesFilter ? '' : 'none';
+          if (matchesFilter) visibleCount++;
+        });
+        
+        showLibraryNotification(`Показано: ${visibleCount} книг`, 'info');
+      });
+    });
+  }
+
+  // Инициализация при загрузке
+  document.addEventListener('DOMContentLoaded', function() {
+    initializeAnimations();
+    initializeSearch();
+    initializeFilters();
   });
 
 })();
+</script>
 {% endblock %}

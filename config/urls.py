@@ -11,6 +11,7 @@ urlpatterns = [
         TemplateView.as_view(template_name='app-ads.txt', content_type='text/plain')
     ),
     path("", views.home, name="home"),
+    path("rules/", views.rules, name="rules"),
     path("admin/", admin.site.urls),
     path("books/", include("books.urls")),  # подключаем роуты приложения books
     path("accounts/", include("accounts.urls")),  # подключаем роуты приложения accounts
