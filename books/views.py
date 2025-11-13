@@ -33,6 +33,9 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import mark_safe
 from django.utils.text import slugify
+from django.template.loader import render_to_string
+from weasyprint import HTML
+import logging
 from django.views.decorators.http import require_GET, require_POST
 from shelves.forms import HomeLibraryQuickAddForm, QuickAddShelfForm
 from shelves.models import BookProgress, ShelfItem, HomeLibraryEntry, ProgressAnnotation
@@ -1892,12 +1895,14 @@ def rate_book(request, pk):
                 award_for_review(request.user, rating)
             ReadBeforeBuyGame.handle_review(request.user, book, rating.review)
             move_book_to_read_shelf(request.user, book, read_date=existing_read_date)
+            pdf_url = reverse("book_review_pdf", args=[book.pk])
             print_url = reverse("book_review_print", args=[book.pk])
             messages.success(
                 request,
                 mark_safe(
                     "Спасибо! Ваш отзыв сохранён. "
-                    f"<a class=\"btn btn-sm btn-outline-light ms-2\" href=\"{print_url}\">Распечатать отзыв</a>"
+                    f'<a class="btn btn-sm btn-outline-primary ms-2" href="{pdf_url}">📖 PDF</a>'
+                    f'<a class="btn btn-sm btn-outline-secondary ms-1" href="{print_url}">📄 HTML</a>'
                 ),
             )
         else:
@@ -1905,7 +1910,108 @@ def rate_book(request, pk):
     return redirect("book_detail", pk=book.pk)
 
 @login_required
+def book_review_pdf(request, pk):
+    """
+    Генерация PDF версии отзыва о книге
+    """
+    try:
+        book = get_object_or_404(
+            Book.objects.prefetch_related("authors", "genres", "publisher"),
+            pk=pk,
+        )
+        rating = get_object_or_404(Rating, book=book, user=request.user)
+
+        # Код подготовки данных (такой же как в book_review_print)
+        progress = (
+            BookProgress.objects.filter(user=request.user, book=book, event__isnull=True)
+            .order_by("-updated_at")
+            .first()
+        )
+        if not progress:
+            progress = (
+                BookProgress.objects.filter(user=request.user, book=book)
+                .order_by("-updated_at")
+                .first()
+            )
+
+        reading_start = None
+        reading_end = None
+        notes = ""
+        characters = []
+        saved_quotes = []
+        saved_notes = []
+
+        if progress:
+            period = progress.logs.aggregate(start=Min("log_date"), end=Max("log_date"))
+            reading_start = period.get("start")
+            reading_end = period.get("end")
+            if not reading_start and progress.updated_at:
+                reading_start = progress.updated_at.date()
+            if not reading_end and progress.updated_at:
+                reading_end = progress.updated_at.date()
+            notes = progress.reading_notes
+            characters = list(progress.character_entries.all())
+            saved_quotes = list(
+                progress.annotations.filter(kind=ProgressAnnotation.KIND_QUOTE)
+            )
+            saved_notes = list(
+                progress.annotations.filter(kind=ProgressAnnotation.KIND_NOTE)
+            )
+
+        cover_url = book.get_cover_url()
+        if cover_url:
+            cover_url = str(cover_url).strip()
+            if cover_url.startswith("//"):
+                cover_url = f"{request.scheme}:{cover_url}"
+            elif cover_url.startswith("/"):
+                cover_url = request.build_absolute_uri(cover_url)
+        else:
+            cover_url = None
+
+        context = {
+            "book": book,
+            "rating": rating,
+            "cover_url": cover_url,
+            "authors": book.authors.all(),
+            "total_pages": book.get_total_pages(),
+            "reading_start": reading_start,
+            "reading_end": reading_end,
+            "notes": notes,
+            "saved_quotes": saved_quotes,
+            "saved_notes": saved_notes,
+            "characters": characters,
+        }
+
+        # Рендерим HTML
+        html_string = render_to_string("books/review_print.html", context)
+        
+        # Создаем PDF с базовым URL для корректной загрузки ресурсов
+        html = HTML(
+            string=html_string, 
+            base_url=request.build_absolute_uri('/'),
+            encoding='utf-8'
+        )
+        
+        pdf_file = html.write_pdf()
+
+        # Возвращаем PDF
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        filename = f"{slugify(book.title)}-review.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
+    except Exception as e:
+        logger.error(f"PDF generation error for book {pk}: {e}")
+        messages.error(request, "Не удалось сгенерировать PDF. Попробуйте позже.")
+        return redirect("book_detail", pk=pk)
+
+
+# Оставляем существующую функцию без изменений
+@login_required
 def book_review_print(request, pk):
+    """
+    Генерация HTML версии отзыва о книге (существующий функционал)
+    """
     book = get_object_or_404(
         Book.objects.prefetch_related("authors", "genres", "publisher"),
         pk=pk,

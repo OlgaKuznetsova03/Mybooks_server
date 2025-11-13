@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -30,13 +33,776 @@ class ReadTogetherApp extends StatelessWidget {
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
-      home: const MainWebViewPage(),
+      home: const KaleidoscopeHome(),
     );
   }
 }
 
+class KaleidoscopeHome extends StatefulWidget {
+  const KaleidoscopeHome({super.key});
+
+  @override
+  State<KaleidoscopeHome> createState() => _KaleidoscopeHomeState();
+}
+
+class _KaleidoscopeHomeState extends State<KaleidoscopeHome> {
+  final ValueNotifier<bool> _isOnlineNotifier = ValueNotifier(true);
+  final Connectivity _connectivity = Connectivity();
+
+  MainWebViewPage? _webViewPage;
+  int _currentIndex = 0;
+  StreamSubscription<dynamic>? _connectivitySubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _webViewPage = MainWebViewPage(onlineNotifier: _isOnlineNotifier);
+    _initConnectivity();
+  }
+
+  Future<void> _initConnectivity() async {
+    try {
+      final result = await _connectivity.checkConnectivity();
+      _handleConnectivityResult(result);
+    } catch (_) {}
+
+    _connectivitySubscription =
+        _connectivity.onConnectivityChanged.listen(_handleConnectivityResult);
+  }
+
+  void _handleConnectivityResult(dynamic result) {
+    bool hasConnection = true;
+    if (result is ConnectivityResult) {
+      hasConnection = result != ConnectivityResult.none;
+    } else if (result is List<ConnectivityResult>) {
+      hasConnection = result.any((e) => e != ConnectivityResult.none);
+    }
+    if (_isOnlineNotifier.value != hasConnection) {
+      _isOnlineNotifier.value = hasConnection;
+    }
+  }
+
+  @override
+  void dispose() {
+    _connectivitySubscription?.cancel();
+    _isOnlineNotifier.dispose();
+    super.dispose();
+  }
+
+  void _setIndex(int index) {
+    if (_currentIndex == index) return;
+    setState(() => _currentIndex = index);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: _isOnlineNotifier,
+      builder: (context, isOnline, _) {
+        final pages = [
+          HomeDashboard(
+            isOnline: isOnline,
+            onOpenMarathons: () => _setIndex(2),
+          ),
+          LocalLibraryTab(isOnline: isOnline),
+          _webViewPage!,
+          ProfileTab(
+            isOnline: isOnline,
+            onOpenWebProfile: () => _setIndex(2),
+          ),
+        ];
+
+        return Scaffold(
+          body: SafeArea(
+            child: IndexedStack(
+              index: _currentIndex,
+              children: pages,
+            ),
+          ),
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: _currentIndex,
+            onDestinationSelected: _setIndex,
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.spa_outlined),
+                selectedIcon: Icon(Icons.spa),
+                label: 'Главная',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.book_outlined),
+                selectedIcon: Icon(Icons.book),
+                label: 'Мои книги',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.emoji_events_outlined),
+                selectedIcon: Icon(Icons.emoji_events),
+                label: 'Марафоны',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.person_outline),
+                selectedIcon: Icon(Icons.person),
+                label: 'Профиль',
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class HomeDashboard extends StatelessWidget {
+  const HomeDashboard({
+    super.key,
+    required this.isOnline,
+    required this.onOpenMarathons,
+  });
+
+  final bool isOnline;
+  final VoidCallback onOpenMarathons;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _HeroHeader(isOnline: isOnline, onOpenMarathons: onOpenMarathons),
+        const SizedBox(height: 16),
+        if (!isOnline) const OfflineIllustration(),
+        SectionTitle(
+          icon: Icons.auto_stories,
+          title: 'Рекомендуем прочитать',
+          subtitle: 'Сохранено в приложении',
+        ),
+        const SizedBox(height: 8),
+        FutureBuilder<List<RecommendedBook>>(
+          future: LocalContentRepository.loadRecommendedBooks(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final books = snapshot.data ?? [];
+            if (books.isEmpty) {
+              return const Text('Добавляем подборку...');
+            }
+            return Column(
+              children: books
+                  .map(
+                    (book) => Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.all(16),
+                        leading: CircleAvatar(
+                          backgroundColor: theme.colorScheme.primaryContainer,
+                          child: Text(
+                            book.title.isNotEmpty
+                                ? book.title.substring(0, 1)
+                                : '?',
+                            style: theme.textTheme.titleMedium,
+                          ),
+                        ),
+                        title: Text(book.title),
+                        subtitle: Text('${book.author}\n${book.description}'),
+                        isThreeLine: true,
+                        trailing: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.timer_outlined, size: 18),
+                            Text(book.duration),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            );
+          },
+        ),
+        const SizedBox(height: 24),
+        SectionTitle(
+          icon: Icons.emoji_events,
+          title: 'Марафоны недели',
+          subtitle: 'Задания доступны онлайн и офлайн',
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              colors: [
+                Theme.of(context).colorScheme.primaryContainer,
+                Theme.of(context).colorScheme.secondaryContainer,
+              ],
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Зимний марафон «Калейдоскоп чувств»',
+                style: theme.textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Получайте задания и отслеживайте прогресс прямо в приложении. '
+                'Если интернет пропал — последние шаги сохранены локально.',
+                style: theme.textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: onOpenMarathons,
+                icon: const Icon(Icons.play_arrow),
+                label: const Text('Открыть марафоны'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HeroHeader extends StatelessWidget {
+  const _HeroHeader({
+    required this.isOnline,
+    required this.onOpenMarathons,
+  });
+
+  final bool isOnline;
+  final VoidCallback onOpenMarathons;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        gradient: LinearGradient(
+          colors: [
+            theme.colorScheme.primary,
+            theme.colorScheme.secondary,
+          ],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const CircleAvatar(
+                radius: 28,
+                backgroundColor: Colors.white,
+                child: Icon(Icons.menu_book, color: Colors.black87, size: 32),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  'Калейдоскоп книг',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Chip(
+                label: Text(isOnline ? 'Онлайн' : 'Оффлайн'),
+                backgroundColor: Colors.white.withOpacity(0.2),
+                labelStyle: const TextStyle(color: Colors.white),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          const BookFlipAnimation(),
+          const SizedBox(height: 24),
+          Text(
+            'Участвуйте в марафонах, собирайте любимые книги и читайте новости '
+            'проекта в одном приложении.',
+            style: theme.textTheme.bodyLarge?.copyWith(color: Colors.white),
+          ),
+          const SizedBox(height: 16),
+          FilledButton.tonalIcon(
+            onPressed: onOpenMarathons,
+            icon: const Icon(Icons.explore),
+            label: const Text('Начать путешествие'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class LocalLibraryTab extends StatefulWidget {
+  const LocalLibraryTab({super.key, required this.isOnline});
+
+  final bool isOnline;
+
+  @override
+  State<LocalLibraryTab> createState() => _LocalLibraryTabState();
+}
+
+class _LocalLibraryTabState extends State<LocalLibraryTab> {
+  late Future<List<RecommendedBook>> _booksFuture;
+  final Set<String> _favoriteIds = {'artists_way', 'winter_tales'};
+
+  @override
+  void initState() {
+    super.initState();
+    _booksFuture = LocalContentRepository.loadRecommendedBooks();
+  }
+
+  void _toggleFavorite(String id) {
+    setState(() {
+      if (!_favoriteIds.remove(id)) {
+        _favoriteIds.add(id);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return FutureBuilder<List<RecommendedBook>>(
+      future: _booksFuture,
+      builder: (context, snapshot) {
+        final books = snapshot.data ?? [];
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            SectionTitle(
+              icon: Icons.favorite,
+              title: 'Избранное',
+              subtitle: 'Доступно офлайн',
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: _favoriteIds
+                  .map(
+                    (id) => FilterChip(
+                      selected: true,
+                      label: Text(
+                        books.firstWhere(
+                          (b) => b.id == id,
+                          orElse: () =>
+                              RecommendedBook(id: id, title: id, author: '', description: '', duration: ''),
+                        ).title,
+                      ),
+                      onSelected: (_) => _toggleFavorite(id),
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 16),
+            SectionTitle(
+              icon: Icons.library_books,
+              title: 'Последние книги',
+              subtitle: widget.isOnline
+                  ? 'Синхронизировано с сайтом'
+                  : 'Показаны сохранённые подборки',
+            ),
+            const SizedBox(height: 8),
+            if (snapshot.connectionState == ConnectionState.waiting)
+              const Center(child: CircularProgressIndicator())
+            else ...books.map(
+                (book) => Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    side: BorderSide(
+                      color: theme.colorScheme.outlineVariant,
+                    ),
+                  ),
+                  child: ListTile(
+                    title: Text(book.title),
+                    subtitle: Text(book.description),
+                    trailing: IconButton(
+                      icon: Icon(
+                        _favoriteIds.contains(book.id)
+                            ? Icons.bookmark
+                            : Icons.bookmark_outline,
+                      ),
+                      onPressed: () => _toggleFavorite(book.id),
+                    ),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 24),
+            Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Локальные заметки',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Добавьте короткие заметки о текущем чтении. Записи хранятся '
+                      'на устройстве и помогут продолжить чтение без интернета.',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton.tonalIcon(
+                      onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Редактор заметок появится в следующем обновлении.'),
+                        ),
+                      ),
+                      icon: const Icon(Icons.edit_note),
+                      label: const Text('Написать заметку'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class ProfileTab extends StatefulWidget {
+  const ProfileTab({
+    super.key,
+    required this.isOnline,
+    required this.onOpenWebProfile,
+  });
+
+  final bool isOnline;
+  final VoidCallback onOpenWebProfile;
+
+  @override
+  State<ProfileTab> createState() => _ProfileTabState();
+}
+
+class _ProfileTabState extends State<ProfileTab> {
+  late Future<String> _aboutFuture;
+  late Future<List<ProjectNews>> _newsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _aboutFuture = LocalContentRepository.loadAboutProject();
+    _newsFuture = LocalContentRepository.loadNews();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        SectionTitle(
+          icon: Icons.person,
+          title: 'Профиль участника',
+          subtitle: widget.isOnline
+              ? 'Вы в сети — данные синхронизируются'
+              : 'Вы офлайн — показываем сохранённую информацию',
+        ),
+        const SizedBox(height: 12),
+        FutureBuilder<String>(
+          future: _aboutFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            return Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('О проекте', style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 12),
+                    Text(snapshot.data ?? ''),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+        SectionTitle(
+          icon: Icons.campaign,
+          title: 'Новости проекта',
+          subtitle: 'Обновляется при подключении к интернету',
+        ),
+        const SizedBox(height: 8),
+        FutureBuilder<List<ProjectNews>>(
+          future: _newsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final news = snapshot.data ?? [];
+            return Column(
+              children: news
+                  .map(
+                    (item) => Card(
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          child: Text(
+                            item.tag.isNotEmpty
+                                ? item.tag.substring(0, 1).toUpperCase()
+                                : '•',
+                          ),
+                        ),
+                        title: Text(item.title),
+                        subtitle: Text('${item.dateLabel}\n${item.summary}'),
+                        isThreeLine: true,
+                      ),
+                    ),
+                  )
+                  .toList(),
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+        FilledButton.icon(
+          onPressed: widget.onOpenWebProfile,
+          icon: const Icon(Icons.open_in_new),
+          label: const Text('Открыть профиль в веб-вкладке'),
+        ),
+      ],
+    );
+  }
+}
+
+class SectionTitle extends StatelessWidget {
+  const SectionTitle({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Icon(icon, color: theme.colorScheme.primary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: theme.textTheme.titleMedium),
+              Text(
+                subtitle,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class OfflineIllustration extends StatelessWidget {
+  const OfflineIllustration({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      color: theme.colorScheme.surfaceTint.withOpacity(0.1),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            const Icon(Icons.wifi_off, size: 40),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    'Проверьте интернет-соединение. Ваши последние книги сохранены офлайн.',
+                  ),
+                  SizedBox(height: 8),
+                  Text('Мы покажем свежие новости, как только появится связь.'),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class BookFlipAnimation extends StatefulWidget {
+  const BookFlipAnimation({super.key});
+
+  @override
+  State<BookFlipAnimation> createState() => _BookFlipAnimationState();
+}
+
+class _BookFlipAnimationState extends State<BookFlipAnimation>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final angle = (_controller.value * math.pi) % (2 * math.pi);
+        return Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.identity()
+            ..setEntry(3, 2, 0.001)
+            ..rotateY(angle),
+          child: child,
+        );
+      },
+      child: Container(
+        height: 90,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          color: Colors.white.withOpacity(0.2),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: const [
+            Text(
+              'Перелистываем идеи',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            ),
+            Icon(Icons.menu_book, color: Colors.white, size: 32),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class RecommendedBook {
+  const RecommendedBook({
+    required this.id,
+    required this.title,
+    required this.author,
+    required this.description,
+    required this.duration,
+  });
+
+  final String id;
+  final String title;
+  final String author;
+  final String description;
+  final String duration;
+
+  factory RecommendedBook.fromJson(Map<String, dynamic> json) {
+    return RecommendedBook(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      author: json['author'] as String,
+      description: json['description'] as String,
+      duration: json['duration'] as String,
+    );
+  }
+}
+
+class ProjectNews {
+  const ProjectNews({
+    required this.title,
+    required this.dateLabel,
+    required this.summary,
+    required this.tag,
+  });
+
+  final String title;
+  final String dateLabel;
+  final String summary;
+  final String tag;
+
+  factory ProjectNews.fromJson(Map<String, dynamic> json) {
+    return ProjectNews(
+      title: json['title'] as String,
+      dateLabel: json['date'] as String,
+      summary: json['summary'] as String,
+      tag: json['tag'] as String,
+    );
+  }
+}
+
+class LocalContentRepository {
+  static Future<List<RecommendedBook>> loadRecommendedBooks() async {
+    try {
+      final raw = await rootBundle.loadString('assets/data/recommended_books.json');
+      final List<dynamic> data = jsonDecode(raw) as List<dynamic>;
+      return data
+          .map((item) => RecommendedBook.fromJson(item as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  static Future<List<ProjectNews>> loadNews() async {
+    try {
+      final raw = await rootBundle.loadString('assets/data/news.json');
+      final List<dynamic> data = jsonDecode(raw) as List<dynamic>;
+      return data
+          .map((item) => ProjectNews.fromJson(item as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  static Future<String> loadAboutProject() async {
+    try {
+      return await rootBundle.loadString('assets/data/about_project.md');
+    } catch (_) {
+      return 'Мы развиваем культуру чтения и создаём безопасное пространство для общения.';
+    }
+  }
+}
+
 class MainWebViewPage extends StatefulWidget {
-  const MainWebViewPage({super.key});
+  const MainWebViewPage({super.key, this.onlineNotifier});
+
+  final ValueListenable<bool>? onlineNotifier;
 
   @override
   State<MainWebViewPage> createState() => _MainWebViewPageState();
@@ -61,9 +827,12 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
   late final Uri _siteOrigin;
   late final String _startUrl;
   late final RewardAdsService _rewardAdsService;
+  ValueListenable<bool>? _connectivityListenable;
 
   bool _loading = true;
   bool _rewardLoading = false;
+  bool _webViewError = false;
+  bool _isOffline = false;
 
   @override
   void initState() {
@@ -76,6 +845,7 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
       clientHeader: _defaultClientHeader,
       clientId: _defaultClientId,
     );
+    _attachConnectivity(widget.onlineNotifier);
 
     final PlatformWebViewControllerCreationParams params;
     if (WebViewPlatform.instance is WebKitWebViewPlatform) {
@@ -91,9 +861,18 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
       ..setBackgroundColor(const Color(0x00000000))
       ..setNavigationDelegate(
         NavigationDelegate(
-          onPageStarted: (_) => setState(() => _loading = true),
-          onPageFinished: (_) => setState(() => _loading = false),
-          onWebResourceError: (_) => setState(() => _loading = false),
+          onPageStarted: (_) => setState(() {
+                _loading = true;
+                _webViewError = false;
+              }),
+          onPageFinished: (_) => setState(() {
+                _loading = false;
+                _webViewError = false;
+              }),
+          onWebResourceError: (_) => setState(() {
+                _loading = false;
+                _webViewError = true;
+              }),
           onNavigationRequest: _handleNavigationRequest,
         ),
       );
@@ -112,9 +891,43 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
   }
 
   @override
+  void didUpdateWidget(covariant MainWebViewPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.onlineNotifier != widget.onlineNotifier) {
+      _attachConnectivity(widget.onlineNotifier);
+    }
+  }
+
+  @override
   void dispose() {
+    _detachConnectivity();
     _rewardAdsService.dispose();
     super.dispose();
+  }
+
+  void _attachConnectivity(ValueListenable<bool>? notifier) {
+    _detachConnectivity();
+    _connectivityListenable = notifier;
+    if (notifier != null) {
+      _isOffline = !notifier.value;
+      notifier.addListener(_handleConnectivityChange);
+    }
+  }
+
+  void _detachConnectivity() {
+    _connectivityListenable?.removeListener(_handleConnectivityChange);
+    _connectivityListenable = null;
+  }
+
+  void _handleConnectivityChange() {
+    final notifier = _connectivityListenable;
+    if (notifier == null || !mounted) return;
+    final offline = !notifier.value;
+    if (offline == _isOffline) return;
+    setState(() => _isOffline = offline);
+    if (!offline && _webViewError) {
+      _controller.reload();
+    }
   }
 
   NavigationDecision _handleNavigationRequest(NavigationRequest request) {
@@ -562,6 +1375,54 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     }
   }
 
+  void _reloadWebView() {
+    if (!mounted) return;
+    setState(() => _webViewError = false);
+    _controller.reload();
+  }
+
+  Widget _buildStatusOverlay({
+    required IconData icon,
+    required String title,
+    required String description,
+    VoidCallback? onPressed,
+    String actionLabel = 'Повторить',
+  }) {
+    final theme = Theme.of(context);
+    return Container(
+      color: theme.colorScheme.surface.withOpacity(0.98),
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 48, color: theme.colorScheme.primary),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: theme.textTheme.titleLarge,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                description,
+                style: theme.textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: onPressed,
+                child: Text(actionLabel),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _openRewardPanel() async {
     if (_rewardLoading) return;
 
@@ -666,6 +1527,28 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
           children: [
             WebViewWidget(controller: _controller),
             if (_loading) const Center(child: CircularProgressIndicator()),
+            if (_webViewError && !_isOffline)
+              Positioned.fill(
+                child: _buildStatusOverlay(
+                  icon: Icons.cloud_off,
+                  title: 'Не удалось загрузить сайт',
+                  description:
+                      'Сервис временно недоступен. Попробуйте обновить страницу или вернитесь позже.',
+                  onPressed: _reloadWebView,
+                  actionLabel: 'Перезагрузить вкладку',
+                ),
+              ),
+            if (_isOffline)
+              Positioned.fill(
+                child: _buildStatusOverlay(
+                  icon: Icons.wifi_off,
+                  title: 'Вы офлайн',
+                  description:
+                      'Проверьте интернет-соединение. Ваши последние книги и подборки уже сохранены в приложении.',
+                  onPressed: _reloadWebView,
+                  actionLabel: 'Проверить снова',
+                ),
+              ),
           ],
         ),
       ),
