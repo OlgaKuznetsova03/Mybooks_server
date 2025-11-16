@@ -41,7 +41,10 @@ from user_ratings.models import LeaderboardPeriod, UserPointEvent
 
 from .forms import SignUpForm, ProfileForm, RoleForm, PremiumPurchaseForm
 from .models import YANDEX_AD_REWARD_COINS
-from .yookassa import create_payment
+from .yookassa import (
+    YooKassaPaymentResult,
+    create_payment as yookassa_create_payment,
+)
 
 from games.models import (
     BookExchangeChallenge,
@@ -1198,31 +1201,68 @@ def premium_create_payment(request):
 
         if not form.is_valid():
             print("❌ ДЕБАГ: Форма невалидна")
-            messages.error(request, "Ошибка в форме")
+            context = _build_premium_overview_context(
+                request,
+                profile=profile,
+                active_subscription=profile.active_premium,
+                purchase_form=form,
+            )
+            return render(request, "accounts/premium.html", context, status=400)
+
+        if not request.user.email:
+            messages.error(
+                request,
+                "Добавьте email в настройках профиля — он нужен для отправки чека от YooKassa.",
+            )
             return redirect("premium_overview")
 
         payment = form.save()
         print(f"✅ ДЕБАГ: Платеж создан в БД, ID: {payment.id}")
 
+        plan = PremiumPayment.get_plan(payment.plan)
+
         # Создаем платеж в YooKassa
         print("🔍 ДЕБАГ: Пробуем создать платеж в YooKassa...")
-        
-        result = create_payment(
+
+        result: YooKassaPaymentResult = yookassa_create_payment(
             amount=payment.amount,
+            currency=payment.currency,
             description=f"Подписка Калейдоскоп книг (#{payment.reference})",
             return_url=request.build_absolute_uri(reverse("premium_overview")),
-            metadata={'premium_payment_id': payment.id}
+            metadata={"premium_payment_id": payment.id, "plan": payment.plan},
+            customer_email=request.user.email,
+            receipt_items=[
+                {
+                    "description": f"{plan.label} — премиум-доступ",  # noqa: ISC003 - hyphen separator
+                    "quantity": "1.0",
+                    "amount": {
+                        "value": f"{payment.amount.quantize(Decimal('0.01'))}",
+                        "currency": payment.currency,
+                    },
+                    "vat_code": 1,
+                    "payment_subject": "service",
+                    "payment_mode": "full_payment",
+                }
+            ],
         )
-        
-        print(f"✅ ДЕБАГ: YooKassa ответил! ID: {result['id']}")
-        
+
+        print(f"✅ ДЕБАГ: YooKassa ответил! ID: {result.payment_id}")
+
         # Сохраняем результат
-        payment.provider_payment_id = result['id']
-        payment.confirmation_url = result['confirmation_url']
-        payment.save()
-        
-        return redirect(result['confirmation_url'])
-        
+        payment.provider_payment_id = result.payment_id
+        payment.confirmation_url = result.confirmation_url
+        payment.idempotence_key = result.idempotence_key
+        payment.provider_payload = result.payload
+        payment.save(update_fields=[
+            "provider_payment_id",
+            "confirmation_url",
+            "idempotence_key",
+            "provider_payload",
+            "updated_at",
+        ])
+
+        return redirect(result.confirmation_url)
+
     except Exception as e:
         print(f"❌ ДЕБАГ: ОШИБКА: {e}")
         messages.error(request, f"Ошибка: {str(e)}")

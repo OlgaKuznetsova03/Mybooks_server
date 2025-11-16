@@ -17,21 +17,19 @@ import os
 from decimal import Decimal, InvalidOperation
 from dotenv import load_dotenv
 
-import os
-from dotenv import load_dotenv
-
-
-# Затем ваши обычные настройки
-YOOKASSA_SHOP_ID = os.getenv("YOOKASSA_SHOP_ID")
-YOOKASSA_SECRET_KEY = os.getenv("YOOKASSA_SECRET_KEY") 
-YOOKASSA_RETURN_URL = os.getenv("YOOKASSA_RETURN_URL")
-
-
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Загружаем .env до чтения любых переменных окружения, чтобы
+# платежные ключи YooKassa и другие настройки подтягивались корректно.
 load_dotenv(BASE_DIR / ".env")
+
+
+# Затем ваши обычные настройки
+YOOKASSA_SHOP_ID = os.getenv("YOOKASSA_SHOP_ID")
+YOOKASSA_SECRET_KEY = os.getenv("YOOKASSA_SECRET_KEY")
+YOOKASSA_RETURN_URL = os.getenv("YOOKASSA_RETURN_URL")
 
 
 STATIC_VERSION = os.getenv("STATIC_VERSION", "20241105")
