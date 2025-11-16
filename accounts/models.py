@@ -368,8 +368,19 @@ class PremiumPayment(models.Model):
     def _ensure_subscription(self):
         if hasattr(self, "subscription") and self.subscription:
             return
+
+        duration = self.get_plan_duration()
         start = self.paid_at or timezone.now()
-        end = start + self.get_plan_duration()
+
+        active_subscription = (
+            self.user.premium_subscriptions.filter(end_at__gte=start)
+            .order_by("-end_at")
+            .first()
+        )
+        if active_subscription:
+            start = active_subscription.end_at
+
+        end = start + duration
         PremiumSubscription.objects.create(
             user=self.user,
             start_at=start,
