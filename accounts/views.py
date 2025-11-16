@@ -1345,7 +1345,7 @@ def yookassa_webhook(request):
     except (UnicodeDecodeError, json.JSONDecodeError):
         return JsonResponse({"error": "invalid_json"}, status=400)
 
-    event = payload.get("event")
+    event = payload.get("event") or ""
     data = payload.get("object") or {}
     payment_id = data.get("id")
     if not payment_id:
@@ -1362,7 +1362,16 @@ def yookassa_webhook(request):
         payment.provider_payment_id = payment_id
         update_fields.add("provider_payment_id")
 
-    if event == "payment.succeeded":
+    payment_status = (data.get("status") or "").lower()
+
+    succeeded_event = event == "payment.succeeded" or payment_status == "succeeded"
+    cancelled_event = event in {"payment.canceled", "payment.expired"} or payment_status in {
+        "canceled",
+        "cancelled",
+        "expired",
+    }
+
+    if succeeded_event:
         paid_at = (
             _parse_provider_datetime(data.get("captured_at"))
             or _parse_provider_datetime(data.get("paid_at"))
@@ -1375,7 +1384,7 @@ def yookassa_webhook(request):
         update_fields.add("status")
         payment.save(update_fields=list(update_fields))
         _apply_auto_renew_from_metadata(payment, metadata)
-    elif event in {"payment.canceled", "payment.expired"}:
+    elif cancelled_event:
         cancellation_details = data.get("cancellation_details") or {}
         reason = cancellation_details.get("reason")
         if reason:
