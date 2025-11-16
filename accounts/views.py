@@ -1903,29 +1903,3 @@ def claim_reward_ad_api(request):
 
     status_code = 201
     return JsonResponse(response_payload, status=status_code)
-    
-@csrf_exempt
-@require_POST
-def yookassa_webhook(request: HttpRequest) -> HttpResponse:
-    """
-    Обработчик уведомлений от YooKassa.
-    """
-    try:
-        event_json = json.loads(request.body.decode('utf-8'))
-        print(f"=== YOOKASSA WEBHOOK ===")
-        print(f"Event: {event_json}")
-        
-        event_type = event_json.get('event')
-        payment_object = event_json.get('object', {})
-        
-        if event_type == 'payment.succeeded':
-            print("💰 Payment SUCCEEDED!")
-            # Ваша логика здесь
-        elif event_type == 'payment.canceled':
-            print("❌ Payment CANCELED")
-        
-        return HttpResponse(status=200)
-        
-    except Exception as e:
-        print(f"Webhook error: {e}")
-        return HttpResponse(status=500)
