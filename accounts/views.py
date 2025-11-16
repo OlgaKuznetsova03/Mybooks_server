@@ -44,6 +44,7 @@ from .models import YANDEX_AD_REWARD_COINS
 from .yookassa import (
     YooKassaPaymentResult,
     create_payment as yookassa_create_payment,
+    fetch_payment as yookassa_fetch_payment,
 )
 
 from games.models import (
@@ -1155,6 +1156,9 @@ def premium_overview(request):
     profile = request.user.profile
     active_subscription = profile.active_premium
 
+    if request.method == "GET":
+        _refresh_pending_yookassa_payments(request.user)
+
     if request.method == "POST":
         action = request.POST.get("action")
         if action == "disable_auto_renew":
@@ -1337,6 +1341,79 @@ def _apply_auto_renew_from_metadata(payment, metadata):
         profile.save(update_fields=["premium_auto_renew"])
 
 
+def _apply_yookassa_object(payment, payment_object: dict, *, event: str | None = None):
+    metadata = payment_object.get("metadata") or {}
+    provider_payload = (
+        {"event": event, "object": payment_object} if event else payment_object
+    )
+    payment.provider_payload = provider_payload
+    update_fields = {"provider_payload", "updated_at"}
+
+    payment_id = payment_object.get("id")
+    if payment_id and payment.provider_payment_id != payment_id:
+        payment.provider_payment_id = payment_id
+        update_fields.add("provider_payment_id")
+
+    status = payment_object.get("status")
+    if status in {"succeeded", "waiting_for_capture"} and event == "payment.succeeded":
+        status = "succeeded"
+
+    if status == "succeeded":
+        paid_at = (
+            _parse_provider_datetime(payment_object.get("captured_at"))
+            or _parse_provider_datetime(payment_object.get("paid_at"))
+            or _parse_provider_datetime(payment_object.get("succeeded_at"))
+        )
+        if paid_at:
+            payment.paid_at = paid_at
+            update_fields.add("paid_at")
+        payment.status = PremiumPayment.Status.PAID
+        update_fields.add("status")
+        payment.save(update_fields=list(update_fields))
+        _apply_auto_renew_from_metadata(payment, metadata)
+        return "paid"
+
+    if status in {"canceled", "expired"}:
+        cancellation_details = payment_object.get("cancellation_details") or {}
+        reason = cancellation_details.get("reason")
+        if reason:
+            payment.notes = reason
+            update_fields.add("notes")
+        payment.status = PremiumPayment.Status.CANCELLED
+        update_fields.add("status")
+        payment.save(update_fields=list(update_fields))
+        return "cancelled"
+
+    payment.save(update_fields=list(update_fields))
+    return "pending"
+
+
+def _refresh_pending_yookassa_payments(user):
+    pending_payments = (
+        user.premium_payments.filter(
+            status=PremiumPayment.Status.PENDING,
+        )
+        .exclude(provider_payment_id__isnull=True)
+        .exclude(provider_payment_id__exact="")
+    )
+
+    for payment in pending_payments[:5]:
+        try:
+            payment_data = yookassa_fetch_payment(payment.provider_payment_id)
+        except Exception:
+            continue
+
+        if not isinstance(payment_data, dict):
+            continue
+
+        status = payment_data.get("status")
+        if status in {"succeeded", "canceled", "expired"}:
+            try:
+                _apply_yookassa_object(payment, payment_data)
+            except Exception:
+                continue
+
+
 @csrf_exempt
 @require_POST
 def yookassa_webhook(request):
@@ -1351,41 +1428,12 @@ def yookassa_webhook(request):
     if not payment_id:
         return JsonResponse({"error": "missing_payment_id"}, status=400)
 
-    metadata = data.get("metadata") or {}
+     metadata = data.get("metadata") or {}
     payment = _resolve_premium_payment(payment_id, metadata)
     if payment is None:
         return JsonResponse({"status": "not_found"}, status=404)
 
-    payment.provider_payload = payload
-    update_fields = {"provider_payload", "updated_at"}
-    if payment.provider_payment_id != payment_id:
-        payment.provider_payment_id = payment_id
-        update_fields.add("provider_payment_id")
-
-    if event == "payment.succeeded":
-        paid_at = (
-            _parse_provider_datetime(data.get("captured_at"))
-            or _parse_provider_datetime(data.get("paid_at"))
-            or _parse_provider_datetime(data.get("succeeded_at"))
-        )
-        if paid_at:
-            payment.paid_at = paid_at
-            update_fields.add("paid_at")
-        payment.status = PremiumPayment.Status.PAID
-        update_fields.add("status")
-        payment.save(update_fields=list(update_fields))
-        _apply_auto_renew_from_metadata(payment, metadata)
-    elif event in {"payment.canceled", "payment.expired"}:
-        cancellation_details = data.get("cancellation_details") or {}
-        reason = cancellation_details.get("reason")
-        if reason:
-            payment.notes = reason
-            update_fields.add("notes")
-        payment.status = PremiumPayment.Status.CANCELLED
-        update_fields.add("status")
-        payment.save(update_fields=list(update_fields))
-    else:
-        payment.save(update_fields=list(update_fields))
+    _apply_yookassa_object(payment, data, event=event)
 
     return JsonResponse({"status": "ok"})
 
