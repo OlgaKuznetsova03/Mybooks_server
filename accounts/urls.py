@@ -2,6 +2,7 @@ from django.urls import path, reverse_lazy
 from django.contrib.auth import views as auth_views
 from . import views
 from .forms import EmailAuthenticationForm
+from . import webhooks
 
 urlpatterns = [
     path("signup/", views.signup, name="signup"),
@@ -59,4 +60,5 @@ urlpatterns = [
     path("me/edit/", views.profile_edit, name="profile_edit"),
     path("api/reward-ads/config/", views.reward_ad_config, name="reward_ad_config"),
     path("api/reward-ads/claim/", views.claim_reward_ad_api, name="reward_ad_claim"),
+    path('webhooks/yookassa/', webhooks.yookassa_webhook, name='yookassa-webhook'),
 ]

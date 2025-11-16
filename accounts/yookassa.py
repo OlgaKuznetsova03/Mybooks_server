@@ -169,31 +169,3 @@ def create_payment(
         payload=payload,
         idempotence_key=idem_key,
     )
-
-
-def fetch_payment(payment_id: str) -> dict:
-    """Fetch payment info directly from YooKassa."""
-
-    if Configuration and Payment:
-        Configuration.account_id = settings.YOOKASSA_SHOP_ID
-        Configuration.secret_key = settings.YOOKASSA_SECRET_KEY
-        payment = Payment.find_one(payment_id)
-        try:
-            return payment.to_dict()
-        except AttributeError:  # pragma: no cover - fallback for older SDKs
-            raw_json = payment.json()
-            return raw_json if isinstance(raw_json, dict) else json.loads(raw_json)
-
-    request = urllib_request.Request(
-        f"https://api.yookassa.ru/v3/payments/{payment_id}",
-        method="GET",
-    )
-    credentials = f"{settings.YOOKASSA_SHOP_ID}:{settings.YOOKASSA_SECRET_KEY}".encode(
-        "utf-8"
-    )
-    request.add_header("Authorization", f"Basic {b64encode(credentials).decode()}")
-
-    with urllib_request.urlopen(request) as response:  # pragma: no cover - network
-        payload = json.loads(response.read().decode("utf-8"))
-
-    return payload
