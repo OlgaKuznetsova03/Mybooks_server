@@ -1172,25 +1172,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Яндекс реклама для не-премиум пользователей
-{% if not user.is_authenticated or not user.profile.has_active_premium %}
-// Yandex.RTB R-A-17641153-1
-window.yaContextCb = window.yaContextCb || [];
-window.yaContextCb.push(() => {
-    Ya.Context.AdvManager.render({
-        "blockId": "R-A-17641153-1",
-        "type": "floorAd", 
-        "platform": "desktop"
-    })
-});
-
-// Yandex.RTB R-A-17641153-4
-window.yaContextCb.push(() => {
-    Ya.Context.AdvManager.render({
-        "blockId": "R-A-17641153-4",
-        "type": "floorAd",
-        "platform": "touch"
-    })
-});
-{% endif %}
-</script>
 {% endblock %}

@@ -266,7 +266,7 @@ def _perform_book_lookup(
     isbn_raw: str | None,
     force_external: bool = False,
     local_limit: int = 10,
-    external_limit: int = 5,
+    external_limit: int = 15,
 ):
     """Execute local and external lookups for books matching the query."""
 
@@ -400,7 +400,7 @@ def book_lookup_api(request):
             isbn_raw=request.GET.get("isbn"),
             force_external=force_external,
             local_limit=_parse_limit(local_limit, 10),
-            external_limit=_parse_limit(external_limit, 5),
+            external_limit=_parse_limit(external_limit, 10),
         )
     except BookLookupQueryError as exc:
         return JsonResponse({"error": str(exc)}, status=400)
@@ -618,7 +618,7 @@ def book_list(request):
                         isbn_raw=isbn_candidate,
                         force_external=True,
                         local_limit=0,
-                        external_limit=6,
+                        external_limit=20,
                     )
                 except BookLookupQueryError as exc:
                     lookup_payload = {
