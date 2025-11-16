@@ -3,6 +3,7 @@ from django.contrib.auth import views as auth_views
 from . import views
 from .forms import EmailAuthenticationForm
 from . import webhooks
+from .views import yookassa_webhook
 
 urlpatterns = [
     path("signup/", views.signup, name="signup"),
