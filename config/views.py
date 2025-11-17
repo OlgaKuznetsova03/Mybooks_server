@@ -33,12 +33,17 @@ def home(request):
         ReadingMarathon.objects.prefetch_related("themes")
         .annotate(
             participant_count=Count(
-                "participants", filter=Q(participants__status="approved"), distinct=True
-            ),
-            theme_count=Count("themes", distinct=True),
+                "participants", 
+                filter=Q(participants__status="approved")
+            )
+        )
+        .annotate(
+            theme_count=Count("themes")
         )
         .filter(Q(end_date__isnull=True) | Q(end_date__gte=today), start_date__lte=today)
-        .order_by("start_date", "title")[:8]
+        .order_by("start_date", "title")
+        .distinct('id')  # Если используете PostgreSQL
+        [:8]
     )
 
     context = {
