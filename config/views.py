@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.db.models import Count, Q
 from django.shortcuts import render
 from django.utils import timezone
 
@@ -10,7 +11,41 @@ from reading_marathons.models import ReadingMarathon
 
 
 def home(request):
-    return render(request, "config/home.html")
+    today = timezone.localdate()
+    clubs_qs = (
+        ReadingClub.objects.select_related("book", "book__primary_isbn", "creator")
+        .with_message_count()
+        .prefetch_related("participants", "book__isbn")
+        .filter(start_date__lte=today)
+        .filter(Q(end_date__isnull=True) | Q(end_date__gte=today))
+        .order_by("start_date", "title")[:8]
+    )
+
+    active_clubs: list[ReadingClub] = []
+    for club in clubs_qs:
+        club.set_prefetched_message_count(club.message_count)
+        annotated_participants = club.__dict__.get("approved_participant_count")
+        if annotated_participants is not None:
+            club.approved_participant_count = annotated_participants
+        active_clubs.append(club)
+
+    active_marathons = (
+        ReadingMarathon.objects.prefetch_related("themes")
+        .annotate(
+            participant_count=Count(
+                "participants", filter=Q(participants__status="approved"), distinct=True
+            ),
+            theme_count=Count("themes", distinct=True),
+        )
+        .filter(Q(end_date__isnull=True) | Q(end_date__gte=today), start_date__lte=today)
+        .order_by("start_date", "title")[:8]
+    )
+
+    context = {
+        "active_clubs": active_clubs,
+        "active_marathons": active_marathons,
+    }
+    return render(request, "config/home.html", context)
 
 
 def reading_communities_overview(request):

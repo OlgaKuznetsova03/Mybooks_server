@@ -575,6 +575,87 @@
     transform: translateY(0);
   }
 
+  .community-strip {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(260px, 1fr);
+    gap: 1rem;
+    overflow-x: auto;
+    padding: 0.5rem 0 0.75rem;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .community-strip::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .community-strip::-webkit-scrollbar-thumb {
+    background: rgba(171, 120, 67, 0.35);
+    border-radius: 999px;
+  }
+
+  .community-card {
+    display: flex;
+    gap: 1rem;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(171, 120, 67, 0.25);
+    border-radius: 1rem;
+    padding: 1rem;
+    box-shadow: 0 12px 28px rgba(77, 54, 28, 0.12);
+    scroll-snap-align: start;
+    min-height: 100%;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+
+  .community-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 32px rgba(77, 54, 28, 0.18);
+    border-color: rgba(171, 120, 67, 0.45);
+  }
+
+  .community-card__cover {
+    width: 96px;
+    flex-shrink: 0;
+    border-radius: 0.9rem;
+    overflow: hidden;
+    background: linear-gradient(140deg, rgba(171, 120, 67, 0.1), rgba(215, 189, 166, 0.35));
+    display: grid;
+    place-items: center;
+  }
+
+  .community-card__cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .community-card__cover-placeholder {
+    font-size: 1.6rem;
+    color: rgba(77, 54, 28, 0.5);
+  }
+
+  .community-card__title a {
+    color: #2f1d0f;
+    text-decoration: none;
+  }
+
+  .community-card__title a:hover {
+    text-decoration: underline;
+  }
+
+  .community-card__meta {
+    color: #6f5843;
+  }
+
+  @media (min-width: 992px) {
+    .community-strip {
+      grid-auto-flow: row;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      overflow: visible;
+    }
+  }
+
   @media (max-width: 991.98px) {
     .hero-section {
       border-radius: 2rem;
@@ -677,6 +758,98 @@
       <p class="mb-0">Авторы ищут читателей и блогеров: отправьте заявку и получите книгу бесплатно, чтобы поделиться впечатлениями.</p>
     </a>
   </div>
+</section>
+
+<section class="home-section scroll-reveal">
+  <div class="section-heading">
+    <h2 class="section-heading__title h3">Актуальные совместные чтения</h2>
+    <a class="btn btn-outline-dark btn-sm btn-magic" href="{% url 'reading_clubs:list' %}">
+      <i class="bi bi-people me-1"></i>Все чтения
+    </a>
+  </div>
+
+  {% if active_clubs %}
+    <div class="community-strip" role="list">
+      {% for club in active_clubs %}
+        <article class="community-card h-100" role="listitem">
+          <div class="community-card__cover" aria-hidden="true">
+            {% with cover_url=club.book.get_cover_url %}
+              {% if cover_url %}
+                <img src="{{ cover_url }}" alt="Обложка книги {{ club.book.title }}" loading="lazy" />
+              {% else %}
+                <div class="community-card__cover-placeholder">📚</div>
+              {% endif %}
+            {% endwith %}
+          </div>
+          <div class="flex-grow-1 d-flex flex-column gap-2">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <span class="badge text-bg-light"><i class="bi bi-broadcast-pin me-1"></i>Идёт</span>
+              <span class="small text-muted">
+                Стартовало {{ club.start_date|date:"d E" }}{% if club.end_date %} · до {{ club.end_date|date:"d E" }}{% endif %}
+              </span>
+            </div>
+            <div class="community-card__title h6 mb-0">
+              <a href="{{ club.get_absolute_url }}">{{ club.title }}</a>
+            </div>
+            <div class="text-muted small">
+              <i class="bi bi-book me-1"></i>{{ club.book.title }}
+            </div>
+            <div class="community-card__meta small d-flex flex-wrap gap-3 mt-auto">
+              <span><i class="bi bi-people me-1"></i>{{ club.approved_participant_count }} участн.</span>
+              <span><i class="bi bi-chat-dots me-1"></i>{{ club.message_count }} сообщений</span>
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-muted mb-0">Сейчас нет активных совместных чтений, но вы можете создать своё!</p>
+  {% endif %}
+</section>
+
+<section class="home-section scroll-reveal">
+  <div class="section-heading">
+    <h2 class="section-heading__title h3">Актуальные марафоны</h2>
+    <a class="btn btn-outline-dark btn-sm btn-magic" href="{% url 'reading_marathons:list' %}">
+      <i class="bi bi-flag me-1"></i>Все марафоны
+    </a>
+  </div>
+
+  {% if active_marathons %}
+    <div class="community-strip" role="list">
+      {% for marathon in active_marathons %}
+        <article class="community-card h-100" role="listitem">
+          <div class="community-card__cover" aria-hidden="true">
+            {% if marathon.cover %}
+              <img src="{{ marathon.cover.url }}" alt="Обложка марафона {{ marathon.title }}" loading="lazy" />
+            {% else %}
+              <div class="community-card__cover-placeholder">🏁</div>
+            {% endif %}
+          </div>
+          <div class="flex-grow-1 d-flex flex-column gap-2">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <span class="badge text-bg-light"><i class="bi bi-lightning-charge me-1"></i>В процессе</span>
+              <span class="small text-muted">
+                Старт {{ marathon.start_date|date:"d E" }}{% if marathon.end_date %} · финиш {{ marathon.end_date|date:"d E" }}{% endif %}
+              </span>
+            </div>
+            <div class="community-card__title h6 mb-0">
+              <a href="{{ marathon.get_absolute_url }}">{{ marathon.title }}</a>
+            </div>
+            <div class="text-muted small">
+              <i class="bi bi-layers me-1"></i>{{ marathon.theme_count }} тем
+            </div>
+            <div class="community-card__meta small d-flex flex-wrap gap-3 mt-auto">
+              <span><i class="bi bi-people me-1"></i>{{ marathon.participant_count }} участн.</span>
+              <span><i class="bi bi-clock-history me-1"></i>Идёт сейчас</span>
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-muted mb-0">Пока нет активных марафонов. Запустите новый и позовите друзей.</p>
+  {% endif %}
 </section>
 
 <section class="home-section scroll-reveal">
