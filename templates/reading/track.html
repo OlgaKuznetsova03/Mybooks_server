@@ -1189,14 +1189,16 @@
                 <td>{{ character.description|default:"—"|linebreaksbr }}</td>
                 <td class="text-end">
                   <button
-                    class="btn btn-outline-secondary btn-sm"
+                    class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center justify-content-center"
                     type="button"
                     data-bs-toggle="collapse"
                     data-bs-target="#character-edit-{{ character.id }}"
                     aria-expanded="false"
                     aria-controls="character-edit-{{ character.id }}"
+                    aria-label="Редактировать героя"
                   >
-                    Редактировать
+                    <i class="bi bi-pencil"></i>
+                    <span class="visually-hidden">Редактировать</span>
                   </button>
                 </td>
               </tr>
@@ -1427,14 +1429,16 @@
                 {% endif %}
               </div>
               <button
-                class="btn btn-outline-secondary btn-sm"
+                class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center justify-content-center"
                 type="button"
                 data-bs-toggle="collapse"
                 data-bs-target="#note-edit-{{ note.id }}"
                 aria-expanded="false"
                 aria-controls="note-edit-{{ note.id }}"
+                aria-label="Редактировать заметку"
               >
-                Редактировать
+                <i class="bi bi-pencil"></i>
+                <span class="visually-hidden">Редактировать</span>
               </button>
             </div>
             <div class="collapse mt-3" id="note-edit-{{ note.id }}">
