@@ -2,12 +2,17 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.db.models import Count, Q
+from django.db.models import Count, IntegerField, OuterRef, Q, Subquery, Value
+from django.db.models.functions import Coalesce
 from django.shortcuts import render
 from django.utils import timezone
 
 from reading_clubs.models import ReadingClub
-from reading_marathons.models import ReadingMarathon
+from reading_marathons.models import (
+    MarathonParticipant,
+    MarathonTheme,
+    ReadingMarathon,
+)
 
 
 def home(request):
@@ -29,20 +34,36 @@ def home(request):
             club.approved_participant_count = annotated_participants
         active_clubs.append(club)
 
+    approved_participants = (
+        MarathonParticipant.objects.filter(
+            marathon=OuterRef("pk"), status=MarathonParticipant.Status.APPROVED
+        )
+        .values("marathon")
+        .annotate(total=Count("id"))
+        .values("total")
+    )
+
+    theme_counts = (
+        MarathonTheme.objects.filter(marathon=OuterRef("pk"))
+        .values("marathon")
+        .annotate(total=Count("id"))
+        .values("total")
+    )
+
     active_marathons = (
         ReadingMarathon.objects.prefetch_related("themes")
         .annotate(
-            participant_count=Count(
-                "participants", 
-                filter=Q(participants__status="approved")
+            participant_count=Coalesce(
+                Subquery(approved_participants, output_field=IntegerField()), Value(0)
             )
         )
         .annotate(
-            theme_count=Count("themes")
+            theme_count=Coalesce(
+                Subquery(theme_counts, output_field=IntegerField()), Value(0)
+            )
         )
         .filter(Q(end_date__isnull=True) | Q(end_date__gte=today), start_date__lte=today)
-        .order_by("start_date", "title")
-        .distinct('id')  # Если используете PostgreSQL
+        .order_by("start_date", "title", "id")
         [:8]
     )
 
