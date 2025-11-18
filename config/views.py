@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Any
 
 from django.db.models import Count, IntegerField, OuterRef, Q, Subquery, Value
@@ -13,6 +14,7 @@ from reading_marathons.models import (
     MarathonTheme,
     ReadingMarathon,
 )
+from shelves.models import BookProgress, Shelf, ShelfItem
 
 
 def home(request):
@@ -67,9 +69,52 @@ def home(request):
         [:8]
     )
 
+    reading_items: list[ShelfItem] = []
+    if request.user.is_authenticated:
+        reading_shelf = Shelf.objects.filter(user=request.user, name="Читаю").first()
+        if reading_shelf:
+            reading_items = list(
+                ShelfItem.objects.filter(shelf=reading_shelf)
+                .select_related("book")
+                .prefetch_related("book__authors")[:4]
+            )
+
+            book_ids = [item.book_id for item in reading_items]
+            if book_ids:
+                progress_map = {
+                    progress.book_id: progress
+                    for progress in BookProgress.objects.filter(
+                        user=request.user,
+                        event__isnull=True,
+                        book_id__in=book_ids,
+                    )
+                }
+            else:
+                progress_map = {}
+
+            for item in reading_items:
+                progress = progress_map.get(item.book_id)
+                item.progress = None
+                item.progress_percent = None
+                item.progress_label = None
+                item.progress_total_pages = None
+                item.progress_current_page = None
+                item.progress_updated_at = None
+
+                if not progress:
+                    continue
+
+                item.progress = progress
+                item.progress_percent = float(progress.percent or Decimal("0"))
+                item.progress_label = progress.get_format_display()
+                item.progress_total_pages = progress.get_effective_total_pages()
+                item.progress_current_page = progress.current_page
+                item.progress_updated_at = progress.updated_at
+
     context = {
         "active_clubs": active_clubs,
         "active_marathons": active_marathons,
+        "reading_items": reading_items,
     }
     return render(request, "config/home.html", context)
 

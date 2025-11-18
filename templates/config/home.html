@@ -708,56 +708,141 @@
 {% block content %}
 
 <section class="hero-section mb-5">
-  <div class="hero-highlight">
-    <a
-      class="hero-highlight__card h-100"
-      href="{% url 'shelves:home_library' %}"
-      data-feature-title="Домашняя библиотека"
-      data-feature-message="Создайте свою уникальную коллекцию книг! 📚"
-    >
-      <div class="d-flex align-items-center gap-2 mb-3">
-        <i class="bi bi-house-heart fs-4 animate-pulse" style="color:#ab7843"></i>
-        <h3 class="h5 fw-semibold mb-0">Домашняя библиотека</h3>
+  {% if user.is_authenticated %}
+    {% if reading_items %}
+      <div class="d-flex flex-column gap-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div>
+            <p class="text-muted mb-1">Читаю сейчас</p>
+            <h1 class="h3 mb-0">Продолжайте книги, которые у вас на полке</h1>
+          </div>
+          <a class="btn btn-outline-dark btn-magic" href="{% url 'shelves:reading_now' %}">
+            <i class="bi bi-journal-text me-2"></i>Все книги в процессе
+          </a>
+        </div>
+
+        <div class="hero-highlight">
+          {% for it in reading_items %}
+            <article class="hero-highlight__card h-100">
+              <div class="d-flex align-items-center gap-2 mb-3">
+                <i class="bi bi-book-half fs-4 animate-pulse" style="color:#ab7843"></i>
+                <div>
+                  <h3 class="h6 fw-semibold mb-0">{{ it.book.title }}</h3>
+                  {% with authors=it.book.authors.all %}
+                    {% if authors %}<div class="small text-muted">{{ authors|join:", " }}</div>{% endif %}
+                  {% endwith %}
+                </div>
+              </div>
+
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="ratio ratio-2x3 rounded overflow-hidden" style="max-width: 96px;">
+                  {% with cover_url=it.book.get_cover_url %}
+                    {% if cover_url %}
+                      <img src="{{ cover_url }}" alt="Обложка {{ it.book.title }}" loading="lazy" />
+                    {% else %}
+                      <img src="{% static 'books/cover-placeholder-2x3.png' %}" alt="Нет обложки" />
+                    {% endif %}
+                  {% endwith %}
+                </div>
+
+                <div class="flex-grow-1">
+                  {% if it.progress %}
+                    <div class="progress" style="height: 10px;">
+                      <div
+                        class="progress-bar bg-primary"
+                        style="width: {{ it.progress_percent|floatformat:'0' }}%"
+                        role="progressbar"
+                        aria-valuenow="{{ it.progress_percent|floatformat:'0' }}"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                      ></div>
+                    </div>
+                    <div class="small text-muted d-flex justify-content-between mt-2">
+                      <span>{{ it.progress_percent|floatformat:"0" }}%</span>
+                      {% if it.progress_current_page %}
+                        <span>{{ it.progress_current_page }} стр.</span>
+                      {% elif it.progress_total_pages %}
+                        <span>{{ it.progress_total_pages }} стр.</span>
+                      {% endif %}
+                    </div>
+                  {% else %}
+                    <p class="small text-muted mb-0">Добавьте прогресс, чтобы трекер подстроился под вас.</p>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-dark btn-sm" href="{% url 'shelves:reading_track' it.book.id %}">
+                  <i class="bi bi-graph-up-arrow me-1"></i>К трекеру
+                </a>
+                <a class="btn btn-outline-dark btn-sm" href="{% url 'book_detail' it.book.id %}">Подробнее</a>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
       </div>
-      <p class="mb-0">Всегда знайте, сколько книг стоит на ваших полках, какие ещё ожидают прочтения и что вы делаете чаще — читаете или пополняете коллекцию.</p>
-    </a>
-    <a
-      class="hero-highlight__card h-100"
-      href="{% url 'reading_clubs:list' %}"
-      data-feature-title="Совместные чтения"
-      data-feature-message="Читайте вместе с друзьями! 👥"
-    >
-      <div class="d-flex align-items-center gap-2 mb-3">
-        <i class="bi bi-people-fill fs-4 animate-pulse" style="color:#ab7843"></i>
-        <h3 class="h5 fw-semibold mb-0">Совместные чтения</h3>
+    {% else %}
+      <div class="text-center">
+        <p class="text-muted mb-2">Пока нет активных книг</p>
+        <h2 class="h4 mb-3">Добавьте книги на полку «Читаю», чтобы трекер был под рукой</h2>
+        <div class="d-flex justify-content-center gap-2 flex-wrap">
+          <a class="btn btn-dark btn-magic" href="{% url 'shelves:reading_now' %}"><i class="bi bi-plus-circle me-2"></i>Добавить книги</a>
+          <a class="btn btn-outline-dark btn-magic" href="{% url 'shelves:home_library' %}">Перейти в библиотеку</a>
+        </div>
       </div>
-      <p class="mb-0">Вступайте в существующие совместные чтения или создавайте свои и наслаждайтесь книгами в компании единомышленников.</p>
-    </a>
-    <a
-      class="hero-highlight__card h-100"
-      href="{% url 'games:index' %}"
-      data-feature-title="Игры"
-      data-feature-message="Сделайте чтение увлекательной игрой! 🎮"
-    >
-      <div class="d-flex align-items-center gap-2 mb-3">
-        <i class="bi bi-controller fs-4 animate-pulse" style="color:#ab7843"></i>
-        <h3 class="h5 fw-semibold mb-0">Игры</h3>
-      </div>
-      <p class="mb-0">Бросьте себе вызов, познакомьтесь с новыми авторами или отправьтесь в книжное путешествие с нашими игровыми форматами.</p>
-     </a>
-    <a
-      class="hero-highlight__card h-100"
-      href="{% url 'collaborations:offer_list' %}"
-      data-feature-title="Сотрудничество"
-      data-feature-message="Станьте частью книжного сообщества! 🤝"
-    >
-      <div class="d-flex align-items-center gap-2 mb-3">
-        <i class="bi bi-heart-fill fs-4 animate-pulse" style="color:#ab7843"></i>
-        <h3 class="h5 fw-semibold mb-0">Сотрудничество</h3>
-      </div>
-      <p class="mb-0">Авторы ищут читателей и блогеров: отправьте заявку и получите книгу бесплатно, чтобы поделиться впечатлениями.</p>
-    </a>
-  </div>
+    {% endif %}
+  {% else %}
+    <div class="hero-highlight">
+      <a
+        class="hero-highlight__card h-100"
+        href="{% url 'shelves:home_library' %}"
+        data-feature-title="Домашняя библиотека"
+        data-feature-message="Создайте свою уникальную коллекцию книг! 📚"
+      >
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <i class="bi bi-house-heart fs-4 animate-pulse" style="color:#ab7843"></i>
+          <h3 class="h5 fw-semibold mb-0">Домашняя библиотека</h3>
+        </div>
+        <p class="mb-0">Всегда знайте, сколько книг стоит на ваших полках, какие ещё ожидают прочтения и что вы делаете чаще — читаете или пополняете коллекцию.</p>
+      </a>
+      <a
+        class="hero-highlight__card h-100"
+        href="{% url 'reading_clubs:list' %}"
+        data-feature-title="Совместные чтения"
+        data-feature-message="Читайте вместе с друзьями! 👥"
+      >
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <i class="bi bi-people-fill fs-4 animate-pulse" style="color:#ab7843"></i>
+          <h3 class="h5 fw-semibold mb-0">Совместные чтения</h3>
+        </div>
+        <p class="mb-0">Вступайте в существующие совместные чтения или создавайте свои и наслаждайтесь книгами в компании единомышленников.</p>
+      </a>
+      <a
+        class="hero-highlight__card h-100"
+        href="{% url 'games:index' %}"
+        data-feature-title="Игры"
+        data-feature-message="Сделайте чтение увлекательной игрой! 🎮"
+      >
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <i class="bi bi-controller fs-4 animate-pulse" style="color:#ab7843"></i>
+          <h3 class="h5 fw-semibold mb-0">Игры</h3>
+        </div>
+        <p class="mb-0">Бросьте себе вызов, познакомьтесь с новыми авторами или отправьтесь в книжное путешествие с нашими игровыми форматами.</p>
+      </a>
+      <a
+        class="hero-highlight__card h-100"
+        href="{% url 'collaborations:offer_list' %}"
+        data-feature-title="Сотрудничество"
+        data-feature-message="Станьте частью книжного сообщества! 🤝"
+      >
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <i class="bi bi-heart-fill fs-4 animate-pulse" style="color:#ab7843"></i>
+          <h3 class="h5 fw-semibold mb-0">Сотрудничество</h3>
+        </div>
+        <p class="mb-0">Авторы ищут читателей и блогеров: отправьте заявку и получите книгу бесплатно, чтобы поделиться впечатлениями.</p>
+      </a>
+    </div>
+  {% endif %}
 </section>
 
 <section class="home-section scroll-reveal">
