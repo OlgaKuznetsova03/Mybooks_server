@@ -99,6 +99,24 @@
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
 
+  .reading-progress-cover {
+    width: 64px;
+    aspect-ratio: 2 / 3;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    background: #f3ece4;
+    box-shadow:
+      inset 0 0 0 1px rgba(171, 120, 67, 0.2),
+      0 10px 20px rgba(77, 54, 28, 0.18);
+    flex-shrink: 0;
+  }
+
+  .reading-progress-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
   .hero-highlight__card {
     display: block;
     backdrop-filter: blur(12px);
@@ -724,18 +742,8 @@
         <div class="hero-highlight">
           {% for it in reading_items %}
             <article class="hero-highlight__card h-100">
-              <div class="d-flex align-items-center gap-2 mb-3">
-                <i class="bi bi-book-half fs-4 animate-pulse" style="color:#ab7843"></i>
-                <div>
-                  <h3 class="h6 fw-semibold mb-0">{{ it.book.title }}</h3>
-                  {% with authors=it.book.authors.all %}
-                    {% if authors %}<div class="small text-muted">{{ authors|join:", " }}</div>{% endif %}
-                  {% endwith %}
-                </div>
-              </div>
-
               <div class="d-flex align-items-center gap-3 mb-3">
-                <div class="ratio ratio-2x3 rounded overflow-hidden" style="max-width: 96px;">
+                <div class="reading-progress-cover">
                   {% with cover_url=it.book.get_cover_url %}
                     {% if cover_url %}
                       <img src="{{ cover_url }}" alt="Обложка {{ it.book.title }}" loading="lazy" />
@@ -745,9 +753,18 @@
                   {% endwith %}
                 </div>
 
+                <div>
+                  <h3 class="h6 fw-semibold mb-0">{{ it.book.title }}</h3>
+                  {% with authors=it.book.authors.all %}
+                    {% if authors %}<div class="small text-muted">{{ authors|join:", " }}</div>{% endif %}
+                  {% endwith %}
+                </div>
+              </div>
+
+              <div class="d-flex align-items-center gap-3 mb-3">
                 <div class="flex-grow-1">
                   {% if it.progress %}
-                    <div class="progress" style="height: 10px;">
+                    <div class="progress" style="height: 10px;"
                       <div
                         class="progress-bar bg-primary"
                         style="width: {{ it.progress_percent|floatformat:'0' }}%"
