@@ -633,23 +633,26 @@
   }
 
   .community-card__cover {
-    width: 96px;
+    width: 80px; /* уменьшаем ширину */
+    height: 80px; /* делаем квадратными */
     flex-shrink: 0;
-    border-radius: 0.9rem;
+    border-radius: 0.75rem;
     overflow: hidden;
     background: linear-gradient(140deg, rgba(171, 120, 67, 0.1), rgba(215, 189, 166, 0.35));
     display: grid;
     place-items: center;
+    padding: 4px; /* добавляем отступ */
   }
 
   .community-card__cover img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain; /* меняем на contain чтобы вся обложка была видна */
+    border-radius: 0.5rem;
   }
 
   .community-card__cover-placeholder {
-    font-size: 1.6rem;
+    font-size: 1.4rem;
     color: rgba(77, 54, 28, 0.5);
   }
 
@@ -705,6 +708,21 @@
     }
 
     .hero-highlight {
+      display: flex;
+      gap: 1rem;
+      overflow-x: auto;
+      padding-bottom: 0.35rem;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .hero-highlight__card {
+      min-width: 85%;
+      flex: 0 0 auto;
+      scroll-snap-align: start;
+    }
+
+    .hero-highlight {
       grid-template-columns: 1fr;
     }
 
@@ -741,7 +759,7 @@
 
         <div class="hero-highlight">
           {% for it in reading_items %}
-            <article class="hero-highlight__card h-100">
+            <article class="hero-highlight__card h-100 d-flex flex-column">
               <div class="d-flex align-items-center gap-3 mb-3">
                 <div class="reading-progress-cover">
                   {% with cover_url=it.book.get_cover_url %}
@@ -753,7 +771,7 @@
                   {% endwith %}
                 </div>
 
-                <div>
+                <div class="flex-grow-1">
                   <h3 class="h6 fw-semibold mb-0">{{ it.book.title }}</h3>
                   {% with authors=it.book.authors.all %}
                     {% if authors %}<div class="small text-muted">{{ authors|join:", " }}</div>{% endif %}
@@ -761,10 +779,10 @@
                 </div>
               </div>
 
-              <div class="d-flex align-items-center gap-3 mb-3">
+              <div class="d-flex align-items-center gap-3 mb-3 flex-grow-1">
                 <div class="flex-grow-1">
                   {% if it.progress %}
-                    <div class="progress" style="height: 10px;"
+                    <div class="progress" style="height: 10px;">
                       <div
                         class="progress-bar bg-primary"
                         style="width: {{ it.progress_percent|floatformat:'0' }}%"
@@ -788,7 +806,8 @@
                 </div>
               </div>
 
-              <div class="d-flex flex-wrap gap-2">
+              <!-- Фиксированная высота для кнопок -->
+              <div class="d-flex flex-wrap gap-2 mt-auto pt-2" style="min-height: 40px;">
                 <a class="btn btn-dark btn-sm" href="{% url 'shelves:reading_track' it.book.id %}">
                   <i class="bi bi-graph-up-arrow me-1"></i>К трекеру
                 </a>
@@ -877,7 +896,7 @@
           <div class="community-card__cover" aria-hidden="true">
             {% with cover_url=club.book.get_cover_url %}
               {% if cover_url %}
-                <img src="{{ cover_url }}" alt="Обложка книги {{ club.book.title }}" loading="lazy" />
+                <img src="{{ cover_url }}" alt="Обложка книги {{ club.book.title }}" loading="lazy" style="object-fit: contain; background: #f8f1ea;" />
               {% else %}
                 <div class="community-card__cover-placeholder">📚</div>
               {% endif %}
