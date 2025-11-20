@@ -314,7 +314,10 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
       return NavigationDecision.navigate;
     }
 
-    debugPrint('Блокируем навигацию для схемы: ${uri.scheme}');
+    // Для кастомных схем (например, tg://) пробуем открыть ссылку во внешнем
+    // приложении и предотвращаем загрузку внутри WebView, чтобы избежать
+    // ошибки ERR_UNKNOWN_URL_SCHEME.
+    await _launchExternalUrl(uri);
     return NavigationDecision.prevent;
   }
 
@@ -920,25 +923,34 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     return '$sanitized.pdf';
   }
 
-  Future<void> _launchExternalUrl(Uri uri) async {
+  Future<bool> _launchExternalUrl(Uri uri) async {
     try {
       if (await canLaunchUrl(uri)) {
-        await launchUrl(
+        final launched = await launchUrl(
           uri,
           mode: LaunchMode.externalApplication,
           webOnlyWindowName: '_blank',
         );
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось открыть ссылку: ${uri.toString()}')),
-        );
+
+        if (!launched && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Не удалось открыть ссылку: ${uri.toString()}')),
+          );
+        }
+
+        return launched;
       }
+      if (!mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось открыть ссылку: ${uri.toString()}')),
+      );
+      return false;
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) return false;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Ошибка при открытии ссылки: $error')),
       );
+      return false;
     }
   }
 
