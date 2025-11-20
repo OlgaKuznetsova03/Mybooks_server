@@ -42,6 +42,11 @@ urlpatterns = [
         name="reading_feed_review_comment",
     ),
     path("reading/finish/<int:progress_id>/", views.reading_mark_finished, name="reading_mark_finished"),
+    path(
+        "reading/finish/<int:progress_id>/celebration/",
+        views.reading_finish_celebration_api,
+        name="reading_finish_celebration_api",
+    ),
     path("reading/notes/<int:progress_id>/", views.reading_update_notes, name="reading_update_notes"),
     path("reading/characters/<int:progress_id>/", views.reading_add_character, name="reading_add_character"),
     path(

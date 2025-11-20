@@ -6,14 +6,16 @@ from typing import Optional
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.contrib.contenttypes.models import ContentType
 from django.db.models import Count, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib import messages
+from django.http import JsonResponse
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 from books.models import Book, Genre, Rating
 from books.forms import RatingCommentForm
 from .models import (
@@ -56,7 +58,7 @@ from .forms import (
 )
 from games.services.read_before_buy import ReadBeforeBuyGame
 from user_ratings.models import LeaderboardPeriod, UserPointEvent
-from user_ratings.services import award_for_book_completion
+from user_ratings.services import BOOK_COMPLETION, award_for_book_completion
 
 
 def event_list(request):
@@ -1044,6 +1046,11 @@ def _build_reading_track_context(
         (entry, note_edit_forms[entry.pk])
         for entry in note_entries
     ]
+    finish_celebration_api_url = None
+    if progress.percent and progress.percent >= Decimal("100"):
+        finish_celebration_api_url = reverse(
+            "shelves:reading_finish_celebration_api", args=[progress.pk]
+        )
     return {
         "book": book,
         "progress": progress,
@@ -1080,6 +1087,8 @@ def _build_reading_track_context(
         "note_entries": note_entries,
         "note_edit_forms": note_edit_forms,
         "note_rows": note_rows,
+        "finish_celebration_api_url": finish_celebration_api_url,
+        "finish_reward_points": BOOK_COMPLETION.points,
     }
 
 def reading_track(request, book_id):
@@ -1732,6 +1741,47 @@ def reading_mark_finished(request, progress_id):
         ),
     )
     return redirect("shelves:reading_track", book_id=progress.book_id)
+
+
+@login_required
+@require_GET
+def reading_finish_celebration_api(request, progress_id):
+    """Данные для анимации завершения книги в мобильном приложении."""
+
+    progress = get_object_or_404(BookProgress, pk=progress_id, user=request.user)
+    book = progress.book
+
+    cover_url = book.get_cover_url() or ""
+    if cover_url.startswith("/"):
+        cover_url = request.build_absolute_uri(cover_url)
+
+    content_type = ContentType.objects.get_for_model(book.__class__)
+    event = (
+        UserPointEvent.objects.filter(
+            user=request.user,
+            event_type=UserPointEvent.EventType.BOOK_COMPLETED,
+            content_type=content_type,
+            object_id=book.pk,
+        )
+        .order_by("-created_at", "-id")
+        .first()
+    )
+    points = event.points if event is not None else BOOK_COMPLETION.points
+    reward_text = "+1 к прочитанным книгам" if points == 1 else f"+{points} к книжному пути"
+
+    return JsonResponse(
+        {
+            "title": book.title,
+            "name": book.title,
+            "cover": cover_url or None,
+            "cover_url": cover_url or None,
+            "image": cover_url or None,
+            "points": points,
+            "reward": points,
+            "coins": points,
+            "rewardText": reward_text,
+        }
+    )
 
 
 @login_required

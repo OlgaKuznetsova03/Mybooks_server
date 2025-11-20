@@ -31,6 +31,13 @@
     transition: transform 0.1s ease-out;
   }
 
+  .celebration-canvas {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1055;
+  }
+
   .reading-progress-backdrop::before {
     content: "";
     position: absolute;
@@ -1666,9 +1673,9 @@ document.addEventListener('DOMContentLoaded', function() {
   setTimeout(() => {
     if (typeof confetti === 'function') {
       confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.6 }
+        particleCount: 160,
+        spread: 90,
+        origin: { y: 0.65 }
       });
     }
   }, 1000);
@@ -1676,10 +1683,161 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Функция для конфетти (если библиотека подключена)
-function confetti(options) {
-  // Базовая реализация конфетти для fallback
-  console.log('🎉 Книга завершена!', options);
+function confetti(options = {}) {
+  const settings = {
+    particleCount: 150,
+    spread: 75,
+    origin: { x: 0.5, y: 0.6 },
+    colors: ['#f6e05e', '#ffd166', '#ffe9a3', '#f4c430', '#fff6c2'],
+    decay: 0.92,
+    gravity: 0.14,
+    drift: 0.45,
+    ...options,
+  };
+
+  const canvas = document.createElement('canvas');
+  canvas.className = 'celebration-canvas';
+  document.body.appendChild(canvas);
+
+  const ctx = canvas.getContext('2d');
+  const ratio = Math.min(window.devicePixelRatio || 1, 2);
+
+  const resizeCanvas = () => {
+    canvas.width = window.innerWidth * ratio;
+    canvas.height = window.innerHeight * ratio;
+    canvas.style.width = `${window.innerWidth}px`;
+    canvas.style.height = `${window.innerHeight}px`;
+  };
+
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas, { once: true });
+
+  const convertSpreadToRadians = (degrees) => (degrees * Math.PI) / 180;
+  const launchAngle = convertSpreadToRadians(settings.spread);
+
+  const createParticle = () => {
+    const angle = (Math.random() - 0.5) * launchAngle;
+    const speed = 7 + Math.random() * 4;
+    return {
+      x: (settings.origin?.x ?? 0.5) * canvas.width,
+      y: (settings.origin?.y ?? 0.5) * canvas.height,
+      tilt: Math.random() * 2 * Math.PI,
+      tiltSpeed: (Math.random() - 0.5) * 0.15,
+      angle,
+      speed,
+      radius: 4 + Math.random() * 3,
+      alpha: 1,
+      decay: settings.decay - Math.random() * 0.03,
+      hue: settings.colors[Math.floor(Math.random() * settings.colors.length)],
+      shape: Math.random() > 0.65 ? 'star' : 'circle',
+      drift: (Math.random() - 0.5) * settings.drift,
+    };
+  };
+
+  const particles = Array.from(
+    { length: Math.max(80, settings.particleCount) },
+    createParticle
+  );
+
+  const drawStar = (context, { x, y, radius, tilt, alpha, hue }) => {
+    const spikes = 5;
+    const innerRadius = radius * 0.45;
+    context.save();
+    context.translate(x, y);
+    context.rotate(tilt);
+    context.beginPath();
+    for (let i = 0; i < spikes * 2; i += 1) {
+      const r = i % 2 === 0 ? radius : innerRadius;
+      const angle = (i * Math.PI) / spikes;
+      context.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
+    }
+    context.closePath();
+    context.fillStyle = hue;
+    context.globalAlpha = Math.max(alpha, 0);
+    context.shadowColor = 'rgba(244, 196, 48, 0.7)';
+    context.shadowBlur = 12;
+    context.fill();
+    context.restore();
+  };
+
+  const drawCircle = (context, { x, y, radius, tilt, alpha, hue }) => {
+    context.save();
+    context.translate(x, y);
+    context.rotate(tilt);
+    context.fillStyle = hue;
+    context.globalAlpha = Math.max(alpha, 0);
+    context.beginPath();
+    context.ellipse(0, 0, radius * 1.1, radius * 0.8, 0, 0, Math.PI * 2);
+    context.shadowColor = 'rgba(248, 222, 126, 0.6)';
+    context.shadowBlur = 8;
+    context.fill();
+    context.restore();
+  };
+
+  const drawParticle = (particle) => {
+    if (particle.shape === 'star') {
+      drawStar(ctx, particle);
+    } else {
+      drawCircle(ctx, particle);
+    }
+  };
+
+  let frame;
+  const animate = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let i = particles.length - 1; i >= 0; i -= 1) {
+      const p = particles[i];
+      p.tilt += p.tiltSpeed;
+      p.x += Math.cos(p.angle) * p.speed + p.drift;
+      p.y += Math.sin(p.angle) * p.speed + settings.gravity * i * 0.001 * ratio;
+      p.speed *= 0.985;
+      p.alpha *= p.decay;
+
+      drawParticle(p);
+
+      if (p.alpha <= 0 || p.y > canvas.height + 120) {
+        particles.splice(i, 1);
+      }
+    }
+
+    if (particles.length) {
+      frame = requestAnimationFrame(animate);
+    } else {
+      cancelAnimationFrame(frame);
+      if (canvas.parentNode) {
+        canvas.parentNode.removeChild(canvas);
+      }
+    }
+  };
+
+  animate();
 }
-</script>
+  // Сообщаем мобильному приложению о завершении книги для показа анимации
+  {% if finish_celebration_api_url %}
+  (function() {
+    const pointsValue = Number.parseInt('{{ finish_reward_points }}', 10);
+    const payload = {
+      type: 'book_finished',
+      event: 'book_finished',
+      api_url: '{{ finish_celebration_api_url }}',
+      apiUrl: '{{ finish_celebration_api_url }}',
+      bookTitle: '{{ book.title|escapejs }}',
+      title: '{{ book.title|escapejs }}',
+      cover: '{{ book.get_cover_url|default_if_none:""|escapejs }}',
+      rewardText: '+{{ finish_reward_points }} к книжному пути',
+    };
+
+    if (!Number.isNaN(pointsValue)) {
+      payload.points = pointsValue;
+      payload.reward = pointsValue;
+      payload.coins = pointsValue;
+    }
+
+    const message = JSON.stringify(payload);
+    const channel = window.ReadTogetherApp || window.ReactNativeWebView;
+    if (channel && typeof channel.postMessage === 'function') {
+      channel.postMessage(message);
+    }
+  })();
 
 {% endblock %}
