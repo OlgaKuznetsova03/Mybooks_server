@@ -121,6 +121,10 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
   bool _isOffline = false;
   int _coinsBalance = 0;
   bool _rewardInProgress = false;
+  Timer? _loadingTimer;
+  static const int _loadingTimeoutSeconds = 5;
+  bool _loadingTimedOut = false;
+  final bool _isYandexAdEnabled = true;
   FinishCelebrationData? _celebrationData;
   bool _celebrationLoading = false;
 
@@ -148,23 +152,9 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
       ..setBackgroundColor(const Color(0x00000000))
       ..setNavigationDelegate(
         NavigationDelegate(
-          onPageStarted: (_) => setState(() {
-            _loading = true;
-            _webViewError = false;
-          }),
-          onPageFinished: (_) => setState(() {
-            _loading = false;
-            _webViewError = false;
-          }),
-          onWebResourceError: (WebResourceError error) => setState(() {
-            _loading = false;
-
-            // Игнорируем ошибки загрузки вспомогательных ресурсов (например, рекламных
-            // блоков), чтобы не показывать экран «Не удалось загрузить приложение»
-            // при успешной загрузке основной страницы.
-            final isMainFrameError = error.isForMainFrame ?? true;
-            _webViewError = isMainFrameError;
-          }),
+          onPageStarted: (_) => _handlePageStarted(),
+          onPageFinished: (_) => _handlePageFinished(),
+          onWebResourceError: (WebResourceError error) => _handleWebResourceError(error),
           onNavigationRequest: _handleNavigationRequest,
         ),
       );
@@ -198,6 +188,7 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
   @override
   void dispose() {
     _detachConnectivity();
+    _loadingTimer?.cancel();
     _noteController.dispose();
     super.dispose();
   }
@@ -216,14 +207,59 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     _connectivityListenable = null;
   }
 
+  void _handlePageStarted() {
+    setState(() {
+      _loading = true;
+      _webViewError = false;
+      _loadingTimedOut = false;
+    });
+
+    _loadingTimer?.cancel();
+    _loadingTimer = Timer(
+      const Duration(seconds: _loadingTimeoutSeconds),
+      _handleLoadingTimeout,
+    );
+  }
+
+  void _handlePageFinished() {
+    _loadingTimer?.cancel();
+    setState(() {
+      _loading = false;
+      _webViewError = false;
+      _loadingTimedOut = false;
+    });
+  }
+
+  void _handleWebResourceError(WebResourceError error) {
+    _loadingTimer?.cancel();
+    setState(() {
+      _loading = false;
+
+      // Игнорируем ошибки загрузки вспомогательных ресурсов (например, рекламных
+      // блоков), чтобы не показывать экран «Не удалось загрузить приложение»
+      // при успешной загрузке основной страницы.
+      final isMainFrameError = error.isForMainFrame ?? true;
+      _webViewError = isMainFrameError;
+    });
+  }
+
+  void _handleLoadingTimeout() {
+    if (!mounted) return;
+
+    setState(() {
+      _loadingTimedOut = true;
+      _loading = false;
+    });
+  }
+
   void _handleConnectivityChange() {
     final notifier = _connectivityListenable;
     if (notifier == null || !mounted) return;
     final offline = !notifier.value;
     if (offline == _isOffline) return;
     setState(() => _isOffline = offline);
-    if (!offline && _webViewError) {
-      _controller.reload();
+    if (!offline && (_webViewError || _loadingTimedOut)) {
+      _reloadWebView();
     }
   }
 
@@ -246,7 +282,17 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
       return NavigationDecision.prevent;
     }
 
-    return NavigationDecision.navigate;
+    if (uri.scheme == 'tel' || uri.scheme == 'mailto' || uri.scheme == 'sms') {
+      unawaited(_launchExternalUrl(uri));
+      return NavigationDecision.prevent;
+    }
+
+    if (uri.scheme == 'data' || uri.scheme == 'blob' || uri.scheme == 'about') {
+      return NavigationDecision.navigate;
+    }
+
+    debugPrint('Блокируем навигацию для схемы: ${uri.scheme}');
+    return NavigationDecision.prevent;
   }
 
   void _handleJavaScriptMessage(JavaScriptMessage message) {
@@ -394,8 +440,13 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
       return true;
     }
 
-    if (uri.host.toLowerCase() != _siteOrigin.host.toLowerCase()) {
-      return false;
+    final currentHost = _siteOrigin.host.toLowerCase();
+    final targetHost = uri.host.toLowerCase();
+
+    if (targetHost != currentHost) {
+      if (!targetHost.endsWith('.$currentHost')) {
+        return false;
+      }
     }
 
     if (_siteOrigin.hasPort && uri.port != _siteOrigin.port) {
@@ -624,7 +675,17 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     final accepted = await _ensureTermsAccepted();
     if (!mounted) return;
     if (accepted) {
-      _controller.loadRequest(Uri.parse(_startUrl));
+      try {
+        await _controller.loadRequest(Uri.parse(_startUrl));
+      } catch (error) {
+        if (mounted) {
+          setState(() {
+            _webViewError = true;
+            _loading = false;
+          });
+        }
+        debugPrint('Ошибка загрузки WebView: $error');
+      }
     }
   }
 
@@ -842,11 +903,12 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
         await launchUrl(
           uri,
           mode: LaunchMode.externalApplication,
+          webOnlyWindowName: '_blank',
         );
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Не удалось открыть ссылку')),
+          SnackBar(content: Text('Не удалось открыть ссылку: ${uri.toString()}')),
         );
       }
     } catch (error) {
@@ -859,7 +921,10 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
 
   void _reloadWebView() {
     if (!mounted) return;
-    setState(() => _webViewError = false);
+    setState(() {
+      _webViewError = false;
+      _loadingTimedOut = false;
+    });
     _controller.reload();
   }
 
@@ -1038,6 +1103,10 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
   }
 
   Widget _buildRewardBanner() {
+    if (!_isYandexAdEnabled) {
+      return const SizedBox.shrink();
+    }
+
     return Container(
       width: double.infinity,
       height: 50,
@@ -1074,18 +1143,28 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
   }
 
   Future<void> _handleWatchYandexAd() async {
-    if (_rewardInProgress) return;
+    if (_rewardInProgress || !_isYandexAdEnabled) return;
     setState(() => _rewardInProgress = true);
     try {
       final rewarded = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
         builder: (_) => const YandexAdDialog(),
-      );
+      ).timeout(const Duration(seconds: 30), onTimeout: () => false);
       if (rewarded == true && mounted) {
         setState(() => _coinsBalance += 20);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Спасибо! На ваш счёт зачислено 20 монет.')),
+        );
+      } else if (rewarded == false && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось показать рекламу. Попробуйте позже.')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка при показе рекламы: $error')),
         );
       }
     } finally {
@@ -1128,9 +1207,22 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
                 clipBehavior: Clip.none,
                 children: [
                   Positioned.fill(child: WebViewWidget(controller: _controller)),
-                  
+
                   if (_loading) const Center(child: CircularProgressIndicator()),
-                  if (_webViewError && !_isOffline)
+                  if (_loadingTimedOut || _isOffline)
+                    Positioned.fill(
+                      child: _buildStatusOverlay(
+                        icon: _isOffline ? Icons.wifi_off : Icons.timer_off,
+                        title: _isOffline ? 'Вы оффлайн' : 'Долгая загрузка',
+                        description: _isOffline
+                            ? 'Последняя версия приложения сохранена. Мы автоматически обновим страницу, как только интернет появится.'
+                            : 'Сайт загружается дольше обычного. Проверьте соединение или попробуйте позже.',
+                        onPressed: _reloadWebView,
+                        actionLabel: _isOffline ? 'Проверить соединение' : 'Перезагрузить',
+                        extraContent: _buildOfflineNotesPanel(),
+                      ),
+                    ),
+                  if (_webViewError && !_isOffline && !_loadingTimedOut)
                     Positioned.fill(
                       child: _buildStatusOverlay(
                         icon: Icons.cloud_off,
@@ -1139,18 +1231,6 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
                             'Сервис временно недоступен. Попробуйте обновить страницу или вернитесь позже.',
                         onPressed: _reloadWebView,
                         actionLabel: 'Перезагрузить вкладку',
-                      ),
-                    ),
-                  if (_isOffline)
-                    Positioned.fill(
-                      child: _buildStatusOverlay(
-                        icon: Icons.wifi_off,
-                        title: 'Вы оффлайн',
-                        description:
-                            'Последняя версия приложения сохранена. Мы автоматически обновим страницу, как только интернет появится.',
-                        onPressed: _reloadWebView,
-                        actionLabel: 'Проверить соединение',
-                        extraContent: _buildOfflineNotesPanel(),
                       ),
                     ),
                   if (_celebrationData != null)
