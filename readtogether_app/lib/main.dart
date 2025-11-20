@@ -263,7 +263,8 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     }
   }
 
-  NavigationDecision _handleNavigationRequest(NavigationRequest request) {
+  Future<NavigationDecision> _handleNavigationRequest(
+      NavigationRequest request) async {
     final uri = Uri.tryParse(request.url);
     if (uri == null) {
       return NavigationDecision.navigate;
@@ -278,8 +279,30 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     }
 
     if (uri.scheme == 'http' || uri.scheme == 'https') {
-      unawaited(_launchExternalUrl(uri));
-      return NavigationDecision.prevent;
+      // Показываем диалог выбора
+      final result = await showDialog<NavigationDecision>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Открыть ссылку'),
+          content: Text('Открыть "${uri.host}" в:'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, NavigationDecision.prevent),
+              child: const Text('Браузере'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, NavigationDecision.navigate),
+              child: const Text('Приложении'),
+            ),
+          ],
+        ),
+      );
+
+      if (result == NavigationDecision.prevent) {
+        unawaited(_launchExternalUrl(uri));
+      }
+
+      return result ?? NavigationDecision.navigate;
     }
 
     if (uri.scheme == 'tel' || uri.scheme == 'mailto' || uri.scheme == 'sms') {
