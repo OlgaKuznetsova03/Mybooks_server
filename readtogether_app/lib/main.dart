@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -1288,7 +1289,7 @@ class _FinishBookCelebrationState extends State<FinishBookCelebration>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1600),
+      duration: const Duration(milliseconds: 6000),
     )..forward();
 
     _overlay = CurvedAnimation(
@@ -1315,14 +1316,20 @@ class _FinishBookCelebrationState extends State<FinishBookCelebration>
     );
 
     _stars = [
-      const _StarSpec(alignment: Alignment(-0.8, -0.05), start: 0.25, end: 0.8, size: 18, rotation: -0.35),
-      const _StarSpec(alignment: Alignment(0.85, 0.05), start: 0.3, end: 0.85, size: 18, rotation: 0.4),
-      const _StarSpec(alignment: Alignment(-0.5, -0.35), start: 0.18, end: 0.7, size: 22, rotation: 0.2),
-      const _StarSpec(alignment: Alignment(0.55, -0.3), start: 0.22, end: 0.78, size: 22, rotation: -0.15),
-      const _StarSpec(alignment: Alignment(-0.15, -0.55), start: 0.2, end: 0.76, size: 26, rotation: 0.1),
-      const _StarSpec(alignment: Alignment(0.2, 0.0), start: 0.28, end: 0.82, size: 16, rotation: -0.25),
-      const _StarSpec(alignment: Alignment(-0.1, 0.3), start: 0.35, end: 0.9, size: 14, rotation: 0.3),
-      const _StarSpec(alignment: Alignment(0.35, 0.25), start: 0.32, end: 0.88, size: 16, rotation: -0.4),
+      const _StarSpec(alignment: Alignment(-0.8, -0.05), start: 0.08, end: 0.9, size: 18, rotation: -0.35, horizontalDrift: 12, verticalLift: -36, wobbleTurns: 1.4),
+      const _StarSpec(alignment: Alignment(0.85, 0.05), start: 0.06, end: 0.92, size: 18, rotation: 0.4, horizontalDrift: 10, verticalLift: -34, wobbleTurns: 1.6),
+      const _StarSpec(alignment: Alignment(-0.5, -0.35), start: 0.12, end: 0.94, size: 22, rotation: 0.2, horizontalDrift: 8, verticalLift: -42, wobbleTurns: 1.2),
+      const _StarSpec(alignment: Alignment(0.55, -0.3), start: 0.14, end: 0.96, size: 22, rotation: -0.15, horizontalDrift: 14, verticalLift: -40, wobbleTurns: 1.35),
+      const _StarSpec(alignment: Alignment(-0.15, -0.55), start: 0.18, end: 0.98, size: 26, rotation: 0.1, horizontalDrift: 6, verticalLift: -44, wobbleTurns: 1.1),
+      const _StarSpec(alignment: Alignment(0.2, 0.0), start: 0.22, end: 0.94, size: 16, rotation: -0.25, horizontalDrift: 10, verticalLift: -32, wobbleTurns: 1.8),
+      const _StarSpec(alignment: Alignment(-0.1, 0.3), start: 0.24, end: 0.98, size: 14, rotation: 0.3, horizontalDrift: 12, verticalLift: -28, wobbleTurns: 2.0),
+      const _StarSpec(alignment: Alignment(0.35, 0.25), start: 0.28, end: 1.0, size: 16, rotation: -0.4, horizontalDrift: 9, verticalLift: -30, wobbleTurns: 1.6),
+      const _StarSpec(alignment: Alignment(0.0, -0.1), start: 0.1, end: 0.95, size: 20, rotation: 0.18, horizontalDrift: 16, verticalLift: -38, wobbleTurns: 1.75),
+      const _StarSpec(alignment: Alignment(-0.65, 0.15), start: 0.32, end: 0.98, size: 17, rotation: -0.2, horizontalDrift: 11, verticalLift: -33, wobbleTurns: 1.5),
+      const _StarSpec(alignment: Alignment(0.7, -0.55), start: 0.36, end: 1.0, size: 19, rotation: 0.28, horizontalDrift: 15, verticalLift: -46, wobbleTurns: 1.4),
+      const _StarSpec(alignment: Alignment(-0.35, -0.75), start: 0.2, end: 0.88, size: 18, rotation: -0.22, horizontalDrift: 7, verticalLift: -48, wobbleTurns: 1.25),
+      const _StarSpec(alignment: Alignment(0.6, 0.45), start: 0.42, end: 1.0, size: 15, rotation: 0.35, horizontalDrift: 10, verticalLift: -26, wobbleTurns: 1.9),
+      const _StarSpec(alignment: Alignment(-0.45, 0.55), start: 0.46, end: 1.0, size: 15, rotation: -0.3, horizontalDrift: 10, verticalLift: -24, wobbleTurns: 1.65),
     ];
   }
 
@@ -1567,19 +1574,25 @@ class _FinishBookCelebrationState extends State<FinishBookCelebration>
       builder: (context, child) {
         final progress = animation.value;
         final opacity = Curves.easeIn.transform(progress.clamp(0.0, 1.0));
-        final scale = Tween<double>(begin: 0.35, end: 1.0).transform(progress);
-        final verticalShift = Tween<double>(begin: 10, end: -26).transform(progress);
+        final eased = Curves.easeOutCubic.transform(progress);
+        final scale = Tween<double>(begin: 0.35, end: 1.05).transform(eased);
+        final verticalShift = Tween<double>(begin: 12, end: spec.verticalLift)
+            .transform(eased);
+        final wobble = math.sin(progress * math.pi * spec.wobbleTurns) *
+            spec.horizontalDrift;
+        final rotation =
+            spec.rotation + math.sin(progress * math.pi * 1.1) * 0.28;
 
         return Align(
           alignment: spec.alignment,
           child: Opacity(
             opacity: opacity,
             child: Transform.translate(
-              offset: Offset(0, verticalShift),
+              offset: Offset(wobble, verticalShift),
               child: Transform.scale(
                 scale: scale,
                 child: Transform.rotate(
-                  angle: spec.rotation,
+                  angle: rotation,
                   child: Container(
                     decoration: BoxDecoration(
                       boxShadow: [
@@ -1613,6 +1626,9 @@ class _StarSpec {
     required this.end,
     required this.size,
     required this.rotation,
+    this.horizontalDrift = 0,
+    this.verticalLift = -26,
+    this.wobbleTurns = 1.0,
   });
 
   final Alignment alignment;
@@ -1620,6 +1636,9 @@ class _StarSpec {
   final double end;
   final double size;
   final double rotation;
+  final double horizontalDrift;
+  final double verticalLift;
+  final double wobbleTurns;
 }
 
 class OfflineNote {
