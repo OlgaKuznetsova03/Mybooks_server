@@ -1281,6 +1281,7 @@ class _FinishBookCelebrationState extends State<FinishBookCelebration>
   late final Animation<double> _edge;
   late final Animation<double> _trophyScale;
   late final Animation<Offset> _textSlide;
+  late final List<_StarSpec> _stars;
 
   @override
   void initState() {
@@ -1312,6 +1313,17 @@ class _FinishBookCelebrationState extends State<FinishBookCelebration>
         curve: const Interval(0.65, 1, curve: Curves.easeOut),
       ),
     );
+
+    _stars = [
+      const _StarSpec(alignment: Alignment(-0.8, -0.05), start: 0.25, end: 0.8, size: 18, rotation: -0.35),
+      const _StarSpec(alignment: Alignment(0.85, 0.05), start: 0.3, end: 0.85, size: 18, rotation: 0.4),
+      const _StarSpec(alignment: Alignment(-0.5, -0.35), start: 0.18, end: 0.7, size: 22, rotation: 0.2),
+      const _StarSpec(alignment: Alignment(0.55, -0.3), start: 0.22, end: 0.78, size: 22, rotation: -0.15),
+      const _StarSpec(alignment: Alignment(-0.15, -0.55), start: 0.2, end: 0.76, size: 26, rotation: 0.1),
+      const _StarSpec(alignment: Alignment(0.2, 0.0), start: 0.28, end: 0.82, size: 16, rotation: -0.25),
+      const _StarSpec(alignment: Alignment(-0.1, 0.3), start: 0.35, end: 0.9, size: 14, rotation: 0.3),
+      const _StarSpec(alignment: Alignment(0.35, 0.25), start: 0.32, end: 0.88, size: 16, rotation: -0.4),
+    ];
   }
 
   @override
@@ -1344,6 +1356,7 @@ class _FinishBookCelebrationState extends State<FinishBookCelebration>
                     clipBehavior: Clip.none,
                     children: [
                       _buildCard(theme),
+                      _buildStarConfetti(),
                       Positioned(
                         top: -30 * _trophyScale.value,
                         left: 0,
@@ -1532,6 +1545,81 @@ class _FinishBookCelebrationState extends State<FinishBookCelebration>
       ),
     );
   }
+
+  Widget _buildStarConfetti() {
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Stack(
+          children: _stars.map(_buildStar).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStar(_StarSpec spec) {
+    final animation = CurvedAnimation(
+      parent: _controller,
+      curve: Interval(spec.start, spec.end, curve: Curves.easeOut),
+    );
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final progress = animation.value;
+        final opacity = Curves.easeIn.transform(progress.clamp(0.0, 1.0));
+        final scale = Tween<double>(begin: 0.35, end: 1.0).transform(progress);
+        final verticalShift = Tween<double>(begin: 10, end: -26).transform(progress);
+
+        return Align(
+          alignment: spec.alignment,
+          child: Opacity(
+            opacity: opacity,
+            child: Transform.translate(
+              offset: Offset(0, verticalShift),
+              child: Transform.scale(
+                scale: scale,
+                child: Transform.rotate(
+                  angle: spec.rotation,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.amber.withOpacity(0.55 * opacity),
+                          blurRadius: 12,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.star_rounded,
+                      color: Colors.amber.shade300,
+                      size: spec.size,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _StarSpec {
+  const _StarSpec({
+    required this.alignment,
+    required this.start,
+    required this.end,
+    required this.size,
+    required this.rotation,
+  });
+
+  final Alignment alignment;
+  final double start;
+  final double end;
+  final double size;
+  final double rotation;
 }
 
 class OfflineNote {
