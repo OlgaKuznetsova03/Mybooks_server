@@ -153,7 +153,10 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (_) => _handlePageStarted(),
-          onPageFinished: (_) => _handlePageFinished(),
+          onPageFinished: (_) {
+            _handlePageFinished();
+            _injectLinkInterceptor();
+          },
           onWebResourceError: (WebResourceError error) => _handleWebResourceError(error),
           onNavigationRequest: _handleNavigationRequest,
         ),
@@ -162,6 +165,16 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     controller.addJavaScriptChannel(
       'ReadTogetherApp',
       onMessageReceived: _handleJavaScriptMessage,
+    );
+
+    controller.addJavaScriptChannel(
+      'LinkInterceptor',
+      onMessageReceived: (JavaScriptMessage message) {
+        final uri = Uri.tryParse(message.message);
+        if (uri != null) {
+          unawaited(_launchExternalUrl(uri));
+        }
+      },
     );
 
     if (controller.platform is AndroidWebViewController) {
@@ -228,6 +241,52 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
       _webViewError = false;
       _loadingTimedOut = false;
     });
+
+    _injectLinkInterceptor();
+  }
+
+  void _injectLinkInterceptor() {
+    _controller.runJavaScript('''
+      // Перехватываем все клики по ссылкам
+      document.addEventListener('click', function(e) {
+        var target = e.target;
+        
+        // Находим ближайший элемент <a>
+        while (target && target.nodeName !== 'A') {
+          target = target.parentElement;
+          if (!target) break;
+        }
+        
+        if (target && target.href) {
+          var url = new URL(target.href);
+          
+          // Проверяем, является ли схема кастомной (не http/https)
+          if (url.protocol !== 'http:' && url.protocol !== 'https:' && 
+              url.protocol !== '${_siteOrigin.scheme}:') {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Отправляем ссылку в Flutter для обработки
+            LinkInterceptor.postMessage(target.href);
+            return false;
+          }
+        }
+      });
+      
+      // Также перехватываем программные переходы
+      var originalPushState = history.pushState;
+      history.pushState = function(state, title, url) {
+        if (url && typeof url === 'string') {
+          var fullUrl = new URL(url, window.location.href);
+          if (fullUrl.protocol !== 'http:' && fullUrl.protocol !== 'https:' && 
+              fullUrl.protocol !== '${_siteOrigin.scheme}:') {
+            LinkInterceptor.postMessage(fullUrl.href);
+            return;
+          }
+        }
+        return originalPushState.apply(this, arguments);
+      };
+    ''');
   }
 
   void _handleWebResourceError(WebResourceError error) {
@@ -270,6 +329,8 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
       return NavigationDecision.navigate;
     }
 
+    debugPrint('Navigation request: ${uri.toString()}');
+
     // Разрешаем навигацию для same-origin
     if (_isSameOrigin(uri)) {
       if (_shouldInterceptDownload(uri)) {
@@ -281,6 +342,7 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
 
     // Для кастомных схем (tg://, whatsapp:// и т.д.) - сразу открываем внешне
     if (!_isStandardWebScheme(uri.scheme)) {
+      debugPrint('Custom scheme detected: ${uri.scheme}');
       unawaited(_launchExternalUrl(uri));
       return NavigationDecision.prevent;
     }
@@ -324,6 +386,7 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     }
 
     // Для всех остальных кастомных схем открываем внешне
+    debugPrint('Unknown scheme, launching externally: ${uri.scheme}');
     unawaited(_launchExternalUrl(uri));
     return NavigationDecision.prevent;
   }
@@ -945,7 +1008,25 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
 
   Future<bool> _launchExternalUrl(Uri uri) async {
     try {
-      // Пробуем запустить URL
+      debugPrint('Attempting to launch: ${uri.toString()}');
+
+      // Для кастомных схем используем прямое открытие
+      if (!_isStandardWebScheme(uri.scheme) && !_isStandardExternalScheme(uri.scheme)) {
+        final launched = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+
+        if (!launched && mounted) {
+          _showUrlLaunchError(
+            uri,
+            'Не удалось открыть ссылку. Убедитесь, что приложение установлено.',
+          );
+        }
+        return launched;
+      }
+
+      // Для стандартных схем используем canLaunchUrl
       if (await canLaunchUrl(uri)) {
         final launched = await launchUrl(
           uri,
@@ -965,29 +1046,42 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
         return false;
       }
     } catch (error) {
+      debugPrint('Error launching URL: $error');
       if (mounted) {
-        _showUrlLaunchError(uri, 'Ошибка при открытии ссылки: $error');
+        _showUrlLaunchError(uri, 'Ошибка при открытии ссылки: ${error.toString()}');
       }
       return false;
     }
   }
 
   void _showUrlLaunchError(Uri uri, String message) {
+    String detailedMessage = message;
+
+    if (uri.scheme == 'tg') {
+      detailedMessage = '$message\n\nУбедитесь, что Telegram установлен на вашем устройстве.';
+    } else if (uri.scheme == 'whatsapp') {
+      detailedMessage = '$message\n\nУбедитесь, что WhatsApp установлен на вашем устройстве.';
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(message),
+            Text(detailedMessage),
             if (uri.toString().length < 100)
               Text(
-                uri.toString(),
+                'Ссылка: ${uri.toString()}',
                 style: const TextStyle(fontSize: 12, color: Colors.white70),
               ),
           ],
         ),
-        duration: const Duration(seconds: 3),
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'OK',
+          onPressed: () {},
+        ),
       ),
     );
   }
