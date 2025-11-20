@@ -509,6 +509,26 @@
 
   // Улучшенный выбор для select[multiple]
   document.addEventListener('DOMContentLoaded', () => {
+    // Помогаем внешним ссылкам открываться даже в средах, где блокируются всплывающие окна
+    document.body.addEventListener('click', (event) => {
+      if (event.defaultPrevented) return;
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+      const link = event.target instanceof Element
+        ? event.target.closest('a[target="_blank"]')
+        : null;
+      if (!link || !link.href || link.getAttribute('href') === '#') return;
+
+      const opened = window.open(link.href, link.target || '_blank');
+      if (opened && typeof opened === 'object') {
+        try { opened.opener = null; } catch (err) {}
+        return;
+      }
+
+      event.preventDefault();
+      window.location.href = link.href;
+    }, { capture: true });
+
     document.querySelectorAll('select[data-enhanced-multi]').forEach((select) => {
       if (select.dataset.enhancedMultiApplied === '1') return;
       select.dataset.enhancedMultiApplied = '1';
