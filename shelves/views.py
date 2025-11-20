@@ -1780,6 +1780,15 @@ def reading_finish_celebration_api(request, progress_id):
             "reward": points,
             "coins": points,
             "rewardText": reward_text,
+            "celebrationEffect": "golden_stars",
+            "celebrationPalette": [
+                "#ffd700",
+                "#f6e05e",
+                "#ffe9a3",
+                "#fff7d6",
+                "#f4c430",
+            ],
+            "celebrationShapes": ["star"],
         }
     )
 

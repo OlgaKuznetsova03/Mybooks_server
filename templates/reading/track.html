@@ -1673,9 +1673,11 @@ document.addEventListener('DOMContentLoaded', function() {
   setTimeout(() => {
     if (typeof confetti === 'function') {
       confetti({
-        particleCount: 160,
-        spread: 90,
-        origin: { y: 0.65 }
+        particleCount: 200,
+        spread: 110,
+        origin: { y: 0.65 },
+        colors: ['#ffd700', '#f6e05e', '#ffe9a3', '#fff7d6', '#f4c430'],
+        shapes: ['star'],
       });
     }
   }, 1000);
@@ -1714,6 +1716,9 @@ function confetti(options = {}) {
 
   const convertSpreadToRadians = (degrees) => (degrees * Math.PI) / 180;
   const launchAngle = convertSpreadToRadians(settings.spread);
+  const availableShapes = (settings.shapes || []).length
+    ? settings.shapes
+    : ['star', 'circle'];
 
   const createParticle = () => {
     const angle = (Math.random() - 0.5) * launchAngle;
@@ -1729,7 +1734,7 @@ function confetti(options = {}) {
       alpha: 1,
       decay: settings.decay - Math.random() * 0.03,
       hue: settings.colors[Math.floor(Math.random() * settings.colors.length)],
-      shape: Math.random() > 0.65 ? 'star' : 'circle',
+      shape: availableShapes[Math.floor(Math.random() * availableShapes.length)],
       drift: (Math.random() - 0.5) * settings.drift,
     };
   };
@@ -1825,6 +1830,9 @@ function confetti(options = {}) {
       title: '{{ book.title|escapejs }}',
       cover: '{{ book.get_cover_url|default_if_none:""|escapejs }}',
       rewardText: '+{{ finish_reward_points }} к книжному пути',
+      celebrationEffect: 'golden_stars',
+      celebrationPalette: ['#ffd700', '#f6e05e', '#ffe9a3', '#fff7d6', '#f4c430'],
+      celebrationShapes: ['star'],
     };
 
     if (!Number.isNaN(pointsValue)) {
@@ -1840,7 +1848,6 @@ function confetti(options = {}) {
     }
   })();
   {% endif %}
-}
 </script>
 
 {% endblock %}
