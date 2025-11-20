@@ -12,7 +12,6 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:developer';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -90,8 +89,6 @@ class _KaleidoscopeHomeState extends State<KaleidoscopeHome> {
   }
 }
 
-
-
 class MainWebViewPage extends StatefulWidget {
   const MainWebViewPage({super.key, this.onlineNotifier});
 
@@ -107,14 +104,6 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     'MYBOOKS_SITE_URL',
     defaultValue: _fallbackSiteUrl,
   );
-  static const String _defaultClientHeader = String.fromEnvironment(
-    'MYBOOKS_APP_HEADER',
-    defaultValue: 'X-MyBooks-Client',
-  );
-  static const String _defaultClientId = String.fromEnvironment(
-    'MYBOOKS_APP_CLIENT_ID',
-    defaultValue: 'mybooks-flutter',
-  );
 
   late final WebViewController _controller;
   late final Uri _siteOrigin;
@@ -128,6 +117,8 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
   bool _loading = true;
   bool _webViewError = false;
   bool _isOffline = false;
+  int _coinsBalance = 0;
+  bool _rewardInProgress = false;
 
   @override
   void initState() {
@@ -154,17 +145,17 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (_) => setState(() {
-                _loading = true;
-                _webViewError = false;
-              }),
+            _loading = true;
+            _webViewError = false;
+          }),
           onPageFinished: (_) => setState(() {
-                _loading = false;
-                _webViewError = false;
-              }),
+            _loading = false;
+            _webViewError = false;
+          }),
           onWebResourceError: (_) => setState(() {
-                _loading = false;
-                _webViewError = true;
-              }),
+            _loading = false;
+            _webViewError = true;
+          }),
           onNavigationRequest: _handleNavigationRequest,
         ),
       );
@@ -237,6 +228,7 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     }
 
     if (uri.scheme == 'http' || uri.scheme == 'https') {
+      unawaited(_launchExternalUrl(uri));
       return NavigationDecision.prevent;
     }
 
@@ -276,7 +268,11 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
           : (parsed.path.endsWith('/') ? parsed.path : '${parsed.path}/');
 
       return parsed
-          .replace(path: normalisedPath, queryParameters: const {}, fragment: null)
+          .replace(
+            path: normalisedPath,
+            queryParameters: const {},
+            fragment: null,
+          )
           .toString();
     } catch (_) {
       return _fallbackSiteUrl;
@@ -581,6 +577,9 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
 
   bool _shouldInterceptDownload(Uri uri) {
     final path = uri.path;
+    if (path.toLowerCase().endsWith('.pdf')) {
+      return true;
+    }
     if (path == '/accounts/me/print/monthly/' || path == '/accounts/me/print/monthly') {
       return true;
     }
@@ -595,74 +594,111 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
 
   Future<void> _startDownload(Uri uri) async {
     if (!mounted) return;
-    
-    await showDialog(
+
+    final navigator = Navigator.of(context, rootNavigator: true);
+    final progressDialog = showDialog<void>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.download, color: Colors.deepPurple),
-              SizedBox(width: 8),
-              Text('Скачивание файлов'),
-            ],
-          ),
-          content: const Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Скачивание файлов доступно только в веб-версии сайта.',
-                style: TextStyle(fontSize: 16),
-              ),
-              SizedBox(height: 16),
-              Text(
-                'Чтобы скачать файлы:',
-                style: TextStyle(fontWeight: FontWeight.w500),
-              ),
-              SizedBox(height: 8),
-              Text('1. Откройте браузер на вашем устройстве'),
-              Text('2. Перейдите на сайт kalejdoskopknig.ru'),
-              Text('3. Войдите в свой аккаунт'),
-              Text('4. Скачайте нужные файлы'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Закрыть'),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _openInBrowser();
-              },
-              child: const Text('Открыть в браузере'),
-            ),
-          ],
-        );
-      },
+      barrierDismissible: false,
+      builder: (_) => const DownloadProgressDialog(),
     );
+
+    File? downloadedFile;
+    Object? downloadError;
+    try {
+      downloadedFile = await _downloadPdf(uri);
+    } catch (error) {
+      downloadError = error;
+    } finally {
+      if (navigator.canPop()) {
+        navigator.pop();
+      }
+      await progressDialog;
+    }
+
+    if (!mounted) return;
+
+    if (downloadedFile != null) {
+      final fileUri = Uri.file(downloadedFile.path).toString();
+      if (await canLaunchUrl(Uri.parse(fileUri))) {
+        await launchUrl(Uri.parse(fileUri));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('PDF открывается...')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('PDF сохранён в: ${downloadedFile.path}')),
+        );
+      }
+    } else if (downloadError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось скачать файл: $downloadError')),
+      );
+    }
   }
 
-  Future<void> _openInBrowser() async {
+  Future<File> _downloadPdf(Uri uri) async {
+    final client = HttpClient();
     try {
-      final url = _startUrl;
-      if (await canLaunchUrl(Uri.parse(url))) {
+      final request = await client.getUrl(uri);
+      final cookies = await _collectCookies();
+      if (cookies.isNotEmpty) {
+        request.headers.set(
+          HttpHeaders.cookieHeader,
+          cookies.entries.map((e) => '${e.key}=${e.value}').join('; '),
+        );
+      }
+      final response = await request.close();
+      if (response.statusCode != HttpStatus.ok) {
+        throw HttpException('Код ответа: ${response.statusCode}');
+      }
+      final bytes = await consolidateHttpClientResponseBytes(response);
+      final targetDir = await _resolveDownloadsDirectory();
+      final fileName = _downloadFileName(uri);
+      final file = File('${targetDir.path}/$fileName');
+      await file.create(recursive: true);
+      await file.writeAsBytes(bytes, flush: true);
+      return file;
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  Future<Directory> _resolveDownloadsDirectory() async {
+    if (!kIsWeb && (Platform.isMacOS || Platform.isWindows || Platform.isLinux)) {
+      final downloads = await getDownloadsDirectory();
+      if (downloads != null) {
+        return downloads;
+      }
+    }
+    return getApplicationDocumentsDirectory();
+  }
+
+  String _downloadFileName(Uri uri) {
+    final rawName = uri.pathSegments.isNotEmpty ? uri.pathSegments.last : 'document.pdf';
+    final sanitized = _sanitizeFileName(rawName) ?? 'document.pdf';
+    if (sanitized.toLowerCase().endsWith('.pdf')) {
+      return sanitized;
+    }
+    return '$sanitized.pdf';
+  }
+
+  Future<void> _launchExternalUrl(Uri uri) async {
+    try {
+      if (await canLaunchUrl(uri)) {
         await launchUrl(
-          Uri.parse(url),
+          uri,
           mode: LaunchMode.externalApplication,
         );
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Не удалось открыть браузер')),
+          const SnackBar(content: Text('Не удалось открыть ссылку')),
         );
       }
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка при открытии браузера: $error')),
+        SnackBar(content: Text('Ошибка при открытии ссылки: $error')),
       );
     }
   }
@@ -847,6 +883,64 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     );
   }
 
+  Widget _buildRewardBanner() {
+    return Container(
+      width: double.infinity,
+      height: 50,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade300, width: 1)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'Реклама Яндекс · 20 монет',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: const Color(0xFF40535c),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF40535c),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            onPressed: _rewardInProgress ? null : _handleWatchYandexAd,
+            child: _rewardInProgress
+                ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Text('Смотреть', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleWatchYandexAd() async {
+    if (_rewardInProgress) return;
+    setState(() => _rewardInProgress = true);
+    try {
+      final rewarded = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const YandexAdDialog(),
+      );
+      if (rewarded == true && mounted) {
+        setState(() => _coinsBalance += 20);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Спасибо! На ваш счёт зачислено 20 монет.')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _rewardInProgress = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -861,35 +955,128 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
       },
       child: Scaffold(
         backgroundColor: Colors.white,
-        body: Stack(
+        body: Column(
           children: [
-            Positioned.fill(child: WebViewWidget(controller: _controller)),
-            if (_loading) const Center(child: CircularProgressIndicator()),
-            if (_webViewError && !_isOffline)
-              Positioned.fill(
-                child: _buildStatusOverlay(
-                  icon: Icons.cloud_off,
-                  title: 'Не удалось загрузить сайт',
-                  description:
-                      'Сервис временно недоступен. Попробуйте обновить страницу или вернитесь позже.',
-                  onPressed: _reloadWebView,
-                  actionLabel: 'Перезагрузить вкладку',
-                ),
+            // Рекламный баннер Яндекс - теперь в самом верху
+            SafeArea(
+              bottom: false,
+              child: _buildRewardBanner(),
+            ),
+            
+            // Основной контент с WebView
+            Expanded(
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned.fill(child: WebViewWidget(controller: _controller)),
+                  
+                  if (_loading) const Center(child: CircularProgressIndicator()),
+                  if (_webViewError && !_isOffline)
+                    Positioned.fill(
+                      child: _buildStatusOverlay(
+                        icon: Icons.cloud_off,
+                        title: 'Не удалось загрузить приложение',
+                        description:
+                            'Сервис временно недоступен. Попробуйте обновить страницу или вернитесь позже.',
+                        onPressed: _reloadWebView,
+                        actionLabel: 'Перезагрузить вкладку',
+                      ),
+                    ),
+                  if (_isOffline)
+                    Positioned.fill(
+                      child: _buildStatusOverlay(
+                        icon: Icons.wifi_off,
+                        title: 'Вы оффлайн',
+                        description:
+                            'Последняя версия приложения сохранена. Мы автоматически обновим страницу, как только интернет появится.',
+                        onPressed: _reloadWebView,
+                        actionLabel: 'Проверить соединение',
+                        extraContent: _buildOfflineNotesPanel(),
+                      ),
+                    ),
+                ],
               ),
-            if (_isOffline)
-              Positioned.fill(
-                child: _buildStatusOverlay(
-                  icon: Icons.wifi_off,
-                  title: 'Вы офлайн',
-                  description:
-                      'Последняя версия сайта сохранена. Мы автоматически обновим страницу, как только интернет появится.',
-                  onPressed: _reloadWebView,
-                  actionLabel: 'Проверить соединение',
-                  extraContent: _buildOfflineNotesPanel(),
-                ),
-              ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// Вынесенные отдельно классы (должны быть на верхнем уровне)
+
+class DownloadProgressDialog extends StatelessWidget {
+  const DownloadProgressDialog({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const AlertDialog(
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text('Скачиваем PDF…'),
+        ],
+      ),
+    );
+  }
+}
+
+class YandexAdDialog extends StatefulWidget {
+  const YandexAdDialog({super.key});
+
+  @override
+  State<YandexAdDialog> createState() => _YandexAdDialogState();
+}
+
+class _YandexAdDialogState extends State<YandexAdDialog> {
+  static const _totalDuration = Duration(seconds: 6);
+  static const _labelColor = Color.fromARGB(255, 174, 181, 184);
+  Timer? _timer;
+  double _progress = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(milliseconds: 120), (timer) {
+      final step = 120 / _totalDuration.inMilliseconds;
+      setState(() {
+        _progress = (_progress + step).clamp(0.0, 1.0);
+      });
+      if (_progress >= 1) {
+        timer.cancel();
+        if (mounted) {
+          Navigator.of(context).pop(true);
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Смотрим рекламу от Яндекс'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Подождите несколько секунд — после просмотра монеты поступят на ваш счёт.',
+            style: TextStyle(color: _labelColor),
+          ),
+          const SizedBox(height: 16),
+          LinearProgressIndicator(value: _progress),
+          const SizedBox(height: 12),
+          Text('${(_progress * 100).clamp(0, 100).toStringAsFixed(0)} %'),
+        ],
       ),
     );
   }

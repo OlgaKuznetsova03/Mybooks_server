@@ -633,27 +633,28 @@
   }
 
   .community-card__cover {
-    width: 80px; /* уменьшаем ширину */
-    height: 80px; /* делаем квадратными */
+    width: 60px; /* еще меньше */
+    height: 90px; /* пропорция 2:3 */
     flex-shrink: 0;
-    border-radius: 0.75rem;
+    border-radius: 0.4rem;
     overflow: hidden;
-    background: linear-gradient(140deg, rgba(171, 120, 67, 0.1), rgba(215, 189, 166, 0.35));
-    display: grid;
-    place-items: center;
-    padding: 4px; /* добавляем отступ */
+    background: linear-gradient(135deg, #f8f1ea, #e8ddd0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(171, 120, 67, 0.2);
   }
 
   .community-card__cover img {
     width: 100%;
     height: 100%;
-    object-fit: contain; /* меняем на contain чтобы вся обложка была видна */
-    border-radius: 0.5rem;
+    object-fit: contain;
+    padding: 3px;
   }
 
   .community-card__cover-placeholder {
-    font-size: 1.4rem;
-    color: rgba(77, 54, 28, 0.5);
+    font-size: 1.2rem;
+    color: rgba(77, 54, 28, 0.4);
   }
 
   .community-card__title a {
