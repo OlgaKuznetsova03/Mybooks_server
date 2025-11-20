@@ -155,9 +155,14 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
             _loading = false;
             _webViewError = false;
           }),
-          onWebResourceError: (_) => setState(() {
+          onWebResourceError: (WebResourceError error) => setState(() {
             _loading = false;
-            _webViewError = true;
+
+            // Игнорируем ошибки загрузки вспомогательных ресурсов (например, рекламных
+            // блоков), чтобы не показывать экран «Не удалось загрузить приложение»
+            // при успешной загрузке основной страницы.
+            final isMainFrameError = error.isForMainFrame ?? true;
+            _webViewError = isMainFrameError;
           }),
           onNavigationRequest: _handleNavigationRequest,
         ),
