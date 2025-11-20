@@ -110,6 +110,7 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
   late final String _startUrl;
   late final OfflineNotesStorage _offlineNotesStorage;
   final TextEditingController _noteController = TextEditingController();
+  final HttpClient _httpClient = HttpClient();
   List<OfflineNote> _offlineNotes = [];
   bool _savingNote = false;
   ValueListenable<bool>? _connectivityListenable;
@@ -119,6 +120,8 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
   bool _isOffline = false;
   int _coinsBalance = 0;
   bool _rewardInProgress = false;
+  FinishCelebrationData? _celebrationData;
+  bool _celebrationLoading = false;
 
   @override
   void initState() {
@@ -159,6 +162,11 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
           onNavigationRequest: _handleNavigationRequest,
         ),
       );
+
+    controller.addJavaScriptChannel(
+      'ReadTogetherApp',
+      onMessageReceived: _handleJavaScriptMessage,
+    );
 
     if (controller.platform is AndroidWebViewController) {
       final android = controller.platform as AndroidWebViewController;
@@ -233,6 +241,146 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     }
 
     return NavigationDecision.navigate;
+  }
+
+  void _handleJavaScriptMessage(JavaScriptMessage message) {
+    Map<String, dynamic>? payload;
+
+    try {
+      final decoded = jsonDecode(message.message);
+      if (decoded is Map<String, dynamic>) {
+        payload = decoded;
+      } else if (decoded is Map) {
+        payload = decoded.map((key, value) => MapEntry(key.toString(), value));
+      }
+    } catch (error) {
+      debugPrint('Не удалось разобрать сообщение из WebView: $error');
+    }
+
+    if (payload == null) return;
+
+    final rawType = payload['type'] ?? payload['event'];
+    final type = rawType is String ? rawType.toLowerCase() : rawType?.toString().toLowerCase();
+    if (type != 'book_finished' && type != 'bookfinished' && type != 'book-finished') {
+      return;
+    }
+
+    unawaited(_handleFinishCelebration(payload));
+  }
+
+  Future<void> _handleFinishCelebration(Map<String, dynamic> payload) async {
+    final apiUrl = payload['api_url'] ?? payload['apiUrl'] ?? payload['api'];
+    final points = payload['points'] ?? payload['reward'] ?? payload['coins'];
+    final fallbackReward = _buildRewardText(points, fallback: payload['rewardText'] as String?);
+    final fallbackTitle = (payload['title'] ?? payload['bookTitle'])?.toString();
+    final fallbackCover = (payload['cover'] ?? payload['cover_url'] ?? payload['coverUrl'])?.toString();
+
+    if (apiUrl is String && apiUrl.trim().isNotEmpty) {
+      final data = await _loadCelebrationFromApi(
+        apiUrl,
+        fallbackTitle: fallbackTitle,
+        fallbackCover: fallbackCover,
+        fallbackRewardText: fallbackReward,
+      );
+
+      if (!mounted || data == null) return;
+      setState(() => _celebrationData = data);
+      return;
+    }
+
+    final data = FinishCelebrationData(
+      title: fallbackTitle ?? 'Книга прочитана',
+      coverUrl: fallbackCover,
+      rewardText: fallbackReward ?? '+1 к прочитанным книгам',
+    );
+
+    if (!mounted) return;
+    setState(() => _celebrationData = data);
+  }
+
+  String? _buildRewardText(dynamic points, {String? fallback}) {
+    if (fallback != null && fallback.trim().isNotEmpty) {
+      return fallback;
+    }
+
+    if (points == null) return null;
+
+    num? numericPoints;
+    if (points is num) {
+      numericPoints = points;
+    } else {
+      numericPoints = num.tryParse(points.toString());
+    }
+
+    if (numericPoints == null) return null;
+    if (numericPoints == 1) {
+      return '+1 к прочитанным книгам';
+    }
+    return '+${numericPoints.toString()} к книжному пути';
+  }
+
+  Future<FinishCelebrationData?> _loadCelebrationFromApi(
+    String rawUrl, {
+    String? fallbackTitle,
+    String? fallbackCover,
+    String? fallbackRewardText,
+  }) async {
+    if (_celebrationLoading) return null;
+    setState(() => _celebrationLoading = true);
+
+    try {
+      final uri = _resolveApiUri(rawUrl);
+      final request = await _httpClient.getUrl(uri);
+      final response = await request.close();
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final body = await response.transform(utf8.decoder).join();
+        final decoded = jsonDecode(body);
+        if (decoded is Map<String, dynamic>) {
+          final title = (decoded['title'] ?? decoded['name'] ?? fallbackTitle)?.toString();
+          final cover = (decoded['cover'] ?? decoded['cover_url'] ?? decoded['image'] ?? fallbackCover)?.toString();
+          final points = decoded['points'] ?? decoded['reward'] ?? decoded['coins'];
+          final rewardText = _buildRewardText(points, fallback: fallbackRewardText) ??
+              fallbackRewardText ??
+              '+1 к прочитанным книгам';
+
+          return FinishCelebrationData(
+            title: title ?? 'Книга прочитана',
+            coverUrl: cover,
+            rewardText: rewardText,
+          );
+        }
+      }
+    } catch (error) {
+      debugPrint('Не удалось загрузить данные анимации: $error');
+    } finally {
+      if (mounted) {
+        setState(() => _celebrationLoading = false);
+      }
+    }
+
+    if (fallbackTitle != null || fallbackCover != null || fallbackRewardText != null) {
+      return FinishCelebrationData(
+        title: fallbackTitle ?? 'Книга прочитана',
+        coverUrl: fallbackCover,
+        rewardText: fallbackRewardText ?? '+1 к прочитанным книгам',
+      );
+    }
+    return null;
+  }
+
+  Uri _resolveApiUri(String rawUrl) {
+    final trimmed = rawUrl.trim();
+    if (trimmed.isEmpty) return _siteOrigin;
+
+    try {
+      final parsed = Uri.parse(trimmed);
+      if (parsed.hasScheme) {
+        return parsed;
+      }
+      return _siteOrigin.resolve(trimmed);
+    } catch (_) {
+      return _siteOrigin;
+    }
   }
 
   bool _isSameOrigin(Uri uri) {
@@ -937,8 +1085,13 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     } finally {
       if (mounted) {
         setState(() => _rewardInProgress = false);
-      }
+     }
     }
+  }
+
+  void _handleCelebrationClosed() {
+    if (!mounted) return;
+    setState(() => _celebrationData = null);
   }
 
   @override
@@ -992,6 +1145,13 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
                         onPressed: _reloadWebView,
                         actionLabel: 'Проверить соединение',
                         extraContent: _buildOfflineNotesPanel(),
+                      ),
+                    ),
+                  if (_celebrationData != null)
+                    Positioned.fill(
+                      child: FinishBookCelebration(
+                        data: _celebrationData!,
+                        onClose: _handleCelebrationClosed,
                       ),
                     ),
                 ],
@@ -1076,6 +1236,293 @@ class _YandexAdDialogState extends State<YandexAdDialog> {
           LinearProgressIndicator(value: _progress),
           const SizedBox(height: 12),
           Text('${(_progress * 100).clamp(0, 100).toStringAsFixed(0)} %'),
+        ],
+      ),
+    );
+  }
+}
+
+class FinishCelebrationData {
+  FinishCelebrationData({
+    required this.title,
+    required this.rewardText,
+    this.coverUrl,
+  });
+
+  final String title;
+  final String rewardText;
+  final String? coverUrl;
+}
+
+class FinishBookCelebration extends StatefulWidget {
+  const FinishBookCelebration({
+    super.key,
+    required this.data,
+    required this.onClose,
+  });
+
+  final FinishCelebrationData data;
+  final VoidCallback onClose;
+
+  @override
+  State<FinishBookCelebration> createState() => _FinishBookCelebrationState();
+}
+
+class _FinishBookCelebrationState extends State<FinishBookCelebration>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _overlay;
+  late final Animation<double> _glow;
+  late final Animation<double> _edge;
+  late final Animation<double> _trophyScale;
+  late final Animation<Offset> _textSlide;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    )..forward();
+
+    _overlay = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0, 0.25, curve: Curves.easeOut),
+    );
+    _glow = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.1, 0.45, curve: Curves.easeOut),
+    );
+    _edge = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.2, 0.7, curve: Curves.easeInOut),
+    );
+    _trophyScale = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.55, 0.95, curve: Curves.elasticOut),
+    );
+    _textSlide = Tween(begin: const Offset(0, 0.25), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.65, 1, curve: Curves.easeOut),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Material(
+          color: Colors.black.withOpacity(0.45 * _overlay.value),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: widget.onClose,
+                ),
+              ),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      _buildCard(theme),
+                      Positioned(
+                        top: -30 * _trophyScale.value,
+                        left: 0,
+                        right: 0,
+                        child: ScaleTransition(
+                          scale: _trophyScale,
+                          child: _buildTrophy(theme),
+                        ),
+                      ),
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: IconButton(
+                          tooltip: 'Закрыть',
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.grey.shade700,
+                            shape: const CircleBorder(),
+                          ),
+                          onPressed: widget.onClose,
+                          icon: const Icon(Icons.close),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCard(ThemeData theme) {
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 18,
+            offset: Offset(0, 12),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 48, 20, 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _buildCover(),
+          const SizedBox(height: 18),
+          Text(
+            widget.data.title,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 10),
+          SlideTransition(
+            position: _textSlide,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 240),
+              opacity: _controller.value >= 0.65 ? 1 : 0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E3C3D),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  widget.data.rewardText,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: Colors.amber.shade100,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextButton(
+            onPressed: widget.onClose,
+            child: const Text('Продолжить'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCover() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.amber.withOpacity(0.32 * _glow.value),
+            blurRadius: 28 * _glow.value + 6,
+            spreadRadius: 2 * _glow.value,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 240),
+        padding: EdgeInsets.all(4 + 6 * _edge.value),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          gradient: _edge.value > 0
+              ? LinearGradient(
+                  colors: [
+                    const Color(0xFFFFF4D6),
+                    const Color(0xFFFFE6A7),
+                    const Color(0xFFDFB85A),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  stops: const [0.0, 0.35, 1.0],
+                )
+              : null,
+          border: Border.all(
+            color: Color.lerp(
+                  const Color(0xFFFFEEC3),
+                  const Color(0xFFB8860B),
+                  _edge.value,
+                ) ??
+                const Color(0xFFFFEEC3),
+            width: 3.4 + 2 * _edge.value,
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: AspectRatio(
+            aspectRatio: 0.66,
+            child: widget.data.coverUrl != null
+                ? Image.network(
+                    widget.data.coverUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _buildCoverFallback(),
+                  )
+                : _buildCoverFallback(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCoverFallback() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF23353D),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF263A42), Color(0xFF3F535F)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      alignment: Alignment.center,
+      child: const Icon(Icons.auto_stories, color: Colors.white70, size: 42),
+    );
+  }
+
+  Widget _buildTrophy(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(color: Colors.black26, blurRadius: 16, offset: Offset(0, 8)),
+        ],
+        border: Border.all(color: Colors.amber.shade200, width: 2),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.emoji_events, color: Colors.amber.shade600, size: 26),
+          const SizedBox(width: 8),
+          Text(
+            'Книга прочитана',
+            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+          ),
         ],
       ),
     );
