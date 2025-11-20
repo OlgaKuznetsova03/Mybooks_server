@@ -270,6 +270,7 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
       return NavigationDecision.navigate;
     }
 
+    // Разрешаем навигацию для same-origin
     if (_isSameOrigin(uri)) {
       if (_shouldInterceptDownload(uri)) {
         unawaited(_startDownload(uri));
@@ -278,8 +279,14 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
       return NavigationDecision.navigate;
     }
 
+    // Для кастомных схем (tg://, whatsapp:// и т.д.) - сразу открываем внешне
+    if (!_isStandardWebScheme(uri.scheme)) {
+      unawaited(_launchExternalUrl(uri));
+      return NavigationDecision.prevent;
+    }
+
+    // Для стандартных веб-схем показываем диалог выбора
     if (uri.scheme == 'http' || uri.scheme == 'https') {
-      // Показываем диалог выбора
       final result = await showDialog<NavigationDecision>(
         context: context,
         builder: (context) => AlertDialog(
@@ -300,25 +307,38 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
 
       if (result == NavigationDecision.prevent) {
         unawaited(_launchExternalUrl(uri));
+        return NavigationDecision.prevent;
       }
-
       return result ?? NavigationDecision.navigate;
     }
 
-    if (uri.scheme == 'tel' || uri.scheme == 'mailto' || uri.scheme == 'sms') {
+    // Для других стандартных схем (tel, mailto, sms) открываем внешне
+    if (_isStandardExternalScheme(uri.scheme)) {
       unawaited(_launchExternalUrl(uri));
       return NavigationDecision.prevent;
     }
 
-    if (uri.scheme == 'data' || uri.scheme == 'blob' || uri.scheme == 'about') {
+    // Разрешаем data, blob, about схемы
+    if (_isInternalScheme(uri.scheme)) {
       return NavigationDecision.navigate;
     }
 
-    // Для кастомных схем (например, tg://) пробуем открыть ссылку во внешнем
-    // приложении и предотвращаем загрузку внутри WebView, чтобы избежать
-    // ошибки ERR_UNKNOWN_URL_SCHEME.
-    await _launchExternalUrl(uri);
+    // Для всех остальных кастомных схем открываем внешне
+    unawaited(_launchExternalUrl(uri));
     return NavigationDecision.prevent;
+  }
+
+  // Вспомогательные методы для проверки схем
+  bool _isStandardWebScheme(String scheme) {
+    return scheme == 'http' || scheme == 'https';
+  }
+
+  bool _isStandardExternalScheme(String scheme) {
+    return scheme == 'tel' || scheme == 'mailto' || scheme == 'sms';
+  }
+
+  bool _isInternalScheme(String scheme) {
+    return scheme == 'data' || scheme == 'blob' || scheme == 'about';
   }
 
   void _handleJavaScriptMessage(JavaScriptMessage message) {
@@ -925,6 +945,7 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
 
   Future<bool> _launchExternalUrl(Uri uri) async {
     try {
+      // Пробуем запустить URL
       if (await canLaunchUrl(uri)) {
         final launched = await launchUrl(
           uri,
@@ -933,25 +954,42 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
         );
 
         if (!launched && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Не удалось открыть ссылку: ${uri.toString()}')),
-          );
+          _showUrlLaunchError(uri, 'Не удалось открыть ссылку');
         }
-
         return launched;
+      } else {
+        // Если не можем запустить, показываем сообщение
+        if (mounted) {
+          _showUrlLaunchError(uri, 'Нет приложения для обработки этой ссылки');
+        }
+        return false;
       }
-      if (!mounted) return false;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось открыть ссылку: ${uri.toString()}')),
-      );
-      return false;
     } catch (error) {
-      if (!mounted) return false;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка при открытии ссылки: $error')),
-      );
+      if (mounted) {
+        _showUrlLaunchError(uri, 'Ошибка при открытии ссылки: $error');
+      }
       return false;
     }
+  }
+
+  void _showUrlLaunchError(Uri uri, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(message),
+            if (uri.toString().length < 100)
+              Text(
+                uri.toString(),
+                style: const TextStyle(fontSize: 12, color: Colors.white70),
+              ),
+          ],
+        ),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   void _reloadWebView() {
