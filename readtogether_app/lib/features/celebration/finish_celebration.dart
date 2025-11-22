@@ -12,6 +12,18 @@ class FinishCelebrationData {
   final String title;
   final String rewardText;
   final String? coverUrl;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is FinishCelebrationData &&
+          runtimeType == other.runtimeType &&
+          title == other.title &&
+          rewardText == other.rewardText &&
+          coverUrl == other.coverUrl;
+
+  @override
+  int get hashCode => title.hashCode ^ rewardText.hashCode ^ coverUrl.hashCode;
 }
 
 class FinishBookCelebration extends StatefulWidget {
@@ -62,7 +74,10 @@ class _FinishBookCelebrationState extends State<FinishBookCelebration>
       parent: _controller,
       curve: const Interval(0.55, 0.95, curve: Curves.elasticOut),
     );
-    _textSlide = Tween(begin: const Offset(0, 0.25), end: Offset.zero).animate(
+    _textSlide = Tween<Offset>(
+      begin: const Offset(0, 0.25),
+      end: Offset.zero,
+    ).animate(
       CurvedAnimation(
         parent: _controller,
         curve: const Interval(0.65, 1, curve: Curves.easeOut),
@@ -88,6 +103,16 @@ class _FinishBookCelebrationState extends State<FinishBookCelebration>
   }
 
   @override
+  void didUpdateWidget(covariant FinishBookCelebration oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.data != widget.data) {
+      _controller
+        ..reset()
+        ..forward();
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -96,189 +121,172 @@ class _FinishBookCelebrationState extends State<FinishBookCelebration>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    return Material(
-      color: Colors.black54,
-      child: SafeArea(
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            FadeTransition(
-              opacity: _overlay,
-              child: Container(color: Colors.black.withOpacity(0.65)),
-            ),
-            ScaleTransition(
-              scale: _trophyScale,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Stack(
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Material(
+          color: Colors.black.withOpacity(0.45 * _overlay.value),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: widget.onClose,
+                ),
+              ),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      Container(
-                        width: 260,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black26,
-                              blurRadius: 24,
-                              offset: Offset(0, 16),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ClipRRect(
-                              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                              child: SizedBox(
-                                height: 220,
-                                child: widget.data.coverUrl != null
-                                    ? Image.network(
-                                        widget.data.coverUrl!,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => _buildCoverFallback(),
-                                      )
-                                    : _buildCoverFallback(),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 18),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(Icons.auto_awesome_rounded, color: Colors.amber.shade600),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'Отличная работа!',
-                                        style: theme.textTheme.titleSmall?.copyWith(
-                                          color: const Color(0xFF23353D),
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    widget.data.title,
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      color: const Color(0xFF1F2F35),
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    widget.data.rewardText,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: const Color(0xFF42535B),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 18),
-                                  Row(
-                                    children: [
-                                      _buildTrophy(theme),
-                                      const Spacer(),
-                                      FilledButton.icon(
-                                        style: FilledButton.styleFrom(
-                                          backgroundColor: const Color(0xFF23353D),
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                        ),
-                                        onPressed: widget.onClose,
-                                        icon: const Icon(Icons.close),
-                                        label: const Text('Закрыть'),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 18),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      _buildCard(theme),
+                      _buildStarConfetti(),
                       Positioned(
-                        top: -42,
-                        left: 0,
-                        right: 0,
-                        child: FadeTransition(
-                          opacity: _glow,
-                          child: Align(
-                            alignment: Alignment.center,
-                            child: Container(
-                              width: 120,
-                              height: 120,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(0xFFF8D775).withOpacity(0.4),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Color(0xFFFFE9A5),
-                                    blurRadius: 18,
-                                    spreadRadius: 2,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        top: -32,
+                        top: -30 * _trophyScale.value,
                         left: 0,
                         right: 0,
                         child: ScaleTransition(
                           scale: _trophyScale,
-                          child: const Icon(
-                            Icons.emoji_events,
-                            size: 72,
-                            color: Color(0xFFF4C430),
-                          ),
+                          child: _buildTrophy(theme),
                         ),
                       ),
-                      Positioned.fill(child: _buildStarConfetti()),
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: IconButton(
+                          tooltip: 'Закрыть',
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.grey.shade700,
+                            shape: const CircleBorder(),
+                          ),
+                          onPressed: widget.onClose,
+                          icon: const Icon(Icons.close),
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 28),
-                  SlideTransition(
-                    position: _textSlide,
-                    child: AnimatedBuilder(
-                      animation: _edge,
-                      builder: (context, child) {
-                        return Opacity(
-                          opacity: _edge.value,
-                          child: child,
-                        );
-                      },
-                      child: Column(
-                        children: [
-                          Text(
-                            'Книга прочитана! 🎉',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Достижение сохранено, продолжайте в том же духе!',
-                            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
-                          ),
-                        ],
-                      ),
-                    ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCard(ThemeData theme) {
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 18,
+            offset: Offset(0, 12),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 48, 20, 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _buildCover(),
+          const SizedBox(height: 18),
+          Text(
+            widget.data.title,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 10),
+          SlideTransition(
+            position: _textSlide,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 240),
+              opacity: _controller.value >= 0.65 ? 1 : 0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E3C3D),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  widget.data.rewardText,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: Colors.amber.shade100,
+                    fontWeight: FontWeight.w700,
                   ),
-                ],
+                ),
               ),
             ),
-          ],
+          ),
+          const SizedBox(height: 14),
+          TextButton(
+            onPressed: widget.onClose,
+            child: const Text('Продолжить'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCover() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.amber.withOpacity(0.32 * _glow.value),
+            blurRadius: 28 * _glow.value + 6,
+            spreadRadius: 2 * _glow.value,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 240),
+        padding: EdgeInsets.all(4 + 6 * _edge.value),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          gradient: _edge.value > 0
+              ? LinearGradient(
+                  colors: [
+                    const Color(0xFFFFF4D6),
+                    const Color(0xFFFFE6A7),
+                    const Color(0xFFDFB85A),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  stops: const [0.0, 0.35, 1.0],
+                )
+              : null,
+          border: Border.all(
+            color: Color.lerp(
+                  const Color(0xFFFFEEC3),
+                  const Color(0xFFB8860B),
+                  _edge.value,
+                ) ??
+                const Color(0xFFFFEEC3),
+            width: 3.4 + 2 * _edge.value,
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: AspectRatio(
+            aspectRatio: 0.66,
+            child: widget.data.coverUrl != null
+                ? Image.network(
+                    widget.data.coverUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _buildCoverFallback(),
+                  )
+                : _buildCoverFallback(),
+          ),
         ),
       ),
     );
@@ -286,9 +294,9 @@ class _FinishBookCelebrationState extends State<FinishBookCelebration>
 
   Widget _buildCoverFallback() {
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF23353D),
-        gradient: LinearGradient(
+      decoration: BoxDecoration(
+        color: const Color(0xFF23353D),
+        gradient: const LinearGradient(
           colors: [Color(0xFF263A42), Color(0xFF3F535F)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -349,8 +357,8 @@ class _FinishBookCelebrationState extends State<FinishBookCelebration>
         final scale = Tween<double>(begin: 0.35, end: 1.05).transform(eased);
         final verticalShift = Tween<double>(begin: 12, end: spec.verticalLift)
             .transform(eased);
-        final wobble =
-            math.sin(progress * math.pi * spec.wobbleTurns) * spec.horizontalDrift;
+        final wobble = math.sin(progress * math.pi * spec.wobbleTurns) *
+            spec.horizontalDrift;
         final rotation =
             spec.rotation + math.sin(progress * math.pi * 1.1) * 0.28;
 

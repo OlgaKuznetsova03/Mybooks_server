@@ -21,9 +21,6 @@ import '../../widgets/common/status_overlay.dart';
 import '../../widgets/dialogs/terms_dialog.dart';
 import 'web_view_controller.dart';
 import 'web_view_navigation.dart';
-import '../../utils/constants.dart';
-import '../../features/offline_notes/offline_notes_panel.dart';
-import '../../widgets/dialogs/terms_dialog.dart';
 
 class MainWebViewPage extends StatefulWidget {
   const MainWebViewPage({super.key, this.onlineNotifier});
@@ -55,7 +52,7 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
   bool _loadingTimedOut = false;
   bool _shouldReloadAfterReconnect = false;
   bool _celebrationLoading = false;
-  FinishCelebrationData? _celebrationData;
+  FinishCelebrationData? _celebrationData; // ДОБАВЬТЕ ЭТУ ПЕРЕМЕННУЮ
   Timer? _offlineRecoveryTimer;
 
   @override
@@ -296,11 +293,10 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
 
     final rawType = payload['type'] ?? payload['event'];
     final type = rawType is String ? rawType.toLowerCase() : rawType?.toString().toLowerCase();
-    if (type != 'book_finished' && type != 'bookfinished' && type != 'book-finished') {
-      return;
+    
+    if (type == 'book_finished' || type == 'bookfinished' || type == 'book-finished') {
+      await _handleFinishCelebration(payload);
     }
-
-    unawaited(_handleFinishCelebration(payload));
   }
 
   Future<void> _handleFinishCelebration(Map<String, dynamic> payload) async {
@@ -310,6 +306,8 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     final fallbackTitle = (payload['title'] ?? payload['bookTitle'])?.toString();
     final fallbackCover = (payload['cover'] ?? payload['cover_url'] ?? payload['coverUrl'])?.toString();
 
+    FinishCelebrationData? celebrationData;
+
     if (apiUrl is String && apiUrl.trim().isNotEmpty) {
       final data = await _loadCelebrationFromApi(
         apiUrl,
@@ -318,21 +316,21 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
         fallbackRewardText: fallbackReward,
       );
       if (data != null) {
-        if (!mounted) return;
-        setState(() => _celebrationData = data);
-        return;
+        celebrationData = data;
       }
     }
 
-    if (fallbackReward != null && fallbackTitle != null) {
-      if (!mounted) return;
-      setState(
-        () => _celebrationData = FinishCelebrationData(
-          title: fallbackTitle,
-          rewardText: fallbackReward,
-          coverUrl: fallbackCover,
-        ),
+    if (celebrationData == null && fallbackReward != null && fallbackTitle != null) {
+      celebrationData = FinishCelebrationData(
+        title: fallbackTitle,
+        rewardText: fallbackReward,
+        coverUrl: fallbackCover,
       );
+    }
+
+    // ВЫЗОВ СТАРОЙ АНИМАЦИИ
+    if (celebrationData != null && mounted) {
+      setState(() => _celebrationData = celebrationData);
     }
   }
 
@@ -579,6 +577,10 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     return _navigation.handleBack();
   }
 
+  void _handleCelebrationClosed() {
+    setState(() => _celebrationData = null);
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -596,14 +598,19 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
             SafeArea(bottom: false, child: _buildRewardBanner()),
             Expanded(
               child: Stack(
+                clipBehavior: Clip.none,
                 children: [
                   WebViewWidget(controller: _webViewManager.controller),
                   if (_webViewManager.showOfflineBanner) _buildOfflineBanner(),
                   _buildStatusOverlays(),
+                  
+                  // СТАРАЯ АНИМАЦИЯ ИЗ MAIN.DART
                   if (_celebrationData != null)
-                    FinishBookCelebration(
-                      data: _celebrationData!,
-                      onClose: _handleCelebrationClosed,
+                    Positioned.fill(
+                      child: FinishBookCelebration(
+                        data: _celebrationData!,
+                        onClose: _handleCelebrationClosed,
+                      ),
                     ),
                 ],
               ),
@@ -612,9 +619,5 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
         ),
       ),
     );
-  }
-
-  void _handleCelebrationClosed() {
-    setState(() => _celebrationData = null);
   }
 }
