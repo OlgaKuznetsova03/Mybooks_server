@@ -1711,12 +1711,15 @@ class CollaborationDetailView(LoginRequiredMixin, View):
             )
             return redirect("collaborations:collaboration_detail", pk=collaboration.pk)
 
-        new_status = form.cleaned_data["status"]
-        if new_status == collaboration.status:
-            messages.info(request, _("Статус сотрудничества не изменился."))
+        previous_status = collaboration.status
+        update = form.apply()
+        collaboration.refresh_from_db(fields=["status", "completed_at"])
+        new_status = collaboration.status
+
+        if new_status == previous_status:
+            messages.info(request, _("Статус сотрудничества изменился."))
             return redirect("collaborations:collaboration_detail", pk=collaboration.pk)
 
-        update = form.apply()
         collaboration.register_activity(request.user)
 
         if new_status == Collaboration.Status.COMPLETED:
