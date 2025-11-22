@@ -15,6 +15,17 @@
           {% for field in form %}
             <div class="mb-3">
               <label class="form-label" for="id_{{ field.name }}">{{ field.label }}</label>
+              {% if field.name == "book" %}
+                <div class="input-group mb-2">
+                  <span class="input-group-text"><i class="bi bi-search"></i></span>
+                  <input
+                    type="search"
+                    class="form-control"
+                    data-target="#id_book"
+                    placeholder="Поиск по книгам"
+                  >
+                </div>
+              {% endif %}
               {{ field }}
               {% if field.help_text %}
                 <div class="form-text">{{ field.help_text }}</div>
@@ -33,4 +44,34 @@
     </div>
   </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+{{ block.super }}
+<script>
+  (() => {
+    const filterOptions = (input, select) => {
+      const query = input.value.trim().toLowerCase();
+      const options = Array.from(select.options);
+      options.forEach((option, index) => {
+        if (index === 0) {
+          option.hidden = false;
+          return;
+        }
+        const haystack = option.dataset.search || option.textContent;
+        const isMatch = !query || haystack.toLowerCase().includes(query);
+        option.hidden = !isMatch;
+      });
+
+      if (select.value && select.selectedOptions.length && select.selectedOptions[0].hidden) {
+        select.selectedIndex = 0;
+      }
+    };
+
+    const searchInput = document.querySelector('input[data-target="#id_book"]');
+    const select = document.querySelector('#id_book');
+    if (searchInput && select) {
+      searchInput.addEventListener('input', () => filterOptions(searchInput, select));
+    }
+  })();
+</script>
 {% endblock %}

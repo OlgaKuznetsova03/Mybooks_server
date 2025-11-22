@@ -4,9 +4,28 @@ from typing import Iterable
 
 from django import forms
 from django.utils.translation import gettext_lazy as _
+from django.forms.models import ModelChoiceIteratorValue
 
 from books.models import Book
 from .models import MarathonEntry, MarathonTheme, ReadingMarathon
+
+
+class BookSelect(forms.Select):
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):  # type: ignore[override]
+        option = super().create_option(name, value, label, selected, index, subindex=subindex, attrs=attrs)
+
+        book = None
+        if isinstance(value, ModelChoiceIteratorValue):
+            book = value.instance
+        elif isinstance(value, Book):
+            book = value
+
+        if book is not None:
+            authors = ", ".join(book.authors.values_list("name", flat=True))
+            search_value = f"{book.title} {authors}".strip()
+            option.setdefault("attrs", {})["data-search"] = search_value
+
+        return option
 
 
 class ReadingMarathonForm(forms.ModelForm):
@@ -70,6 +89,8 @@ class ReadingMarathonForm(forms.ModelForm):
 
 
 class MarathonEntryForm(forms.ModelForm):
+    book = forms.ModelChoiceField(queryset=Book.objects.none(), widget=BookSelect())
+
     class Meta:
         model = MarathonEntry
         fields = [
@@ -88,7 +109,7 @@ class MarathonEntryForm(forms.ModelForm):
         marathon = kwargs.pop("marathon")
         super().__init__(*args, **kwargs)
         self.fields["theme"].queryset = marathon.themes.all()
-        self.fields["book"].queryset = Book.objects.all().order_by("title")
+        self.fields["book"].queryset = Book.objects.prefetch_related("authors").order_by("title")
         if marathon.book_submission_policy == ReadingMarathon.BookSubmissionPolicy.APPROVAL:
             self.fields["status"].help_text = _(
                 "Книга появится в полке после подтверждения создателя марафона."
