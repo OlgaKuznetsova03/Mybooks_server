@@ -380,11 +380,8 @@ class CollaborationMessageForm(BootstrapModelForm):
         is_author = getattr(self.user, "id", None) == getattr(
             self.collaboration, "author_id", None
         )
-        is_confirmed = (
-            self.collaboration.author_approved and self.collaboration.partner_approved
-        )
 
-        return is_author and is_confirmed and self.collaboration.allows_discussion()
+        return is_author and self.collaboration.allows_discussion()
         
     class Meta:
         model = CollaborationMessage
@@ -408,7 +405,7 @@ class CollaborationMessageForm(BootstrapModelForm):
             return None
         if not getattr(self, "can_upload_epub", False):
             raise forms.ValidationError(
-                _("Прикреплять файлы может только автор после подтверждения сотрудничества."),
+                _("Прикреплять файлы может только автор."),
             )
         validate_epub_attachment(upload)
         return upload
