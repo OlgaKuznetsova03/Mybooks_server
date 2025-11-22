@@ -247,7 +247,7 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
 
   void _injectLinkInterceptor() {
     _controller.runJavaScript('''
-      // Перехватываем все клики по ссылкам
+      // Перехватываем все клики по ссылкам ДО того как они обработаются
       document.addEventListener('click', function(e) {
         var target = e.target;
         
@@ -258,33 +258,97 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
         }
         
         if (target && target.href) {
-          var url = new URL(target.href);
-          
-          // Проверяем, является ли схема кастомной (не http/https)
-          if (url.protocol !== 'http:' && url.protocol !== 'https:' && 
-              url.protocol !== '${_siteOrigin.scheme}:') {
-            e.preventDefault();
-            e.stopPropagation();
+          try {
+            var url = new URL(target.href);
             
-            // Отправляем ссылку в Flutter для обработки
-            LinkInterceptor.postMessage(target.href);
-            return false;
+            // Проверяем, является ли схема кастомной (не http/https)
+            if (url.protocol !== 'http:' && url.protocol !== 'https:' && 
+                url.protocol !== '${_siteOrigin.scheme}:') {
+              console.log('Intercepting custom scheme:', url.href);
+              e.preventDefault();
+              e.stopImmediatePropagation();
+              e.stopPropagation();
+              
+              // Отправляем ссылку в Flutter для обработки
+              LinkInterceptor.postMessage(target.href);
+              return false;
+            }
+          } catch (error) {
+            console.log('Error parsing URL:', error);
           }
         }
-      });
-      
-      // Также перехватываем программные переходы
-      var originalPushState = history.pushState;
-      history.pushState = function(state, title, url) {
-        if (url && typeof url === 'string') {
-          var fullUrl = new URL(url, window.location.href);
-          if (fullUrl.protocol !== 'http:' && fullUrl.protocol !== 'https:' && 
-              fullUrl.protocol !== '${_siteOrigin.scheme}:') {
-            LinkInterceptor.postMessage(fullUrl.href);
+      }, true); // Используем capture phase для раннего перехвата
+
+      // Перехватываем изменения window.location
+      var originalLocationAssign = window.location.assign;
+      var originalLocationReplace = window.location.replace;
+      var originalLocationHrefSet = Object.getOwnPropertyDescriptor(Window.prototype, 'location').set;
+
+      window.location.assign = function(url) {
+        try {
+          var parsedUrl = new URL(url, window.location.href);
+          if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:' && 
+              parsedUrl.protocol !== '${_siteOrigin.scheme}:') {
+            console.log('Intercepting location.assign:', parsedUrl.href);
+            LinkInterceptor.postMessage(parsedUrl.href);
             return;
           }
+        } catch (error) {
+          console.log('Error parsing URL in assign:', error);
         }
-        return originalPushState.apply(this, arguments);
+        return originalLocationAssign.call(this, url);
+      };
+
+      window.location.replace = function(url) {
+        try {
+          var parsedUrl = new URL(url, window.location.href);
+          if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:' && 
+              parsedUrl.protocol !== '${_siteOrigin.scheme}:') {
+            console.log('Intercepting location.replace:', parsedUrl.href);
+            LinkInterceptor.postMessage(parsedUrl.href);
+            return;
+          }
+        } catch (error) {
+          console.log('Error parsing URL in replace:', error);
+        }
+        return originalLocationReplace.call(this, url);
+      };
+
+      Object.defineProperty(window.location, 'href', {
+        set: function(url) {
+          try {
+            var parsedUrl = new URL(url, window.location.href);
+            if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:' && 
+                parsedUrl.protocol !== '${_siteOrigin.scheme}:') {
+              console.log('Intercepting location.href set:', parsedUrl.href);
+              LinkInterceptor.postMessage(parsedUrl.href);
+              return;
+            }
+          } catch (error) {
+            console.log('Error parsing URL in href set:', error);
+          }
+          return originalLocationHrefSet.call(this, url);
+        },
+        get: originalLocationHrefSet.get
+      });
+
+      // Перехватываем window.open
+      var originalWindowOpen = window.open;
+      window.open = function(url, target, features) {
+        if (url) {
+          try {
+            var parsedUrl = new URL(url, window.location.href);
+            if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:' && 
+                parsedUrl.protocol !== '${_siteOrigin.scheme}:') {
+              console.log('Intercepting window.open:', parsedUrl.href);
+              LinkInterceptor.postMessage(parsedUrl.href);
+              return null;
+            }
+          } catch (error) {
+            console.log('Error parsing URL in open:', error);
+          }
+        }
+        return originalWindowOpen.call(this, url, target, features);
       };
     ''');
   }
@@ -329,7 +393,18 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
       return NavigationDecision.navigate;
     }
 
-    debugPrint('Navigation request: ${uri.toString()}');
+    debugPrint('🔗 Navigation request: ${uri.toString()}');
+
+    // Блокируем ВСЕ кастомные схемы ДО того как WebView попытается их загрузить
+    if (_shouldBlockScheme(uri.scheme)) {
+      debugPrint('🚫 Blocking custom scheme: ${uri.scheme}');
+
+      // Запускаем внешнее приложение немедленно
+      unawaited(_launchExternalUrl(uri));
+
+      // Предотвращаем загрузку в WebView
+      return NavigationDecision.prevent;
+    }
 
     // Разрешаем навигацию для same-origin
     if (_isSameOrigin(uri)) {
@@ -338,13 +413,6 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
         return NavigationDecision.prevent;
       }
       return NavigationDecision.navigate;
-    }
-
-    // Для кастомных схем (tg://, whatsapp:// и т.д.) - сразу открываем внешне
-    if (!_isStandardWebScheme(uri.scheme)) {
-      debugPrint('Custom scheme detected: ${uri.scheme}');
-      unawaited(_launchExternalUrl(uri));
-      return NavigationDecision.prevent;
     }
 
     // Для стандартных веб-схем показываем диалог выбора
@@ -386,12 +454,21 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     }
 
     // Для всех остальных кастомных схем открываем внешне
-    debugPrint('Unknown scheme, launching externally: ${uri.scheme}');
+    debugPrint('🚫 Blocking unknown scheme: ${uri.scheme}');
     unawaited(_launchExternalUrl(uri));
     return NavigationDecision.prevent;
   }
 
   // Вспомогательные методы для проверки схем
+  bool _shouldBlockScheme(String scheme) {
+    if (_isStandardWebScheme(scheme)) return false;
+    if (_isStandardExternalScheme(scheme)) return false;
+    if (_isInternalScheme(scheme)) return false;
+
+    // Блокируем все остальные схемы
+    return true;
+  }
+
   bool _isStandardWebScheme(String scheme) {
     return scheme == 'http' || scheme == 'https';
   }
@@ -1008,22 +1085,41 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
 
   Future<bool> _launchExternalUrl(Uri uri) async {
     try {
-      debugPrint('Attempting to launch: ${uri.toString()}');
+      debugPrint('🚀 Attempting to launch: ${uri.toString()}');
 
-      // Для кастомных схем используем прямое открытие
+      // Для кастомных схем пробуем запустить напрямую
       if (!_isStandardWebScheme(uri.scheme) && !_isStandardExternalScheme(uri.scheme)) {
-        final launched = await launchUrl(
-          uri,
-          mode: LaunchMode.externalApplication,
-        );
+        debugPrint('🔧 Using direct launch for custom scheme: ${uri.scheme}');
 
-        if (!launched && mounted) {
-          _showUrlLaunchError(
+        try {
+          final launched = await launchUrl(
             uri,
-            'Не удалось открыть ссылку. Убедитесь, что приложение установлено.',
+            mode: LaunchMode.externalApplication,
           );
+
+          if (launched) {
+            debugPrint('✅ Successfully launched custom scheme');
+            return true;
+          } else {
+            debugPrint('❌ Failed to launch custom scheme');
+            if (mounted) {
+              _showUrlLaunchError(
+                uri,
+                'Не удалось открыть ссылку. Убедитесь, что приложение установлено.',
+              );
+            }
+            return false;
+          }
+        } catch (e) {
+          debugPrint('❌ Error launching custom scheme: $e');
+          if (mounted) {
+            _showUrlLaunchError(
+              uri,
+              'Ошибка при открытии ссылки: ${e.toString()}',
+            );
+          }
+          return false;
         }
-        return launched;
       }
 
       // Для стандартных схем используем canLaunchUrl
@@ -1034,19 +1130,25 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
           webOnlyWindowName: '_blank',
         );
 
-        if (!launched && mounted) {
-          _showUrlLaunchError(uri, 'Не удалось открыть ссылку');
+        if (launched) {
+          debugPrint('✅ Successfully launched standard URL');
+          return true;
+        } else {
+          debugPrint('❌ Failed to launch standard URL');
+          if (mounted) {
+            _showUrlLaunchError(uri, 'Не удалось открыть ссылку');
+          }
+          return false;
         }
-        return launched;
       } else {
-        // Если не можем запустить, показываем сообщение
+        debugPrint('❌ Cannot launch URL: ${uri.toString()}');
         if (mounted) {
           _showUrlLaunchError(uri, 'Нет приложения для обработки этой ссылки');
         }
         return false;
       }
     } catch (error) {
-      debugPrint('Error launching URL: $error');
+      debugPrint('💥 Error launching URL: $error');
       if (mounted) {
         _showUrlLaunchError(uri, 'Ошибка при открытии ссылки: ${error.toString()}');
       }
@@ -1056,34 +1158,51 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
 
   void _showUrlLaunchError(Uri uri, String message) {
     String detailedMessage = message;
+    String? appName;
 
-    if (uri.scheme == 'tg') {
-      detailedMessage = '$message\n\nУбедитесь, что Telegram установлен на вашем устройстве.';
-    } else if (uri.scheme == 'whatsapp') {
-      detailedMessage = '$message\n\nУбедитесь, что WhatsApp установлен на вашем устройстве.';
+    // Определяем название приложения по схеме
+    switch (uri.scheme) {
+      case 'tg':
+        appName = 'Telegram';
+        detailedMessage = '$message\n\nУбедитесь, что $appName установлен на вашем устройстве.';
+        break;
+      case 'whatsapp':
+        appName = 'WhatsApp';
+        detailedMessage = '$message\n\nУбедитесь, что $appName установлен на вашем устройстве.';
+        break;
+      case 'viber':
+        appName = 'Viber';
+        detailedMessage = '$message\n\nУбедитесь, что $appName установлен на вашем устройстве.';
+        break;
+      default:
+        if (!_isStandardWebScheme(uri.scheme)) {
+          detailedMessage = '$message\n\nСхема: ${uri.scheme}';
+        }
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(detailedMessage),
-            if (uri.toString().length < 100)
-              Text(
-                'Ссылка: ${uri.toString()}',
-                style: const TextStyle(fontSize: 12, color: Colors.white70),
-              ),
-          ],
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(detailedMessage),
+              if (uri.toString().length < 100)
+                Text(
+                  'Ссылка: ${uri.toString()}',
+                  style: const TextStyle(fontSize: 12, color: Colors.white70),
+                ),
+            ],
+          ),
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'OK',
+            onPressed: () {},
+          ),
         ),
-        duration: const Duration(seconds: 4),
-        action: SnackBarAction(
-          label: 'OK',
-          onPressed: () {},
-        ),
-      ),
-    );
+      );
+    }
   }
 
   void _reloadWebView() {
