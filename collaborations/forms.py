@@ -353,7 +353,6 @@ class BloggerRequestResponseForm(BootstrapModelForm):
 
 
 class CollaborationMessageForm(BootstrapModelForm):
-    can_upload_epub: bool = False
     epub_file = forms.FileField(
         label=_("EPUB-файл"),
         required=False,
@@ -369,7 +368,6 @@ class CollaborationMessageForm(BootstrapModelForm):
         if field is not None:
             field.required = False
             field.widget.attrs.setdefault("class", "form-control")
-        self.can_upload_epub = self._epub_allowed()
 
     def _epub_allowed(self) -> bool:
         """Return True when the author can attach an EPUB to the chat."""
@@ -382,7 +380,12 @@ class CollaborationMessageForm(BootstrapModelForm):
         )
 
         return is_author and self.collaboration.allows_discussion()
-        
+
+    @property
+    def can_upload_epub(self) -> bool:
+        """Return True when the author can attach an EPUB to the chat."""
+
+        return self._epub_allowed()
     class Meta:
         model = CollaborationMessage
         fields = ["text", "epub_file"]
@@ -403,7 +406,7 @@ class CollaborationMessageForm(BootstrapModelForm):
         upload = self.cleaned_data.get("epub_file")
         if not upload:
             return None
-        if not getattr(self, "can_upload_epub", False):
+        if not self.can_upload_epub:
             raise forms.ValidationError(
                 _("Прикреплять файлы может только автор."),
             )
