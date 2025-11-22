@@ -21,6 +21,8 @@ import '../../widgets/common/status_overlay.dart';
 import '../../widgets/dialogs/terms_dialog.dart';
 import 'web_view_controller.dart';
 import 'web_view_navigation.dart';
+import '../../utils/constants.dart';
+import '../../features/offline_notes/offline_notes_panel.dart';
 
 class MainWebViewPage extends StatefulWidget {
   const MainWebViewPage({super.key, this.onlineNotifier});
@@ -44,11 +46,14 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
   ValueListenable<bool>? _connectivityListenable;
   bool _webViewError = false;
   bool _isOffline = false;
+  bool _showOfflineRecoveryOverlay = false;
   int _coinsBalance = 0;
   bool _rewardInProgress = false;
   bool _loadingTimedOut = false;
+  bool _shouldReloadAfterReconnect = false;
   bool _celebrationLoading = false;
   FinishCelebrationData? _celebrationData;
+  Timer? _offlineRecoveryTimer;
 
   @override
   void initState() {
@@ -87,6 +92,7 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
   void dispose() {
     _webViewManager.dispose();
     _detachConnectivity();
+    _offlineRecoveryTimer?.cancel();
     _noteController.dispose();
     super.dispose();
   }
@@ -104,6 +110,7 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     _connectivityListenable = notifier;
     if (notifier != null) {
       _isOffline = !notifier.value;
+      _shouldReloadAfterReconnect = _isOffline;
       _webViewManager.updateConnectivity(notifier.value);
       notifier.addListener(_handleConnectivityChange);
     }
@@ -119,11 +126,31 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     if (notifier == null || !mounted) return;
     final offline = !notifier.value;
     if (offline == _isOffline) return;
-    setState(() => _isOffline = offline);
+    setState(() {
+      _isOffline = offline;
+      if (offline) {
+        _showOfflineRecoveryOverlay = false;
+        _offlineRecoveryTimer?.cancel();
+      }
+    });
     _webViewManager.updateConnectivity(notifier.value);
-    if (!offline && (_webViewError || _loadingTimedOut)) {
+    if (offline) {
+      _shouldReloadAfterReconnect = true;
+    }
+    if (!offline && (_webViewError || _loadingTimedOut || _shouldReloadAfterReconnect)) {
+      _shouldReloadAfterReconnect = false;
+      _startOfflineRecoveryOverlay();
       _reloadWebView();
     }
+  }
+
+  void _startOfflineRecoveryOverlay() {
+    _offlineRecoveryTimer?.cancel();
+    setState(() => _showOfflineRecoveryOverlay = true);
+    _offlineRecoveryTimer = Timer(const Duration(seconds: 4), () {
+      if (!mounted) return;
+      setState(() => _showOfflineRecoveryOverlay = false);
+    });
   }
 
   Future<bool> _ensureTermsAccepted() async {
@@ -381,6 +408,9 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     _webViewManager.reload();
   }
 
+  bool get _isOfflineOverlayVisible =>
+      _webViewManager.isOffline || _showOfflineRecoveryOverlay;
+
   Widget _buildOfflineNotesPanel() {
     return OfflineNotesPanel(
       noteController: _noteController,
@@ -430,10 +460,11 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (state.isLoadingTimedOut || _webViewManager.isOffline) {
+        if (state.isLoadingTimedOut || _isOfflineOverlayVisible) {
           return StatusOverlay.offline(
-            isOffline: _webViewManager.isOffline,
-            onReload: _webViewManager.isOffline ? null : _reloadWebView,
+            isOffline: _isOfflineOverlayVisible,
+            onReload:
+                _webViewManager.isOffline || _showOfflineRecoveryOverlay ? null : _reloadWebView,
             offlineNotesPanel: _buildOfflineNotesPanel(),
           );
         }
