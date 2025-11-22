@@ -11,6 +11,7 @@ class WebViewNavigation {
   final WebViewManager webViewManager;
   final BuildContext context;
   final UrlLauncher _urlLauncher = UrlLauncher();
+  bool _isOfflineBackNavigation = false;
 
   Future<NavigationDecision> handleNavigationRequest(NavigationRequest request) async {
     final uri = Uri.tryParse(request.url);
@@ -42,11 +43,62 @@ class WebViewNavigation {
   }
 
   Future<bool> handleBack() async {
+    if (_isOfflineBackNavigation) {
+      return true;
+    }
+
     if (await webViewManager.controller.canGoBack()) {
+      if (webViewManager.isOffline) {
+        return _handleOfflineBack();
+      }
+
       webViewManager.controller.goBack();
       return false;
     }
     return true;
+  }
+
+  Future<bool> _handleOfflineBack() async {
+    try {
+      _isOfflineBackNavigation = true;
+      webViewManager.setState(loading: true, error: false, loadingTimedOut: false);
+
+      if (webViewManager.hasOfflineHistory) {
+        await webViewManager.handleOfflineNavigation().timeout(
+          const Duration(seconds: 3),
+          onTimeout: () => webViewManager.setState(loading: false, error: false),
+        );
+      } else {
+        await webViewManager.controller.goBack().timeout(
+          const Duration(seconds: 3),
+          onTimeout: () => webViewManager.setState(loading: false, error: false),
+        );
+      }
+
+      await Future.delayed(const Duration(milliseconds: 500));
+      return false;
+    } catch (error) {
+      debugPrint('Offline back navigation error: $error');
+      await _showCachedVersion();
+      return false;
+    } finally {
+      _isOfflineBackNavigation = false;
+      webViewManager.setState(loading: false, error: false, loadingTimedOut: false);
+    }
+  }
+
+  Future<void> _showCachedVersion() async {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Показываем сохраненную версию страницы'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+
+    webViewManager.showOfflineBanner = true;
+    webViewManager.setState(loading: false, error: false, loadingTimedOut: false);
   }
 
   bool _isStandardWebScheme(String scheme) {

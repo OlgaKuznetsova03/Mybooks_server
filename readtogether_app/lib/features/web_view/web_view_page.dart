@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter/foundation.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart'; 
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 import '../../features/ads/ad_banner.dart';
 import '../../features/ads/yandex_ad_dialog.dart';
@@ -101,6 +104,7 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     _connectivityListenable = notifier;
     if (notifier != null) {
       _isOffline = !notifier.value;
+      _webViewManager.updateConnectivity(notifier.value);
       notifier.addListener(_handleConnectivityChange);
     }
   }
@@ -116,6 +120,7 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     final offline = !notifier.value;
     if (offline == _isOffline) return;
     setState(() => _isOffline = offline);
+    _webViewManager.updateConnectivity(notifier.value);
     if (!offline && (_webViewError || _loadingTimedOut)) {
       _reloadWebView();
     }
@@ -386,23 +391,54 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     );
   }
 
+  Widget _buildOfflineBanner() {
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        color: Colors.orange.withOpacity(0.9),
+        child: Row(
+          children: [
+            const Icon(Icons.wifi_off, size: 16, color: Colors.white),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'Режим оффлайн. Используются сохраненные данные.',
+                style: TextStyle(color: Colors.white, fontSize: 12),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, size: 16, color: Colors.white),
+              onPressed: () {
+                _webViewManager.showOfflineBanner = false;
+                setState(() {});
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildStatusOverlays() {
     return ValueListenableBuilder<WebViewState>(
       valueListenable: _webViewManager.stateNotifier,
       builder: (context, state, child) {
-        if (state.isLoading) {
+        if (state.isLoading && !_webViewManager.isOffline) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (state.isLoadingTimedOut || _isOffline) {
+        if (state.isLoadingTimedOut || _webViewManager.isOffline) {
           return StatusOverlay.offline(
-            isOffline: _isOffline,
-            onReload: _reloadWebView,
+            isOffline: _webViewManager.isOffline,
+            onReload: _webViewManager.isOffline ? null : _reloadWebView,
             offlineNotesPanel: _buildOfflineNotesPanel(),
           );
         }
 
-        if (state.hasError && !_isOffline) {
+        if (state.hasError && !_webViewManager.isOffline) {
           return StatusOverlay.error(onReload: _reloadWebView);
         }
 
@@ -474,6 +510,7 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
               child: Stack(
                 children: [
                   WebViewWidget(controller: _webViewManager.controller),
+                  if (_webViewManager.showOfflineBanner) _buildOfflineBanner(),
                   _buildStatusOverlays(),
                   if (_celebrationData != null)
                     FinishBookCelebration(

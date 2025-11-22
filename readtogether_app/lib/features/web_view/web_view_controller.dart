@@ -39,6 +39,11 @@ class WebViewManager {
   final DownloadService _downloadService = DownloadService();
   final UrlLauncher _urlLauncher = UrlLauncher();
   Timer? _loadingTimer;
+  bool isOffline = false;
+  bool showOfflineBanner = false;
+
+  final List<String> _historyCache = [];
+  int _currentHistoryIndex = -1;
 
   Future<void> initialize({
     required Future<NavigationDecision> Function(NavigationRequest)
@@ -60,7 +65,7 @@ class WebViewManager {
       ..setBackgroundColor(const Color(0x00000000))
       ..setNavigationDelegate(
         NavigationDelegate(
-          onPageStarted: (_) => _handlePageStarted(),
+          onPageStarted: (url) => _handlePageStarted(url),
           onPageFinished: (_) {
             _handlePageFinished();
             _injectLinkInterceptor();
@@ -95,8 +100,9 @@ class WebViewManager {
     this.controller = controller;
   }
 
-  void _handlePageStarted() {
-    stateNotifier.value = const WebViewState(isLoading: true);
+  void _handlePageStarted(String? url) {
+    setState(loading: true, error: false, loadingTimedOut: false);
+    _addToHistory(url);
     _loadingTimer?.cancel();
     _loadingTimer = Timer(
       const Duration(seconds: AppConstants.loadingTimeoutSeconds),
@@ -106,7 +112,7 @@ class WebViewManager {
 
   void _handlePageFinished() {
     _loadingTimer?.cancel();
-    stateNotifier.value = const WebViewState(isLoading: false);
+    setState(loading: false, error: false, loadingTimedOut: false);
     _injectLinkInterceptor();
   }
 
@@ -121,10 +127,51 @@ class WebViewManager {
   }
 
   void _handleLoadingTimeout() {
-    stateNotifier.value = const WebViewState(
-      isLoading: false,
-      isLoadingTimedOut: true,
+    setState(loading: false, loadingTimedOut: true);
+  }
+
+  void setState({bool? loading, bool? error, bool? loadingTimedOut}) {
+    final current = stateNotifier.value;
+    stateNotifier.value = WebViewState(
+      isLoading: loading ?? current.isLoading,
+      hasError: error ?? current.hasError,
+      isLoadingTimedOut: loadingTimedOut ?? current.isLoadingTimedOut,
     );
+  }
+
+  void _addToHistory(String? url) {
+    if (url == null || url.isEmpty) {
+      return;
+    }
+
+    if (_currentHistoryIndex >= 0 &&
+        _currentHistoryIndex < _historyCache.length - 1) {
+      _historyCache.removeRange(_currentHistoryIndex + 1, _historyCache.length);
+    }
+
+    if (_historyCache.isEmpty || _historyCache.last != url) {
+      _historyCache.add(url);
+      _currentHistoryIndex = _historyCache.length - 1;
+    }
+  }
+
+  bool get hasOfflineHistory => _currentHistoryIndex > 0;
+
+  Future<void> handleOfflineNavigation() async {
+    if (_historyCache.isEmpty) return;
+
+    setState(loading: true, error: false, loadingTimedOut: false);
+
+    try {
+      if (_currentHistoryIndex > 0) {
+        _currentHistoryIndex--;
+        final previousUrl = _historyCache[_currentHistoryIndex];
+        await controller.loadRequest(Uri.parse(previousUrl));
+      }
+    } catch (error) {
+      debugPrint('Offline navigation error: $error');
+      setState(loading: false, error: true);
+    }
   }
 
   Future<Map<String, String>> collectCookies() async {
@@ -244,7 +291,15 @@ class WebViewManager {
 
   void reload() {
     controller.reload();
-    stateNotifier.value = const WebViewState(isLoading: true);
+    setState(loading: true, error: false, loadingTimedOut: false);
+  }
+
+  void updateConnectivity(bool online) {
+    isOffline = !online;
+    showOfflineBanner = isOffline;
+    if (online) {
+      showOfflineBanner = false;
+    }
   }
 
   void dispose() {

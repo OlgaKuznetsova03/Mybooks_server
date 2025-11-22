@@ -26,9 +26,24 @@ class ConnectivityService {
       hasConnection = result.any((e) => e != ConnectivityResult.none);
     }
 
-    if (isOnlineNotifier.value != hasConnection) {
+    final wasOnline = isOnlineNotifier.value;
+    if (wasOnline != hasConnection) {
       isOnlineNotifier.value = hasConnection;
+
+      if (!hasConnection && wasOnline) {
+        _notifyOfflineMode();
+      } else if (hasConnection && !wasOnline) {
+        _notifyOnlineMode();
+      }
     }
+  }
+
+  void _notifyOfflineMode() {
+    debugPrint('App entered offline mode');
+  }
+
+  void _notifyOnlineMode() {
+    debugPrint('App restored online connection');
   }
 
   void dispose() {
