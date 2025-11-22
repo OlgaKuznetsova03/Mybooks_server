@@ -12,7 +12,7 @@ class StatusOverlay extends StatelessWidget {
 
   factory StatusOverlay.offline({
     required bool isOffline,
-    required VoidCallback onReload,
+    VoidCallback? onReload,
     Widget? offlineNotesPanel,
   }) {
     return StatusOverlay._(
@@ -43,7 +43,7 @@ class StatusOverlay extends StatelessWidget {
   final String title;
   final String description;
   final String actionLabel;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final Widget? extraContent;
 
   @override
