@@ -353,6 +353,7 @@ class BloggerRequestResponseForm(BootstrapModelForm):
 
 
 class CollaborationMessageForm(BootstrapModelForm):
+    can_upload_epub: bool = False
     epub_file = forms.FileField(
         label=_("EPUB-файл"),
         required=False,
@@ -400,7 +401,7 @@ class CollaborationMessageForm(BootstrapModelForm):
         upload = self.cleaned_data.get("epub_file")
         if not upload:
             return None
-        if not self.can_upload_epub:
+        if not getattr(self, "can_upload_epub", False):
             raise forms.ValidationError(
                 _("Прикреплять файлы может только автор после подтверждения сотрудничества."),
             )
