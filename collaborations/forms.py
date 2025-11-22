@@ -372,14 +372,19 @@ class CollaborationMessageForm(BootstrapModelForm):
         self.can_upload_epub = self._epub_allowed()
 
     def _epub_allowed(self) -> bool:
+        """Return True when the author can attach an EPUB to the chat."""
+
         if not self.collaboration or not self.user:
             return False
-        if getattr(self.user, "id", None) != getattr(self.collaboration, "author_id", None):
-            return False
-        return self.collaboration.status in {
-            Collaboration.Status.NEGOTIATION,
-            Collaboration.Status.ACTIVE,
-        }
+
+        is_author = getattr(self.user, "id", None) == getattr(
+            self.collaboration, "author_id", None
+        )
+        is_confirmed = (
+            self.collaboration.author_approved and self.collaboration.partner_approved
+        )
+
+        return is_author and is_confirmed and self.collaboration.allows_discussion()
         
     class Meta:
         model = CollaborationMessage
