@@ -23,6 +23,7 @@ import 'web_view_controller.dart';
 import 'web_view_navigation.dart';
 import '../../utils/constants.dart';
 import '../../features/offline_notes/offline_notes_panel.dart';
+import '../../widgets/dialogs/terms_dialog.dart';
 
 class MainWebViewPage extends StatefulWidget {
   const MainWebViewPage({super.key, this.onlineNotifier});
@@ -47,6 +48,8 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
   bool _webViewError = false;
   bool _isOffline = false;
   bool _showOfflineRecoveryOverlay = false;
+  bool _wasOffline = false;
+  bool _reconnectDialogVisible = false;
   int _coinsBalance = 0;
   bool _rewardInProgress = false;
   bool _loadingTimedOut = false;
@@ -129,6 +132,7 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     setState(() {
       _isOffline = offline;
       if (offline) {
+        _wasOffline = true;
         _showOfflineRecoveryOverlay = false;
         _offlineRecoveryTimer?.cancel();
       }
@@ -141,6 +145,44 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
       _shouldReloadAfterReconnect = false;
       _startOfflineRecoveryOverlay();
       _reloadWebView();
+    }
+
+    if (!offline && _wasOffline) {
+      _wasOffline = false;
+      _showReconnectPrompt();
+    }
+  }
+
+  Future<void> _showReconnectPrompt() async {
+    if (_reconnectDialogVisible || !mounted) return;
+    _reconnectDialogVisible = true;
+
+    final shouldOpenCatalog = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Мы снова онлайн'),
+        content: const Text(
+          'Подключение восстановлено. Вернёмся к каталогу книг?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Остаться здесь'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Перейти к книгам'),
+          ),
+        ],
+      ),
+    );
+
+    _reconnectDialogVisible = false;
+    if (!mounted) return;
+
+    if (shouldOpenCatalog == true) {
+      await _openCatalog();
     }
   }
 
@@ -406,6 +448,20 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
       _loadingTimedOut = false;
     });
     _webViewManager.reload();
+  }
+
+  Future<void> _openCatalog() async {
+    if (!mounted) return;
+    try {
+      setState(() {
+        _webViewError = false;
+        _loadingTimedOut = false;
+        _showOfflineRecoveryOverlay = false;
+      });
+      await _webViewManager.controller.loadRequest(Uri.parse(_startUrl));
+    } catch (_) {
+      _reloadWebView();
+    }
   }
 
   bool get _isOfflineOverlayVisible =>
