@@ -232,7 +232,7 @@ class WebViewManager {
     Object? downloadError;
     try {
       final cookies = await collectCookies();
-      downloadedFile = await _downloadService.downloadPdf(uri, cookies);
+      downloadedFile = await _downloadService.downloadFile(uri, cookies);
     } catch (error) {
       downloadError = error;
     } finally {
@@ -247,11 +247,11 @@ class WebViewManager {
       if (await canLaunchUrl(Uri.parse(fileUri))) {
         await launchUrl(Uri.parse(fileUri));
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('PDF открывается...')),
+          const SnackBar(content: Text('Файл открывается...')),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('PDF сохранён в: ${downloadedFile.path}')),
+          SnackBar(content: Text('Файл сохранён в: ${downloadedFile.path}')),
         );
       }
     } else if (downloadError != null) {

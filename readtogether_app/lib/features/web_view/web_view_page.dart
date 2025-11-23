@@ -378,7 +378,7 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     if (reward is num) {
       final value = reward.toInt();
       if (value > 0) {
-        return '+$value монет за чтение';
+        return '+$value баллов за чтение';
       }
     }
     if (reward is String && reward.trim().isNotEmpty) {

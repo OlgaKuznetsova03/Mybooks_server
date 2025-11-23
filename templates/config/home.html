@@ -96,7 +96,7 @@
   .hero-highlight {
     display: grid;
     gap: 1.5rem;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   }
 
   .reading-progress-cover {
@@ -132,6 +132,7 @@
     transform: translateY(30px);
     color: inherit;
     text-decoration: none;
+    white-space: normal !important;
     word-break: break-word;
     overflow-wrap: anywhere;
     text-wrap: pretty;
@@ -140,6 +141,7 @@
 
   .hero-highlight__card p {
     line-height: 1.55;
+    white-space: normal !important;
   }
   .hero-highlight__card:focus-visible {
     outline: 2px solid rgba(171, 120, 67, 0.65);
@@ -716,22 +718,7 @@
     }
 
     .hero-highlight {
-      display: flex;
-      gap: 1rem;
-      overflow-x: auto;
-      padding-bottom: 0.35rem;
-      scroll-snap-type: x mandatory;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .hero-highlight__card {
-      min-width: 85%;
-      flex: 0 0 auto;
-      scroll-snap-align: start;
-    }
-
-    .hero-highlight {
-      grid-template-columns: 1fr;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     }
 
     .featured-shelf {
@@ -859,7 +846,10 @@
       </div>
     {% endif %}
   {% else %}
-    <div class="hero-highlight">
+    <div
+      class="hero-highlight"
+      style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;"
+    >
       <a
         class="hero-highlight__card h-100"
         href="{% url 'shelves:home_library' %}"
@@ -871,18 +861,6 @@
           <h3 class="h5 fw-semibold mb-0">Домашняя библиотека</h3>
         </div>
         <p class="mb-0">Всегда знайте, сколько книг стоит на ваших полках, какие ещё ожидают прочтения и что вы делаете чаще — читаете или пополняете коллекцию.</p>
-      </a>
-      <a
-        class="hero-highlight__card h-100"
-        href="{% url 'reading_clubs:list' %}"
-        data-feature-title="Совместные чтения"
-        data-feature-message="Читайте вместе с друзьями! 👥"
-      >
-        <div class="d-flex align-items-center gap-2 mb-3">
-          <i class="bi bi-people-fill fs-4 animate-pulse" style="color:#ab7843"></i>
-          <h3 class="h5 fw-semibold mb-0">Совместные чтения</h3>
-        </div>
-        <p class="mb-0">Вступайте в существующие совместные чтения или создавайте свои и наслаждайтесь книгами в компании единомышленников.</p>
       </a>
       <a
         class="hero-highlight__card h-100"
