@@ -102,6 +102,15 @@
             </div>
             <div class="col-md-4">
               <label class="form-label" for="{{ entry_form.book.id_for_label }}">Книга для задания</label>
+              <div class="input-group mb-2">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input
+                  type="search"
+                  class="form-control"
+                  data-target="#id_{{ entry_form.book.name }}"
+                  placeholder="Поиск по книгам"
+                >
+              </div>
               {{ entry_form.book }}
               {% if entry_form.book.help_text %}
                 <div class="form-text">{{ entry_form.book.help_text }}</div>
@@ -249,4 +258,42 @@
     {% endfor %}
   </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  <script>
+    (() => {
+      const filterOptions = (input, select) => {
+        const query = input.value.trim().toLowerCase();
+        const options = Array.from(select.options);
+        options.forEach((option, index) => {
+          if (index === 0) {
+            option.hidden = false;
+            return;
+          }
+          const haystack = option.dataset.search || option.textContent;
+          const isMatch = !query || haystack.toLowerCase().includes(query);
+          option.hidden = !isMatch;
+        });
+
+        if (select.value && select.selectedOptions.length && select.selectedOptions[0].hidden) {
+          select.selectedIndex = 0;
+        }
+      };
+
+      const searchInputs = document.querySelectorAll('input[data-target]');
+      searchInputs.forEach((searchInput) => {
+        const target = searchInput.dataset.target;
+        if (!target) {
+          return;
+        }
+        const select = document.querySelector(target);
+        if (!select) {
+          return;
+        }
+        searchInput.addEventListener('input', () => filterOptions(searchInput, select));
+      });
+    })();
+  </script>
 {% endblock %}
