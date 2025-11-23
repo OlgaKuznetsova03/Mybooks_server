@@ -206,6 +206,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'api.apps.ApiConfig',
     'books.apps.BooksConfig',
     'accounts.apps.AccountsConfig',
     'shelves.apps.ShelvesConfig',
@@ -510,7 +512,24 @@ MOBILE_APP_ALLOWED_CLIENTS = [
     for client in os.getenv("MOBILE_APP_ALLOWED_CLIENTS", "mybooks-flutter").split(",")
     if client.strip()
 ]
-        
+
+REST_FRAMEWORK = {
+    "DEFAULT_RENDERER_CLASSES": [
+        "rest_framework.renderers.JSONRenderer",
+    ],
+    "DEFAULT_PARSER_CLASSES": [
+        "rest_framework.parsers.JSONParser",
+    ],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.BasicAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
+    ],
+    "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.NamespaceVersioning",
+}
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,

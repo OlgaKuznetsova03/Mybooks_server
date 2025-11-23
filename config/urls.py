@@ -13,8 +13,12 @@ urlpatterns = [
     path("", views.home, name="home"),
     path("rules/", views.rules, name="rules"),
     path("admin/", admin.site.urls),
+    path(
+        "api/v1/",
+        include(("api.urls", "api"), namespace="v1"),
+    ),
     path("books/", include("books.urls")),  # подключаем роуты приложения books
-    path("accounts/", include("accounts.urls")),  # подключаем роуты приложения accounts
+    path("accounts/", include("accounts.urls")), 
     path(
         "events/",
         include(("shelves.urls", "shelves"), namespace="shelves"),
