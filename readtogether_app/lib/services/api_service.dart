@@ -97,6 +97,12 @@ class MobileApiService {
     final data = await _getJson(uri);
     return FeatureMap.fromJson(data);
   }
+
+  Future<HomeFeed> fetchHomeFeed() async {
+    final uri = _buildUri('/api/v1/home/');
+    final data = await _getJson(uri);
+    return HomeFeed.fromJson(data);
+  }
 }
 
 class BookSummary {
@@ -309,6 +315,101 @@ class EndpointStatus {
 
   final String path;
   final String status;
+}
+
+class HomeFeed {
+  HomeFeed({required this.hero, required this.activeClubs, required this.activeMarathons, required this.readingItems});
+
+  factory HomeFeed.fromJson(Map<String, dynamic> json) {
+    final clubs = (json['active_clubs'] as List<dynamic>? ?? <dynamic>[])
+        .whereType<Map<String, dynamic>>()
+        .map(ReadingClubSummary.fromJson)
+        .toList();
+    final marathons = (json['active_marathons'] as List<dynamic>? ?? <dynamic>[])
+        .whereType<Map<String, dynamic>>()
+        .map(ReadingMarathonSummary.fromJson)
+        .toList();
+    final readingItems = (json['reading_items'] as List<dynamic>? ?? <dynamic>[])
+        .whereType<Map<String, dynamic>>()
+        .map(ReadingShelfItem.fromJson)
+        .toList();
+
+    return HomeFeed(
+      hero: HomeHero.fromJson(json['hero'] as Map<String, dynamic>? ?? const {}),
+      activeClubs: clubs,
+      activeMarathons: marathons,
+      readingItems: readingItems,
+    );
+  }
+
+  final HomeHero hero;
+  final List<ReadingClubSummary> activeClubs;
+  final List<ReadingMarathonSummary> activeMarathons;
+  final List<ReadingShelfItem> readingItems;
+}
+
+class HomeHero {
+  HomeHero({required this.headline, required this.subtitle, required this.timestamp});
+
+  factory HomeHero.fromJson(Map<String, dynamic> json) {
+    return HomeHero(
+      headline: json['headline'] as String? ?? 'Калейдоскоп книг',
+      subtitle: json['subtitle'] as String? ?? 'Сообщества, марафоны и полка "Читаю" в одном экране.',
+      timestamp: _parseDate(json['timestamp'] as String?),
+    );
+  }
+
+  final String headline;
+  final String subtitle;
+  final DateTime? timestamp;
+}
+
+class ReadingShelfItem {
+  ReadingShelfItem({
+    required this.id,
+    required this.addedAt,
+    required this.book,
+    required this.progressPercent,
+    required this.progressLabel,
+    required this.progressCurrentPage,
+    required this.progressTotalPages,
+    required this.progressUpdatedAt,
+  });
+
+  factory ReadingShelfItem.fromJson(Map<String, dynamic> json) {
+    final bookJson = json['book'] as Map<String, dynamic>?;
+    return ReadingShelfItem(
+      id: json['id'] as int? ?? 0,
+      addedAt: _parseDate(json['added_at'] as String?),
+      book: bookJson != null ? BookSummary.fromJson(bookJson) : const BookSummary(
+          id: 0,
+          title: 'Книга',
+          synopsis: '',
+          series: null,
+          seriesOrder: null,
+          language: '',
+          coverUrl: null,
+          totalPages: null,
+          averageRating: null,
+          authors: <SimpleEntity>[],
+          genres: <SimpleEntity>[],
+        ),
+      progressPercent: (json['progress_percent'] as num?)?.toDouble(),
+      progressLabel: json['progress_label'] as String?,
+      progressCurrentPage: json['progress_current_page'] as int?,
+      progressTotalPages: json['progress_total_pages'] as int?,
+      progressUpdatedAt: _parseDate(json['progress_updated_at'] as String?),
+    );
+  }
+
+  final int id;
+  final DateTime? addedAt;
+  final BookSummary book;
+  final double? progressPercent;
+  final String? progressLabel;
+  final int? progressCurrentPage;
+  final int? progressTotalPages;
+  final DateTime? progressUpdatedAt;
 }
 
 DateTime? _parseDate(String? value) {

@@ -21,6 +21,14 @@ String _formatDate(DateTime? value) {
   return '$day.$month.${value.year}';
 }
 
+String _formatDateTime(DateTime? value) {
+  if (value == null) return '';
+  final date = _formatDate(value);
+  final hours = value.hour.toString().padLeft(2, '0');
+  final minutes = value.minute.toString().padLeft(2, '0');
+  return '$date, $hours:$minutes';
+}
+
 double _timelineProgress(DateTime? start, DateTime? end) {
   if (start == null || end == null || end.isBefore(start)) return 0;
   final now = DateTime.now();
@@ -41,67 +49,31 @@ class HomeExperiencePage extends StatefulWidget {
 
 class _HomeExperiencePageState extends State<HomeExperiencePage> {
   final MobileApiService _api = MobileApiService();
-  late final Future<_HomePayload> _future = _load();
-
-  Future<_HomePayload> _load() async {
-    final books = await _api.fetchBooks(pageSize: 8);
-    final clubs = await _api.fetchReadingClubs(pageSize: 6);
-    final marathons = await _api.fetchMarathons(pageSize: 4);
-    final featureMap = await _api.fetchFeatureMap();
-    return _HomePayload(books: books, clubs: clubs, marathons: marathons, featureMap: featureMap);
-  }
+  late final Future<HomeFeed> _future = _api.fetchHomeFeed();
 
   @override
   Widget build(BuildContext context) {
     return _AsyncExperience(
       future: _future,
       builder: (data) => ExperienceLayout(
-        title: 'Новый взгляд на чтение',
-        subtitle: 'Актуальные подборки из API: книги, клубы, марафоны',
-        hero: GlassCard(
-          gradient: const [Color(0xFF4F46E5), Color(0xFF7C3AED)],
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Добро пожаловать!'),
-              const SizedBox(height: 8),
-              Text(
-                'Мы показываем живые данные: свежие релизы, активные клубы и статус сервиса.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
-              ),
-              const SizedBox(height: 18),
-              Wrap(
-                spacing: 12,
-                runSpacing: 8,
-                children: const [
-                  QuickBadge(label: 'Свежие книги'),
-                  QuickBadge(label: 'Читательские клубы'),
-                  QuickBadge(label: 'Марафоны'),
-                ],
-              ),
-            ],
-          ),
-        ),
+        title: data.hero.headline,
+        subtitle: data.hero.subtitle,
+        hero: _HomeHeroBanner(hero: data.hero, stats: _homeStats(data)),
         sections: [
           ExperienceSection(
-            title: 'Свежие книги',
-            description: 'Показываем последние книги из каталога API.',
-            cards: _bookCards(data.books),
+            title: 'Полка «Читаю»',
+            description: 'Личные книги и прогресс загружаются из /api/v1/home/.',
+            cards: _readingCards(data.readingItems),
           ),
           ExperienceSection(
             title: 'Активные клубы',
-            description: 'Клубы с датами и статистикой сообщений.',
-            cards: _clubTiles(data.clubs),
+            description: 'Живые обсуждения с книгами и датами из общего API.',
+            cards: _clubTiles(data.activeClubs),
           ),
           ExperienceSection(
             title: 'Марафоны',
-            description: 'Статус и прогресс по времени проведения.',
-            cards: _marathonCards(data.marathons),
-          ),
-          ExperienceSection(
-            title: 'Карта возможностей',
-            description: 'Статусы API по картам функций.',
-            cards: _featureMapCards(data.featureMap),
+            description: 'Статус и прогресс марафонов, рассчитанный по датам.',
+            cards: _marathonCards(data.activeMarathons),
           ),
         ],
       ),
@@ -672,18 +644,109 @@ class _PremiumPageState extends State<PremiumPage> {
   }
 }
 
-class _HomePayload {
-  const _HomePayload({
-    required this.books,
-    required this.clubs,
-    required this.marathons,
-    required this.featureMap,
-  });
+class _HomeHeroBanner extends StatelessWidget {
+  const _HomeHeroBanner({required this.hero, required this.stats});
 
-  final List<BookSummary> books;
-  final List<ReadingClubSummary> clubs;
-  final List<ReadingMarathonSummary> marathons;
-  final FeatureMap featureMap;
+  final HomeHero hero;
+  final List<String> stats;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 600),
+      tween: Tween(begin: 0, end: 1),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return GlassCard(
+          gradient: [
+            Color.lerp(const Color(0xFF4F46E5), const Color(0xFF7C3AED), value) ?? const Color(0xFF4F46E5),
+            Color.lerp(const Color(0xFF7C3AED), const Color(0xFF22D3EE), value) ?? const Color(0xFF7C3AED),
+          ],
+          child: child!,
+        );
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(hero.headline, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white)),
+          const SizedBox(height: 6),
+          Text(
+            hero.subtitle,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: stats.map((stat) => QuickBadge(label: stat)).toList(),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Icon(Icons.bolt, color: Colors.white70, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                _formatDateTime(hero.timestamp),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+List<String> _homeStats(HomeFeed feed) {
+  return [
+    'Клубов: ${feed.activeClubs.length}',
+    'Марафонов: ${feed.activeMarathons.length}',
+    'Читаю: ${feed.readingItems.length}',
+  ];
+}
+
+List<Widget> _readingCards(List<ReadingShelfItem> items) {
+  if (items.isEmpty) {
+    return const [InfoCard(icon: Icons.local_library_outlined, message: 'Нет активных книг на полке')];
+  }
+
+  final cards = <Widget>[];
+  for (var i = 0; i < items.length; i++) {
+    final item = items[i];
+    final accent = _palette[(i + 1) % _palette.length];
+    final progress = (item.progressPercent ?? 0) / 100;
+    cards.add(
+      ProgressCard(
+        title: item.book.title,
+        subtitle: _readingSubtitle(item),
+        progress: progress.clamp(0, 1),
+        accent: accent,
+      ),
+    );
+  }
+
+  return cards;
+}
+
+String _readingSubtitle(ReadingShelfItem item) {
+  final authors = item.book.authors.map((a) => a.name).join(', ');
+  final progressLabel = item.progressLabel ?? 'Нет прогресса';
+  final pages = _formatPages(item.progressCurrentPage, item.progressTotalPages);
+  final updated = _formatDateTime(item.progressUpdatedAt);
+
+  return [
+    if (authors.isNotEmpty) authors,
+    progressLabel,
+    if (pages.isNotEmpty) pages,
+    if (updated.isNotEmpty) 'обновлено $updated',
+  ].join(' · ');
+}
+
+String _formatPages(int? current, int? total) {
+  if (current == null && total == null) return '';
+  if (current != null && total != null) return '$current / $total стр.';
+  if (current != null) return '$current стр.';
+  return '$total стр.';
 }
 
 class _AsyncExperience<T> extends StatelessWidget {
