@@ -1,5 +1,17 @@
 import 'package:flutter/material.dart';
 
+Widget _wrapTappable({required Widget child, VoidCallback? onTap, BorderRadius? radius}) {
+  if (onTap == null) return child;
+  return Material(
+    color: Colors.transparent,
+    child: InkWell(
+      borderRadius: radius,
+      onTap: onTap,
+      child: child,
+    ),
+  );
+}
+
 class ExperienceLayout extends StatelessWidget {
   const ExperienceLayout({
     super.key,
@@ -153,6 +165,54 @@ class QuickBadge extends StatelessWidget {
   }
 }
 
+class BookCover extends StatelessWidget {
+  const BookCover({super.key, required this.url, this.width = 64, this.height = 96});
+
+  final String? url;
+  final double width;
+  final double height;
+
+  bool get _hasImage => url != null && url!.trim().isNotEmpty;
+
+  @override
+  Widget build(BuildContext context) {
+    final border = BorderRadius.circular(12);
+    return ClipRRect(
+      borderRadius: border,
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF111827), Color(0xFF1F2937)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: _hasImage
+            ? Image.network(
+                url!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _placeholder(),
+              )
+            : _placeholder(),
+      ),
+    );
+  }
+
+  Widget _placeholder() {
+    return Container(
+      color: Colors.white.withOpacity(0.04),
+      child: const Center(
+        child: Icon(
+          Icons.menu_book_rounded,
+          color: Colors.white54,
+        ),
+      ),
+    );
+  }
+}
+
 class HighlightCard extends StatelessWidget {
   const HighlightCard({
     super.key,
@@ -160,59 +220,79 @@ class HighlightCard extends StatelessWidget {
     required this.subtitle,
     required this.accent,
     required this.progress,
+    this.coverUrl,
+    this.onTap,
   });
 
   final String title;
   final String subtitle;
   final Color accent;
   final double progress;
-
+  final String? coverUrl;
+  final VoidCallback? onTap;
+  }
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 350),
-      width: 250,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: LinearGradient(
-          colors: [accent.withOpacity(0.2), accent.withOpacity(0.05)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+  final radius = BorderRadius.circular(18);
+    return _wrapTappable(
+      onTap: onTap,
+      radius: radius,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 350),
+        width: 260,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: radius,
+          gradient: LinearGradient(
+            colors: [accent.withOpacity(0.2), accent.withOpacity(0.05)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          border: Border.all(color: accent.withOpacity(0.4)),
         ),
-        border: Border.all(color: accent.withOpacity(0.4)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(Icons.auto_awesome, color: accent),
-              Icon(Icons.arrow_forward_rounded, color: Colors.white.withOpacity(0.8)),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (coverUrl != null && coverUrl!.isNotEmpty) ...[
+              BookCover(url: coverUrl, width: 64, height: 96),
+              const SizedBox(width: 12),
             ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            subtitle,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
-          ),
-          const SizedBox(height: 12),
-          LinearProgressIndicator(
-            value: progress,
-            minHeight: 6,
-            borderRadius: BorderRadius.circular(6),
-            backgroundColor: Colors.white.withOpacity(0.1),
-            valueColor: AlwaysStoppedAnimation<Color>(accent),
-          ),
-          const SizedBox(height: 6),
-          Text('${(progress * 100).round()}% готово', style: const TextStyle(color: Colors.white70)),
-        ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Icon(Icons.auto_awesome, color: accent),
+                      Icon(Icons.arrow_forward_rounded, color: Colors.white.withOpacity(0.8)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitle,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 12),
+                  LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 6,
+                    borderRadius: BorderRadius.circular(6),
+                    backgroundColor: Colors.white.withOpacity(0.1),
+                    valueColor: AlwaysStoppedAnimation<Color>(accent),
+                  ),
+                  const SizedBox(height: 6),
+                  Text('${(progress * 100).round()}% готово', style: const TextStyle(color: Colors.white70)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -225,47 +305,67 @@ class BookCard extends StatelessWidget {
     required this.subtitle,
     required this.tag,
     required this.accent,
+    this.coverUrl,
+    this.onTap,
   });
 
   final String title;
   final String subtitle;
   final String tag;
   final Color accent;
+  final String? coverUrl;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 200,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        color: Colors.white.withOpacity(0.06),
-        border: Border.all(color: accent.withOpacity(0.4)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Chip(
-                backgroundColor: accent.withOpacity(0.2),
-                label: Text(tag, style: const TextStyle(color: Colors.white)),
-                visualDensity: VisualDensity.compact,
-                side: BorderSide.none,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              Icon(Icons.menu_book_rounded, color: accent),
+    final radius = BorderRadius.circular(16);
+    return _wrapTappable(
+      onTap: onTap,
+      radius: radius,
+      child: Container(
+        width: 220,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          borderRadius: radius,
+          color: Colors.white.withOpacity(0.06),
+          border: Border.all(color: accent.withOpacity(0.4)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (coverUrl != null && coverUrl!.isNotEmpty) ...[
+              BookCover(url: coverUrl, width: 64, height: 96),
+              const SizedBox(width: 12),
             ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white),
-          ),
-          const SizedBox(height: 6),
-          Text(subtitle, style: const TextStyle(color: Colors.white70)),
-        ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Chip(
+                        backgroundColor: accent.withOpacity(0.2),
+                        label: Text(tag, style: const TextStyle(color: Colors.white)),
+                        visualDensity: VisualDensity.compact,
+                        side: BorderSide.none,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      Icon(Icons.menu_book_rounded, color: accent),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(subtitle, style: const TextStyle(color: Colors.white70)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -278,41 +378,61 @@ class ProgressCard extends StatelessWidget {
     required this.subtitle,
     required this.progress,
     required this.accent,
+    this.coverUrl,
+    this.onTap,
   });
 
   final String title;
   final String subtitle;
   final double progress;
   final Color accent;
+  final String? coverUrl;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      width: 220,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: accent.withOpacity(0.4)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white)),
-          const SizedBox(height: 6),
-          Text(subtitle, style: const TextStyle(color: Colors.white70)),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              backgroundColor: Colors.white.withOpacity(0.06),
-              valueColor: AlwaysStoppedAnimation<Color>(accent),
+    final radius = BorderRadius.circular(16);
+    return _wrapTappable(
+      onTap: onTap,
+      radius: radius,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        width: 230,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: radius,
+          border: Border.all(color: accent.withOpacity(0.4)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (coverUrl != null && coverUrl!.isNotEmpty) ...[
+              BookCover(url: coverUrl, width: 56, height: 84),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white)),
+                  const SizedBox(height: 6),
+                  Text(subtitle, style: const TextStyle(color: Colors.white70)),
+                  const SizedBox(height: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 8,
+                      backgroundColor: Colors.white.withOpacity(0.06),
+                      valueColor: AlwaysStoppedAnimation<Color>(accent),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -362,46 +482,58 @@ class CompactListTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     this.trailing,
+    this.onTap,
+    this.coverUrl,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
   final Widget? trailing;
+  final VoidCallback? onTap;
+  final String? coverUrl;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 320,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.08),
+    final radius = BorderRadius.circular(16);
+    final hasCover = coverUrl != null && coverUrl!.isNotEmpty;
+    return _wrapTappable(
+      onTap: onTap,
+      radius: radius,
+      child: Container(
+        width: 330,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: radius,
+          border: Border.all(color: Colors.white.withOpacity(0.08)),
+        ),
+        child: Row(
+          children: [
+            hasCover
+                ? BookCover(url: coverUrl, width: 52, height: 78)
+                : Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.08),
+                    ),
+                    child: Icon(icon, color: Colors.white),
+                  ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  Text(subtitle, style: const TextStyle(color: Colors.white70)),
+                ],
+              ),
             ),
-            child: Icon(icon, color: Colors.white),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 4),
-                Text(subtitle, style: const TextStyle(color: Colors.white70)),
-              ],
-            ),
-          ),
-          if (trailing != null) trailing!,
-        ],
+            if (trailing != null) trailing!,
+          ],
+        ),
       ),
     );
   }
