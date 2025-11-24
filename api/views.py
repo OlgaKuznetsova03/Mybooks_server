@@ -1,3 +1,5 @@
+from django.db.models import Count, IntegerField, OuterRef, Q, Subquery, Value
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from rest_framework import generics
 from rest_framework.response import Response
@@ -5,13 +7,15 @@ from rest_framework.views import APIView
 
 from books.models import Book
 from reading_clubs.models import ReadingClub
-from reading_marathons.models import ReadingMarathon
+from reading_marathons.models import MarathonParticipant, MarathonTheme, ReadingMarathon
+from shelves.models import BookProgress, Shelf, ShelfItem
 
 from .pagination import StandardResultsSetPagination
 from .serializers import (
     BookDetailSerializer,
     BookListSerializer,
     ReadingClubSerializer,
+    ReadingShelfItemSerializer,
     ReadingMarathonSerializer,
 )
 
@@ -63,6 +67,12 @@ class FeatureMapView(APIView):
                     "endpoints": [
                         {"path": "/api/v1/profile/", "status": "planned"},
                         {"path": "/api/v1/profile/subscription/", "status": "planned"},
+                    ],
+                },
+                "home": {
+                    "description": "Данные главной страницы с акцентом на активные сообщества и личный прогресс.",
+                    "endpoints": [
+                        {"path": "/api/v1/home/", "status": "ready"},
                     ],
                 },
             }
@@ -117,3 +127,116 @@ class ReadingMarathonListView(generics.ListAPIView):
     queryset = ReadingMarathon.objects.select_related(None).order_by(
         "-start_date", "-created_at"
     )
+
+
+class HomeFeedView(APIView):
+    """Aggregate data for the mobile home screen."""
+
+    def get(self, request, *args, **kwargs):
+        today = timezone.localdate()
+
+        clubs_qs = (
+            ReadingClub.objects.select_related("book", "book__primary_isbn", "creator")
+            .with_message_count()
+            .prefetch_related("participants", "book__authors", "book__genres", "book__isbn")
+            .filter(start_date__lte=today)
+            .filter(Q(end_date__isnull=True) | Q(end_date__gte=today))
+            .order_by("start_date", "title")[:8]
+        )
+
+        active_clubs: list[ReadingClub] = []
+        for club in clubs_qs:
+            club.set_prefetched_message_count(club.message_count)
+            annotated_participants = club.__dict__.get("approved_participant_count")
+            if annotated_participants is not None:
+                club.approved_participant_count = annotated_participants
+            active_clubs.append(club)
+
+        approved_participants = (
+            MarathonParticipant.objects.filter(
+                marathon=OuterRef("pk"), status=MarathonParticipant.Status.APPROVED
+            )
+            .values("marathon")
+            .annotate(total=Count("id"))
+            .values("total")
+        )
+
+        theme_counts = (
+            MarathonTheme.objects.filter(marathon=OuterRef("pk"))
+            .values("marathon")
+            .annotate(total=Count("id"))
+            .values("total")
+        )
+
+        active_marathons = (
+            ReadingMarathon.objects.prefetch_related("themes")
+            .annotate(
+                participant_count=Coalesce(
+                    Subquery(approved_participants, output_field=IntegerField()), Value(0)
+                )
+            )
+            .annotate(
+                theme_count=Coalesce(
+                    Subquery(theme_counts, output_field=IntegerField()), Value(0)
+                )
+            )
+            .filter(Q(end_date__isnull=True) | Q(end_date__gte=today), start_date__lte=today)
+            .order_by("start_date", "title", "id")
+            [:8]
+        )
+
+        reading_items: list[ShelfItem] = []
+        if request.user.is_authenticated:
+            reading_shelf = Shelf.objects.filter(user=request.user, name="Читаю").first()
+            if reading_shelf:
+                reading_items = list(
+                    ShelfItem.objects.filter(shelf=reading_shelf)
+                    .select_related("book")
+                    .prefetch_related("book__authors", "book__genres")[:4]
+                )
+
+                book_ids = [item.book_id for item in reading_items]
+                progress_map = (
+                    {
+                        progress.book_id: progress
+                        for progress in BookProgress.objects.filter(
+                            user=request.user,
+                            event__isnull=True,
+                            book_id__in=book_ids,
+                        )
+                    }
+                    if book_ids
+                    else {}
+                )
+
+                for item in reading_items:
+                    progress = progress_map.get(item.book_id)
+                    item.progress = None
+                    item.progress_percent = None
+                    item.progress_label = None
+                    item.progress_total_pages = None
+                    item.progress_current_page = None
+                    item.progress_updated_at = None
+
+                    if not progress:
+                        continue
+
+                    item.progress = progress
+                    item.progress_percent = float(progress.percent or 0)
+                    item.progress_label = progress.get_format_display()
+                    item.progress_total_pages = progress.get_effective_total_pages()
+                    item.progress_current_page = progress.current_page
+                    item.progress_updated_at = progress.updated_at
+
+        payload = {
+            "hero": {
+                "headline": "Калейдоскоп книг",
+                "subtitle": "Сообщества, марафоны и личные подборки в одном экране.",
+                "timestamp": timezone.now(),
+            },
+            "active_clubs": ReadingClubSerializer(active_clubs, many=True).data,
+            "active_marathons": ReadingMarathonSerializer(active_marathons, many=True).data,
+            "reading_items": ReadingShelfItemSerializer(reading_items, many=True).data,
+        }
+
+        return Response(payload)

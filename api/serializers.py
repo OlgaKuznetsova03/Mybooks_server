@@ -3,6 +3,7 @@ from rest_framework import serializers
 from books.models import Author, Book, Genre
 from reading_clubs.models import ReadingClub
 from reading_marathons.models import ReadingMarathon
+from shelves.models import ShelfItem
 
 
 class AuthorSerializer(serializers.ModelSerializer):
@@ -132,3 +133,27 @@ class ReadingMarathonSerializer(serializers.ModelSerializer):
 
     def get_participant_count(self, obj: ReadingMarathon) -> int:
         return obj.participants.count()
+
+
+class ReadingShelfItemSerializer(serializers.ModelSerializer):
+    """Item from the user's reading shelf with lightweight progress info."""
+
+    book = BookListSerializer(read_only=True)
+    progress_percent = serializers.FloatField(allow_null=True)
+    progress_label = serializers.CharField(allow_null=True)
+    progress_current_page = serializers.IntegerField(allow_null=True)
+    progress_total_pages = serializers.IntegerField(allow_null=True)
+    progress_updated_at = serializers.DateTimeField(allow_null=True)
+
+    class Meta:
+        model = ShelfItem
+        fields = [
+            "id",
+            "added_at",
+            "book",
+            "progress_percent",
+            "progress_label",
+            "progress_current_page",
+            "progress_total_pages",
+            "progress_updated_at",
+        ]
