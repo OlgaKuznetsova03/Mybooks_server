@@ -34,7 +34,12 @@ class MobileApiService {
         : '$normalizedBasePath${_apiPrefix.substring(1)}';
 
     final endpoint = path.startsWith('/') ? path.substring(1) : path;
-    final fullPath = '$apiBasePath$endpoint';
+    // Если путь уже содержит префикс API, удаляем его, чтобы избежать дубля /api/v1/api/v1/.
+    final normalizedEndpoint = endpoint.startsWith(_apiPrefix.substring(1))
+        ? endpoint.substring(_apiPrefix.length - 1)
+        : endpoint;
+
+    final fullPath = '$apiBasePath$normalizedEndpoint';
     final normalizedFullPath = fullPath.startsWith('/') ? fullPath : '/$fullPath';
 
     return base.replace(path: normalizedFullPath, queryParameters: query);
@@ -57,7 +62,7 @@ class MobileApiService {
   }
 
   Future<List<BookSummary>> fetchBooks({int pageSize = 8}) async {
-    final uri = _buildUri('/api/v1/books/', query: {'page_size': '$pageSize'});
+    final uri = _buildUri('books/', query: {'page_size': '$pageSize'});
     final data = await _getJson(uri);
     final results = (data['results'] as List<dynamic>? ?? <dynamic>[]);
     return results
@@ -67,13 +72,13 @@ class MobileApiService {
   }
 
   Future<BookSummary?> fetchBookDetail(int id) async {
-    final uri = _buildUri('/api/v1/books/$id/');
+    final uri = _buildUri('books/$id/');
     final data = await _getJson(uri);
     return BookSummary.fromJson(data);
   }
 
   Future<List<ReadingClubSummary>> fetchReadingClubs({int pageSize = 8}) async {
-    final uri = _buildUri('/api/v1/reading-clubs/', query: {'page_size': '$pageSize'});
+    final uri = _buildUri('reading-clubs/', query: {'page_size': '$pageSize'});
     final data = await _getJson(uri);
     final results = (data['results'] as List<dynamic>? ?? <dynamic>[]);
     return results
@@ -83,7 +88,7 @@ class MobileApiService {
   }
 
   Future<List<ReadingMarathonSummary>> fetchMarathons({int pageSize = 8}) async {
-    final uri = _buildUri('/api/v1/marathons/', query: {'page_size': '$pageSize'});
+    final uri = _buildUri('marathons/', query: {'page_size': '$pageSize'});
     final data = await _getJson(uri);
     final results = (data['results'] as List<dynamic>? ?? <dynamic>[]);
     return results
@@ -93,13 +98,13 @@ class MobileApiService {
   }
 
   Future<FeatureMap> fetchFeatureMap() async {
-    final uri = _buildUri('/api/v1/feature-map/');
+    final uri = _buildUri('feature-map/');
     final data = await _getJson(uri);
     return FeatureMap.fromJson(data);
   }
 
   Future<HomeFeed> fetchHomeFeed() async {
-    final uri = _buildUri('/api/v1/home/');
+    final uri = _buildUri('home/');
     final data = await _getJson(uri);
     return HomeFeed.fromJson(data);
   }
