@@ -113,6 +113,7 @@ class ReadingClubSerializer(serializers.ModelSerializer):
 class ReadingMarathonSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     participant_count = serializers.SerializerMethodField()
+    theme_count = serializers.SerializerMethodField()
 
     class Meta:
         model = ReadingMarathon
@@ -126,14 +127,23 @@ class ReadingMarathonSerializer(serializers.ModelSerializer):
             "slug",
             "status",
             "participant_count",
+            "theme_count",
         ]
 
     def get_status(self, obj: ReadingMarathon) -> str:
         return obj.status
 
     def get_participant_count(self, obj: ReadingMarathon) -> int:
+        annotated_value = getattr(obj, "participant_count", None)
+        if annotated_value is not None:
+            return annotated_value
         return obj.participants.count()
 
+    def get_theme_count(self, obj: ReadingMarathon) -> int:
+        annotated_value = getattr(obj, "theme_count", None)
+        if annotated_value is not None:
+            return annotated_value
+        return obj.themes.count()
 
 class ReadingShelfItemSerializer(serializers.ModelSerializer):
     """Item from the user's reading shelf with lightweight progress info."""

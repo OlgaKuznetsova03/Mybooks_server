@@ -1,4 +1,5 @@
-from django.db.models import Count, IntegerField, OuterRef, Q, Subquery, Value
+from django.db.models import Count, IntegerField, OuterRef, Q, Subquery, Sum, Value
+from datetime import timedelta
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from rest_framework import generics
@@ -8,7 +9,7 @@ from rest_framework.views import APIView
 from books.models import Book
 from reading_clubs.models import ReadingClub
 from reading_marathons.models import MarathonParticipant, MarathonTheme, ReadingMarathon
-from shelves.models import BookProgress, Shelf, ShelfItem
+from shelves.models import BookProgress, ReadingLog, Shelf, ShelfItem
 
 from .pagination import StandardResultsSetPagination
 from .serializers import (
@@ -134,6 +135,7 @@ class HomeFeedView(APIView):
 
     def get(self, request, *args, **kwargs):
         today = timezone.localdate()
+        weekly_start = today - timedelta(days=6)
 
         clubs_qs = (
             ReadingClub.objects.select_related("book", "book__primary_isbn", "creator")
@@ -228,15 +230,51 @@ class HomeFeedView(APIView):
                     item.progress_current_page = progress.current_page
                     item.progress_updated_at = progress.updated_at
 
+        reading_metrics = None
+        greeting = None
+
+        if request.user.is_authenticated:
+            name = request.user.first_name or request.user.username or request.user.email
+            greeting = f"Привет, {name}!" if name else "Привет!"
+
+            weekly_logs = (
+                ReadingLog.objects.filter(
+                    progress__user=request.user,
+                    log_date__gte=weekly_start,
+                    log_date__lte=today,
+                )
+                .values("log_date")
+                .annotate(pages=Coalesce(Sum("pages_equivalent"), Value(0)))
+            )
+
+            daily_pages = {entry["log_date"]: float(entry["pages"] or 0) for entry in weekly_logs}
+            total_pages = sum(daily_pages.values())
+
+            reading_metrics = {
+                "week_start": weekly_start,
+                "week_end": today,
+                "total_pages": float(total_pages),
+                "average_pages_per_day": float(total_pages) / 7 if total_pages else 0.0,
+                "daily": [
+                    {
+                        "date": weekly_start + timedelta(days=offset),
+                        "pages": daily_pages.get(weekly_start + timedelta(days=offset), 0.0),
+                    }
+                    for offset in range(7)
+                ],
+            }
+
         payload = {
             "hero": {
                 "headline": "Калейдоскоп книг",
                 "subtitle": "Сообщества, марафоны и личные подборки в одном экране.",
                 "timestamp": timezone.now(),
+                "greeting": greeting,
             },
             "active_clubs": ReadingClubSerializer(active_clubs, many=True).data,
             "active_marathons": ReadingMarathonSerializer(active_marathons, many=True).data,
             "reading_items": ReadingShelfItemSerializer(reading_items, many=True).data,
+            "reading_metrics": reading_metrics,
         }
 
         return Response(payload)
