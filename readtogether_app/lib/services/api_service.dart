@@ -20,7 +20,11 @@ class MobileApiService {
 
   Uri _buildUri(String path, {Map<String, String>? query}) {
     final base = Uri.parse(AppConstants.defaultSiteUrl);
-    return base.replace(path: path, queryParameters: query);
+    final basePath = base.path.endsWith('/') ? base.path : '${base.path}/';
+    final targetPath = path.startsWith('/') ? path.substring(1) : path;
+    final fullPath = '$basePath$targetPath';
+
+    return base.replace(path: fullPath, queryParameters: query);
   }
 
   Future<Map<String, dynamic>> _getJson(Uri uri) async {

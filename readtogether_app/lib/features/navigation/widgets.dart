@@ -15,72 +15,73 @@ class ExperienceLayout extends StatelessWidget {
   final List<ExperienceSection> sections;
 
   @override
-Widget build(BuildContext context) {
-  return CustomScrollView(
-    slivers: [
-      SliverPadding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
-        sliver: SliverList(
-          delegate: SliverChildListDelegate([
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  subtitle,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
-                ),
-                const SizedBox(height: 16),
-                hero,
-              ],
-            ),
-            ...sections.map(
-              (section) => Padding(
-                padding: const EdgeInsets.only(top: 22),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            section.title,
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitle,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 16),
+                  hero,
+                ],
+              ),
+              ...sections.map(
+                (section) => Padding(
+                  padding: const EdgeInsets.only(top: 22),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              section.title,
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                             ),
                           ),
-                        ),
-                        if (section.action != null) section.action!,
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      section.description,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 14,
-                      runSpacing: 14,
-                      children: section.cards,
-                    ),
-                  ],
+                          if (section.action != null) section.action!,
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        section.description,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 14,
+                        runSpacing: 14,
+                        children: section.cards,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ]),
+            ]),
+          ),
         ),
-      ),
-    ],
-  );
+      ],
+    );
+  }
 }
 
 class ExperienceSection {
