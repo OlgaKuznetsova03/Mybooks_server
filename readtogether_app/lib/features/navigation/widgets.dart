@@ -230,73 +230,94 @@ class HighlightCard extends StatelessWidget {
   final double progress;
   final String? coverUrl;
   final VoidCallback? onTap;
-  }
-  @override
-  Widget build(BuildContext context) {
-    final radius = BorderRadius.circular(18);
-    return _wrapTappable(
-      onTap: onTap,
-      radius: radius,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 350),
-        width: 260,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          borderRadius: radius,
-          gradient: LinearGradient(
-            colors: [accent.withOpacity(0.2), accent.withOpacity(0.05)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          border: Border.all(color: accent.withOpacity(0.4)),
+  
+@override
+Widget build(BuildContext context) {
+  final radius = BorderRadius.circular(18);
+  return _wrapTappable(
+    onTap: onTap,
+    radius: radius,
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 350),
+      width: 260,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        gradient: LinearGradient(
+          colors: [accent.withOpacity(0.2), accent.withOpacity(0.05)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (coverUrl != null && coverUrl!.isNotEmpty) ...[
-              BookCover(url: coverUrl, width: 64, height: 96),
-              const SizedBox(width: 12),
-            ],
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Icon(Icons.auto_awesome, color: accent),
-                      Icon(Icons.arrow_forward_rounded, color: Colors.white.withOpacity(0.8)),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
-                  ),
-                  const SizedBox(height: 12),
-                  LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 6,
-                    borderRadius: BorderRadius.circular(6),
-                    backgroundColor: Colors.white.withOpacity(0.1),
-                    valueColor: AlwaysStoppedAnimation<Color>(accent),
-                  ),
-                  const SizedBox(height: 6),
-                  Text('${(progress * 100).round()}% готово', style: const TextStyle(color: Colors.white70)),
-                ],
-              ),
-            ),
-          ],
-        ),
+        border: Border.all(color: accent.withOpacity(0.4)),
       ),
-    );
-  }
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (coverUrl != null && coverUrl!.isNotEmpty) ...[
+            BookCover(url: coverUrl, width: 64, height: 96),
+            const SizedBox(width: 12),
+          ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Icon(Icons.auto_awesome, color: accent),
+                    Icon(Icons.arrow_forward_rounded, color: Colors.white.withOpacity(0.8)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                ),
+                const SizedBox(height: 12),
+                LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 6,
+                  borderRadius: BorderRadius.circular(6),
+                  backgroundColor: Colors.white.withOpacity(0.1),
+                  valueColor: AlwaysStoppedAnimation<Color>(accent),
+                ),
+                const SizedBox(height: 6),
+                Text('${(progress * 100).round()}% готово', style: const TextStyle(color: Colors.white70)),
+              ],
+            ),
+                     ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+  
+class BookCard extends StatelessWidget {
+  const BookCard({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.tag,
+    required this.accent,
+    this.coverUrl,
+    this.onTap,
+  });
 
+  final String title;
+  final String subtitle;
+  final String tag;
+  final Color accent;
+  final String? coverUrl;
+  final VoidCallback? onTap;
+
+  @override
+  
 class BookCard extends StatelessWidget {
   const BookCard({
     super.key,
@@ -368,7 +389,7 @@ class BookCard extends StatelessWidget {
       ),
     );
   }
-}
+}}
 
 class ProgressCard extends StatelessWidget {
   const ProgressCard({
