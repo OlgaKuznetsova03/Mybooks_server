@@ -99,6 +99,17 @@ def remove_book_from_want_shelf(user: User, book: Book) -> None:
     _remove_book_from_named_shelf(user, book, DEFAULT_WANT_SHELF)
 
 
+def remove_user_book_data(user: User, book: Book) -> None:
+    """Удалить все связи пользователя с указанной книгой."""
+
+    if not getattr(user, "is_authenticated", False):
+        return
+
+    with transaction.atomic():
+        ShelfItem.objects.filter(shelf__user=user, book=book).delete()
+        BookProgress.objects.filter(user=user, book=book).delete()
+
+
 def move_book_to_read_shelf(user: User, book: Book, *, read_date: date | None = None) -> None:
     """Move the book from the "Читаю" shelf to "Прочитал" for the user."""
     if not user.is_authenticated:

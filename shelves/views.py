@@ -35,6 +35,7 @@ from .services import (
     move_book_to_read_shelf,
     move_book_to_reading_shelf,
     remove_book_from_want_shelf,
+    remove_user_book_data,
     DEFAULT_WANT_SHELF,
     DEFAULT_READING_SHELF,
     DEFAULT_READ_SHELF,
@@ -665,10 +666,19 @@ def add_book_to_shelf(request, book_id):
 def remove_book_from_shelf(request, shelf_id, book_id):
     """Удалить книгу из указанной полки текущего пользователя."""
     shelf = get_object_or_404(Shelf, pk=shelf_id, user=request.user)
-    item = ShelfItem.objects.filter(shelf=shelf, book_id=book_id).first()
+    item = (
+        ShelfItem.objects
+        .filter(shelf=shelf, book_id=book_id)
+        .select_related("book")
+        .first()
+    )
     if item:
-        item.delete()
-        messages.info(request, "Книга удалена с полки.")
+        if shelf.name in ALL_DEFAULT_READ_SHELF_NAMES:
+            remove_user_book_data(request.user, item.book)
+            messages.info(request, "Книга удалена, данные о прочтении очищены.")
+        else:
+            item.delete()
+            messages.info(request, "Книга удалена с полки.")
     next_url = request.GET.get("next")
     if next_url and url_has_allowed_host_and_scheme(
         next_url,

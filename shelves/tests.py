@@ -873,7 +873,41 @@ class HomeLibraryEntryReadDateTests(TestCase):
         self.assertEqual(status["label"], read_shelf.name)
         self.assertEqual(status["added_at"], shelf_item.added_at)
 
-        def test_home_library_view_marks_entry_as_read_via_read_at(self):
+    def test_remove_from_read_shelf_clears_user_data(self):
+        read_shelf = Shelf.objects.filter(
+            user=self.user,
+            name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+        ).first()
+        self.assertIsNotNone(read_shelf)
+
+        home_shelf = Shelf.objects.get(user=self.user, name=DEFAULT_HOME_LIBRARY_SHELF)
+        home_item = ShelfItem.objects.create(shelf=home_shelf, book=self.book)
+        entry, _ = HomeLibraryEntry.objects.get_or_create(shelf_item=home_item)
+        entry.read_at = localdate()
+        entry.save(update_fields=["read_at"])
+
+        ShelfItem.objects.create(shelf=read_shelf, book=self.book)
+        BookProgress.objects.create(user=self.user, book=self.book, percent=100)
+
+        self.client.force_login(self.user)
+        response = self.client.get(
+            reverse("shelves:remove_book_from_shelf", args=[read_shelf.pk, self.book.pk]),
+            follow=True,
+        )
+
+        self.assertIn(response.status_code, (200, 302))
+        self.assertFalse(
+            ShelfItem.objects.filter(shelf__user=self.user, book=self.book).exists()
+        )
+        self.assertFalse(
+            HomeLibraryEntry.objects.filter(
+                shelf_item__shelf__user=self.user,
+                shelf_item__book=self.book,
+            ).exists()
+        )
+        self.assertFalse(BookProgress.objects.filter(user=self.user, book=self.book).exists())
+
+    def test_home_library_view_marks_entry_as_read_via_read_at(self):
         home_shelf = Shelf.objects.get(user=self.user, name=DEFAULT_HOME_LIBRARY_SHELF)
         shelf_item = ShelfItem.objects.create(shelf=home_shelf, book=self.book)
         read_date = localdate() - timedelta(days=3)
@@ -889,4 +923,3 @@ class HomeLibraryEntryReadDateTests(TestCase):
         self.assertIsNotNone(context_entry)
         self.assertTrue(getattr(context_entry, "is_read", False))
         self.assertEqual(context_entry.date_read, read_date)
-        
