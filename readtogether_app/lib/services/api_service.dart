@@ -18,13 +18,26 @@ class MobileApiService {
 
   final HttpClient _client;
 
+  static const String _apiPrefix = '/api/v1/';
+
   Uri _buildUri(String path, {Map<String, String>? query}) {
     final base = Uri.parse(AppConstants.defaultSiteUrl);
-    final basePath = base.path.endsWith('/') ? base.path : '${base.path}/';
-    final targetPath = path.startsWith('/') ? path.substring(1) : path;
-    final fullPath = '$basePath$targetPath';
+    final normalizedBasePath = base.path.endsWith('/') ? base.path : '${base.path}/';
 
-    return base.replace(path: fullPath, queryParameters: query);
+    // Поддерживаем две конфигурации:
+    // 1. BASE_URL указывает на корень сайта (https://host/) — тогда добавляем
+    //    префикс /api/v1/ сами.
+    // 2. BASE_URL уже содержит префикс (https://host/api/v1/ или
+    //    https://host/mobile/api/v1/) — тогда используем его как есть.
+    final apiBasePath = normalizedBasePath.endsWith(_apiPrefix)
+        ? normalizedBasePath
+        : '$normalizedBasePath${_apiPrefix.substring(1)}';
+
+    final endpoint = path.startsWith('/') ? path.substring(1) : path;
+    final fullPath = '$apiBasePath$endpoint';
+    final normalizedFullPath = fullPath.startsWith('/') ? fullPath : '/$fullPath';
+
+    return base.replace(path: normalizedFullPath, queryParameters: query);
   }
 
   Future<Map<String, dynamic>> _getJson(Uri uri) async {
