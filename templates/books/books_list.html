@@ -539,10 +539,6 @@
       z-index:2;
       isolation:isolate;
     }
-    .book-item__actions [data-role="open-shelf-modal"]{
-      position:relative;
-      z-index:2;
-    }
     .book-item__actions .btn,
     .book-item__actions .badge{width:100%;justify-content:center;}
     .book-item__actions form{width:100%;}
@@ -717,16 +713,16 @@
                               <i class="bi bi-bookmark-check-fill me-1"></i>На полке «{{ status.label }}»
                             </span>
                           {% else %}
-                            <button
-                              class="btn btn-outline-primary btn-sm position-relative z-1"
-                              type="button"
-                              data-role="open-shelf-modal"
-                              data-book-id="{{ b.pk }}"
-                              data-book-title="{{ b.title|escapejs }}"
-                              data-action-url="{% url 'book_detail' b.pk %}"
-                              data-bs-toggle="modal"
-                              data-bs-target="#listAddToShelfModal"
-                            >Выбрать полку</button>
+                            {% if want_shelf_id %}
+                              <form method="post" action="{% url 'book_detail' b.pk %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="quick-add-shelf">
+                                <input type="hidden" name="shelf" value="{{ want_shelf_id }}">
+                                <button class="btn btn-outline-primary btn-sm position-relative z-1" type="submit">
+                                  <i class="bi bi-bookmark-plus me-1"></i>Хочу прочитать
+                                </button>
+                              </form>
+                            {% endif %}
                           {% endif %}
                         {% endwith %}
                       </div>

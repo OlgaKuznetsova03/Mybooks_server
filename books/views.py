@@ -475,6 +475,7 @@ def book_list(request):
     read_shelf_ids: list[int] = []
     read_shelf_ids_str: list[str] = []
     home_library_shelf_id: int | None = None
+    want_shelf_id: int | None = None
 
     active_sort = (request.GET.get("sort") or "popular").lower()
 
@@ -870,6 +871,13 @@ def book_list(request):
         )
         read_shelf_ids_str = [str(pk) for pk in read_shelf_ids]
         home_library_shelf_id = getattr(get_home_library_shelf(request.user), "id", None)
+        want_shelf_id = (
+            quick_add_form.fields["shelf"]
+            .queryset
+            .filter(name=DEFAULT_WANT_SHELF)
+            .values_list("id", flat=True)
+            .first()
+        )
 
     return render(
         request,
@@ -892,6 +900,7 @@ def book_list(request):
             "read_shelf_ids": read_shelf_ids,
             "read_shelf_ids_str": read_shelf_ids_str,
             "home_library_shelf_id": home_library_shelf_id,
+            "want_shelf_id": want_shelf_id,
             "enable_shelf_picker": True,
         },
     )
