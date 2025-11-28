@@ -434,7 +434,13 @@
 
     /* Hover эффекты для карточек */
     .book-item {
+      position: relative;
+      isolation: isolate;
       transition: all 0.3s ease;
+    }
+
+    .book-item .stretched-link::after {
+      z-index: 1;
     }
 
     .book-item:hover {
@@ -529,6 +535,11 @@
     }
     .book-item__actions{
       margin-top:auto;
+      position:relative;
+      z-index:2;
+      isolation:isolate;
+    }
+    .book-item__actions [data-role="open-shelf-modal"]{
       position:relative;
       z-index:2;
     }
@@ -691,7 +702,7 @@
                       <span>{{ b.rating_count|default:0 }} оценок</span>
                     </div>
                     {% if request.user.is_authenticated %}
-                      <div class="book-item__actions">
+                      <div class="book-item__actions position-relative">
                         {% with status=b.default_shelf_status %}
                           {% if status and status.code == 'read' %}
                             <span class="badge rounded-pill text-bg-success-subtle text-success-emphasis book-gallery-card__status">
@@ -707,7 +718,7 @@
                             </span>
                           {% else %}
                             <button
-                              class="btn btn-outline-primary btn-sm"
+                              class="btn btn-outline-primary btn-sm position-relative z-1"
                               type="button"
                               data-role="open-shelf-modal"
                               data-book-id="{{ b.pk }}"
