@@ -218,6 +218,138 @@
   .reading-section:nth-child(3) { animation-delay: 0.3s; }
   .reading-section:nth-child(4) { animation-delay: 0.4s; }
   .reading-section:nth-child(5) { animation-delay: 0.5s; }
+
+  .modern-chart-card {
+    background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow:
+      0 4px 20px rgba(0, 0, 0, 0.08),
+      0 1px 4px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .modern-chart-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(
+      90deg,
+      #8b7355 0%,
+      #a89276 25%,
+      #c4b5a0 50%,
+      #a89276 75%,
+      #8b7355 100%
+    );
+    border-radius: 20px 20px 0 0;
+  }
+
+  .modern-chart-card:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 8px 30px rgba(0, 0, 0, 0.12),
+      0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+
+  .modern-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .modern-chart-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 0;
+    background: linear-gradient(135deg, #4a5568, #2d3748);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .modern-chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .modern-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 12px;
+    border: 1px solid rgba(139, 115, 85, 0.1);
+    transition: all 0.2s ease;
+  }
+
+  .modern-legend-item:hover {
+    background: rgba(139, 115, 85, 0.05);
+    transform: translateY(-1px);
+  }
+
+  .modern-legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .modern-legend-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #4a5568;
+    white-space: nowrap;
+  }
+
+  .modern-chart-container {
+    position: relative;
+    min-height: 280px;
+    padding: 0.5rem;
+  }
+
+  :root {
+    --color-paper: #8b7355;
+    --color-ebook: #a89276;
+    --color-audio: #c4b5a0;
+    --color-default: #8b7355;
+
+    --color-paper-light: rgba(139, 115, 85, 0.1);
+    --color-ebook-light: rgba(168, 146, 118, 0.1);
+    --color-audio-light: rgba(196, 181, 160, 0.1);
+
+    --gradient-paper: linear-gradient(135deg, #8b7355, #a89276);
+    --gradient-ebook: linear-gradient(135deg, #a89276, #c4b5a0);
+    --gradient-audio: linear-gradient(135deg, #c4b5a0, #d8cbbb);
+  }
+
+  @media (max-width: 768px) {
+    .modern-chart-header {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .modern-chart-legend {
+      justify-content: center;
+    }
+
+    .modern-chart-container {
+      min-height: 240px;
+    }
+  }
   .reading-section:nth-child(6) { animation-delay: 0.6s; }
 
   @keyframes slideInUp {
@@ -1000,388 +1132,358 @@
       <p class="reading-section__note">Сколько вы прочитали по дням и в каком формате.</p>
     </div>
 
-    <div class="mobile-accordion-section d-md-none">
-      <button class="mobile-accordion-header" type="button" data-bs-toggle="collapse" data-bs-target="#mobileHistoryAccordion" aria-expanded="false" aria-controls="mobileHistoryAccordion">
-        Показать историю чтения
-        <span class="mobile-accordion-icon">▼</span>
-      </button>
-      <div class="collapse" id="mobileHistoryAccordion">
-        <div class="mobile-accordion-content">
-          {% if chart_labels or format_chart_labels %}
-            <div class="mb-3">
-              {% if chart_labels %}
-                <div class="reading-chart-card mb-3">
-                  <div class="reading-chart-card__canvas">
-                    <canvas id="mobileReadingHistoryChart"></canvas>
-                  </div>
-                </div>
-              {% endif %}
-              {% if format_chart_labels %}
-                <div class="reading-chart-card">
-                  <div class="reading-chart-card__canvas">
-                    <canvas id="mobileReadingFormatChart"></canvas>
-                  </div>
-                </div>
-              {% endif %}
-            </div>
-          {% endif %}
-
-          {% if audio_logs %}
-            <div class="small">
-              <strong>Последние записи:</strong>
-              {% for log in audio_logs|slice:":3" %}
-                <div class="character-card">
-                  <div>{{ log.log_date|date:"d.m.Y" }} · {{ log.get_medium_display }}</div>
-                  <div class="text-muted">
-                    {% if log.audio_duration_display %}
-                      {{ log.audio_duration_display }}
-                    {% else %}
-                      {{ log.pages_equivalent|floatformat:-2 }} стр.
-                    {% endif %}
-                  </div>
-                </div>
-              {% endfor %}
-              {% if audio_logs|length > 3 %}
-                <div class="text-center mt-2">
-                  <small class="text-muted">и ещё {{ audio_logs|length|add:"-3" }} записей</small>
-                </div>
-              {% endif %}
-            </div>
-          {% else %}
-            <p class="text-muted mb-0">Пока нет записей о прочитанных страницах.</p>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-
-    <div class="reading-section-table d-none d-md-block">
-      {% if chart_labels or format_chart_labels %}
-        <div class="row g-3 mb-3">
-          {% if chart_labels %}
-            <div class="col-12{% if format_chart_labels %} col-lg-8{% endif %}">
-              <div class="reading-chart-card" role="img" aria-label="Диаграмма прочитанных страниц по дням">
-                <div class="reading-chart-card__canvas">
-                  <canvas id="readingHistoryChart" aria-label="Прочитанные страницы по дням"></canvas>
-                </div>
-              </div>
-            </div>
-          {% endif %}
-          {% if format_chart_labels %}
-            <div class="col-12 col-lg-4">
-              <div class="reading-chart-card" role="img" aria-label="Диаграмма форматов чтения">
-                <div class="reading-chart-card__canvas">
-                  <canvas id="readingFormatChart" aria-label="Распределение форматов чтения"></canvas>
-                </div>
-              </div>
-            </div>
-          {% endif %}
-        </div>
-
+    {% if chart_labels or format_chart_labels %}
+      <div class="row g-3 mb-4">
         {% if chart_labels %}
-          {{ chart_labels|json_script:"reading-chart-labels" }}
-          {{ chart_pages|json_script:"reading-chart-pages" }}
-          {{ chart_mediums|json_script:"reading-chart-mediums" }}
-          {{ chart_medium_pages|json_script:"reading-chart-medium-pages" }}
+          <div class="col-12{% if format_chart_labels %} col-lg-8{% endif %}">
+            <div class="modern-chart-card" role="img" aria-label="Диаграмма прочитанных страниц по дням">
+              <div class="modern-chart-header">
+                <h4 class="modern-chart-title">Прогресс по дням</h4>
+                {% if chart_mediums %}
+                  <div class="modern-chart-legend">
+                    {% for medium in chart_mediums %}
+                      <div class="modern-legend-item" data-medium="{{ medium.code }}">
+                        <span class="modern-legend-color" style="background-color: var(--color-{{ medium.code|default:'default' }})"></span>
+                        <span class="modern-legend-label">{{ medium.label }}</span>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+              <div class="modern-chart-container">
+                <canvas id="readingHistoryChart" aria-label="Прочитанные страницы по дням"></canvas>
+              </div>
+            </div>
+          </div>
         {% endif %}
+
         {% if format_chart_labels %}
-          {{ format_chart_labels|json_script:"reading-format-chart-labels" }}
-          {{ format_chart_values|json_script:"reading-format-chart-values" }}
-          {{ format_chart_palette|json_script:"reading-format-chart-colors" }}
+          <div class="col-12 col-lg-4">
+            <div class="modern-chart-card" role="img" aria-label="Диаграмма форматов чтения">
+              <div class="modern-chart-header">
+                <h4 class="modern-chart-title">Форматы чтения</h4>
+              </div>
+              <div class="modern-chart-container">
+                <canvas id="readingFormatChart" aria-label="Распределение форматов чтения"></canvas>
+              </div>
+            </div>
+          </div>
         {% endif %}
+      </div>
 
-        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" crossorigin="anonymous"></script>
-        <script>
-        (function () {
-          if (typeof Chart === 'undefined') {
-            return;
+      {% if chart_labels %}
+        {{ chart_labels|json_script:"reading-chart-labels" }}
+        {{ chart_pages|json_script:"reading-chart-pages" }}
+        {{ chart_mediums|json_script:"reading-chart-mediums" }}
+        {{ chart_medium_pages|json_script:"reading-chart-medium-pages" }}
+      {% endif %}
+
+      {% if format_chart_labels %}
+        {{ format_chart_labels|json_script:"reading-format-chart-labels" }}
+        {{ format_chart_values|json_script:"reading-format-chart-values" }}
+        {{ format_chart_palette|json_script:"reading-format-chart-colors" }}
+      {% endif %}
+
+      <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+      <script>
+      (function () {
+        if (typeof Chart === 'undefined') {
+          return;
+        }
+
+        const modernPalette = {
+          paper: {
+            border: '#8B7355',
+            background: 'rgba(139, 115, 85, 0.8)',
+            hover: 'rgba(139, 115, 85, 1)',
+          },
+          ebook: {
+            border: '#A89276',
+            background: 'rgba(168, 146, 118, 0.8)',
+            hover: 'rgba(168, 146, 118, 1)',
+          },
+          audio: {
+            border: '#C4B5A0',
+            background: 'rgba(196, 181, 160, 0.8)',
+            hover: 'rgba(196, 181, 160, 1)',
+          },
+          default: {
+            border: '#8B7355',
+            background: 'rgba(139, 115, 85, 0.6)',
+            hover: 'rgba(139, 115, 85, 0.8)',
           }
+        };
 
-          const historyLabelsEl = document.getElementById('reading-chart-labels');
-          const historyPagesEl = document.getElementById('reading-chart-pages');
-          const historyMediumsEl = document.getElementById('reading-chart-mediums');
-          const historyMediumPagesEl = document.getElementById('reading-chart-medium-pages');
-          const historyCanvas = document.getElementById('readingHistoryChart');
+        const historyLabelsEl = document.getElementById('reading-chart-labels');
+        const historyPagesEl = document.getElementById('reading-chart-pages');
+        const historyMediumsEl = document.getElementById('reading-chart-mediums');
+        const historyMediumPagesEl = document.getElementById('reading-chart-medium-pages');
+        const historyCanvas = document.getElementById('readingHistoryChart');
 
-          if (historyLabelsEl && historyPagesEl && historyMediumsEl && historyMediumPagesEl && historyCanvas) {
-            const labels = JSON.parse(historyLabelsEl.textContent);
-            const pages = JSON.parse(historyPagesEl.textContent);
-            const mediums = JSON.parse(historyMediumsEl.textContent);
-            const mediumPages = JSON.parse(historyMediumPagesEl.textContent);
+        if (historyLabelsEl && historyPagesEl && historyMediumsEl && historyMediumPagesEl && historyCanvas) {
+          const labels = JSON.parse(historyLabelsEl.textContent);
+          const pages = JSON.parse(historyPagesEl.textContent);
+          const mediums = JSON.parse(historyMediumsEl.textContent);
+          const mediumPages = JSON.parse(historyMediumPagesEl.textContent);
 
-            const getPalette = () => {
-              const root = getComputedStyle(document.documentElement);
-              const parseCssColor = (value, fallbackRgb) => {
-                const trimmed = (value || '').trim();
-                if (trimmed.startsWith('#')) {
-                  let hex = trimmed.slice(1);
-                  if (hex.length === 3) {
-                    hex = hex.split('').map((char) => char + char).join('');
-                  }
-                  if (hex.length === 6) {
-                    const intValue = parseInt(hex, 16);
-                    if (!Number.isNaN(intValue)) {
-                      return [
-                        (intValue >> 16) & 255,
-                        (intValue >> 8) & 255,
-                        intValue & 255,
-                      ];
-                    }
-                  }
-                }
-              const rgbMatch = trimmed.match(/rgba?\(([^)]+)\)/i);
-                if (rgbMatch) {
-                  const parts = rgbMatch[1].split(',').map((part) => Number.parseFloat(part.trim()));
-                  if (parts.length >= 3 && parts.slice(0, 3).every((num) => !Number.isNaN(num))) {
-                    return parts.slice(0, 3);
-                  }
-                }
-                return fallbackRgb;
-              };
+          let chartInstance;
 
-            const buildScheme = (rgb, { backgroundAlpha = 0.35, hoverAlpha = 0.45, borderAlpha = 0.9 } = {}) => {
-                const [r, g, b] = rgb;
-                return {
-                  borderColor: `rgba(${r}, ${g}, ${b}, ${borderAlpha})`,
-                  backgroundColor: `rgba(${r}, ${g}, ${b}, ${backgroundAlpha})`,
-                  hoverBackgroundColor: `rgba(${r}, ${g}, ${b}, ${hoverAlpha})`,
-                };
-              };
+          const renderChart = () => {
+            const mediumsWithData = Array.isArray(mediums)
+              ? mediums.filter((medium) => {
+                  const data = mediumPages?.[medium.code];
+                  return Array.isArray(data) && data.some((value) => Number(value) > 0);
+                })
+              : [];
 
-            const primaryRgbRaw = (root.getPropertyValue('--bs-primary-rgb') || '108,92,231').trim();
-              const primaryRgb = primaryRgbRaw.split(',').map((num) => Number.parseFloat(num.trim()));
-              const defaultRgb = primaryRgb.length === 3 && primaryRgb.every((num) => !Number.isNaN(num))
-                ? primaryRgb
-                : [108, 92, 231];
+            const hasMediumData = mediumsWithData.length > 0;
 
-              const palette = {
-                bodyColor: (root.getPropertyValue('--bs-body-color') || '#212529').trim(),
-                border: (root.getPropertyValue('--bs-border-color') || 'rgba(0,0,0,0.1)').trim(),
-                defaultBar: buildScheme(defaultRgb, { backgroundAlpha: 0.25, hoverAlpha: 0.35, borderAlpha: 0.85 }),
-                mediums: {},
-              };
+            const datasets = hasMediumData
+              ? mediumsWithData.map((medium) => {
+                  const color = modernPalette[medium.code] || modernPalette.default;
+                  const data = Array.isArray(mediumPages?.[medium.code])
+                    ? mediumPages[medium.code]
+                    : new Array(labels.length).fill(0);
 
-              palette.mediums.paper = buildScheme(
-                parseCssColor(root.getPropertyValue('--journey-fern'), [123, 119, 82])
-              );
-              palette.mediums.ebook = buildScheme(
-                parseCssColor(root.getPropertyValue('--journey-gold'), [188, 184, 147])
-              );
+                  return {
+                    label: medium.label,
+                    data,
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    borderColor: color.border,
+                    backgroundColor: color.background,
+                    hoverBackgroundColor: color.hover,
+                    maxBarThickness: 40,
+                    categoryPercentage: 0.8,
+                    barPercentage: 0.9,
+                  };
+                })
+              : [{
+                  label: 'Прочитанные страницы',
+                  data: pages,
+                  borderWidth: 2,
+                  borderRadius: 8,
+                  borderColor: modernPalette.default.border,
+                  backgroundColor: modernPalette.default.background,
+                  hoverBackgroundColor: modernPalette.default.hover,
+                  maxBarThickness: 40,
+                  categoryPercentage: 0.8,
+                  barPercentage: 0.9,
+                }];
 
-              return palette;
-            };
+            if (chartInstance) {
+              chartInstance.destroy();
+            }
 
-            let chartInstance;
-
-            const renderChart = () => {
-              const palette = getPalette();
-              if (chartInstance) {
-                chartInstance.destroy();
-              }
-              const mediumsWithData = Array.isArray(mediums)
-                ? mediums.filter((medium) => {
-                    const data = mediumPages?.[medium.code];
-                    return Array.isArray(data) && data.some((value) => Number(value) > 0);
-                  })
-                : [];
-              const hasMediumData = mediumsWithData.length > 0;
-              const datasets = hasMediumData
-                ? mediumsWithData.map((medium) => {
-                    const scheme = palette.mediums?.[medium.code] || palette.defaultBar;
-                    const data = Array.isArray(mediumPages?.[medium.code])
-                      ? mediumPages[medium.code]
-                      : new Array(labels.length).fill(0);
-                    return {
-                      label: medium.label,
-                      data,
-                      borderWidth: 1.5,
-                      borderRadius: 10,
-                      borderColor: scheme.borderColor,
-                      backgroundColor: scheme.backgroundColor,
-                      hoverBackgroundColor: scheme.hoverBackgroundColor,
-                      maxBarThickness: 48,
-                    };
-                  })
-                : [{
-                    data: pages,
-                    borderWidth: 1.5,
-                    borderRadius: 10,
-                    borderColor: palette.defaultBar.borderColor,
-                    backgroundColor: palette.defaultBar.backgroundColor,
-                    hoverBackgroundColor: palette.defaultBar.hoverBackgroundColor,
-                    maxBarThickness: 48,
-                  }];
-              chartInstance = new Chart(historyCanvas.getContext('2d'), {
-                type: 'bar',
-                data: {
-                  labels,
-                  datasets,
+            chartInstance = new Chart(historyCanvas.getContext('2d'), {
+              type: 'bar',
+              data: {
+                labels,
+                datasets,
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                  intersect: false,
+                  mode: 'index',
                 },
-                options: {
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      display: hasMediumData,
-                      labels: {
-                        color: palette.bodyColor,
-                        usePointStyle: true,
-                      },
-                    },
-                    tooltip: {
-                      callbacks: {
-                        title: (context) => context[0]?.label ?? '',
-                        label: (context) => {
-                          const value = context.parsed.y ?? 0;
-                          if (context.dataset?.label) {
-                            return `${context.dataset.label}: ${value} стр.`;
-                          }
-                          return `${value} стр.`;
-                        },
-                        footer: (items) => {
-                          if (!items?.length) {
-                            return '';
-                          }
-                          const total = items.reduce((sum, item) => sum + (item.parsed.y ?? 0), 0);
-                          return `Итого: ${total} стр.`;
-                        },
-                      },
-                    },
+                plugins: {
+                  legend: {
+                    display: false,
                   },
-                  layout: {
-                    padding: { top: 12, right: 12, bottom: 0, left: 12 },
-                  },
-                  scales: {
-                    x: {
-                      stacked: false,
-                      grid: { display: false },
-                      ticks: {
-                        color: palette.bodyColor,
-                        autoSkip: true,
-                        maxRotation: 0,
-                        minRotation: 0,
+                  tooltip: {
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    titleColor: '#2D3748',
+                    bodyColor: '#4A5568',
+                    borderColor: 'rgba(139, 115, 85, 0.2)',
+                    borderWidth: 1,
+                    padding: 12,
+                    cornerRadius: 8,
+                    boxPadding: 6,
+                    usePointStyle: true,
+                    callbacks: {
+                      title: (context) => context[0]?.label ?? '',
+                      label: (context) => {
+                        const value = context.parsed.y ?? 0;
+                        if (context.dataset?.label) {
+                          return `${context.dataset.label}: ${value} стр.`;
+                        }
+                        return `${value} стр.`;
                       },
-                      },
-                    y: {
-                      stacked: false,
-                      beginAtZero: true,
-                      grid: {
-                        color: palette.border,
-                        drawBorder: false,
-                      },
-                      ticks: {
-                        color: palette.bodyColor,
-                        precision: 0,
-                        callback: (value) => `${value} стр.`,
+                      footer: (items) => {
+                        if (!items?.length) return '';
+                        const total = items.reduce((sum, item) => sum + (item.parsed.y ?? 0), 0);
+                        return `Итого: ${total} стр.`;
                       },
                     },
                   },
                 },
-                });
-            };
-
-            renderChart();
-            document.getElementById('themeToggle')?.addEventListener('click', () => {
-              requestAnimationFrame(renderChart);
+                scales: {
+                  x: {
+                    grid: {
+                      display: false,
+                      drawBorder: false,
+                    },
+                    ticks: {
+                      color: '#718096',
+                      font: {
+                        size: 11,
+                      },
+                      maxRotation: 45,
+                    },
+                  },
+                  y: {
+                    beginAtZero: true,
+                    grid: {
+                      color: 'rgba(0, 0, 0, 0.04)',
+                      drawBorder: false,
+                    },
+                    ticks: {
+                      color: '#718096',
+                      padding: 8,
+                      callback: (value) => `${value} стр.`,
+                    },
+                  },
+                },
+                animation: {
+                  duration: 1000,
+                  easing: 'easeOutQuart',
+                },
+              },
             });
-          }
+          };
 
-          const formatLabelsEl = document.getElementById('reading-format-chart-labels');
-          const formatValuesEl = document.getElementById('reading-format-chart-values');
-          const formatColorsEl = document.getElementById('reading-format-chart-colors');
-          const formatCanvas = document.getElementById('readingFormatChart');
+          renderChart();
+        }
 
-          if (formatLabelsEl && formatValuesEl && formatColorsEl && formatCanvas) {
-            const labels = JSON.parse(formatLabelsEl.textContent);
-            const values = JSON.parse(formatValuesEl.textContent);
-            const colors = JSON.parse(formatColorsEl.textContent);
-            let formatChartInstance;
+        const formatLabelsEl = document.getElementById('reading-format-chart-labels');
+        const formatValuesEl = document.getElementById('reading-format-chart-values');
+        const formatColorsEl = document.getElementById('reading-format-chart-colors');
+        const formatCanvas = document.getElementById('readingFormatChart');
 
-            const renderFormatChart = () => {
-              const root = getComputedStyle(document.documentElement);
-              const bodyColor = (root.getPropertyValue('--bs-body-color') || '#212529').trim();
-              if (formatChartInstance) {
-                formatChartInstance.destroy();
-              }
-              formatChartInstance = new Chart(formatCanvas.getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                  labels,
-                  datasets: [
-                    {
-                      data: values,
-                      backgroundColor: colors,
-                      borderColor: '#fff',
-                      borderWidth: 2,
-                    },
-                  ],
-                },
-                options: {
-                  responsive: true,
-                  plugins: {
-                    legend: {
-                      position: 'bottom',
-                      labels: {
-                        color: bodyColor,
+        if (formatLabelsEl && formatValuesEl && formatColorsEl && formatCanvas) {
+          const labels = JSON.parse(formatLabelsEl.textContent);
+          const values = JSON.parse(formatValuesEl.textContent);
+          const colors = JSON.parse(formatColorsEl.textContent);
+
+          const modernColors = labels.map((label, index) => {
+            const lowerLabel = label.toLowerCase();
+            if (lowerLabel.includes('бумаж')) return modernPalette.paper.background;
+            if (lowerLabel.includes('электрон')) return modernPalette.ebook.background;
+            if (lowerLabel.includes('аудио')) return modernPalette.audio.background;
+            return modernPalette.default.background;
+          });
+
+          let formatChartInstance;
+
+          const renderFormatChart = () => {
+            if (formatChartInstance) {
+              formatChartInstance.destroy();
+            }
+
+            formatChartInstance = new Chart(formatCanvas.getContext('2d'), {
+              type: 'doughnut',
+              data: {
+                labels,
+                datasets: [
+                  {
+                    data: values,
+                    backgroundColor: modernColors,
+                    borderColor: '#ffffff',
+                    borderWidth: 3,
+                    borderRadius: 6,
+                    hoverBorderWidth: 4,
+                    hoverOffset: 8,
+                  },
+                ],
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                  legend: {
+                    position: 'bottom',
+                    labels: {
+                      color: '#4A5568',
+                      padding: 20,
+                      usePointStyle: true,
+                      pointStyle: 'circle',
+                      font: {
+                        size: 12,
+                        weight: '500',
                       },
                     },
-                    tooltip: {
-                      callbacks: {
-                        label: (context) => {
-                          const label = context.label ?? '';
-                          const value = context.parsed ?? 0;
-                          return `${label}: ${value}%`;
-                        },
+                  },
+                  tooltip: {
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    titleColor: '#2D3748',
+                    bodyColor: '#4A5568',
+                    borderColor: 'rgba(139, 115, 85, 0.2)',
+                    borderWidth: 1,
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                      label: (context) => {
+                        const label = context.label ?? '';
+                        const value = context.parsed ?? 0;
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = total ? ((value / total) * 100).toFixed(1) : '0.0';
+                        return `${label}: ${value}% (${percentage}%)`;
                       },
                     },
                   },
                 },
-              });
-            };
-
-            renderFormatChart();
-            document.getElementById('themeToggle')?.addEventListener('click', () => {
-              requestAnimationFrame(renderFormatChart);
+                animation: {
+                  animateScale: true,
+                  animateRotate: true,
+                  duration: 1000,
+                  easing: 'easeOutQuart',
+                },
+              },
             });
-          }
-        })();
+          };
+
+          renderFormatChart();
+        }
+      })();
       </script>
-      {% endif %}
+    {% endif %}
 
-      {% if audio_logs %}
-        <div class="table-responsive">
-          <table class="table table-sm align-middle mb-0">
-            <thead>
+    {% if audio_logs %}
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead>
+            <tr>
+              <th scope="col">Дата</th>
+              <th scope="col">Формат</th>
+              <th scope="col">Прогресс</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in audio_logs %}
               <tr>
-                <th scope="col">Дата</th>
-                <th scope="col">Формат</th>
-                <th scope="col">Прогресс</th>
+                <td>{{ log.log_date|date:"d.m.Y" }}</td>
+                <td>{{ log.get_medium_display }}</td>
+                <td>
+                  {% if log.audio_duration_display %}
+                    {{ log.audio_duration_display }}
+                  {% else %}
+                    {{ log.pages_equivalent|floatformat:-2 }} стр.
+                  {% endif %}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {% for log in audio_logs %}
-                <tr>
-                  <td>{{ log.log_date|date:"d.m.Y" }}</td>
-                  <td>{{ log.get_medium_display }}</td>
-                  <td>
-                    {% if log.audio_duration_display %}
-                      {{ log.audio_duration_display }}
-                    {% else %}
-                      {{ log.pages_equivalent|floatformat:-2 }} стр.
-                    {% endif %}
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% elif chart_labels %}
-        <p class="text-muted mb-0">Пока нет записей по аудиокниге.</p>
-      {% else %}
-        <p class="text-muted mb-0">Пока нет записей о прочитанных страницах.</p>
-      {% endif %}
-    </div>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% elif chart_labels %}
+      <p class="text-muted mb-0">Пока нет записей по аудиокниге.</p>
+    {% else %}
+      <p class="text-muted mb-0">Пока нет записей о прочитанных страницах.</p>
+    {% endif %}
   </section>
-
   <!-- Остальные секции (герои, цитаты, заметки) остаются без изменений -->
   <!-- Для экономии места я их опущу, но они должны быть в вашем оригинальном файле -->
   <section class="reading-section">
