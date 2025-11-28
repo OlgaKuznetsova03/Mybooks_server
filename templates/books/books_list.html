@@ -698,11 +698,14 @@
                               <i class="bi bi-bookmark-check-fill me-1"></i>На полке «{{ status.label }}»
                             </span>
                           {% else %}
-                            <form method="post" action="{% url 'shelves:quick_add_shelf' b.pk 'want' %}">
-                              {% csrf_token %}
-                              <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                              <button class="btn btn-outline-primary btn-sm" type="submit">«Хочу прочитать»</button>
-                            </form>
+                            <button
+                              class="btn btn-outline-primary btn-sm"
+                              type="button"
+                              data-role="open-shelf-modal"
+                              data-book-id="{{ b.pk }}"
+                              data-book-title="{{ b.title|escapejs }}"
+                              data-action-url="{% url 'book_detail' b.pk %}"
+                            >Выбрать полку</button>
                           {% endif %}
                         {% endwith %}
                       </div>
@@ -781,8 +784,160 @@
 {% endif %}
 {% endblock %}
 
+{% if request.user.is_authenticated and quick_add_form %}
+  <!-- Modal: Добавить книгу на полку -->
+  <div class="modal fade shelf-modal" id="listAddToShelfModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content" method="post">
+        <div class="modal-header">
+          <h5 class="modal-title">Добавить «<span data-role="shelf-modal-book-title">книгу</span>» на полку</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        </div>
+        <div class="modal-body">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="quick-add-shelf">
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+          <div class="mb-3">
+            <label class="form-label">Выберите полку</label>
+            {{ quick_add_form.shelf }}
+          </div>
+
+          <div class="date-fields d-none" id="listReadShelfFields">
+            <div class="mb-3">
+              <label class="form-label small">Дата прочтения</label>
+              {{ quick_add_form.read_at }}
+            </div>
+            <div class="mb-3">
+              <label class="form-label small">Цитата <span class="text-muted">(необязательно)</span></label>
+              {{ quick_add_form.quote }}
+            </div>
+            <div class="mb-0">
+              <label class="form-label small">Заметка <span class="text-muted">(необязательно)</span></label>
+              {{ quick_add_form.note }}
+            </div>
+          </div>
+
+          <div class="d-none" id="listHomeLibraryFields">
+            <div class="mb-3">
+              <label class="form-label small">Дата покупки</label>
+              {{ quick_add_form.purchase_date }}
+            </div>
+
+            <div class="form-check mb-3">
+              {{ quick_add_form.mark_as_read }}
+              <label class="form-check-label small" for="{{ quick_add_form.mark_as_read.id_for_label }}">Книга прочитана</label>
+            </div>
+
+            <div class="mb-0 d-none" data-role="home-library-read-date-wrapper">
+              <label class="form-label small">Дата прочтения</label>
+              {{ quick_add_form.read_date }}
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">Закрыть</button>
+          <button type="submit" class="btn btn-primary">Добавить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endif %}
+
 {% block extra_js %}
   {{ block.super }}
+  <script>
+    (function() {
+      const shelfModal = document.getElementById('listAddToShelfModal');
+      if (!shelfModal) return;
+
+      const shelfForm = shelfModal.querySelector('form');
+      const shelfSelect = shelfModal.querySelector('[data-role="shelf-select"]');
+      const readFields = document.getElementById('listReadShelfFields');
+      const homeLibraryFields = document.getElementById('listHomeLibraryFields');
+      const homeLibraryPurchaseInput = shelfModal.querySelector('[data-role="home-library-purchase-date"]');
+      const homeLibraryMarkAsRead = shelfModal.querySelector('[data-role="home-library-mark-read"]');
+      const homeLibraryReadDateWrapper = shelfModal.querySelector('[data-role="home-library-read-date-wrapper"]');
+      const homeLibraryReadDateInput = shelfModal.querySelector('[data-role="home-library-read-date"]');
+      const readAtInput = shelfModal.querySelector('input[name="read_at"]');
+      const quoteInput = shelfModal.querySelector('textarea[name="quote"]');
+      const noteInput = shelfModal.querySelector('textarea[name="note"]');
+      const readShelfIds = {{ read_shelf_ids_str|default:'[]'|safe }};
+      const homeLibraryShelfId = {{ home_library_shelf_id|default:'null' }};
+
+      const resetReadFields = () => {
+        if (readAtInput) readAtInput.value = '';
+        if (quoteInput) quoteInput.value = '';
+        if (noteInput) noteInput.value = '';
+      };
+
+      const updateFieldVisibility = (shelfId) => {
+        const normalizedId = shelfId != null ? String(shelfId) : '';
+        const isReadShelf = readShelfIds.includes(normalizedId);
+        const isHomeLibrary = Boolean(homeLibraryShelfId) && String(homeLibraryShelfId) === normalizedId;
+
+        if (readFields) {
+          readFields.classList.toggle('d-none', !isReadShelf);
+          if (!isReadShelf) {
+            resetReadFields();
+          }
+        }
+
+        if (homeLibraryFields) {
+          homeLibraryFields.classList.toggle('d-none', !isHomeLibrary);
+        }
+
+        if (!isHomeLibrary) {
+          if (homeLibraryPurchaseInput) homeLibraryPurchaseInput.value = '';
+          if (homeLibraryMarkAsRead) homeLibraryMarkAsRead.checked = false;
+        }
+
+        const shouldShowHomeLibraryReadDate = isHomeLibrary && homeLibraryMarkAsRead?.checked;
+        if (homeLibraryReadDateWrapper) {
+          homeLibraryReadDateWrapper.classList.toggle('d-none', !shouldShowHomeLibraryReadDate);
+        }
+        if (homeLibraryReadDateInput) {
+          homeLibraryReadDateInput.disabled = !shouldShowHomeLibraryReadDate;
+          if (shouldShowHomeLibraryReadDate && !homeLibraryReadDateInput.value) {
+            homeLibraryReadDateInput.value = new Date().toISOString().split('T')[0];
+          }
+          if (!shouldShowHomeLibraryReadDate) {
+            homeLibraryReadDateInput.value = '';
+          }
+        }
+      };
+
+      document.querySelectorAll('[data-role="open-shelf-modal"]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const modalTitleTarget = shelfModal.querySelector('[data-role="shelf-modal-book-title"]');
+          const bookTitle = button.getAttribute('data-book-title') || 'книгу';
+          if (modalTitleTarget) modalTitleTarget.textContent = bookTitle;
+
+          const actionUrl = button.getAttribute('data-action-url');
+          if (shelfForm && actionUrl) {
+            shelfForm.action = actionUrl;
+          }
+
+          shelfForm?.reset();
+          const actionInput = shelfForm?.querySelector('input[name="action"]');
+          if (actionInput) actionInput.value = 'quick-add-shelf';
+
+          updateFieldVisibility(shelfSelect?.value);
+
+          const modalInstance = bootstrap.Modal.getOrCreateInstance(shelfModal);
+          modalInstance.show();
+        });
+      });
+
+      shelfSelect?.addEventListener('change', (event) => {
+        updateFieldVisibility(event.target.value);
+      });
+
+      homeLibraryMarkAsRead?.addEventListener('change', () => {
+        updateFieldVisibility(shelfSelect?.value);
+      });
+    })();
+  </script>
   <script>
     // Очистка поиска
     document.querySelector('[data-clear-search]')?.addEventListener('click', (event) => {

@@ -776,6 +776,24 @@
             <textarea class="form-control" name="note" rows="2" placeholder="Ваши впечатления о книге..."></textarea>
           </div>
         </div>
+
+        <!-- Дополнительные поля для полки "Моя домашняя библиотека" -->
+        <div class="d-none" id="homeLibraryFields">
+          <div class="mb-3">
+            <label class="form-label small">Дата покупки</label>
+            <input type="date" class="form-control" name="purchase_date" id="modalShelfPurchaseDate">
+          </div>
+
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="mark_as_read" id="modalShelfMarkAsRead">
+            <label class="form-check-label small" for="modalShelfMarkAsRead">Книга прочитана</label>
+          </div>
+
+          <div class="mb-0 d-none" id="modalShelfReadDateField">
+            <label class="form-label small">Дата прочтения</label>
+            <input type="date" class="form-control" name="read_date" id="modalShelfReadDate" disabled>
+          </div>
+        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">Закрыть</button>
@@ -843,14 +861,53 @@
     if (shelfModal) {
       const shelfSelect = document.getElementById('modalShelfSelect');
       const readFields = document.getElementById('readShelfFields');
-      const readShelfIds = {{ read_shelf_ids_str|join:','|default:'[]'|safe }};
-      
+      const homeLibraryFields = document.getElementById('homeLibraryFields');
+      const homeLibraryShelfId = {{ home_library_shelf_id|default:'null' }};
+      const homeLibraryMarkAsRead = document.getElementById('modalShelfMarkAsRead');
+      const homeLibraryReadDateField = document.getElementById('modalShelfReadDateField');
+      const homeLibraryReadDateInput = document.getElementById('modalShelfReadDate');
+      const readShelfIds = {{ read_shelf_ids_str|default:'[]'|safe }};
+
+      const toggleHomeLibraryFields = (isHomeLibrary) => {
+        if (homeLibraryFields) {
+          homeLibraryFields.classList.toggle('d-none', !isHomeLibrary);
+        }
+        if (!isHomeLibrary && homeLibraryMarkAsRead) {
+          homeLibraryMarkAsRead.checked = false;
+        }
+        if (homeLibraryReadDateField && homeLibraryReadDateInput) {
+          const shouldShowReadDate = isHomeLibrary && homeLibraryMarkAsRead?.checked;
+          homeLibraryReadDateField.classList.toggle('d-none', !shouldShowReadDate);
+          homeLibraryReadDateInput.disabled = !shouldShowReadDate;
+          if (shouldShowReadDate && !homeLibraryReadDateInput.value) {
+            homeLibraryReadDateInput.value = new Date().toISOString().split('T')[0];
+          }
+          if (!shouldShowReadDate) {
+            homeLibraryReadDateInput.value = '';
+          }
+        }
+      };
+
       shelfSelect?.addEventListener('change', function() {
         const isReadShelf = readShelfIds.includes(this.value);
+        const isHomeLibrary = Boolean(homeLibraryShelfId) && String(homeLibraryShelfId) === String(this.value);
         if (readFields) {
           readFields.classList.toggle('d-none', !isReadShelf);
         }
+        toggleHomeLibraryFields(isHomeLibrary);
       });
+
+      homeLibraryMarkAsRead?.addEventListener('change', function() {
+        toggleHomeLibraryFields(!homeLibraryFields?.classList.contains('d-none'));
+      });
+
+      if (shelfSelect) {
+        const selectedValue = shelfSelect.value;
+        const isReadShelf = readShelfIds.includes(selectedValue);
+        const isHomeLibrary = Boolean(homeLibraryShelfId) && String(homeLibraryShelfId) === String(selectedValue);
+        readFields?.classList.toggle('d-none', !isReadShelf);
+        toggleHomeLibraryFields(isHomeLibrary);
+      }
     }
 
     // Обработка модального окна домашней библиотеки
