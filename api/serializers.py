@@ -84,6 +84,65 @@ class BookDetailSerializer(BookListSerializer):
         return IsbnSerializer(primary).data
 
 
+class BookCreateSerializer(serializers.ModelSerializer):
+    author_names = serializers.ListField(
+        child=serializers.CharField(max_length=255),
+        allow_empty=True,
+        required=False,
+        write_only=True,
+    )
+    genre_names = serializers.ListField(
+        child=serializers.CharField(max_length=150),
+        allow_empty=True,
+        required=False,
+        write_only=True,
+    )
+
+    class Meta:
+        model = Book
+        fields = [
+            "title",
+            "synopsis",
+            "series",
+            "series_order",
+            "language",
+            "age_rating",
+            "author_names",
+            "genre_names",
+        ]
+
+    def create(self, validated_data):
+        from books.utils import normalize_genre_name
+
+        author_names = validated_data.pop("author_names", []) or []
+        genre_names = validated_data.pop("genre_names", []) or []
+
+        book = Book.objects.create(**validated_data)
+
+        authors: list[Author] = []
+        for raw_name in author_names:
+            name = raw_name.strip()
+            if not name:
+                continue
+            author, _ = Author.objects.get_or_create(name=name)
+            authors.append(author)
+
+        genres: list[Genre] = []
+        for raw_name in genre_names:
+            normalized = normalize_genre_name(raw_name)
+            if not normalized:
+                continue
+            genre, _ = Genre.objects.get_or_create(name=normalized)
+            genres.append(genre)
+
+        if authors:
+            book.authors.set(authors)
+        if genres:
+            book.genres.set(genres)
+
+        return book
+
+
 class ReadingClubSerializer(serializers.ModelSerializer):
     book = BookListSerializer(read_only=True)
     status = serializers.SerializerMethodField()

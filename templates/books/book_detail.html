@@ -150,6 +150,63 @@
     @media (min-width: 992px){
       .book-appbar{ --appbar-gap: 24px; }
     }
+
+    /* =========================
+       Мобильные улучшения
+       ========================= */
+    @media (max-width: 991.98px) {
+      /* Переносим формы под обложку */
+      .book-detail-layout__aside {
+        order: -1;
+        margin-bottom: 1.5rem;
+      }
+      
+      /* Компактные кнопки действий */
+      .book-detail-actions-mobile {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        justify-content: center;
+      }
+      
+      .book-detail-actions-mobile .btn {
+        flex: 1;
+        min-width: 140px;
+        max-width: 200px;
+      }
+      
+      /* Скрываем сложные формы на мобильных */
+      .book-detail-shelf-form,
+      .home-library-form-desktop {
+        display: none !important;
+      }
+    }
+    
+    @media (min-width: 992px) {
+      /* Скрываем мобильные кнопки на десктопе */
+      .book-detail-actions-mobile {
+        display: none !important;
+      }
+    }
+    
+    /* Улучшения для модальных окон */
+    .shelf-modal .modal-dialog {
+      max-width: 400px;
+    }
+    
+    .shelf-modal .form-control:focus,
+    .shelf-modal .form-select:focus {
+      border-color: #d59a6d;
+      box-shadow: 0 0 0 0.2rem rgba(213, 154, 109, 0.25);
+    }
+    
+    .date-fields {
+      background: #f8f9fa;
+      border-radius: 0.375rem;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
   </style>
 {% endblock %}
 
@@ -219,6 +276,31 @@
           </div>
         {% endif %}
       </div>
+
+      <!-- Мобильные кнопки действий -->
+      {% if user.is_authenticated %}
+      <div class="book-detail-actions-mobile">
+        {% if default_shelf_status %}
+          <div class="w-100 text-center bg-light border rounded px-3 py-2 small mb-2">
+            {% if default_shelf_status.code == 'read' %}
+              Книга прочитана{% if default_shelf_status.added_at %} {{ default_shelf_status.added_at|date:"d.m.Y" }}{% endif %}.
+            {% else %}
+              Книга находится на полке «{{ default_shelf_status.label }}».
+            {% endif %}
+          </div>
+        {% else %}
+          <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addToShelfModal">
+            Добавить на полку
+          </button>
+        {% endif %}
+        
+        {% if home_library_form %}
+          <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#homeLibraryModal">
+            В домашнюю библиотеку
+          </button>
+        {% endif %}
+      </div>
+      {% endif %}
 
       {% if show_cover_thumbnails %}
       {% url 'book_detail' book.pk as book_detail_url %}
@@ -403,7 +485,8 @@
       </div>
 
       {% if request.user.is_authenticated %}
-        <div class="book-detail-actions d-flex flex-wrap gap-2" aria-label="Быстрые действия">
+        <!-- Десктопные формы (скрыты на мобильных) -->
+        <div class="book-detail-actions d-none d-lg-flex flex-wrap gap-2" aria-label="Быстрые действия">
           {% if default_shelf_status %}
             <div class="bg-light border rounded px-3 py-2 small">
               {% if default_shelf_status.code == 'read' %}
@@ -473,7 +556,7 @@
         </div>
 
         {% if home_library_form %}
-          <div class="card border-0 shadow-sm mb-3">
+          <div class="card border-0 shadow-sm mb-3 home-library-form-desktop">
             <div class="card-body">
               <h2 class="h6 mb-3">Домашняя библиотека</h2>
               <form method="post" action="{% url 'book_detail' book.pk %}" class="row g-2 align-items-end">
@@ -656,34 +739,84 @@
   </div>
 </div>
 
-<!-- Modal: Добавить в полку (прототип) -->
-<div class="modal fade" id="addToShelfModal" tabindex="-1" aria-hidden="true">
+<!-- Modal: Добавить в полку -->
+<div class="modal fade shelf-modal" id="addToShelfModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
-    <form class="modal-content" method="post" action="#">
+    <form class="modal-content" method="post" action="{% url 'book_detail' book.pk %}">
       <div class="modal-header">
         <h5 class="modal-title">Добавить «{{ book.title }}» на полку</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
       </div>
       <div class="modal-body">
         {% csrf_token %}
+        <input type="hidden" name="action" value="quick-add-shelf">
+        
         <div class="mb-3">
           <label class="form-label">Выберите полку</label>
-          <select class="form-select" name="shelf">
+          <select class="form-select" name="shelf" id="modalShelfSelect" required>
             <option value="" selected disabled>— выбрать —</option>
-            <option>Хочу прочитать</option>
-            <option>Читаю</option>
-            <option>Прочитано</option>
+            {% for shelf in quick_add_form.shelf.field.queryset %}
+              <option value="{{ shelf.id }}">{{ shelf.name }}</option>
+            {% endfor %}
           </select>
-          <div class="form-text">Позже здесь будут ваши пользовательские полки.</div>
         </div>
-        <div class="mb-3">
-          <label class="form-label">Или создайте новую</label>
-          <input type="text" class="form-control" name="new_shelf" placeholder="Например, Любимые фэнтези">
+
+        <!-- Дополнительные поля для полки "Прочитано" -->
+        <div class="date-fields d-none" id="readShelfFields">
+          <div class="mb-3">
+            <label class="form-label small">Дата прочтения</label>
+            <input type="date" class="form-control" name="read_at" id="modalReadAt">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small">Цитата <span class="text-muted">(необязательно)</span></label>
+            <textarea class="form-control" name="quote" rows="2" placeholder="Запомнившаяся цитата из книги..."></textarea>
+          </div>
+          <div class="mb-0">
+            <label class="form-label small">Заметка <span class="text-muted">(необязательно)</span></label>
+            <textarea class="form-control" name="note" rows="2" placeholder="Ваши впечатления о книге..."></textarea>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">Закрыть</button>
         <button type="submit" class="btn btn-primary">Добавить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Домашняя библиотека -->
+<div class="modal fade shelf-modal" id="homeLibraryModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{% url 'book_detail' book.pk %}">
+      <div class="modal-header">
+        <h5 class="modal-title">Добавить в домашнюю библиотеку</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="home-library-add">
+        
+        <div class="mb-3">
+          <label class="form-label small">Дата покупки</label>
+          <input type="date" class="form-control" name="purchase_date" id="modalPurchaseDate">
+        </div>
+        
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" name="mark_as_read" id="modalMarkAsRead">
+          <label class="form-check-label small" for="modalMarkAsRead">Отметить как прочитанную</label>
+        </div>
+        
+        <div class="mb-0 d-none" id="modalReadDateField">
+          <label class="form-label small">Дата прочтения</label>
+          <input type="date" class="form-control" name="read_date" id="modalReadDate" disabled>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">Закрыть</button>
+        <button type="submit" class="btn btn-primary">
+          {% if home_library_item %}Обновить{% else %}Добавить{% endif %}
+        </button>
       </div>
     </form>
   </div>
@@ -705,6 +838,41 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', () => {
+    // Обработка модального окна добавления на полку
+    const shelfModal = document.getElementById('addToShelfModal');
+    if (shelfModal) {
+      const shelfSelect = document.getElementById('modalShelfSelect');
+      const readFields = document.getElementById('readShelfFields');
+      const readShelfIds = {{ read_shelf_ids_str|join:','|default:'[]'|safe }};
+      
+      shelfSelect?.addEventListener('change', function() {
+        const isReadShelf = readShelfIds.includes(this.value);
+        if (readFields) {
+          readFields.classList.toggle('d-none', !isReadShelf);
+        }
+      });
+    }
+
+    // Обработка модального окна домашней библиотеки
+    const homeLibraryModal = document.getElementById('homeLibraryModal');
+    if (homeLibraryModal) {
+      const markAsRead = document.getElementById('modalMarkAsRead');
+      const readDateField = document.getElementById('modalReadDateField');
+      const readDateInput = document.getElementById('modalReadDate');
+      
+      markAsRead?.addEventListener('change', function() {
+        const shouldShow = this.checked;
+        readDateField?.classList.toggle('d-none', !shouldShow);
+        if (readDateInput) {
+          readDateInput.disabled = !shouldShow;
+          if (shouldShow && !readDateInput.value) {
+            readDateInput.value = new Date().toISOString().split('T')[0];
+          }
+        }
+      });
+    }
+
+    // Остальной существующий JavaScript код...
     const parseRatingValue = (value) => {
       if (value === null || value === undefined) return null;
       const numeric = Number.parseInt(value, 10);

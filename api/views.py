@@ -2,7 +2,7 @@ from django.db.models import Count, IntegerField, OuterRef, Q, Subquery, Sum, Va
 from datetime import timedelta
 from django.db.models.functions import Coalesce
 from django.utils import timezone
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -13,6 +13,7 @@ from shelves.models import BookProgress, ReadingLog, Shelf, ShelfItem
 
 from .pagination import StandardResultsSetPagination
 from .serializers import (
+    BookCreateSerializer,
     BookDetailSerializer,
     BookListSerializer,
     ReadingClubSerializer,
@@ -80,18 +81,47 @@ class FeatureMapView(APIView):
         )
 
 
-class BookListView(generics.ListAPIView):
+class BookListView(generics.ListCreateAPIView):
     """Lightweight list of books for the new mobile client."""
 
-    serializer_class = BookListSerializer
     pagination_class = StandardResultsSetPagination
 
+    def get_serializer_class(self):
+        if self.request.method == "POST":
+            return BookCreateSerializer
+        return BookListSerializer
+
     def get_queryset(self):
-        return (
+        queryset = (
             Book.objects.select_related("primary_isbn")
             .prefetch_related("authors", "genres", "isbn")
             .order_by("-created_at", "-id")
         )
+
+        query = (
+            self.request.query_params.get("q")
+            or self.request.query_params.get("query")
+            or self.request.query_params.get("search")
+        )
+        if query:
+            cleaned = query.strip()
+            if cleaned:
+                queryset = queryset.filter(
+                    Q(title__icontains=cleaned)
+                    | Q(synopsis__icontains=cleaned)
+                    | Q(authors__name__icontains=cleaned)
+                    | Q(genres__name__icontains=cleaned)
+                ).distinct()
+
+        return queryset
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        book = serializer.save()
+        detail = BookDetailSerializer(book, context={"request": request})
+        headers = self.get_success_headers(detail.data)
+        return Response(detail.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
 class BookDetailView(generics.RetrieveAPIView):
