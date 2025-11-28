@@ -308,6 +308,8 @@
                               data-book-id="{{ book_id }}"
                               data-book-title="{{ entry.title|escapejs }}"
                               data-action-url="{% url 'book_detail' book_id %}"
+                              data-bs-toggle="modal"
+                              data-bs-target="#listAddToShelfModal"
                             >Выбрать полку</button>
                           {% else %}
                             <form method="post" action="{% url 'shelves:quick_add_shelf' book_id 'want' %}">

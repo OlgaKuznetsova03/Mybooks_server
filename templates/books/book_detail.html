@@ -744,7 +744,7 @@
   <div class="modal-dialog">
     <form class="modal-content" method="post" action="{% url 'book_detail' book.pk %}">
       <div class="modal-header">
-        <h5 class="modal-title">Добавить «{{ book.title }}» на полку</h5>
+        <h5 class="modal-title">Добавить «<span data-role="shelf-modal-book-title">{{ book.title }}</span>» на полку</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
       </div>
       <div class="modal-body">
@@ -859,6 +859,7 @@
     // Обработка модального окна добавления на полку
     const shelfModal = document.getElementById('addToShelfModal');
     if (shelfModal) {
+      const shelfForm = shelfModal.querySelector('form');
       const shelfSelect = document.getElementById('modalShelfSelect');
       const readFields = document.getElementById('readShelfFields');
       const homeLibraryFields = document.getElementById('homeLibraryFields');
@@ -866,15 +867,36 @@
       const homeLibraryMarkAsRead = document.getElementById('modalShelfMarkAsRead');
       const homeLibraryReadDateField = document.getElementById('modalShelfReadDateField');
       const homeLibraryReadDateInput = document.getElementById('modalShelfReadDate');
-      const readShelfIds = {{ read_shelf_ids_str|default:'[]'|safe }};
+      const readAtInput = document.getElementById('modalReadAt');
+      const quoteInput = shelfModal.querySelector('textarea[name="quote"]');
+      const noteInput = shelfModal.querySelector('textarea[name="note"]');
+      const readShelfIds = ({{ read_shelf_ids_str|default:'[]'|safe }} || []).map(String);
 
-      const toggleHomeLibraryFields = (isHomeLibrary) => {
+      const resetReadFields = () => {
+        if (readAtInput) readAtInput.value = '';
+        if (quoteInput) quoteInput.value = '';
+        if (noteInput) noteInput.value = '';
+      };
+
+      const updateFieldVisibility = (selectedShelfId) => {
+        const shelfIdStr = selectedShelfId != null ? String(selectedShelfId) : '';
+        const isReadShelf = readShelfIds.includes(shelfIdStr);
+        const isHomeLibrary = Boolean(homeLibraryShelfId) && String(homeLibraryShelfId) === shelfIdStr;
+
+        if (readFields) {
+          readFields.classList.toggle('d-none', !isReadShelf);
+        }
+        if (!isReadShelf) {
+          resetReadFields();
+        }
+
         if (homeLibraryFields) {
           homeLibraryFields.classList.toggle('d-none', !isHomeLibrary);
         }
         if (!isHomeLibrary && homeLibraryMarkAsRead) {
           homeLibraryMarkAsRead.checked = false;
         }
+
         if (homeLibraryReadDateField && homeLibraryReadDateInput) {
           const shouldShowReadDate = isHomeLibrary && homeLibraryMarkAsRead?.checked;
           homeLibraryReadDateField.classList.toggle('d-none', !shouldShowReadDate);
@@ -889,25 +911,37 @@
       };
 
       shelfSelect?.addEventListener('change', function() {
-        const isReadShelf = readShelfIds.includes(this.value);
-        const isHomeLibrary = Boolean(homeLibraryShelfId) && String(homeLibraryShelfId) === String(this.value);
-        if (readFields) {
-          readFields.classList.toggle('d-none', !isReadShelf);
-        }
-        toggleHomeLibraryFields(isHomeLibrary);
+        updateFieldVisibility(this.value);
       });
 
       homeLibraryMarkAsRead?.addEventListener('change', function() {
-        toggleHomeLibraryFields(!homeLibraryFields?.classList.contains('d-none'));
+        updateFieldVisibility(shelfSelect?.value);
       });
 
-      if (shelfSelect) {
-        const selectedValue = shelfSelect.value;
-        const isReadShelf = readShelfIds.includes(selectedValue);
-        const isHomeLibrary = Boolean(homeLibraryShelfId) && String(homeLibraryShelfId) === String(selectedValue);
-        readFields?.classList.toggle('d-none', !isReadShelf);
-        toggleHomeLibraryFields(isHomeLibrary);
-      }
+      document.querySelectorAll('[data-role="open-shelf-modal"]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const modalTitleTarget = shelfModal.querySelector('[data-role="shelf-modal-book-title"]');
+          const bookTitle = button.getAttribute('data-book-title') || 'книгу';
+          if (modalTitleTarget) modalTitleTarget.textContent = bookTitle;
+
+          const actionUrl = button.getAttribute('data-action-url');
+          if (shelfForm && actionUrl) {
+            shelfForm.action = actionUrl;
+          }
+
+          shelfForm?.reset();
+          if (homeLibraryReadDateInput) {
+            homeLibraryReadDateInput.value = '';
+          }
+
+          updateFieldVisibility(shelfSelect?.value);
+
+          const modalInstance = bootstrap.Modal.getOrCreateInstance(shelfModal);
+          modalInstance.show();
+        });
+      });
+
+      updateFieldVisibility(shelfSelect?.value);
     }
 
     // Обработка модального окна домашней библиотеки

@@ -705,6 +705,8 @@
                               data-book-id="{{ b.pk }}"
                               data-book-title="{{ b.title|escapejs }}"
                               data-action-url="{% url 'book_detail' b.pk %}"
+                              data-bs-toggle="modal"
+                              data-bs-target="#listAddToShelfModal"
                             >Выбрать полку</button>
                           {% endif %}
                         {% endwith %}
@@ -907,26 +909,29 @@
         }
       };
 
-      document.querySelectorAll('[data-role="open-shelf-modal"]').forEach((button) => {
-        button.addEventListener('click', () => {
-          const modalTitleTarget = shelfModal.querySelector('[data-role="shelf-modal-book-title"]');
-          const bookTitle = button.getAttribute('data-book-title') || 'книгу';
-          if (modalTitleTarget) modalTitleTarget.textContent = bookTitle;
+      shelfModal.addEventListener('show.bs.modal', (event) => {
+        const trigger = event.relatedTarget;
+        if (!trigger) return;
 
-          const actionUrl = button.getAttribute('data-action-url');
-          if (shelfForm && actionUrl) {
-            shelfForm.action = actionUrl;
-          }
+        shelfForm?.reset();
 
-          shelfForm?.reset();
-          const actionInput = shelfForm?.querySelector('input[name="action"]');
-          if (actionInput) actionInput.value = 'quick-add-shelf';
+        const modalTitleTarget = shelfModal.querySelector('[data-role="shelf-modal-book-title"]');
+        const bookTitle = trigger.getAttribute('data-book-title') || 'книгу';
+        if (modalTitleTarget) modalTitleTarget.textContent = bookTitle;
 
-          updateFieldVisibility(shelfSelect?.value);
+        const actionUrl = trigger.getAttribute('data-action-url');
+        if (shelfForm && actionUrl) {
+          shelfForm.action = actionUrl;
+        }
 
-          const modalInstance = bootstrap.Modal.getOrCreateInstance(shelfModal);
-          modalInstance.show();
-        });
+        const actionInput = shelfForm?.querySelector('input[name="action"]');
+        if (actionInput) actionInput.value = 'quick-add-shelf';
+
+        if (homeLibraryReadDateInput) {
+          homeLibraryReadDateInput.value = '';
+        }
+
+        updateFieldVisibility(shelfSelect?.value);
       });
 
       shelfSelect?.addEventListener('change', (event) => {
