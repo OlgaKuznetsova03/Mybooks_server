@@ -4,6 +4,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from django import forms
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.utils import timezone
 
 from books.models import Book, Genre
@@ -39,7 +40,8 @@ class AddToShelfForm(forms.Form):
         # показываем только пользовательские полки, которыми он управляет вручную
         self.fields["shelf"].queryset = (
             Shelf.objects
-            .filter(user=user, is_managed=False)
+            .filter(user=user)
+            .filter(Q(is_managed=False) | Q(is_default=True))
             .order_by("-is_default", "name")
         )
 
