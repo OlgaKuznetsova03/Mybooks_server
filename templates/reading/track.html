@@ -493,6 +493,22 @@
     display: inline-block;
   }
 
+  .character-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .btn-sm {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .reading-section-table,
+  .reading-section-list {
+    display: block;
+  }
+
   @media (max-width: 767.98px) {
     .reading-progress-page {
       padding: 0;
@@ -519,6 +535,141 @@
 
     .reading-section .row.g-3 {
       row-gap: 1rem !important;
+    }
+
+    .reading-section-table,
+    .reading-section-list {
+      display: none;
+    }
+
+    .mobile-accordion-section {
+      margin-bottom: 1rem;
+    }
+
+    .mobile-accordion-header {
+      background: rgba(188, 184, 147, 0.15);
+      border: none;
+      border-radius: 16px;
+      padding: 1rem;
+      width: 100%;
+      text-align: left;
+      font-weight: 600;
+      color: #332c0f;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.3s ease;
+    }
+
+    .mobile-accordion-header:hover {
+      background: rgba(188, 184, 147, 0.25);
+    }
+
+    .mobile-accordion-header:focus {
+      outline: 2px solid rgba(71, 67, 41, 0.45);
+      outline-offset: 2px;
+    }
+
+    .mobile-accordion-icon {
+      transition: transform 0.3s ease;
+    }
+
+    .mobile-accordion-header[aria-expanded="true"] .mobile-accordion-icon {
+      transform: rotate(180deg);
+    }
+
+    .mobile-accordion-content {
+      padding: 1rem 0;
+    }
+
+    .character-card {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 16px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      border: 1px solid rgba(188, 184, 147, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .character-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(51, 44, 15, 0.1);
+    }
+
+    .character-name {
+      font-weight: 600;
+      color: #332c0f;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .character-name::after {
+      content: "▸";
+      transition: transform 0.3s ease;
+    }
+
+    .character-name.expanded::after {
+      transform: rotate(90deg);
+    }
+
+    .character-description {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+      color: #5f5c3b;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .character-description.expanded {
+      max-height: 200px;
+      margin-top: 0.5rem;
+    }
+
+    .compact-form {
+      background: rgba(188, 184, 147, 0.1);
+      border-radius: 16px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+
+    .mobile-action-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .mobile-action-button {
+      flex: 1;
+      min-width: 140px;
+      background: rgba(188, 184, 147, 0.2);
+      border: 1px solid rgba(95, 92, 59, 0.3);
+      border-radius: 12px;
+      padding: 0.75rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #332c0f;
+      transition: all 0.3s ease;
+    }
+
+    .mobile-action-button:hover {
+      background: rgba(188, 184, 147, 0.3);
+      transform: translateY(-2px);
+    }
+  }
+
+  @media (min-width: 768px) {
+    .mobile-accordion-section {
+      display: none;
+    }
+
+    .reading-section-table,
+    .reading-section-list {
+      display: block;
     }
   }
 
@@ -848,330 +999,387 @@
       <h2 class="reading-section__title">История чтения</h2>
       <p class="reading-section__note">Сколько вы прочитали по дням и в каком формате.</p>
     </div>
-    {% if chart_labels or format_chart_labels %}
-      <div class="row g-3 mb-3">
-        {% if chart_labels %}
-          <div class="col-12{% if format_chart_labels %} col-lg-8{% endif %}">
-            <div class="reading-chart-card" role="img" aria-label="Диаграмма прочитанных страниц по дням">
-              <div class="reading-chart-card__canvas">
-                <canvas id="readingHistoryChart" aria-label="Прочитанные страницы по дням"></canvas>
+
+    <div class="mobile-accordion-section d-md-none">
+      <button class="mobile-accordion-header" type="button" data-bs-toggle="collapse" data-bs-target="#mobileHistoryAccordion" aria-expanded="false" aria-controls="mobileHistoryAccordion">
+        Показать историю чтения
+        <span class="mobile-accordion-icon">▼</span>
+      </button>
+      <div class="collapse" id="mobileHistoryAccordion">
+        <div class="mobile-accordion-content">
+          {% if chart_labels or format_chart_labels %}
+            <div class="mb-3">
+              {% if chart_labels %}
+                <div class="reading-chart-card mb-3">
+                  <div class="reading-chart-card__canvas">
+                    <canvas id="mobileReadingHistoryChart"></canvas>
+                  </div>
+                </div>
+              {% endif %}
+              {% if format_chart_labels %}
+                <div class="reading-chart-card">
+                  <div class="reading-chart-card__canvas">
+                    <canvas id="mobileReadingFormatChart"></canvas>
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+
+          {% if audio_logs %}
+            <div class="small">
+              <strong>Последние записи:</strong>
+              {% for log in audio_logs|slice:":3" %}
+                <div class="character-card">
+                  <div>{{ log.log_date|date:"d.m.Y" }} · {{ log.get_medium_display }}</div>
+                  <div class="text-muted">
+                    {% if log.audio_duration_display %}
+                      {{ log.audio_duration_display }}
+                    {% else %}
+                      {{ log.pages_equivalent|floatformat:-2 }} стр.
+                    {% endif %}
+                  </div>
+                </div>
+              {% endfor %}
+              {% if audio_logs|length > 3 %}
+                <div class="text-center mt-2">
+                  <small class="text-muted">и ещё {{ audio_logs|length|add:"-3" }} записей</small>
+                </div>
+              {% endif %}
+            </div>
+          {% else %}
+            <p class="text-muted mb-0">Пока нет записей о прочитанных страницах.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="reading-section-table d-none d-md-block">
+      {% if chart_labels or format_chart_labels %}
+        <div class="row g-3 mb-3">
+          {% if chart_labels %}
+            <div class="col-12{% if format_chart_labels %} col-lg-8{% endif %}">
+              <div class="reading-chart-card" role="img" aria-label="Диаграмма прочитанных страниц по дням">
+                <div class="reading-chart-card__canvas">
+                  <canvas id="readingHistoryChart" aria-label="Прочитанные страницы по дням"></canvas>
+                </div>
               </div>
             </div>
-          </div>
+          {% endif %}
+          {% if format_chart_labels %}
+            <div class="col-12 col-lg-4">
+              <div class="reading-chart-card" role="img" aria-label="Диаграмма форматов чтения">
+                <div class="reading-chart-card__canvas">
+                  <canvas id="readingFormatChart" aria-label="Распределение форматов чтения"></canvas>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+
+        {% if chart_labels %}
+          {{ chart_labels|json_script:"reading-chart-labels" }}
+          {{ chart_pages|json_script:"reading-chart-pages" }}
+          {{ chart_mediums|json_script:"reading-chart-mediums" }}
+          {{ chart_medium_pages|json_script:"reading-chart-medium-pages" }}
         {% endif %}
         {% if format_chart_labels %}
-          <div class="col-12 col-lg-4">
-            <div class="reading-chart-card" role="img" aria-label="Диаграмма форматов чтения">
-              <div class="reading-chart-card__canvas">
-                <canvas id="readingFormatChart" aria-label="Распределение форматов чтения"></canvas>
-              </div>
-            </div>
-          </div>
+          {{ format_chart_labels|json_script:"reading-format-chart-labels" }}
+          {{ format_chart_values|json_script:"reading-format-chart-values" }}
+          {{ format_chart_palette|json_script:"reading-format-chart-colors" }}
         {% endif %}
-      </div>
 
-      {% if chart_labels %}
-        {{ chart_labels|json_script:"reading-chart-labels" }}
-        {{ chart_pages|json_script:"reading-chart-pages" }}
-        {{ chart_mediums|json_script:"reading-chart-mediums" }}
-        {{ chart_medium_pages|json_script:"reading-chart-medium-pages" }}
-      {% endif %}
-      {% if format_chart_labels %}
-        {{ format_chart_labels|json_script:"reading-format-chart-labels" }}
-        {{ format_chart_values|json_script:"reading-format-chart-values" }}
-        {{ format_chart_palette|json_script:"reading-format-chart-colors" }}
-      {% endif %}
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+        <script>
+        (function () {
+          if (typeof Chart === 'undefined') {
+            return;
+          }
 
-      <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" crossorigin="anonymous"></script>
-      <script>
-      (function () {
-        if (typeof Chart === 'undefined') {
-          return;
-        }
+          const historyLabelsEl = document.getElementById('reading-chart-labels');
+          const historyPagesEl = document.getElementById('reading-chart-pages');
+          const historyMediumsEl = document.getElementById('reading-chart-mediums');
+          const historyMediumPagesEl = document.getElementById('reading-chart-medium-pages');
+          const historyCanvas = document.getElementById('readingHistoryChart');
 
-        const historyLabelsEl = document.getElementById('reading-chart-labels');
-        const historyPagesEl = document.getElementById('reading-chart-pages');
-        const historyMediumsEl = document.getElementById('reading-chart-mediums');
-        const historyMediumPagesEl = document.getElementById('reading-chart-medium-pages');
-        const historyCanvas = document.getElementById('readingHistoryChart');
+          if (historyLabelsEl && historyPagesEl && historyMediumsEl && historyMediumPagesEl && historyCanvas) {
+            const labels = JSON.parse(historyLabelsEl.textContent);
+            const pages = JSON.parse(historyPagesEl.textContent);
+            const mediums = JSON.parse(historyMediumsEl.textContent);
+            const mediumPages = JSON.parse(historyMediumPagesEl.textContent);
 
-        if (historyLabelsEl && historyPagesEl && historyMediumsEl && historyMediumPagesEl && historyCanvas) {
-          const labels = JSON.parse(historyLabelsEl.textContent);
-          const pages = JSON.parse(historyPagesEl.textContent);
-          const mediums = JSON.parse(historyMediumsEl.textContent);
-          const mediumPages = JSON.parse(historyMediumPagesEl.textContent);
-
-          const getPalette = () => {
-            const root = getComputedStyle(document.documentElement);
-            const parseCssColor = (value, fallbackRgb) => {
-              const trimmed = (value || '').trim();
-              if (trimmed.startsWith('#')) {
-                let hex = trimmed.slice(1);
-                if (hex.length === 3) {
-                  hex = hex.split('').map((char) => char + char).join('');
-                }
-                if (hex.length === 6) {
-                  const intValue = parseInt(hex, 16);
-                  if (!Number.isNaN(intValue)) {
-                    return [
-                      (intValue >> 16) & 255,
-                      (intValue >> 8) & 255,
-                      intValue & 255,
-                    ];
+            const getPalette = () => {
+              const root = getComputedStyle(document.documentElement);
+              const parseCssColor = (value, fallbackRgb) => {
+                const trimmed = (value || '').trim();
+                if (trimmed.startsWith('#')) {
+                  let hex = trimmed.slice(1);
+                  if (hex.length === 3) {
+                    hex = hex.split('').map((char) => char + char).join('');
+                  }
+                  if (hex.length === 6) {
+                    const intValue = parseInt(hex, 16);
+                    if (!Number.isNaN(intValue)) {
+                      return [
+                        (intValue >> 16) & 255,
+                        (intValue >> 8) & 255,
+                        intValue & 255,
+                      ];
+                    }
                   }
                 }
-              }
-            const rgbMatch = trimmed.match(/rgba?\(([^)]+)\)/i);
-              if (rgbMatch) {
-                const parts = rgbMatch[1].split(',').map((part) => Number.parseFloat(part.trim()));
-                if (parts.length >= 3 && parts.slice(0, 3).every((num) => !Number.isNaN(num))) {
-                  return parts.slice(0, 3);
+              const rgbMatch = trimmed.match(/rgba?\(([^)]+)\)/i);
+                if (rgbMatch) {
+                  const parts = rgbMatch[1].split(',').map((part) => Number.parseFloat(part.trim()));
+                  if (parts.length >= 3 && parts.slice(0, 3).every((num) => !Number.isNaN(num))) {
+                    return parts.slice(0, 3);
+                  }
                 }
-              }
-              return fallbackRgb;
-            };
-
-          const buildScheme = (rgb, { backgroundAlpha = 0.35, hoverAlpha = 0.45, borderAlpha = 0.9 } = {}) => {
-              const [r, g, b] = rgb;
-              return {
-                borderColor: `rgba(${r}, ${g}, ${b}, ${borderAlpha})`,
-                backgroundColor: `rgba(${r}, ${g}, ${b}, ${backgroundAlpha})`,
-                hoverBackgroundColor: `rgba(${r}, ${g}, ${b}, ${hoverAlpha})`,
+                return fallbackRgb;
               };
+
+            const buildScheme = (rgb, { backgroundAlpha = 0.35, hoverAlpha = 0.45, borderAlpha = 0.9 } = {}) => {
+                const [r, g, b] = rgb;
+                return {
+                  borderColor: `rgba(${r}, ${g}, ${b}, ${borderAlpha})`,
+                  backgroundColor: `rgba(${r}, ${g}, ${b}, ${backgroundAlpha})`,
+                  hoverBackgroundColor: `rgba(${r}, ${g}, ${b}, ${hoverAlpha})`,
+                };
+              };
+
+            const primaryRgbRaw = (root.getPropertyValue('--bs-primary-rgb') || '108,92,231').trim();
+              const primaryRgb = primaryRgbRaw.split(',').map((num) => Number.parseFloat(num.trim()));
+              const defaultRgb = primaryRgb.length === 3 && primaryRgb.every((num) => !Number.isNaN(num))
+                ? primaryRgb
+                : [108, 92, 231];
+
+              const palette = {
+                bodyColor: (root.getPropertyValue('--bs-body-color') || '#212529').trim(),
+                border: (root.getPropertyValue('--bs-border-color') || 'rgba(0,0,0,0.1)').trim(),
+                defaultBar: buildScheme(defaultRgb, { backgroundAlpha: 0.25, hoverAlpha: 0.35, borderAlpha: 0.85 }),
+                mediums: {},
+              };
+
+              palette.mediums.paper = buildScheme(
+                parseCssColor(root.getPropertyValue('--journey-fern'), [123, 119, 82])
+              );
+              palette.mediums.ebook = buildScheme(
+                parseCssColor(root.getPropertyValue('--journey-gold'), [188, 184, 147])
+              );
+
+              return palette;
             };
 
-          const primaryRgbRaw = (root.getPropertyValue('--bs-primary-rgb') || '108,92,231').trim();
-            const primaryRgb = primaryRgbRaw.split(',').map((num) => Number.parseFloat(num.trim()));
-            const defaultRgb = primaryRgb.length === 3 && primaryRgb.every((num) => !Number.isNaN(num))
-              ? primaryRgb
-              : [108, 92, 231];
+            let chartInstance;
 
-            const palette = {
-              bodyColor: (root.getPropertyValue('--bs-body-color') || '#212529').trim(),
-              border: (root.getPropertyValue('--bs-border-color') || 'rgba(0,0,0,0.1)').trim(),
-              defaultBar: buildScheme(defaultRgb, { backgroundAlpha: 0.25, hoverAlpha: 0.35, borderAlpha: 0.85 }),
-              mediums: {},
-            };
-
-            palette.mediums.paper = buildScheme(
-              parseCssColor(root.getPropertyValue('--journey-fern'), [123, 119, 82])
-            );
-            palette.mediums.ebook = buildScheme(
-              parseCssColor(root.getPropertyValue('--journey-gold'), [188, 184, 147])
-            );
-
-            return palette;
-          };
-
-          let chartInstance;
-
-          const renderChart = () => {
-            const palette = getPalette();
-            if (chartInstance) {
-              chartInstance.destroy();
-            }
-            const mediumsWithData = Array.isArray(mediums)
-              ? mediums.filter((medium) => {
-                  const data = mediumPages?.[medium.code];
-                  return Array.isArray(data) && data.some((value) => Number(value) > 0);
-                })
-              : [];
-            const hasMediumData = mediumsWithData.length > 0;
-            const datasets = hasMediumData
-              ? mediumsWithData.map((medium) => {
-                  const scheme = palette.mediums?.[medium.code] || palette.defaultBar;
-                  const data = Array.isArray(mediumPages?.[medium.code])
-                    ? mediumPages[medium.code]
-                    : new Array(labels.length).fill(0);
-                  return {
-                    label: medium.label,
-                    data,
+            const renderChart = () => {
+              const palette = getPalette();
+              if (chartInstance) {
+                chartInstance.destroy();
+              }
+              const mediumsWithData = Array.isArray(mediums)
+                ? mediums.filter((medium) => {
+                    const data = mediumPages?.[medium.code];
+                    return Array.isArray(data) && data.some((value) => Number(value) > 0);
+                  })
+                : [];
+              const hasMediumData = mediumsWithData.length > 0;
+              const datasets = hasMediumData
+                ? mediumsWithData.map((medium) => {
+                    const scheme = palette.mediums?.[medium.code] || palette.defaultBar;
+                    const data = Array.isArray(mediumPages?.[medium.code])
+                      ? mediumPages[medium.code]
+                      : new Array(labels.length).fill(0);
+                    return {
+                      label: medium.label,
+                      data,
+                      borderWidth: 1.5,
+                      borderRadius: 10,
+                      borderColor: scheme.borderColor,
+                      backgroundColor: scheme.backgroundColor,
+                      hoverBackgroundColor: scheme.hoverBackgroundColor,
+                      maxBarThickness: 48,
+                    };
+                  })
+                : [{
+                    data: pages,
                     borderWidth: 1.5,
                     borderRadius: 10,
-                    borderColor: scheme.borderColor,
-                    backgroundColor: scheme.backgroundColor,
-                    hoverBackgroundColor: scheme.hoverBackgroundColor,
+                    borderColor: palette.defaultBar.borderColor,
+                    backgroundColor: palette.defaultBar.backgroundColor,
+                    hoverBackgroundColor: palette.defaultBar.hoverBackgroundColor,
                     maxBarThickness: 48,
-                  };
-                })
-              : [{
-                  data: pages,
-                  borderWidth: 1.5,
-                  borderRadius: 10,
-                  borderColor: palette.defaultBar.borderColor,
-                  backgroundColor: palette.defaultBar.backgroundColor,
-                  hoverBackgroundColor: palette.defaultBar.hoverBackgroundColor,
-                  maxBarThickness: 48,
-                }];
-            chartInstance = new Chart(historyCanvas.getContext('2d'), {
-              type: 'bar',
-              data: {
-                labels,
-                datasets,
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: {
-                    display: hasMediumData,
-                    labels: {
-                      color: palette.bodyColor,
-                      usePointStyle: true,
-                    },
-                  },
-                  tooltip: {
-                    callbacks: {
-                      title: (context) => context[0]?.label ?? '',
-                      label: (context) => {
-                        const value = context.parsed.y ?? 0;
-                        if (context.dataset?.label) {
-                          return `${context.dataset.label}: ${value} стр.`;
-                        }
-                        return `${value} стр.`;
+                  }];
+              chartInstance = new Chart(historyCanvas.getContext('2d'), {
+                type: 'bar',
+                data: {
+                  labels,
+                  datasets,
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      display: hasMediumData,
+                      labels: {
+                        color: palette.bodyColor,
+                        usePointStyle: true,
                       },
-                      footer: (items) => {
-                        if (!items?.length) {
-                          return '';
-                        }
-                        const total = items.reduce((sum, item) => sum + (item.parsed.y ?? 0), 0);
-                        return `Итого: ${total} стр.`;
+                    },
+                    tooltip: {
+                      callbacks: {
+                        title: (context) => context[0]?.label ?? '',
+                        label: (context) => {
+                          const value = context.parsed.y ?? 0;
+                          if (context.dataset?.label) {
+                            return `${context.dataset.label}: ${value} стр.`;
+                          }
+                          return `${value} стр.`;
+                        },
+                        footer: (items) => {
+                          if (!items?.length) {
+                            return '';
+                          }
+                          const total = items.reduce((sum, item) => sum + (item.parsed.y ?? 0), 0);
+                          return `Итого: ${total} стр.`;
+                        },
                       },
                     },
                   },
-                },
-                layout: {
-                  padding: { top: 12, right: 12, bottom: 0, left: 12 },
-                },
-                scales: {
-                  x: {
-                    stacked: false,
-                    grid: { display: false },
-                    ticks: {
-                      color: palette.bodyColor,
-                      autoSkip: true,
-                      maxRotation: 0,
-                      minRotation: 0,
-                    },
-                    },
-                  y: {
-                    stacked: false,
-                    beginAtZero: true,
-                    grid: {
-                      color: palette.border,
-                      drawBorder: false,
-                    },
-                    ticks: {
-                      color: palette.bodyColor,
-                      precision: 0,
-                      callback: (value) => `${value} стр.`,
-                    },
+                  layout: {
+                    padding: { top: 12, right: 12, bottom: 0, left: 12 },
                   },
-                },
-              },
-              });
-          };
-
-          renderChart();
-          document.getElementById('themeToggle')?.addEventListener('click', () => {
-            requestAnimationFrame(renderChart);
-          });
-        }
-
-        const formatLabelsEl = document.getElementById('reading-format-chart-labels');
-        const formatValuesEl = document.getElementById('reading-format-chart-values');
-        const formatColorsEl = document.getElementById('reading-format-chart-colors');
-        const formatCanvas = document.getElementById('readingFormatChart');
-
-        if (formatLabelsEl && formatValuesEl && formatColorsEl && formatCanvas) {
-          const labels = JSON.parse(formatLabelsEl.textContent);
-          const values = JSON.parse(formatValuesEl.textContent);
-          const colors = JSON.parse(formatColorsEl.textContent);
-          let formatChartInstance;
-
-          const renderFormatChart = () => {
-            const root = getComputedStyle(document.documentElement);
-            const bodyColor = (root.getPropertyValue('--bs-body-color') || '#212529').trim();
-            if (formatChartInstance) {
-              formatChartInstance.destroy();
-            }
-            formatChartInstance = new Chart(formatCanvas.getContext('2d'), {
-              type: 'doughnut',
-              data: {
-                labels,
-                datasets: [
-                  {
-                    data: values,
-                    backgroundColor: colors,
-                    borderColor: '#fff',
-                    borderWidth: 2,
-                  },
-                ],
-              },
-              options: {
-                responsive: true,
-                plugins: {
-                  legend: {
-                    position: 'bottom',
-                    labels: {
-                      color: bodyColor,
-                    },
-                  },
-                  tooltip: {
-                    callbacks: {
-                      label: (context) => {
-                        const label = context.label ?? '';
-                        const value = context.parsed ?? 0;
-                        return `${label}: ${value}%`;
+                  scales: {
+                    x: {
+                      stacked: false,
+                      grid: { display: false },
+                      ticks: {
+                        color: palette.bodyColor,
+                        autoSkip: true,
+                        maxRotation: 0,
+                        minRotation: 0,
+                      },
+                      },
+                    y: {
+                      stacked: false,
+                      beginAtZero: true,
+                      grid: {
+                        color: palette.border,
+                        drawBorder: false,
+                      },
+                      ticks: {
+                        color: palette.bodyColor,
+                        precision: 0,
+                        callback: (value) => `${value} стр.`,
                       },
                     },
                   },
                 },
-              },
+                });
+            };
+
+            renderChart();
+            document.getElementById('themeToggle')?.addEventListener('click', () => {
+              requestAnimationFrame(renderChart);
             });
-          };
+          }
 
-          renderFormatChart();
-          document.getElementById('themeToggle')?.addEventListener('click', () => {
-            requestAnimationFrame(renderFormatChart);
-          });
-        }
-      })();
-    </script>
-    {% endif %}
+          const formatLabelsEl = document.getElementById('reading-format-chart-labels');
+          const formatValuesEl = document.getElementById('reading-format-chart-values');
+          const formatColorsEl = document.getElementById('reading-format-chart-colors');
+          const formatCanvas = document.getElementById('readingFormatChart');
 
-    {% if audio_logs %}
-      <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0">
-          <thead>
-            <tr>
-              <th scope="col">Дата</th>
-              <th scope="col">Формат</th>
-              <th scope="col">Прогресс</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for log in audio_logs %}
+          if (formatLabelsEl && formatValuesEl && formatColorsEl && formatCanvas) {
+            const labels = JSON.parse(formatLabelsEl.textContent);
+            const values = JSON.parse(formatValuesEl.textContent);
+            const colors = JSON.parse(formatColorsEl.textContent);
+            let formatChartInstance;
+
+            const renderFormatChart = () => {
+              const root = getComputedStyle(document.documentElement);
+              const bodyColor = (root.getPropertyValue('--bs-body-color') || '#212529').trim();
+              if (formatChartInstance) {
+                formatChartInstance.destroy();
+              }
+              formatChartInstance = new Chart(formatCanvas.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                  labels,
+                  datasets: [
+                    {
+                      data: values,
+                      backgroundColor: colors,
+                      borderColor: '#fff',
+                      borderWidth: 2,
+                    },
+                  ],
+                },
+                options: {
+                  responsive: true,
+                  plugins: {
+                    legend: {
+                      position: 'bottom',
+                      labels: {
+                        color: bodyColor,
+                      },
+                    },
+                    tooltip: {
+                      callbacks: {
+                        label: (context) => {
+                          const label = context.label ?? '';
+                          const value = context.parsed ?? 0;
+                          return `${label}: ${value}%`;
+                        },
+                      },
+                    },
+                  },
+                },
+              });
+            };
+
+            renderFormatChart();
+            document.getElementById('themeToggle')?.addEventListener('click', () => {
+              requestAnimationFrame(renderFormatChart);
+            });
+          }
+        })();
+      </script>
+      {% endif %}
+
+      {% if audio_logs %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
               <tr>
-                <td>{{ log.log_date|date:"d.m.Y" }}</td>
-                <td>{{ log.get_medium_display }}</td>
-                <td>
-                  {% if log.audio_duration_display %}
-                    {{ log.audio_duration_display }}
-                  {% else %}
-                    {{ log.pages_equivalent|floatformat:-2 }} стр.
-                  {% endif %}
-                </td>
+                <th scope="col">Дата</th>
+                <th scope="col">Формат</th>
+                <th scope="col">Прогресс</th>
               </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% elif chart_labels %}
-      <p class="text-muted mb-0">Пока нет записей по аудиокниге.</p>
-    {% else %}
-      <p class="text-muted mb-0">Пока нет записей о прочитанных страницах.</p>
-    {% endif %}
+            </thead>
+            <tbody>
+              {% for log in audio_logs %}
+                <tr>
+                  <td>{{ log.log_date|date:"d.m.Y" }}</td>
+                  <td>{{ log.get_medium_display }}</td>
+                  <td>
+                    {% if log.audio_duration_display %}
+                      {{ log.audio_duration_display }}
+                    {% else %}
+                      {{ log.pages_equivalent|floatformat:-2 }} стр.
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% elif chart_labels %}
+        <p class="text-muted mb-0">Пока нет записей по аудиокниге.</p>
+      {% else %}
+        <p class="text-muted mb-0">Пока нет записей о прочитанных страницах.</p>
+      {% endif %}
+    </div>
   </section>
 
   <!-- Остальные секции (герои, цитаты, заметки) остаются без изменений -->
@@ -1181,124 +1389,184 @@
       <h2 class="reading-section__title">Герои книги</h2>
       <p class="reading-section__note">Записывайте персонажей, чтобы не потерять их истории.</p>
     </div>
-    {% if character_rows %}
-      <div class="table-responsive mb-3">
-        <table class="table table-sm align-middle mb-0">
-          <thead>
-            <tr>
-              <th scope="col" style="width: 200px;">Имя</th>
-              <th scope="col">Описание</th>
-              <th scope="col" class="text-end">Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for character, form in character_rows %}
-              <tr>
-                <td class="fw-semibold">{{ character.name }}</td>
-                <td>{{ character.description|default:"—"|linebreaksbr }}</td>
-                <td class="text-end">
-                  <button
-                    class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center justify-content-center"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#character-edit-{{ character.id }}"
-                    aria-expanded="false"
-                    aria-controls="character-edit-{{ character.id }}"
-                    aria-label="Редактировать героя"
-                  >
-                    <i class="bi bi-pencil"></i>
-                    <span class="visually-hidden">Редактировать</span>
+    <div class="mobile-accordion-section d-md-none">
+      {% if character_rows %}
+        <div class="mb-3">
+          {% for character, form in character_rows %}
+            <div class="character-card">
+              <div class="character-name" onclick="toggleCharacterDescription(this)">
+                {{ character.name }}
+              </div>
+              <div class="character-description">
+                {{ character.description|default:"—"|linebreaksbr }}
+                <div class="character-actions">
+                  <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#mobile-character-edit-{{ character.id }}">
+                    Редактировать
                   </button>
-                </td>
-              </tr>
-              <tr class="collapse" id="character-edit-{{ character.id }}">
-                <td colspan="3">
-                  <form
-                    method="post"
-                    action="{% url 'shelves:reading_update_character' progress.id character.id %}"
-                    class="row g-3"
-                  >
-                    {% csrf_token %}
-                    {% if form.non_field_errors %}
-                      <div class="col-12">
-                        <div class="alert alert-danger mb-0">
-                          {{ form.non_field_errors|join:"<br>"|safe }}
-                        </div>
-                      </div>
-                    {% endif %}
-                    <div class="col-12 col-md-4">
-                      <label class="form-label" for="{{ form.name.id_for_label }}">
-                        {{ form.name.label }}
-                      </label>
-                      {{ form.name }}
-                      {% if form.name.errors %}
-                        <div class="invalid-feedback d-block">
-                          {{ form.name.errors|join:", " }}
-                        </div>
-                      {% endif %}
-                    </div>
-                    <div class="col-12 col-md-8">
-                      <label class="form-label" for="{{ form.description.id_for_label }}">
-                        {{ form.description.label }}
-                      </label>
-                      {{ form.description }}
-                      {% if form.description.errors %}
-                        <div class="invalid-feedback d-block">
-                          {{ form.description.errors|join:", " }}
-                        </div>
-                      {% endif %}
-                    </div>
-                    <div class="col-12 d-flex justify-content-end">
-                      <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4">Сохранить изменения</button>
-                    </div>
-                  </form>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <p class="text-muted">Пока нет добавленных персонажей.</p>
-    {% endif %}
+                </div>
+              </div>
 
-    <div class="reading-subsection mt-3">
-      <h3 class="h6 mb-3">Добавить героя</h3>
-      <form method="post" action="{% url 'shelves:reading_add_character' progress.id %}" class="row g-3">
-        {% csrf_token %}
-        {% if character_form.non_field_errors %}
-          <div class="col-12">
-            <div class="alert alert-danger mb-0">
-              {{ character_form.non_field_errors|join:"<br>"|safe }}
+              <div class="collapse mt-2" id="mobile-character-edit-{{ character.id }}">
+                <form method="post" action="{% url 'shelves:reading_update_character' progress.id character.id %}" class="compact-form">
+                  {% csrf_token %}
+                  <div class="mb-2">
+                    <label class="form-label small">Имя</label>
+                    {{ form.name }}
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label small">Описание</label>
+                    {{ form.description }}
+                  </div>
+                  <button type="submit" class="btn btn-primary btn-sm w-100">Сохранить</button>
+                </form>
+              </div>
             </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-muted">Пока нет добавленных персонажей.</p>
+      {% endif %}
+
+      <button class="mobile-action-button" type="button" data-bs-toggle="collapse" data-bs-target="#mobile-add-character">
+        ＋ Добавить героя
+      </button>
+
+      <div class="collapse mt-2" id="mobile-add-character">
+        <form method="post" action="{% url 'shelves:reading_add_character' progress.id %}" class="compact-form">
+          {% csrf_token %}
+          <div class="mb-2">
+            <label class="form-label small">Имя героя</label>
+            {{ character_form.name }}
           </div>
-        {% endif %}
-        <div class="col-12 col-md-4">
-          <label class="form-label" for="{{ character_form.name.id_for_label }}">
-            {{ character_form.name.label }}
-          </label>
-          {{ character_form.name }}
-          {% if character_form.name.errors %}
-            <div class="invalid-feedback d-block">
-              {{ character_form.name.errors|join:", " }}
+          <div class="mb-2">
+            <label class="form-label small">Описание</label>
+            {{ character_form.description }}
+          </div>
+          <button type="submit" class="btn btn-outline-primary btn-sm w-100">Сохранить</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="reading-section-table d-none d-md-block">
+      {% if character_rows %}
+        <div class="table-responsive mb-3">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                <th scope="col" style="width: 200px;">Имя</th>
+                <th scope="col">Описание</th>
+                <th scope="col" class="text-end">Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for character, form in character_rows %}
+                <tr>
+                  <td class="fw-semibold">{{ character.name }}</td>
+                  <td>{{ character.description|default:"—"|linebreaksbr }}</td>
+                  <td class="text-end">
+                    <button
+                      class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center justify-content-center"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#character-edit-{{ character.id }}"
+                      aria-expanded="false"
+                      aria-controls="character-edit-{{ character.id }}"
+                      aria-label="Редактировать героя"
+                    >
+                      <i class="bi bi-pencil"></i>
+                      <span class="visually-hidden">Редактировать</span>
+                    </button>
+                  </td>
+                </tr>
+                <tr class="collapse" id="character-edit-{{ character.id }}">
+                  <td colspan="3">
+                    <form
+                      method="post"
+                      action="{% url 'shelves:reading_update_character' progress.id character.id %}"
+                      class="row g-3"
+                    >
+                      {% csrf_token %}
+                      {% if form.non_field_errors %}
+                        <div class="col-12">
+                          <div class="alert alert-danger mb-0">
+                            {{ form.non_field_errors|join:"<br>"|safe }}
+                          </div>
+                        </div>
+                      {% endif %}
+                      <div class="col-12 col-md-4">
+                        <label class="form-label" for="{{ form.name.id_for_label }}">
+                          {{ form.name.label }}
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                          <div class="invalid-feedback d-block">
+                            {{ form.name.errors|join:", " }}
+                          </div>
+                        {% endif %}
+                      </div>
+                      <div class="col-12 col-md-8">
+                        <label class="form-label" for="{{ form.description.id_for_label }}">
+                          {{ form.description.label }}
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                          <div class="invalid-feedback d-block">
+                            {{ form.description.errors|join:", " }}
+                          </div>
+                        {% endif %}
+                      </div>
+                      <div class="col-12 d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4">Сохранить изменения</button>
+                      </div>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="text-muted">Пока нет добавленных персонажей.</p>
+      {% endif %}
+
+      <div class="reading-subsection mt-3">
+        <h3 class="h6 mb-3">Добавить героя</h3>
+        <form method="post" action="{% url 'shelves:reading_add_character' progress.id %}" class="row g-3">
+          {% csrf_token %}
+          {% if character_form.non_field_errors %}
+            <div class="col-12">
+              <div class="alert alert-danger mb-0">
+                {{ character_form.non_field_errors|join:"<br>"|safe }}
+              </div>
             </div>
           {% endif %}
-        </div>
-        <div class="col-12 col-md-8">
-          <label class="form-label" for="{{ character_form.description.id_for_label }}">
-            {{ character_form.description.label }}
-          </label>
-          {{ character_form.description }}
-          {% if character_form.description.errors %}
-            <div class="invalid-feedback d-block">
-              {{ character_form.description.errors|join:", " }}
-            </div>
-          {% endif %}
-        </div>
-        <div class="col-12 d-flex justify-content-end">
-          <button type="submit" class="btn btn-outline-primary rounded-pill">Добавить героя</button>
-        </div>
-      </form>
+          <div class="col-12 col-md-4">
+            <label class="form-label" for="{{ character_form.name.id_for_label }}">
+              {{ character_form.name.label }}
+            </label>
+            {{ character_form.name }}
+            {% if character_form.name.errors %}
+              <div class="invalid-feedback d-block">
+                {{ character_form.name.errors|join:", " }}
+              </div>
+            {% endif %}
+          </div>
+          <div class="col-12 col-md-8">
+            <label class="form-label" for="{{ character_form.description.id_for_label }}">
+              {{ character_form.description.label }}
+            </label>
+            {{ character_form.description }}
+            {% if character_form.description.errors %}
+              <div class="invalid-feedback d-block">
+                {{ character_form.description.errors|join:", " }}
+              </div>
+            {% endif %}
+          </div>
+          <div class="col-12 d-flex justify-content-end">
+            <button type="submit" class="btn btn-outline-primary rounded-pill">Добавить героя</button>
+          </div>
+        </form>
+      </div>
     </div>
   </section>
 
@@ -1307,114 +1575,189 @@
       <h2 class="reading-section__title">Любимые цитаты</h2>
       <p class="reading-section__note">Сохраняйте фразы, к которым хочется возвращаться.</p>
     </div>
-    {% if quote_rows %}
-      <div class="list-group mb-3">
-        {% for quote, form in quote_rows %}
-          <div class="list-group-item">
-            <div class="d-flex justify-content-between align-items-start gap-3">
-              <div class="flex-grow-1">
+    <div class="mobile-accordion-section d-md-none">
+      {% if quote_rows %}
+        <div class="mb-3">
+          {% for quote, form in quote_rows %}
+            <div class="character-card">
+              <div class="character-name" onclick="toggleQuoteDetails(this)">
                 {% if quote.location %}
-                  <div class="text-muted small mb-1">{{ quote.location }}</div>
-                {% endif %}
-                <div>{{ quote.body|linebreaksbr }}</div>
-                {% if quote.comment %}
-                  <div class="text-muted small mt-2">{{ quote.comment|linebreaksbr }}</div>
+                  {{ quote.location }}
+                {% else %}
+                  Цитата {{ forloop.counter }}
                 {% endif %}
               </div>
-              <button
-                class="btn btn-outline-secondary btn-sm"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#quote-edit-{{ quote.id }}"
-                aria-expanded="false"
-                aria-controls="quote-edit-{{ quote.id }}"
-              >
-                Редактировать
-              </button>
-            </div>
-            <div class="collapse mt-3" id="quote-edit-{{ quote.id }}">
-              <form
-                method="post"
-                action="{% url 'shelves:reading_update_quote' progress.id quote.id %}"
-                class="row g-3"
-              >
-                {% csrf_token %}
-                {% if form.non_field_errors %}
-                  <div class="col-12">
-                    <div class="alert alert-danger mb-0">
-                      {{ form.non_field_errors|join:"<br>"|safe }}
-                    </div>
-                  </div>
+              <div class="character-description">
+                <div class="mb-2">{{ quote.body|linebreaksbr }}</div>
+                {% if quote.comment %}
+                  <div class="text-muted small">{{ quote.comment|linebreaksbr }}</div>
                 {% endif %}
-                <div class="col-12 col-md-4">
-                  <label class="form-label" for="{{ form.location.id_for_label }}">{{ form.location.label }}</label>
-                  {{ form.location }}
-                  {% if form.location.errors %}
-                    <div class="invalid-feedback d-block">{{ form.location.errors|join:", " }}</div>
-                  {% endif %}
+                <div class="character-actions">
+                  <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#mobile-quote-edit-{{ quote.id }}">
+                    Редактировать
+                  </button>
                 </div>
-                <div class="col-12">
-                  <label class="form-label" for="{{ form.body.id_for_label }}">{{ form.body.label }}</label>
-                  {{ form.body }}
-                  {% if form.body.errors %}
-                    <div class="invalid-feedback d-block">{{ form.body.errors|join:", " }}</div>
-                  {% endif %}
-                </div>
-                <div class="col-12">
-                  <label class="form-label" for="{{ form.comment.id_for_label }}">{{ form.comment.label }}</label>
-                  {{ form.comment }}
-                  {% if form.comment.errors %}
-                    <div class="invalid-feedback d-block">{{ form.comment.errors|join:", " }}</div>
-                  {% endif %}
-                </div>
-                <div class="col-12 d-flex justify-content-end">
-                  <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4">Сохранить изменения</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <p class="text-muted">Пока нет сохранённых цитат.</p>
-    {% endif %}
+              </div>
 
-    <div class="reading-subsection mt-3">
-      <h3 class="h6 mb-3">Добавить цитату</h3>
-      <form method="post" action="{% url 'shelves:reading_add_quote' progress.id %}" class="row g-3">
-        {% csrf_token %}
-        {% if quote_form.non_field_errors %}
-          <div class="col-12">
-            <div class="alert alert-danger mb-0">
-              {{ quote_form.non_field_errors|join:"<br>"|safe }}
+              <div class="collapse mt-2" id="mobile-quote-edit-{{ quote.id }}">
+                <form method="post" action="{% url 'shelves:reading_update_quote' progress.id quote.id %}" class="compact-form">
+                  {% csrf_token %}
+                  <div class="mb-2">
+                    <label class="form-label small">Местоположение</label>
+                    {{ form.location }}
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label small">Текст цитаты</label>
+                    {{ form.body }}
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label small">Комментарий</label>
+                    {{ form.comment }}
+                  </div>
+                  <button type="submit" class="btn btn-primary btn-sm w-100">Сохранить</button>
+                </form>
+              </div>
             </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-muted">Пока нет сохранённых цитат.</p>
+      {% endif %}
+
+      <button class="mobile-action-button" type="button" data-bs-toggle="collapse" data-bs-target="#mobile-add-quote">
+        ＋ Добавить цитату
+      </button>
+
+      <div class="collapse mt-2" id="mobile-add-quote">
+        <form method="post" action="{% url 'shelves:reading_add_quote' progress.id %}" class="compact-form">
+          {% csrf_token %}
+          <div class="mb-2">
+            <label class="form-label small">Местоположение</label>
+            {{ quote_form.location }}
           </div>
-        {% endif %}
-        <div class="col-12 col-md-4">
-          <label class="form-label" for="{{ quote_form.location.id_for_label }}">{{ quote_form.location.label }}</label>
-          {{ quote_form.location }}
-          {% if quote_form.location.errors %}
-            <div class="invalid-feedback d-block">{{ quote_form.location.errors|join:", " }}</div>
+          <div class="mb-2">
+            <label class="form-label small">Текст цитаты</label>
+            {{ quote_form.body }}
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">Комментарий</label>
+            {{ quote_form.comment }}
+          </div>
+          <button type="submit" class="btn btn-outline-primary btn-sm w-100">Сохранить</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="reading-section-list d-none d-md-block">
+      {% if quote_rows %}
+        <div class="list-group mb-3">
+          {% for quote, form in quote_rows %}
+            <div class="list-group-item">
+              <div class="d-flex justify-content-between align-items-start gap-3">
+                <div class="flex-grow-1">
+                  {% if quote.location %}
+                    <div class="text-muted small mb-1">{{ quote.location }}</div>
+                  {% endif %}
+                  <div>{{ quote.body|linebreaksbr }}</div>
+                  {% if quote.comment %}
+                    <div class="text-muted small mt-2">{{ quote.comment|linebreaksbr }}</div>
+                  {% endif %}
+                </div>
+                <button
+                  class="btn btn-outline-secondary btn-sm"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#quote-edit-{{ quote.id }}"
+                  aria-expanded="false"
+                  aria-controls="quote-edit-{{ quote.id }}"
+                >
+                  Редактировать
+                </button>
+              </div>
+              <div class="collapse mt-3" id="quote-edit-{{ quote.id }}">
+                <form
+                  method="post"
+                  action="{% url 'shelves:reading_update_quote' progress.id quote.id %}"
+                  class="row g-3"
+                >
+                  {% csrf_token %}
+                  {% if form.non_field_errors %}
+                    <div class="col-12">
+                      <div class="alert alert-danger mb-0">
+                        {{ form.non_field_errors|join:"<br>"|safe }}
+                      </div>
+                    </div>
+                  {% endif %}
+                  <div class="col-12 col-md-4">
+                    <label class="form-label" for="{{ form.location.id_for_label }}">{{ form.location.label }}</label>
+                    {{ form.location }}
+                    {% if form.location.errors %}
+                      <div class="invalid-feedback d-block">{{ form.location.errors|join:", " }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label" for="{{ form.body.id_for_label }}">{{ form.body.label }}</label>
+                    {{ form.body }}
+                    {% if form.body.errors %}
+                      <div class="invalid-feedback d-block">{{ form.body.errors|join:", " }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label" for="{{ form.comment.id_for_label }}">{{ form.comment.label }}</label>
+                    {{ form.comment }}
+                    {% if form.comment.errors %}
+                      <div class="invalid-feedback d-block">{{ form.comment.errors|join:", " }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="col-12 d-flex justify-content-end">
+                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4">Сохранить изменения</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-muted">Пока нет сохранённых цитат.</p>
+      {% endif %}
+
+      <div class="reading-subsection mt-3">
+        <h3 class="h6 mb-3">Добавить цитату</h3>
+        <form method="post" action="{% url 'shelves:reading_add_quote' progress.id %}" class="row g-3">
+          {% csrf_token %}
+          {% if quote_form.non_field_errors %}
+            <div class="col-12">
+              <div class="alert alert-danger mb-0">
+                {{ quote_form.non_field_errors|join:"<br>"|safe }}
+              </div>
+            </div>
           {% endif %}
-        </div>
-        <div class="col-12">
-          <label class="form-label" for="{{ quote_form.body.id_for_label }}">{{ quote_form.body.label }}</label>
-          {{ quote_form.body }}
-          {% if quote_form.body.errors %}
-            <div class="invalid-feedback d-block">{{ quote_form.body.errors|join:", " }}</div>
-          {% endif %}
-        </div>
-        <div class="col-12">
-          <label class="form-label" for="{{ quote_form.comment.id_for_label }}">{{ quote_form.comment.label }}</label>
-          {{ quote_form.comment }}
-          {% if quote_form.comment.errors %}
-            <div class="invalid-feedback d-block">{{ quote_form.comment.errors|join:", " }}</div>
-          {% endif %}
-        </div>
-        <div class="col-12 d-flex justify-content-end">
-          <button type="submit" class="btn btn-outline-primary rounded-pill">Сохранить цитату</button>
-        </div>
-      </form>
+          <div class="col-12 col-md-4">
+            <label class="form-label" for="{{ quote_form.location.id_for_label }}">{{ quote_form.location.label }}</label>
+            {{ quote_form.location }}
+            {% if quote_form.location.errors %}
+              <div class="invalid-feedback d-block">{{ quote_form.location.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="{{ quote_form.body.id_for_label }}">{{ quote_form.body.label }}</label>
+            {{ quote_form.body }}
+            {% if quote_form.body.errors %}
+              <div class="invalid-feedback d-block">{{ quote_form.body.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="{{ quote_form.comment.id_for_label }}">{{ quote_form.comment.label }}</label>
+            {{ quote_form.comment }}
+            {% if quote_form.comment.errors %}
+              <div class="invalid-feedback d-block">{{ quote_form.comment.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+          <div class="col-12 d-flex justify-content-end">
+            <button type="submit" class="btn btn-outline-primary rounded-pill">Сохранить цитату</button>
+          </div>
+        </form>
+      </div>
     </div>
   </section>
 
@@ -1423,147 +1766,363 @@
       <h2 class="reading-section__title">Личные заметки</h2>
       <p class="reading-section__note">Записывайте впечатления и любимые цитаты.</p>
     </div>
-    {% if note_rows %}
-      <div class="list-group mb-3">
-        {% for note, form in note_rows %}
-          <div class="list-group-item">
-            <div class="d-flex justify-content-between align-items-start gap-3">
-              <div class="flex-grow-1">
-                {% if note.location %}
-                  <div class="text-muted small mb-1">{{ note.location }}</div>
-                {% endif %}
-                <div>{{ note.body|linebreaksbr }}</div>
-                {% if note.comment %}
-                  <div class="text-muted small mt-2">{{ note.comment|linebreaksbr }}</div>
-                {% endif %}
-              </div>
-              <button
-                class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center justify-content-center"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#note-edit-{{ note.id }}"
-                aria-expanded="false"
-                aria-controls="note-edit-{{ note.id }}"
-                aria-label="Редактировать заметку"
-              >
-                <i class="bi bi-pencil"></i>
-                <span class="visually-hidden">Редактировать</span>
-              </button>
-            </div>
-            <div class="collapse mt-3" id="note-edit-{{ note.id }}">
-              <form
-                method="post"
-                action="{% url 'shelves:reading_update_note_entry' progress.id note.id %}"
-                class="row g-3"
-              >
-                {% csrf_token %}
-                {% if form.non_field_errors %}
-                  <div class="col-12">
-                    <div class="alert alert-danger mb-0">
-                      {{ form.non_field_errors|join:"<br>"|safe }}
-                    </div>
-                  </div>
-                {% endif %}
-                <div class="col-12 col-md-4">
-                  <label class="form-label" for="{{ form.location.id_for_label }}">{{ form.location.label }}</label>
-                  {{ form.location }}
-                  {% if form.location.errors %}
-                    <div class="invalid-feedback d-block">{{ form.location.errors|join:", " }}</div>
-                  {% endif %}
-                </div>
-                <div class="col-12">
-                  <label class="form-label" for="{{ form.body.id_for_label }}">{{ form.body.label }}</label>
-                  {{ form.body }}
-                  {% if form.body.errors %}
-                    <div class="invalid-feedback d-block">{{ form.body.errors|join:", " }}</div>
-                  {% endif %}
-                </div>
-                <div class="col-12">
-                  <label class="form-label" for="{{ form.comment.id_for_label }}">{{ form.comment.label }}</label>
-                  {{ form.comment }}
-                  {% if form.comment.errors %}
-                    <div class="invalid-feedback d-block">{{ form.comment.errors|join:", " }}</div>
-                  {% endif %}
-                </div>
-                <div class="col-12 d-flex justify-content-end">
-                  <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4">Сохранить изменения</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        {% endfor %}
+    <div class="mobile-accordion-section d-md-none">
+      <div class="mobile-action-buttons">
+        <button class="mobile-action-button" type="button" data-bs-toggle="collapse" data-bs-target="#mobile-notes-accordion">
+          📝 Мои заметки
+        </button>
+        <button class="mobile-action-button" type="button" data-bs-toggle="collapse" data-bs-target="#mobile-add-note">
+          ＋ Новая заметка
+        </button>
       </div>
-    {% else %}
-      <p class="text-muted">Пока нет коротких заметок.</p>
-    {% endif %}
 
-    <div class="reading-subsection mt-3">
-      <h3 class="h6 mb-3">Добавить заметку</h3>
-      <form method="post" action="{% url 'shelves:reading_add_note_entry' progress.id %}" class="row g-3">
-        {% csrf_token %}
-        {% if note_entry_form.non_field_errors %}
-          <div class="col-12">
-            <div class="alert alert-danger mb-0">
-              {{ note_entry_form.non_field_errors|join:"<br>"|safe }}
-            </div>
+      <div class="collapse" id="mobile-notes-accordion">
+        <div class="mobile-accordion-content">
+          {% if note_rows %}
+            {% for note, form in note_rows %}
+              <div class="character-card">
+                <div class="character-name" onclick="toggleNoteDetails(this)">
+                  {% if note.location %}
+                    {{ note.location }}
+                  {% else %}
+                    Заметка {{ forloop.counter }}
+                  {% endif %}
+                </div>
+                <div class="character-description">
+                  <div class="mb-2">{{ note.body|linebreaksbr }}</div>
+                  {% if note.comment %}
+                    <div class="text-muted small">{{ note.comment|linebreaksbr }}</div>
+                  {% endif %}
+                  <div class="character-actions">
+                    <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#mobile-note-edit-{{ note.id }}">
+                      Редактировать
+                    </button>
+                  </div>
+                </div>
+
+                <div class="collapse mt-2" id="mobile-note-edit-{{ note.id }}">
+                  <form method="post" action="{% url 'shelves:reading_update_note_entry' progress.id note.id %}" class="compact-form">
+                    {% csrf_token %}
+                    <div class="mb-2">
+                      <label class="form-label small">Местоположение</label>
+                      {{ form.location }}
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label small">Текст заметки</label>
+                      {{ form.body }}
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label small">Комментарий</label>
+                      {{ form.comment }}
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm w-100">Сохранить</button>
+                  </form>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <p class="text-muted">Пока нет коротких заметок.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="collapse" id="mobile-add-note">
+        <form method="post" action="{% url 'shelves:reading_add_note_entry' progress.id %}" class="compact-form">
+          {% csrf_token %}
+          <div class="mb-2">
+            <label class="form-label small">Местоположение</label>
+            {{ note_entry_form.location }}
           </div>
-          {% endif %}
-        <div class="col-12 col-md-4">
-          <label class="form-label" for="{{ note_entry_form.location.id_for_label }}">{{ note_entry_form.location.label }}</label>
-          {{ note_entry_form.location }}
-          {% if note_entry_form.location.errors %}
-            <div class="invalid-feedback d-block">{{ note_entry_form.location.errors|join:", " }}</div>
-          {% endif %}
+          <div class="mb-2">
+            <label class="form-label small">Текст заметки</label>
+            {{ note_entry_form.body }}
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">Комментарий</label>
+            {{ note_entry_form.comment }}
+          </div>
+          <button type="submit" class="btn btn-outline-primary btn-sm w-100">Сохранить</button>
+        </form>
+      </div>
+
+      <div class="mt-3">
+        <button class="mobile-action-button w-100" type="button" data-bs-toggle="collapse" data-bs-target="#mobile-general-notes">
+          📖 Общие заметки
+        </button>
+        <div class="collapse mt-2" id="mobile-general-notes">
+          <form method="post" action="{% url 'shelves:reading_update_notes' progress.id %}" class="compact-form">
+            {% csrf_token %}
+            <div class="mb-2">
+              <label class="form-label small">Общие заметки о книге</label>
+              {{ notes_form.reading_notes }}
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm w-100">Сохранить</button>
+          </form>
         </div>
-        <div class="col-12">
-          <label class="form-label" for="{{ note_entry_form.body.id_for_label }}">{{ note_entry_form.body.label }}</label>
-          {{ note_entry_form.body }}
-          {% if note_entry_form.body.errors %}
-            <div class="invalid-feedback d-block">{{ note_entry_form.body.errors|join:", " }}</div>
-          {% endif %}
-        </div>
-      <div class="col-12">
-          <label class="form-label" for="{{ note_entry_form.comment.id_for_label }}">{{ note_entry_form.comment.label }}</label>
-          {{ note_entry_form.comment }}
-          {% if note_entry_form.comment.errors %}
-            <div class="invalid-feedback d-block">{{ note_entry_form.comment.errors|join:", " }}</div>
-          {% endif %}
-        </div>
-        <div class="col-12 d-flex justify-content-end">
-          <button type="submit" class="btn btn-outline-primary rounded-pill">Сохранить заметку</button>
-        </div>
-      </form>
+      </div>
     </div>
 
-    <div class="reading-subsection mt-4">
-      <h3 class="h6 mb-3">Общие заметки</h3>
-      <form method="post" action="{% url 'shelves:reading_update_notes' progress.id %}" class="row g-3">
-        {% csrf_token %}
-        {% if notes_form.non_field_errors %}
-          <div class="col-12">
-            <div class="alert alert-danger mb-0">
-              {{ notes_form.non_field_errors|join:"<br>"|safe }}
+    <div class="d-none d-md-block">
+      {% if note_rows %}
+        <div class="list-group mb-3">
+          {% for note, form in note_rows %}
+            <div class="list-group-item">
+              <div class="d-flex justify-content-between align-items-start gap-3">
+                <div class="flex-grow-1">
+                  {% if note.location %}
+                    <div class="text-muted small mb-1">{{ note.location }}</div>
+                  {% endif %}
+                  <div>{{ note.body|linebreaksbr }}</div>
+                  {% if note.comment %}
+                    <div class="text-muted small mt-2">{{ note.comment|linebreaksbr }}</div>
+                  {% endif %}
+                </div>
+                <button
+                  class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center justify-content-center"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#note-edit-{{ note.id }}"
+                  aria-expanded="false"
+                  aria-controls="note-edit-{{ note.id }}"
+                  aria-label="Редактировать заметку"
+                >
+                  <i class="bi bi-pencil"></i>
+                  <span class="visually-hidden">Редактировать</span>
+                </button>
+              </div>
+              <div class="collapse mt-3" id="note-edit-{{ note.id }}">
+                <form
+                  method="post"
+                  action="{% url 'shelves:reading_update_note_entry' progress.id note.id %}"
+                  class="row g-3"
+                >
+                  {% csrf_token %}
+                  {% if form.non_field_errors %}
+                    <div class="col-12">
+                      <div class="alert alert-danger mb-0">
+                        {{ form.non_field_errors|join:"<br>"|safe }}
+                      </div>
+                    </div>
+                  {% endif %}
+                  <div class="col-12 col-md-4">
+                    <label class="form-label" for="{{ form.location.id_for_label }}">{{ form.location.label }}</label>
+                    {{ form.location }}
+                    {% if form.location.errors %}
+                      <div class="invalid-feedback d-block">{{ form.location.errors|join:", " }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label" for="{{ form.body.id_for_label }}">{{ form.body.label }}</label>
+                    {{ form.body }}
+                    {% if form.body.errors %}
+                      <div class="invalid-feedback d-block">{{ form.body.errors|join:", " }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label" for="{{ form.comment.id_for_label }}">{{ form.comment.label }}</label>
+                    {{ form.comment }}
+                    {% if form.comment.errors %}
+                      <div class="invalid-feedback d-block">{{ form.comment.errors|join:", " }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="col-12 d-flex justify-content-end">
+                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4">Сохранить изменения</button>
+                  </div>
+                </form>
+              </div>
             </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-muted">Пока нет коротких заметок.</p>
+      {% endif %}
+
+      <div class="reading-subsection mt-3">
+        <h3 class="h6 mb-3">Добавить заметку</h3>
+        <form method="post" action="{% url 'shelves:reading_add_note_entry' progress.id %}" class="row g-3">
+          {% csrf_token %}
+          {% if note_entry_form.non_field_errors %}
+            <div class="col-12">
+              <div class="alert alert-danger mb-0">
+                {{ note_entry_form.non_field_errors|join:"<br>"|safe }}
+              </div>
+            </div>
+            {% endif %}
+          <div class="col-12 col-md-4">
+            <label class="form-label" for="{{ note_entry_form.location.id_for_label }}">{{ note_entry_form.location.label }}</label>
+            {{ note_entry_form.location }}
+            {% if note_entry_form.location.errors %}
+              <div class="invalid-feedback d-block">{{ note_entry_form.location.errors|join:", " }}</div>
+            {% endif %}
           </div>
-        {% endif %}
-      <div class="col-12">
-          <label class="form-label" for="{{ notes_form.reading_notes.id_for_label }}">
-            {{ notes_form.reading_notes.label }}
-          </label>
-          {{ notes_form.reading_notes }}
-          {% if notes_form.reading_notes.errors %}
-            <div class="invalid-feedback d-block">
-              {{ notes_form.reading_notes.errors|join:", " }}
+          <div class="col-12">
+            <label class="form-label" for="{{ note_entry_form.body.id_for_label }}">{{ note_entry_form.body.label }}</label>
+            {{ note_entry_form.body }}
+            {% if note_entry_form.body.errors %}
+              <div class="invalid-feedback d-block">{{ note_entry_form.body.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+        <div class="col-12">
+            <label class="form-label" for="{{ note_entry_form.comment.id_for_label }}">{{ note_entry_form.comment.label }}</label>
+            {{ note_entry_form.comment }}
+            {% if note_entry_form.comment.errors %}
+              <div class="invalid-feedback d-block">{{ note_entry_form.comment.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+          <div class="col-12 d-flex justify-content-end">
+            <button type="submit" class="btn btn-outline-primary rounded-pill">Сохранить заметку</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="reading-subsection mt-4">
+        <h3 class="h6 mb-3">Общие заметки</h3>
+        <form method="post" action="{% url 'shelves:reading_update_notes' progress.id %}" class="row g-3">
+          {% csrf_token %}
+          {% if notes_form.non_field_errors %}
+            <div class="col-12">
+              <div class="alert alert-danger mb-0">
+                {{ notes_form.non_field_errors|join:"<br>"|safe }}
+              </div>
             </div>
           {% endif %}
-        </div>
-        <div class="col-12 d-flex justify-content-end">
-          <button type="submit" class="btn btn-primary rounded-pill px-4">Сохранить заметки</button>
-        </div>
-      </form>
+        <div class="col-12">
+            <label class="form-label" for="{{ notes_form.reading_notes.id_for_label }}">
+              {{ notes_form.reading_notes.label }}
+            </label>
+            {{ notes_form.reading_notes }}
+            {% if notes_form.reading_notes.errors %}
+              <div class="invalid-feedback d-block">
+                {{ notes_form.reading_notes.errors|join:", " }}
+              </div>
+            {% endif %}
+          </div>
+          <div class="col-12 d-flex justify-content-end">
+            <button type="submit" class="btn btn-primary rounded-pill px-4">Сохранить заметки</button>
+          </div>
+        </form>
+      </div>
     </div>
   </section>
 </div>
+
+<!-- JavaScript для мобильных взаимодействий -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  window.toggleCharacterDescription = function(element) {
+    const description = element.nextElementSibling;
+    element.classList.toggle('expanded');
+    description.classList.toggle('expanded');
+  };
+
+  window.toggleQuoteDetails = function(element) {
+    const details = element.nextElementSibling;
+    element.classList.toggle('expanded');
+    details.classList.toggle('expanded');
+  };
+
+  window.toggleNoteDetails = function(element) {
+    const details = element.nextElementSibling;
+    element.classList.toggle('expanded');
+    details.classList.toggle('expanded');
+  };
+
+  const accordionHeaders = document.querySelectorAll('.mobile-accordion-header');
+  accordionHeaders.forEach(header => {
+    header.addEventListener('click', function() {
+      const targetId = this.getAttribute('data-bs-target');
+      accordionHeaders.forEach(otherHeader => {
+        if (otherHeader !== this) {
+          const otherTargetId = otherHeader.getAttribute('data-bs-target');
+          const otherTarget = document.querySelector(otherTargetId);
+          if (otherTarget && otherTarget.classList.contains('show')) {
+            otherHeader.setAttribute('aria-expanded', 'false');
+            otherTarget.classList.remove('show');
+          }
+        }
+      });
+    });
+  });
+
+  if (window.innerWidth < 768) {
+    initializeMobileCharts();
+  }
+});
+
+function initializeMobileCharts() {
+  if (typeof Chart === 'undefined') {
+    return;
+  }
+
+  const historyLabelsEl = document.getElementById('reading-chart-labels');
+  const historyPagesEl = document.getElementById('reading-chart-pages');
+  const mobileHistoryCanvas = document.getElementById('mobileReadingHistoryChart');
+
+  if (historyLabelsEl && historyPagesEl && mobileHistoryCanvas) {
+    const labels = JSON.parse(historyLabelsEl.textContent);
+    const pages = JSON.parse(historyPagesEl.textContent);
+
+    new Chart(mobileHistoryCanvas, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: pages,
+          backgroundColor: 'rgba(188, 184, 147, 0.6)',
+          borderColor: 'rgba(95, 92, 59, 0.8)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { mode: 'index', intersect: false }
+        },
+        scales: {
+          x: { display: true },
+          y: { beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  const formatLabelsEl = document.getElementById('reading-format-chart-labels');
+  const formatValuesEl = document.getElementById('reading-format-chart-values');
+  const formatColorsEl = document.getElementById('reading-format-chart-colors');
+  const mobileFormatCanvas = document.getElementById('mobileReadingFormatChart');
+
+  if (formatLabelsEl && formatValuesEl && formatColorsEl && mobileFormatCanvas) {
+    const labels = JSON.parse(formatLabelsEl.textContent);
+    const values = JSON.parse(formatValuesEl.textContent);
+    const colors = JSON.parse(formatColorsEl.textContent);
+
+    new Chart(mobileFormatCanvas, {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{ data: values, backgroundColor: colors, borderColor: '#fff', borderWidth: 2 }],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'bottom' },
+          tooltip: {
+            callbacks: {
+              label: (context) => {
+                const label = context.label ?? '';
+                const value = context.parsed ?? 0;
+                return `${label}: ${value}%`;
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+}
+</script>
 
 <!-- JavaScript для анимаций -->
 <script>
