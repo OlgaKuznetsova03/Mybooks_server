@@ -28,12 +28,13 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
-from django.template.loader import render_to_string
+from django.template.loader import get_template, render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import mark_safe
 from django.utils.text import slugify
 from django.template.loader import render_to_string
+from xhtml2pdf import pisa
 from weasyprint import HTML
 import logging
 from django.views.decorators.http import require_GET, require_POST
