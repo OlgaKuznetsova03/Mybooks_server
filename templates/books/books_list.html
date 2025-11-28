@@ -909,8 +909,10 @@
         }
       };
 
+      let lastShelfTrigger = null;
+
       shelfModal.addEventListener('show.bs.modal', (event) => {
-        const trigger = event.relatedTarget;
+        const trigger = event.relatedTarget || lastShelfTrigger;
         if (!trigger) return;
 
         shelfForm?.reset();
@@ -932,6 +934,18 @@
         }
 
         updateFieldVisibility(shelfSelect?.value);
+
+        lastShelfTrigger = null;
+      });
+
+      document.querySelectorAll('[data-role="open-shelf-modal"]').forEach((button) => {
+        button.addEventListener('click', (event) => {
+          event.preventDefault();
+          lastShelfTrigger = button;
+
+          const modalInstance = bootstrap.Modal.getOrCreateInstance(shelfModal);
+          modalInstance.show();
+        });
       });
 
       shelfSelect?.addEventListener('change', (event) => {
