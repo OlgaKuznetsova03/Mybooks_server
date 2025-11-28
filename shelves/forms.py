@@ -19,6 +19,7 @@ from .models import (
     HomeLibraryEntry,
     ReadingFeedComment,
 )
+from .services import ensure_default_shelves
 class ShelfCreateForm(forms.ModelForm):
     class Meta:
         model = Shelf
@@ -34,6 +35,7 @@ class AddToShelfForm(forms.Form):
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
+        ensure_default_shelves(user)
         # показываем только пользовательские полки, которыми он управляет вручную
         self.fields["shelf"].queryset = (
             Shelf.objects

@@ -79,6 +79,28 @@ def get_home_library_shelf(user: User) -> Shelf:
     return _get_default_shelf(user, DEFAULT_HOME_LIBRARY_SHELF, is_public=False)
 
 
+def ensure_default_shelves(user: User) -> None:
+    """Гарантировать наличие всех стандартных полок пользователя.
+
+    При первом открытии страницы у некоторых пользователей ещё могут отсутствовать
+    базовые полки (например, «Хочу прочитать» или «Прочитал»). Форма быстрого
+    добавления книги в таком случае рендерится без вариантов для выбора. Этот
+    хелпер создаёт недостающие полки и ничего не делает, если пользователь не
+    авторизован или полки уже существуют.
+    """
+
+    if not getattr(user, "is_authenticated", False):
+        return
+
+    _get_default_shelf(user, DEFAULT_WANT_SHELF)
+    _get_default_shelf(user, DEFAULT_READING_SHELF)
+    _get_default_shelf(
+        user,
+        DEFAULT_READ_SHELF,
+        aliases=DEFAULT_READ_SHELF_ALIASES,
+    )
+    get_home_library_shelf(user)
+
 def _remove_book_from_named_shelf(
     user: User,
     book: Book,
