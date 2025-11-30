@@ -1098,17 +1098,26 @@ def profile_monthly_print(request):
                 "font-family: 'Inter','Segoe UI',sans-serif; color: #2d2a32; }"
             )
 
-            chart_html = render_to_string(template_name, chart_context)
-            chart_document = HTML(
-                string=chart_html,
-                base_url=request.build_absolute_uri("/"),
-                encoding="utf-8",
-            )
-            chart_png = chart_document.write_png(
-                stylesheets=[CSS(string=page_style)],
-                resolution=144,
-            )
-            return base64.b64encode(chart_png).decode("ascii")
+            try:
+                chart_html = render_to_string(template_name, chart_context)
+                chart_document = HTML(
+                    string=chart_html,
+                    base_url=request.build_absolute_uri("/"),
+                    encoding="utf-8",
+                )
+                chart_png = chart_document.write_png(
+                    stylesheets=[CSS(string=page_style)],
+                    resolution=144,
+                )
+                return base64.b64encode(chart_png).decode("ascii")
+            except Exception as exc:  # pragma: no cover - defensive fallback
+                logger.warning(
+                    "Failed to render chart %s for monthly PDF: %s",
+                    template_name,
+                    exc,
+                    exc_info=True,
+                )
+                return None
 
         format_chart_items = [
             {
