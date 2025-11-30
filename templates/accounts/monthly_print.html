@@ -270,43 +270,7 @@
       flex-wrap: wrap;
     }
 
-    .habit-tracker {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 6px;
-    }
-
-    .habit-cell {
-      position: relative;
-      border-radius: 10px;
-      border: 1px solid rgba(0, 0, 0, 0.04);
-      min-height: 20px;
-      background: rgba(255, 255, 255, 0.65);
-      overflow: hidden;
-    }
-
-    .habit-cell .fill {
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      background: linear-gradient(135deg, rgba(181, 116, 100, 0.55), rgba(181, 116, 100, 0.8));
-      opacity: 0;
-    }
-
-    .habit-cell.active .fill {
-      opacity: 1;
-    }
-
-    .habit-cell .label {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 9px;
-      color: white;
-    }
-
+    /* ФИКСИРОВАННЫЕ СТИЛИ ДЛЯ ГРАФИКОВ */
     .tracker-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -323,34 +287,50 @@
       gap: 8px;
     }
 
-    .progress-bar {
-      position: relative;
-      height: 8px;
-      border-radius: 999px;
-      background: rgba(0, 0, 0, 0.06);
-      overflow: hidden;
-    }
-
-    .progress-bar .value {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(181, 116, 100, 0.8), rgba(248, 219, 206, 0.9));
-    }
-
-    .sparkline {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(8px, 1fr));
-      gap: 4px;
+    /* Простые бары вместо sparkline */
+    .simple-bars {
+      display: flex;
       align-items: end;
+      gap: 2px;
       height: 48px;
+      padding: 4px 0;
     }
 
-    .sparkline span {
-      display: block;
-      width: 100%;
+    .simple-bar {
+      flex: 1;
       background: linear-gradient(180deg, rgba(181, 116, 100, 0.85), rgba(181, 116, 100, 0.35));
-      border-radius: 999px 999px 4px 4px;
+      border-radius: 2px 2px 0 0;
       min-height: 3px;
+    }
+
+    .audio-bar {
+      background: linear-gradient(180deg, rgba(130, 98, 160, 0.85), rgba(196, 173, 220, 0.45));
+    }
+
+    /* Хаббит-трекер с фиксированной высотой */
+    .habit-tracker {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      height: 80px;
+    }
+
+    .habit-cell {
+      position: relative;
+      border-radius: 6px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      background: rgba(255, 255, 255, 0.65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      color: var(--muted);
+    }
+
+    .habit-cell.active {
+      background: linear-gradient(135deg, rgba(181, 116, 100, 0.55), rgba(181, 116, 100, 0.8));
+      color: white;
+      border-color: rgba(181, 116, 100, 0.3);
     }
 
     .completed-books {
@@ -455,8 +435,11 @@
 
     .chart-bar span {
       position: absolute;
-      inset: 0;
+      top: 0;
+      left: 0;
+      height: 100%;
       border-radius: inherit;
+      background: linear-gradient(135deg, rgba(181, 116, 100, 0.8), rgba(248, 219, 206, 0.9));
     }
 
     .chart-value {
@@ -612,18 +595,18 @@
         <div class="tracker-grid">
           <div class="tracker-card">
             <div class="summary-label">Прочитанные страницы</div>
-            <div class="sparkline">
+            <div class="simple-bars">
               {% for day in daily_summary %}
-                <span style="height: {{ day.pages_percent }}%;"></span>
+                <div class="simple-bar" style="height: {{ day.pages_percent }}%;"></div>
               {% endfor %}
             </div>
             <div class="summary-label">Каждая колонка — день месяца</div>
           </div>
           <div class="tracker-card">
             <div class="summary-label">Аудио ритуалы</div>
-            <div class="sparkline">
+            <div class="simple-bars">
               {% for day in daily_summary %}
-                <span style="height: {{ day.audio_percent }}%; background: linear-gradient(180deg, rgba(130, 98, 160, 0.85), rgba(196, 173, 220, 0.45));"></span>
+                <div class="simple-bar audio-bar" style="height: {{ day.audio_percent }}%;"></div>
               {% endfor %}
             </div>
             <div class="summary-label">Всего: {% if total_audio_label %}{{ total_audio_label }}{% else %}—{% endif %}</div>
@@ -634,8 +617,7 @@
             <div class="habit-tracker">
               {% for day in daily_summary %}
                 <div class="habit-cell{% if day.has_activity %} active{% endif %}">
-                  <div class="fill" style="opacity: {{ day.pages_ratio|floatformat:2 }};"></div>
-                  <div class="label">{{ day.date.day }}</div>
+                  {{ day.date.day }}
                 </div>
               {% endfor %}
             </div>
@@ -727,7 +709,7 @@
                   <div class="chart-item">
                     <div class="chart-label">{{ item.label }}</div>
                     <div class="chart-bar">
-                      <span style="width: {{ item.percent }}%; background: {{ item.color }};"></span>
+                      <span style="width: {{ item.percent }}%;"></span>
                     </div>
                     <div class="chart-value">{{ item.percent }}%</div>
                   </div>
@@ -745,7 +727,7 @@
                   <div class="chart-item">
                     <div class="chart-label">{{ item.label }}</div>
                     <div class="chart-bar">
-                      <span style="width: {{ item.percent }}%; background: linear-gradient(135deg, rgba(181, 116, 100, 0.8), rgba(248, 219, 206, 0.9));"></span>
+                      <span style="width: {{ item.percent }}%;"></span>
                     </div>
                     <div class="chart-value">{{ item.value }}</div>
                   </div>
