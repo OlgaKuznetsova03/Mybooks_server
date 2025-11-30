@@ -24,6 +24,7 @@ urlpatterns = [
         name="yookassa_webhook",
     ),
     path("me/print/monthly/", views.profile_monthly_print, name="profile_monthly_print"),
+    path("me/print/monthly/pdf/", views.profile_monthly_pdf, name="profile_monthly_pdf"),
     path(
         "password-reset/",
         auth_views.PasswordResetView.as_view(
