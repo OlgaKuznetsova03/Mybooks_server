@@ -1156,6 +1156,75 @@ def profile_monthly_print(request):
             img.save(buffer, format="PNG")
             return base64.b64encode(buffer.getvalue()).decode("ascii")
 
+        def _render_daily_activity_chart(
+            *,
+            title: str,
+            values: list[int],
+            bar_color: str = "#b57464",
+            background_color: str = "#fff9f5",
+        ) -> str | None:
+            """Render vertical daily bars into a compact PNG for PDF embedding."""
+
+            if not values:
+                return None
+
+            max_value = max(values)
+            if max_value <= 0:
+                return None
+
+            scale = 6
+            padding = 18 * scale
+            bar_width = 6 * scale
+            gap = 2 * scale
+            min_width = 320 * scale
+            height = 220 * scale
+            title_height = 22 * scale
+
+            chart_width = len(values) * (bar_width + gap)
+            width = max(min_width, padding * 2 + chart_width)
+
+            try:
+                font_title = ImageFont.truetype("DejaVuSans.ttf", 16 * scale)
+                font_axis = ImageFont.truetype("DejaVuSans.ttf", 12 * scale)
+            except Exception:  # pragma: no cover - fallback to default font
+                font_title = font_axis = ImageFont.load_default()
+
+            img = Image.new("RGB", (width, height), color=background_color)
+            draw = ImageDraw.Draw(img)
+
+            title_y = padding
+            draw.text((padding, title_y), title, fill="#8c4f42", font=font_title)
+
+            chart_top = title_y + title_height + (6 * scale)
+            chart_bottom = height - padding
+            chart_height = max(bar_width, chart_bottom - chart_top)
+
+            for index, value in enumerate(values):
+                normalized = value / max_value if max_value else 0
+                bar_height = max(bar_width, int(chart_height * normalized))
+                left = padding + index * (bar_width + gap)
+                right = left + bar_width
+                bottom = chart_bottom
+                top = bottom - bar_height
+                draw.rounded_rectangle((left, top, right, bottom), radius=3 * scale, fill=bar_color)
+
+            draw.line(
+                (padding, chart_bottom, width - padding, chart_bottom),
+                fill="#e7d7cf",
+                width=2 * scale,
+            )
+
+            draw.text(
+                (padding, chart_top - (10 * scale)),
+                "Дни месяца",
+                fill="#6f6a72",
+                font=font_axis,
+            )
+
+            buffer = io.BytesIO()
+            img.save(buffer, format="PNG")
+            return base64.b64encode(buffer.getvalue()).decode("ascii")
+
         format_chart_items = [
             {
                 "label": item.get("label"),
@@ -1182,6 +1251,16 @@ def profile_monthly_print(request):
             "genres": _render_chart_image(
                 "accounts/charts/bar_chart.html",
                 {"title": "Настроение по жанрам", "items": genre_chart_items},
+            ),
+            "pages_daily": _render_daily_activity_chart(
+                title="Прочитанные страницы по дням",
+                values=[entry.get("pages", 0) for entry in daily_summary],
+                bar_color="#b57464",
+            ),
+            "audio_daily": _render_daily_activity_chart(
+                title="Аудио ритуалы по дням",
+                values=[entry.get("audio_minutes", 0) for entry in daily_summary],
+                bar_color="#8262a0",
             ),
         }
 

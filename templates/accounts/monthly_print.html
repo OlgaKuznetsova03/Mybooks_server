@@ -190,11 +190,11 @@
     .summary-card {
       background: var(--surface-alt);
       border-radius: 12px;
-      padding: 8px;
+      padding: 12px 10px;
       border: 1px solid var(--line);
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 6px;
       text-align: center;
     }
 
@@ -203,12 +203,14 @@
       text-transform: uppercase;
       letter-spacing: 0.08em;
       color: var(--muted);
+      line-height: 1.5;
     }
 
     .summary-value {
       font-family: 'Playfair Display', Georgia, serif;
       font-size: 14px;
       color: var(--accent-strong);
+      line-height: 1.6;
     }
 
     .calendar-grid {
@@ -292,6 +294,15 @@
       gap: 2px;
       height: 48px;
       padding: 4px 0;
+    }
+
+    .tracker-chart {
+      width: 100%;
+      max-height: 180px;
+      object-fit: contain;
+      margin-top: 8px;
+      border-radius: 10px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
     }
 
     .simple-bar {
@@ -569,20 +580,28 @@
         <div class="tracker-grid">
           <div class="tracker-card">
             <div class="summary-label">Прочитанные страницы</div>
-            <div class="simple-bars">
-              {% for day in daily_summary %}
-                <div class="simple-bar" style="height: {{ day.pages_percent }}%;"></div>
-              {% endfor %}
-            </div>
+            {% if chart_images.pages_daily %}
+              <img src="data:image/png;base64,{{ chart_images.pages_daily }}" alt="Прочитанные страницы по дням" class="tracker-chart">
+            {% else %}
+              <div class="simple-bars">
+                {% for day in daily_summary %}
+                  <div class="simple-bar" style="height: {{ day.pages_percent }}%;"></div>
+                {% endfor %}
+              </div>
+            {% endif %}
             <div class="summary-label">Каждая колонка — день месяца</div>
           </div>
           <div class="tracker-card">
             <div class="summary-label">Аудио ритуалы</div>
-            <div class="simple-bars">
-              {% for day in daily_summary %}
-                <div class="simple-bar audio-bar" style="height: {{ day.audio_percent }}%;"></div>
-              {% endfor %}
-            </div>
+            {% if chart_images.audio_daily %}
+              <img src="data:image/png;base64,{{ chart_images.audio_daily }}" alt="Аудио по дням" class="tracker-chart">
+            {% else %}
+              <div class="simple-bars">
+                {% for day in daily_summary %}
+                  <div class="simple-bar audio-bar" style="height: {{ day.audio_percent }}%;"></div>
+                {% endfor %}
+              </div>
+            {% endif %}
             <div class="summary-label">Всего: {% if total_audio_label %}{{ total_audio_label }}{% else %}—{% endif %}</div>
             <div class="summary-label">Учёт: {% if stats.audio_tracked_display %}{{ stats.audio_tracked_display }}{% else %}—{% endif %}</div>
           </div>
@@ -673,38 +692,6 @@
       {% endif %}
 
       <section class="section">
-        <h2>Диаграммы месяца</h2>
-        <div class="charts-grid">
-          <div>
-            {% if chart_images.formats %}
-              <img src="data:image/png;base64,{{ chart_images.formats }}" alt="Любимые форматы" class="chart-image">
-            {% elif format_breakdown %}
-              <ul class="simple-list" style="margin-top: 6px;">
-                {% for item in format_breakdown %}
-                  <li>{{ item.label }} — {{ item.percent }}%</li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p class="empty-note">Форматы пока не определены.</p>
-            {% endif %}
-          </div>
-          <div>
-            {% if chart_images.genres %}
-              <img src="data:image/png;base64,{{ chart_images.genres }}" alt="Настроение по жанрам" class="chart-image">
-            {% elif genre_breakdown %}
-              <ul class="simple-list" style="margin-top: 6px;">
-                {% for item in genre_breakdown %}
-                  <li>{{ item.label }} — {{ item.value }} ({{ item.percent }}%)</li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p class="empty-note">Жанровые приключения впереди.</p>
-            {% endif %}
-          </div>
-        </div>
-      </section>
-
-      <section class="section">
         <h2>Тёплые моменты</h2>
         <div class="highlights">
           <div class="highlight-card">
@@ -760,6 +747,38 @@
                 <br>Самый насыщенный день — {{ highlights.top_day.date|date:"d E" }}: {{ highlights.top_day.pages }} стр.
               {% endif %}
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Диаграммы месяца</h2>
+        <div class="charts-grid">
+          <div>
+            {% if chart_images.formats %}
+              <img src="data:image/png;base64,{{ chart_images.formats }}" alt="Любимые форматы" class="chart-image">
+            {% elif format_breakdown %}
+              <ul class="simple-list" style="margin-top: 6px;">
+                {% for item in format_breakdown %}
+                  <li>{{ item.label }} — {{ item.percent }}%</li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="empty-note">Форматы пока не определены.</p>
+            {% endif %}
+          </div>
+          <div>
+            {% if chart_images.genres %}
+              <img src="data:image/png;base64,{{ chart_images.genres }}" alt="Настроение по жанрам" class="chart-image">
+            {% elif genre_breakdown %}
+              <ul class="simple-list" style="margin-top: 6px;">
+                {% for item in genre_breakdown %}
+                  <li>{{ item.label }} — {{ item.value }} ({{ item.percent }}%)</li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="empty-note">Жанровые приключения впереди.</p>
+            {% endif %}
           </div>
         </div>
       </section>
