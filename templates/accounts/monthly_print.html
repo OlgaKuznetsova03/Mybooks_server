@@ -184,22 +184,22 @@
     .summary-grid {
       display: grid;
       grid-template-columns: repeat(6, 1fr);
-      gap: 10px;
+      gap: 8px;
     }
 
     .summary-card {
       background: var(--surface-alt);
-      border-radius: 14px;
-      padding: 12px;
+      border-radius: 12px;
+      padding: 8px;
       border: 1px solid var(--line);
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 2px;
       text-align: center;
     }
 
     .summary-label {
-      font-size: 10px;
+      font-size: 9px;
       text-transform: uppercase;
       letter-spacing: 0.08em;
       color: var(--muted);
@@ -207,7 +207,7 @@
 
     .summary-value {
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 16px;
+      font-size: 14px;
       color: var(--accent-strong);
     }
 
@@ -402,7 +402,6 @@
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 16px;
-      min-height: 360px;
     }
 
     .chart-image {
@@ -419,9 +418,9 @@
 
     .section h2 {
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 20px; /* Увеличили заголовок секции */
+      font-size: 18px; /* Увеличили заголовок секции */
       color: var(--accent-strong);
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
 
     .highlights {
@@ -677,7 +676,6 @@
         <h2>Диаграммы месяца</h2>
         <div class="charts-grid">
           <div>
-            <h3 class="summary-label" style="margin-bottom:6px;">Любимые форматы</h3>
             {% if chart_images.formats %}
               <img src="data:image/png;base64,{{ chart_images.formats }}" alt="Любимые форматы" class="chart-image">
             {% elif format_breakdown %}
@@ -691,7 +689,6 @@
             {% endif %}
           </div>
           <div>
-            <h3 class="summary-label" style="margin-bottom:6px;">Настроение по жанрам</h3>
             {% if chart_images.genres %}
               <img src="data:image/png;base64,{{ chart_images.genres }}" alt="Настроение по жанрам" class="chart-image">
             {% elif genre_breakdown %}
