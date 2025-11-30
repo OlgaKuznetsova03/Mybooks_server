@@ -298,11 +298,17 @@
 
     .tracker-chart {
       width: 100%;
-      max-height: 180px;
+      height: 220px;
       object-fit: contain;
-      margin-top: 8px;
-      border-radius: 10px;
+      margin-top: 4px;
+      border-radius: 12px;
       box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+    }
+
+    .tracker-note {
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.5;
     }
 
     .simple-bar {
@@ -589,7 +595,7 @@
                 {% endfor %}
               </div>
             {% endif %}
-            <div class="summary-label">Каждая колонка — день месяца</div>
+            <div class="tracker-note">Каждая колонка — день месяца</div>
           </div>
           <div class="tracker-card">
             <div class="summary-label">Аудио ритуалы</div>
@@ -602,8 +608,7 @@
                 {% endfor %}
               </div>
             {% endif %}
-            <div class="summary-label">Всего: {% if total_audio_label %}{{ total_audio_label }}{% else %}—{% endif %}</div>
-            <div class="summary-label">Учёт: {% if stats.audio_tracked_display %}{{ stats.audio_tracked_display }}{% else %}—{% endif %}</div>
+            <div class="tracker-note">Всего: {% if total_audio_label %}{{ total_audio_label }}{% else %}—{% endif %} · Учёт: {% if stats.audio_tracked_display %}{{ stats.audio_tracked_display }}{% else %}—{% endif %}</div>
           </div>
           <div class="tracker-card">
             <div class="summary-label">Активные дни</div>
