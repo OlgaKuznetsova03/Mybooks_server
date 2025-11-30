@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 12px 10px;
+      background: #fff9f5;
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      color: #2d2a32;
+    }
+
+    h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #8c4f42;
+    }
+
+    .chart-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .chart-item {
+      display: grid;
+      grid-template-columns: 120px 1fr 70px;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+    }
+
+    .chart-label {
+      color: #6f6a72;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .bar-track {
+      position: relative;
+      height: 14px;
+      width: 100%;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #b57464 0%, #f8dbce 100%);
+      min-width: 3px;
+    }
+
+    .chart-value {
+      text-align: right;
+      color: #8c4f42;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body>
+  <h3>{{ title }}</h3>
+  <div class="chart-list">
+    {% for item in items %}
+      <div class="chart-item">
+        <div class="chart-label">{{ item.label }}</div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width: {{ item.percent }}%;"></div>
+        </div>
+        <div class="chart-value">{{ item.display_value }}</div>
+      </div>
+    {% endfor %}
+  </div>
+</body>
+</html>

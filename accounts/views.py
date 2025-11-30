@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
+import base64
 import calendar
 import json
 import logging
@@ -26,7 +27,7 @@ from django.template.loader import render_to_string
 
 from collections import Counter
 
-from weasyprint import HTML
+from weasyprint import HTML, CSS
 
 
 from shelves.models import Shelf, ShelfItem, BookProgress, HomeLibraryEntry, ReadingLog
@@ -1085,6 +1086,59 @@ def profile_monthly_print(request):
             "top_day": top_day,
         }
 
+        def _render_chart_image(template_name: str, chart_context: dict[str, object]) -> str | None:
+            """Render a small chart HTML snippet into a base64 PNG for PDF embedding."""
+
+            if not chart_context.get("items"):
+                return None
+
+            page_style = (
+                "@page { size: 720px 280px; margin: 0; } "
+                "body { margin: 0; padding: 16px; background: #fff9f5; "
+                "font-family: 'Inter','Segoe UI',sans-serif; color: #2d2a32; }"
+            )
+
+            chart_html = render_to_string(template_name, chart_context)
+            chart_document = HTML(
+                string=chart_html,
+                base_url=request.build_absolute_uri("/"),
+                encoding="utf-8",
+            )
+            chart_png = chart_document.write_png(
+                stylesheets=[CSS(string=page_style)],
+                resolution=144,
+            )
+            return base64.b64encode(chart_png).decode("ascii")
+
+        format_chart_items = [
+            {
+                "label": item.get("label"),
+                "percent": item.get("percent") or 0,
+                "display_value": f"{item.get('percent') or 0}%",
+            }
+            for item in format_breakdown
+        ]
+
+        genre_chart_items = [
+            {
+                "label": item.get("label"),
+                "percent": item.get("percent") or 0,
+                "display_value": f"{item.get('value') or 0} ({item.get('percent') or 0}%)",
+            }
+            for item in genre_breakdown[:7]
+        ]
+
+        chart_images = {
+            "formats": _render_chart_image(
+                "accounts/charts/bar_chart.html",
+                {"title": "Любимые форматы", "items": format_chart_items},
+            ),
+            "genres": _render_chart_image(
+                "accounts/charts/bar_chart.html",
+                {"title": "Настроение по жанрам", "items": genre_chart_items},
+            ),
+        }
+
         context = {
             "user": user,
             "profile": profile,
@@ -1107,6 +1161,7 @@ def profile_monthly_print(request):
             "total_audio_minutes": total_audio_minutes,
             "total_sessions": total_sessions,
             "total_audio_label": total_audio_label,
+            "chart_images": chart_images,
         }
 
         html_string = render_to_string("accounts/monthly_print.html", context)

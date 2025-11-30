@@ -5,8 +5,6 @@
   <meta charset="utf-8">
   <title>Читательский месяц {{ month_name }} {{ calendar_year }}</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@300;400;500;600&display=swap');
-
     :root {
       --accent: #b57464;
       --accent-soft: rgba(181, 116, 100, 0.12);
@@ -35,7 +33,7 @@
       padding: 0;
       background: #f4ede7;
       color: var(--ink);
-      font-family: 'Inter', 'Segoe UI', sans-serif;
+      font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
       font-size: 12px;
       line-height: 1.45;
     }
@@ -114,7 +112,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-family: 'Playfair Display', Georgia, serif;
+      font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
       font-size: 22px;
       color: var(--accent-strong);
       overflow: hidden;
@@ -127,7 +125,7 @@
     }
 
     .profile-meta h1 {
-      font-family: 'Playfair Display', Georgia, serif;
+      font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
       font-size: 22px;
       font-weight: 600;
       margin-bottom: 4px;
@@ -406,47 +404,12 @@
       gap: 12px;
     }
 
-    .chart-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .chart-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .chart-label {
-      width: 90px;
-      font-size: 10px;
-      color: var(--muted);
-    }
-
-    .chart-bar {
-      flex: 1;
-      height: 10px;
-      border-radius: 999px;
-      background: rgba(0, 0, 0, 0.05);
-      overflow: hidden;
-      position: relative;
-    }
-
-    .chart-bar span {
-      position: absolute;
-      top: 0;
-      left: 0;
-      height: 100%;
-      border-radius: inherit;
-      background: linear-gradient(135deg, rgba(181, 116, 100, 0.8), rgba(248, 219, 206, 0.9));
-    }
-
-    .chart-value {
-      font-size: 10px;
-      color: var(--accent-strong);
-      min-width: 36px;
-      text-align: right;
+    .chart-image {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 12px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
     }
 
     .highlights {
@@ -703,39 +666,31 @@
         <div class="charts-grid">
           <div>
             <h3 class="summary-label" style="margin-bottom:6px;">Любимые форматы</h3>
-            <div class="chart-list">
-              {% if format_breakdown %}
+            {% if chart_images.formats %}
+              <img src="data:image/png;base64,{{ chart_images.formats }}" alt="Любимые форматы" class="chart-image">
+            {% elif format_breakdown %}
+              <ul class="simple-list" style="margin-top: 6px;">
                 {% for item in format_breakdown %}
-                  <div class="chart-item">
-                    <div class="chart-label">{{ item.label }}</div>
-                    <div class="chart-bar">
-                      <span style="width: {{ item.percent }}%;"></span>
-                    </div>
-                    <div class="chart-value">{{ item.percent }}%</div>
-                  </div>
+                  <li>{{ item.label }} — {{ item.percent }}%</li>
                 {% endfor %}
-              {% else %}
-                <p class="empty-note">Форматы пока не определены.</p>
-              {% endif %}
-            </div>
+              </ul>
+            {% else %}
+              <p class="empty-note">Форматы пока не определены.</p>
+            {% endif %}
           </div>
           <div>
             <h3 class="summary-label" style="margin-bottom:6px;">Настроение по жанрам</h3>
-            <div class="chart-list">
-              {% if genre_breakdown %}
+            {% if chart_images.genres %}
+              <img src="data:image/png;base64,{{ chart_images.genres }}" alt="Настроение по жанрам" class="chart-image">
+            {% elif genre_breakdown %}
+              <ul class="simple-list" style="margin-top: 6px;">
                 {% for item in genre_breakdown %}
-                  <div class="chart-item">
-                    <div class="chart-label">{{ item.label }}</div>
-                    <div class="chart-bar">
-                      <span style="width: {{ item.percent }}%;"></span>
-                    </div>
-                    <div class="chart-value">{{ item.value }}</div>
-                  </div>
+                  <li>{{ item.label }} — {{ item.value }} ({{ item.percent }}%)</li>
                 {% endfor %}
-              {% else %}
-                <p class="empty-note">Жанровые приключения впереди.</p>
-              {% endif %}
-            </div>
+              </ul>
+            {% else %}
+              <p class="empty-note">Жанровые приключения впереди.</p>
+            {% endif %}
           </div>
         </div>
       </section>
