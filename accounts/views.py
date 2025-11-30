@@ -1,10 +1,11 @@
-from datetime import date, timedelta
-from decimal import Decimal, ROUND_HALF_UP
 import base64
 import calendar
 import json
 import logging
 import math
+import io
+from datetime import date, timedelta
+from decimal import Decimal, ROUND_HALF_UP
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, redirect, get_object_or_404
@@ -28,6 +29,8 @@ from django.template.loader import render_to_string
 from collections import Counter
 
 from weasyprint import HTML, CSS
+
+from PIL import Image, ImageDraw, ImageFont
 
 
 from shelves.models import Shelf, ShelfItem, BookProgress, HomeLibraryEntry, ReadingLog
@@ -1087,37 +1090,66 @@ def profile_monthly_print(request):
         }
 
         def _render_chart_image(template_name: str, chart_context: dict[str, object]) -> str | None:
-            """Render a small chart HTML snippet into a base64 PNG for PDF embedding."""
+            """Render a small chart into a base64 PNG for PDF embedding."""
 
-            if not chart_context.get("items"):
+            items = chart_context.get("items") or []
+            if not items:
                 return None
 
-            page_style = (
-                "@page { size: 720px 280px; margin: 0; } "
-                "body { margin: 0; padding: 16px; background: #fff9f5; "
-                "font-family: 'Inter','Segoe UI',sans-serif; color: #2d2a32; }"
-            )
+            width, height = 720, 280
+            padding = 16
+            label_width = 170
+            value_width = 120
+            bar_gap = 12
+            bar_height = 20
 
             try:
-                chart_html = render_to_string(template_name, chart_context)
-                chart_document = HTML(
-                    string=chart_html,
-                    base_url=request.build_absolute_uri("/"),
-                    encoding="utf-8",
+                font_title = ImageFont.truetype("DejaVuSans.ttf", 20)
+                font_label = ImageFont.truetype("DejaVuSans.ttf", 14)
+                font_value = ImageFont.truetype("DejaVuSans-Bold.ttf", 14)
+            except Exception:  # pragma: no cover - fallback to default font
+                font_title = font_label = font_value = ImageFont.load_default()
+
+            img = Image.new("RGB", (width, height), color="#fff9f5")
+            draw = ImageDraw.Draw(img)
+
+            draw.text((padding, padding), chart_context.get("title", ""), fill="#8c4f42", font=font_title)
+
+            available_height = height - padding * 2 - 28
+            row_height = max(bar_height + bar_gap, int(available_height / max(len(items), 1)))
+            bar_area_width = width - padding * 2 - label_width - value_width - 20
+
+            for index, item in enumerate(items):
+                top = padding + 28 + index * row_height
+                label = str(item.get("label") or "")
+                percent = max(0, min(float(item.get("percent") or 0), 100))
+                value = str(item.get("display_value") or "")
+
+                draw.text((padding, top), label[:40], fill="#6f6a72", font=font_label)
+
+                bar_x = padding + label_width
+                bar_y = top + (row_height - bar_height) / 2
+                bar_width = bar_area_width
+
+                draw.rounded_rectangle(
+                    (bar_x, bar_y, bar_x + bar_width, bar_y + bar_height),
+                    radius=bar_height / 2,
+                    fill="#f4e0d8",
                 )
-                chart_png = chart_document.write_png(
-                    stylesheets=[CSS(string=page_style)],
-                    resolution=144,
+
+                fill_width = max(bar_height / 2, bar_width * (percent / 100))
+                draw.rounded_rectangle(
+                    (bar_x, bar_y, bar_x + fill_width, bar_y + bar_height),
+                    radius=bar_height / 2,
+                    fill="#b57464",
                 )
-                return base64.b64encode(chart_png).decode("ascii")
-            except Exception as exc:  # pragma: no cover - defensive fallback
-                logger.warning(
-                    "Failed to render chart %s for monthly PDF: %s",
-                    template_name,
-                    exc,
-                    exc_info=True,
-                )
-                return None
+
+                value_x = bar_x + bar_width + 10
+                draw.text((value_x, top), value, fill="#8c4f42", font=font_value)
+
+            buffer = io.BytesIO()
+            img.save(buffer, format="PNG")
+            return base64.b64encode(buffer.getvalue()).decode("ascii")
 
         format_chart_items = [
             {
