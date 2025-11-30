@@ -1090,23 +1090,28 @@ def profile_monthly_print(request):
         }
 
         def _render_chart_image(template_name: str, chart_context: dict[str, object]) -> str | None:
-            """Render a small chart into a base64 PNG for PDF embedding."""
+            """Render a higher-resolution chart into a base64 PNG for PDF embedding."""
 
             items = chart_context.get("items") or []
             if not items:
                 return None
 
-            width, height = 720, 280
-            padding = 16
-            label_width = 170
-            value_width = 120
-            bar_gap = 12
-            bar_height = 20
+            scale = 3
+            width, height = 720 * scale, 280 * scale
+            padding = 16 * scale
+            label_width = 170 * scale
+            value_width = 120 * scale
+            bar_gap = 12 * scale
+            bar_height = 20 * scale
+            title_offset = 28 * scale
+            font_title_size = 20 * scale
+            font_label_size = 14 * scale
+            font_value_size = 14 * scale
 
             try:
-                font_title = ImageFont.truetype("DejaVuSans.ttf", 20)
-                font_label = ImageFont.truetype("DejaVuSans.ttf", 14)
-                font_value = ImageFont.truetype("DejaVuSans-Bold.ttf", 14)
+                font_title = ImageFont.truetype("DejaVuSans.ttf", font_title_size)
+                font_label = ImageFont.truetype("DejaVuSans.ttf", font_label_size)
+                font_value = ImageFont.truetype("DejaVuSans-Bold.ttf", font_value_size)
             except Exception:  # pragma: no cover - fallback to default font
                 font_title = font_label = font_value = ImageFont.load_default()
 
@@ -1115,12 +1120,12 @@ def profile_monthly_print(request):
 
             draw.text((padding, padding), chart_context.get("title", ""), fill="#8c4f42", font=font_title)
 
-            available_height = height - padding * 2 - 28
+            available_height = height - padding * 2 - title_offset
             row_height = max(bar_height + bar_gap, int(available_height / max(len(items), 1)))
-            bar_area_width = width - padding * 2 - label_width - value_width - 20
+            bar_area_width = width - padding * 2 - label_width - value_width - (20 * scale)
 
             for index, item in enumerate(items):
-                top = padding + 28 + index * row_height
+                top = padding + title_offset + index * row_height
                 label = str(item.get("label") or "")
                 percent = max(0, min(float(item.get("percent") or 0), 100))
                 value = str(item.get("display_value") or "")
@@ -1144,7 +1149,7 @@ def profile_monthly_print(request):
                     fill="#b57464",
                 )
 
-                value_x = bar_x + bar_width + 10
+                value_x = bar_x + bar_width + (10 * scale)
                 draw.text((value_x, top), value, fill="#8c4f42", font=font_value)
 
             buffer = io.BytesIO()

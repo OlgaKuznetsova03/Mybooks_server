@@ -6,15 +6,16 @@
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      padding: 12px 10px;
+      padding: 30px 25px; /* Увеличили отступы в 2.5 раза */
       background: #fff9f5;
       font-family: 'Inter', 'Segoe UI', sans-serif;
       color: #2d2a32;
+      width: 600px; /* Увеличили ширину на 50% */
     }
 
     h3 {
-      margin: 0 0 10px;
-      font-size: 16px;
+      margin: 0 0 25px; /* Увеличили отступ */
+      font-size: 28px; /* Увеличили шрифт заголовка */
       font-weight: 600;
       color: #8c4f42;
     }
@@ -22,15 +23,16 @@
     .chart-list {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 20px; /* Увеличили расстояние между элементами */
     }
 
     .chart-item {
       display: grid;
-      grid-template-columns: 120px 1fr 70px;
+      grid-template-columns: 200px 1fr 100px; /* Увеличили ширину колонок */
       align-items: center;
-      gap: 10px;
-      font-size: 12px;
+      gap: 16px; /* Увеличили зазоры */
+      font-size: 18px; /* Увеличили шрифт */
+      min-height: 35px; /* Минимальная высота строки */
     }
 
     .chart-label {
@@ -38,15 +40,17 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      font-weight: 500;
     }
 
     .bar-track {
       position: relative;
-      height: 14px;
+      height: 28px; /* Увеличили высоту полосы в 2 раза */
       width: 100%;
       border-radius: 999px;
-      background: rgba(0, 0, 0, 0.05);
+      background: rgba(0, 0, 0, 0.08);
       overflow: hidden;
+      border: 1px solid rgba(0, 0, 0, 0.1);
     }
 
     .bar-fill {
@@ -56,13 +60,15 @@
       bottom: 0;
       border-radius: inherit;
       background: linear-gradient(90deg, #b57464 0%, #f8dbce 100%);
-      min-width: 3px;
+      min-width: 8px;
+      box-shadow: 0 2px 4px rgba(181, 116, 100, 0.3);
     }
 
     .chart-value {
       text-align: right;
       color: #8c4f42;
-      font-weight: 600;
+      font-weight: 700;
+      font-size: 18px; /* Увеличили шрифт значений */
       font-variant-numeric: tabular-nums;
     }
   </style>

@@ -401,15 +401,24 @@
     .charts-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
+      gap: 20px;
+      height: 300px; /* Увеличили высоту контейнера */
     }
 
     .chart-image {
       width: 100%;
-      height: auto;
+      height: 280px; /* Значительно увеличили высоту изображения */
+      object-fit: contain;
       display: block;
       border-radius: 12px;
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+
+    .section h2 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 20px; /* Увеличили заголовок секции */
+      color: var(--accent-strong);
+      margin-bottom: 16px;
     }
 
     .highlights {
