@@ -23,7 +23,7 @@
 
     @page {
       size: A4;
-      margin: 15mm 0;
+      margin: 10mm 0;
     }
 
     body {
@@ -34,6 +34,8 @@
       font-family: 'Inter', 'Segoe UI', sans-serif;
       font-size: 12px;
       line-height: 1.4;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
 
     .page {
@@ -41,7 +43,7 @@
       width: 210mm;
       min-height: 297mm;
       height: auto;
-      padding: 20mm 15mm;
+      padding: 12mm 15mm;
       position: relative;
       overflow: hidden;
       page-break-after: always;
@@ -51,37 +53,35 @@
       page-break-after: auto;
     }
 
-    .page-header {
-      position: relative;
-      z-index: 1;
-      margin-bottom: 20px;
-    }
-
+    /* Компактная шапка книги */
     .book-header {
       display: grid;
-      grid-template-columns: 80px 1fr;
-      gap: 16px;
-      padding: 20px;
-      border-radius: 12px;
+      grid-template-columns: 60px 1fr;
+      gap: 12px;
+      padding: 15px;
+      border-radius: 8px;
       background: linear-gradient(135deg, rgba(194, 106, 90, 0.08), rgba(255, 255, 255, 0.9));
       border: 1px solid rgba(194, 106, 90, 0.12);
+      margin-bottom: 15px;
+      page-break-inside: avoid;
+      break-inside: avoid;
     }
 
     .cover {
-      width: 80px;
-      height: 120px;
-      border-radius: 8px;
+      width: 60px;
+      height: 90px;
+      border-radius: 6px;
       background: rgba(255, 255, 255, 0.6);
       border: 1px solid rgba(255, 255, 255, 0.8);
-      box-shadow: 0 8px 20px rgba(194, 106, 90, 0.2);
+      box-shadow: 0 4px 12px rgba(194, 106, 90, 0.15);
       overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 10px;
+      font-size: 9px;
       color: var(--muted);
       text-align: center;
-      padding: 8px;
+      padding: 6px;
     }
     
     .cover img {
@@ -92,7 +92,7 @@
     
     .title-block h1 {
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 600;
       margin: 0 0 4px 0;
       color: var(--accent-dark);
@@ -100,91 +100,81 @@
     }
     
     .title-block .subtitle {
-      font-size: 11px;
+      font-size: 10px;
       color: var(--muted);
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
     
     .meta-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 8px 12px;
+      gap: 6px 8px;
     }
 
     .meta-item {
-      font-size: 10px;
+      font-size: 9px;
       color: #373a3d;
       line-height: 1.3;
     }
 
     .meta-item span {
       display: block;
-      font-size: 9px;
+      font-size: 8px;
       letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--muted);
-      margin-bottom: 2px;
+      margin-bottom: 1px;
     }
 
-    main {
-      position: relative;
-      z-index: 1;
-    }
-
-    .content-grid {
+    /* Основная сетка контента для первой страницы */
+    .first-page-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 15px;
+      gap: 12px;
       align-items: start;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      min-height: 200mm; /* Оставляем место для футера */
     }
 
-    .main-content {
+    .left-column {
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 12px;
     }
 
-    .sidebar {
+    .right-column {
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 12px;
     }
 
-    .full-width {
-      grid-column: 1 / -1;
-    }
-
+    /* Секции */
     section {
       background: rgba(255, 255, 255, 0.9);
       border: 1px solid var(--border-color);
-      border-radius: 10px;
-      padding: 15px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-      page-break-inside: avoid;
-      break-inside: avoid;
-    }
-
-    .auto-break {
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
       page-break-inside: auto;
       break-inside: auto;
     }
-    
+
     section h2 {
-      margin: 0 0 12px;
+      margin: 0 0 8px;
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 14px;
+      font-size: 13px;
       color: var(--accent-dark);
       display: flex;
       align-items: center;
       gap: 6px;
       letter-spacing: 0.02em;
-      page-break-after: avoid;
     }
 
     section h2::before {
       content: '';
-      width: 12px;
-      height: 12px;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
       background: linear-gradient(135deg, rgba(194, 106, 90, 0.85), rgba(237, 196, 169, 0.85));
       box-shadow: 0 0 0 2px rgba(194, 106, 90, 0.15);
@@ -192,38 +182,150 @@
     }
 
     .description {
-      font-size: 11px;
-      line-height: 1.5;
+      font-size: 10px;
+      line-height: 1.4;
       color: #34373c;
     }
 
     .empty-note {
       color: var(--muted);
       font-style: italic;
-      font-size: 11px;
+      font-size: 10px;
     }
-    
+
+    /* Стили для оценок - 2 в ряд с увеличенной высотой */
+    .scores-compact {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .score-card-compact {
+      background: rgba(194, 106, 90, 0.06);
+      border: 1px solid rgba(194, 106, 90, 0.18);
+      border-radius: 6px;
+      padding: 12px 4px; /* Увеличена высота в 2 раза */
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      text-align: center;
+      min-height: auto;
+      word-wrap: break-word;
+      overflow: hidden;
+      justify-content: center; /* Центрируем содержимое */
+    }
+
+    .score-label-compact {
+      font-size: 7px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      line-height: 1.2;
+      padding: 0 2px;
+    }
+
+    .score-value-compact {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent-dark);
+      line-height: 1.2;
+    }
+
+    /* Персонажи */
+    .characters-column {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 0;
+      list-style: none;
+      margin: 0;
+    }
+
+    .character-card {
+      background: rgba(255, 255, 255, 0.75);
+      border: 1px solid rgba(194, 106, 90, 0.15);
+      border-radius: 6px;
+      padding: 8px 10px;
+      box-shadow: 0 1px 4px rgba(194, 106, 90, 0.1);
+      page-break-inside: avoid;
+    }
+
+    .character-card strong {
+      display: block;
+      font-weight: 600;
+      color: var(--accent-dark);
+      margin-bottom: 3px;
+      font-size: 10px;
+    }
+
+    .character-card p {
+      margin: 0;
+      font-size: 9px;
+      color: #3c3f43;
+      line-height: 1.3;
+    }
+
+    /* Вторая страница - отзыв и комментарии */
+    .second-page-content {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      min-height: 230mm; /* Оставляем место для футера */
+    }
+
+    /* Отзыв */
+    .review {
+      background: rgba(255, 255, 255, 0.92);
+      border-radius: 8px;
+      border: 1px solid rgba(194, 106, 90, 0.18);
+      padding: 15px;
+      font-size: 11px;
+      line-height: 1.5;
+      color: #303030;
+      white-space: pre-wrap;
+      min-height: 150px;
+    }
+
+    .review-continued {
+      background: rgba(194, 106, 90, 0.08);
+      border: 1px dashed rgba(194, 106, 90, 0.3);
+      border-radius: 6px;
+      padding: 10px;
+      text-align: center;
+      font-size: 9px;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    /* Заметки и цитаты */
+    .section-subtitle {
+      font-size: 10px;
+      color: var(--muted);
+      margin: -6px 0 8px 16px;
+      font-style: italic;
+    }
+
     .notes {
       background: repeating-linear-gradient(
         transparent,
-        transparent 22px,
-        var(--line-color) 22px,
-        var(--line-color) 24px
+        transparent 20px,
+        var(--line-color) 20px,
+        var(--line-color) 22px
       );
-      border-radius: 8px;
+      border-radius: 6px;
       padding: 12px;
-      font-size: 11px;
-      line-height: 24px;
+      font-size: 10px;
+      line-height: 22px;
       min-height: 120px;
       border: 1px solid rgba(194, 106, 90, 0.12);
       white-space: pre-wrap;
-      page-break-inside: auto;
     }
-    
+
     .annotations {
       list-style: none;
       padding: 0;
-      margin: 12px 0 0;
+      margin: 8px 0 0;
       display: grid;
       gap: 8px;
     }
@@ -231,14 +333,14 @@
     .annotations li {
       background: rgba(255, 255, 255, 0.75);
       border: 1px solid rgba(194, 106, 90, 0.12);
-      border-radius: 8px;
+      border-radius: 6px;
       padding: 10px 12px;
-      box-shadow: 0 4px 8px rgba(194, 106, 90, 0.08);
+      box-shadow: 0 2px 6px rgba(194, 106, 90, 0.08);
       page-break-inside: avoid;
     }
 
     .annotation-meta {
-      font-size: 9px;
+      font-size: 8px;
       font-weight: 600;
       letter-spacing: 0.06em;
       text-transform: uppercase;
@@ -247,146 +349,58 @@
     }
 
     .annotation-body {
-      font-size: 11px;
+      font-size: 10px;
       line-height: 1.4;
       font-weight: 500;
       color: #2d2d2d;
     }
 
     .annotation-comment {
-      margin-top: 6px;
-      font-size: 10px;
+      margin-top: 4px;
+      font-size: 9px;
       color: var(--muted);
     }
 
     blockquote {
       margin: 0;
-      padding-left: 12px;
-      border-left: 3px solid rgba(194, 106, 90, 0.3);
+      padding-left: 10px;
+      border-left: 2px solid rgba(194, 106, 90, 0.3);
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 12px;
-      line-height: 1.5;
-      color: var(--accent-dark);
-    }
-
-    /* СТОЛБИК ДЛЯ ПЕРСОНАЖЕЙ */
-    .characters-column {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      padding: 0;
-      list-style: none;
-      margin: 0;
-      max-height: none;
-    }
-
-    .character-card {
-      background: rgba(255, 255, 255, 0.75);
-      border: 1px solid rgba(194, 106, 90, 0.15);
-      border-radius: 8px;
-      padding: 10px 12px;
-      box-shadow: 0 2px 6px rgba(194, 106, 90, 0.1);
-      page-break-inside: avoid;
-    }
-
-    .character-card strong {
-      display: block;
-      font-weight: 600;
-      color: var(--accent-dark);
-      margin-bottom: 4px;
       font-size: 11px;
-    }
-
-    .character-card p {
-      margin: 0;
-      font-size: 10px;
-      color: #3c3f43;
       line-height: 1.4;
-    }
-
-    .scores {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-      gap: 8px;
-    }
-
-    .score-card {
-      background: rgba(194, 106, 90, 0.06);
-      border: 1px solid rgba(194, 106, 90, 0.18);
-      border-radius: 8px;
-      padding: 10px 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      text-align: left;
-      color: #3d3a38;
-    }
-
-    .score-label {
-      font-size: 9px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    .score-value {
-      font-family: 'Playfair Display', Georgia, serif;
-      font-size: 18px;
-      font-weight: 600;
       color: var(--accent-dark);
     }
 
-    .review {
-      background: rgba(255, 255, 255, 0.92);
-      border-radius: 10px;
-      border: 1px solid rgba(194, 106, 90, 0.18);
-      padding: 15px;
-      font-size: 11px;
-      line-height: 1.5;
-      color: #303030;
-      white-space: pre-wrap;
-      position: relative;
-      overflow: hidden;
-      page-break-inside: avoid;
-    }
-
-    .section-subtitle {
-      font-size: 11px;
-      color: var(--muted);
-      margin: -8px 0 12px 18px;
-      font-style: italic;
-    }
-
-    .page-number {
+    /* Футер - фиксированное положение внизу */
+    .footer-container {
       position: absolute;
-      bottom: 10mm;
+      bottom: 8mm;
+      left: 15mm;
       right: 15mm;
-      font-size: 10px;
-      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
     .footer-note {
-      position: absolute;
-      bottom: 10mm;
-      left: 15mm;
       font-size: 9px;
       color: var(--muted);
     }
 
-    /* Стили для продолжения на новых страницах */
-    .continued {
-      margin-top: 10px;
-      padding-top: 15px;
-      border-top: 2px dashed rgba(194, 106, 90, 0.2);
+    .page-number {
+      font-size: 9px;
+      color: var(--muted);
     }
 
-    .continued::before {
-      content: "Продолжение...";
-      display: block;
-      font-size: 10px;
-      color: var(--muted);
-      margin-bottom: 10px;
-      font-style: italic;
+    /* Заголовок продолжения */
+    .continued-header {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 18px;
+      color: var(--accent-dark);
+      text-align: center;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid rgba(194, 106, 90, 0.1);
     }
 
     /* Медиа-запросы для печати */
@@ -394,8 +408,6 @@
       body {
         padding: 0;
         background: transparent;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
         width: 210mm;
         height: 297mm;
       }
@@ -407,7 +419,7 @@
         min-height: 297mm;
         height: auto;
         margin: 0;
-        padding: 15mm 15mm;
+        padding: 10mm 15mm;
         page-break-after: always;
       }
 
@@ -415,162 +427,123 @@
         page-break-after: auto;
       }
 
-      section {
+      /* Убедитесь, что важные блоки не разрываются */
+      .book-header,
+      .first-page-grid {
         page-break-inside: avoid;
         break-inside: avoid;
       }
 
-      .notes,
-      .review,
-      .annotations {
-        page-break-inside: auto;
+      .footer-container {
+        position: absolute;
+        bottom: 8mm;
       }
-
-      .character-card,
-      .annotations li {
-        page-break-inside: avoid;
-      }
-
-      h1, h2, h3 {
-        page-break-after: avoid;
-      }
-
-      /* Предотвращение висячих строк */
-      p, blockquote {
-        orphans: 3;
-        widows: 3;
-      }
-    }
-
-    /* Улучшенная поддержка многостраничности */
-    .page-continued .book-header {
-      display: none;
-    }
-
-    .page-continued .page-header::before {
-      content: "«{{ book.title }}» - Продолжение";
-      font-family: 'Playfair Display', Georgia, serif;
-      font-size: 16px;
-      color: var(--accent-dark);
-      margin-bottom: 15px;
-      display: block;
-      padding-bottom: 10px;
-      border-bottom: 2px solid rgba(194, 106, 90, 0.1);
     }
   </style>
 </head>
 <body>
   <!-- Первая страница -->
   <div class="page">
-    <div class="page-header">
-      <div class="book-header">
-        <div class="cover">
-          {% if cover_url %}
-            <img src="{{ cover_url }}" alt="Обложка {{ book.title }}">
+    <!-- Компактная шапка книги -->
+    <div class="book-header">
+      <div class="cover">
+        {% if cover_url %}
+          <img src="{{ cover_url }}" alt="Обложка {{ book.title }}">
+        {% else %}
+          Нет обложки
+        {% endif %}
+      </div>
+      <div class="title-block">
+        <h1>«{{ book.title }}»</h1>
+        <div class="subtitle">
+          {% if authors %}
+            {{ authors|join:", " }}
           {% else %}
-            Нет обложки
+            Автор не указан
           {% endif %}
         </div>
-        <div class="title-block">
-          <h1>«{{ book.title }}»</h1>
-          <div class="subtitle">
-            {% if authors %}
-              {{ authors|join:", " }}
+        <div class="meta-grid">
+          <div class="meta-item">
+            <span>Жанры</span>
+            {% if book.genres.all %}
+              {{ book.genres.all|join:", " }}
             {% else %}
-              Автор не указан
+              —
             {% endif %}
           </div>
-          <div class="meta-grid">
-            <div class="meta-item">
-              <span>Жанры</span>
-              {% if book.genres.all %}
-                {{ book.genres.all|join:", " }}
+          <div class="meta-item">
+            <span>Издательство</span>
+            {% with publishers=book.publisher.all %}
+              {% if publishers %}
+                {{ publishers|join:", " }}
               {% else %}
                 —
               {% endif %}
-            </div>
-            <div class="meta-item">
-              <span>Издательство</span>
-              {% with publishers=book.publisher.all %}
-                {% if publishers %}
-                  {{ publishers|join:", " }}
-                {% else %}
-                  —
-                {% endif %}
-              {% endwith %}
-            </div>
-            <div class="meta-item">
-              <span>Страниц</span>
-              {{ total_pages|default_if_none:"—" }}
-            </div>
-            <div class="meta-item">
-              <span>Чтение</span>
-              {% if reading_start and reading_end %}
-                {{ reading_start|date:"d.m.Y" }} — {{ reading_end|date:"d.m.Y" }}
-              {% elif reading_start %}
-                c {{ reading_start|date:"d.m.Y" }}
-              {% elif reading_end %}
-                до {{ reading_end|date:"d.m.Y" }}
-              {% else %}
-                не указан
-              {% endif %}
-            </div>
+            {% endwith %}
+          </div>
+          <div class="meta-item">
+            <span>Страниц</span>
+            {{ total_pages|default_if_none:"—" }}
+          </div>
+          <div class="meta-item">
+            <span>Чтение</span>
+            {% if reading_start and reading_end %}
+              {{ reading_start|date:"d.m.Y" }} — {{ reading_end|date:"d.m.Y" }}
+            {% elif reading_start %}
+              c {{ reading_start|date:"d.m.Y" }}
+            {% elif reading_end %}
+              до {{ reading_end|date:"d.m.Y" }}
+            {% else %}
+              не указано
+            {% endif %}
           </div>
         </div>
       </div>
     </div>
 
-    <main>
-      <div class="content-grid">
-        <!-- Основной контент -->
-        <div class="main-content">
-          <section>
-            <h2>О книге</h2>
-            {% if book.synopsis %}
-              <div class="description">{{ book.synopsis }}</div>
-            {% else %}
-              <p class="empty-note">Описание пока не добавлено.</p>
-            {% endif %}
-          </section>
-
-          {% if rating.has_any_scores %}
-            <section>
-              <h2>Оценки</h2>
-              <div class="scores">
-                {% if rating.score %}
-                  <div class="score-card">
-                    <span class="score-label">Общая</span>
-                    <span class="score-value">{{ rating.score }}/10</span>
-                  </div>
-                {% endif %}
-                {% for label, value in rating.get_category_scores %}
-                  <div class="score-card">
-                    <span class="score-label">{{ label }}</span>
-                    <span class="score-value">{{ value }}/10</span>
-                  </div>
-                {% endfor %}
-              </div>
-            </section>
+    <!-- Сетка первой страницы -->
+    <div class="first-page-grid">
+      <!-- Левая колонка -->
+      <div class="left-column">
+        <!-- О книге -->
+        <section>
+          <h2>О книге</h2>
+          {% if book.synopsis %}
+            <div class="description">{{ book.synopsis }}</div>
+          {% else %}
+            <p class="empty-note">Описание пока не добавлено.</p>
           {% endif %}
+        </section>
 
+        <!-- Оценки -->
+        {% if rating.has_any_scores %}
           <section>
-            <h2>Отзыв</h2>
-            {% if rating.review %}
-              <div class="review">{{ rating.review|linebreaksbr }}</div>
-            {% else %}
-              <p class="empty-note">Текст отзыва ещё не написан.</p>
-            {% endif %}
+            <h2>Оценки</h2>
+            <div class="scores-compact">
+              {% if rating.score %}
+                <div class="score-card-compact">
+                  <span class="score-label-compact">Общая</span>
+                  <span class="score-value-compact">{{ rating.score }}/10</span>
+                </div>
+              {% endif %}
+              {% for label, value in rating.get_category_scores %}
+                <div class="score-card-compact">
+                  <span class="score-label-compact">{{ label }}</span>
+                  <span class="score-value-compact">{{ value }}/10</span>
+                </div>
+              {% endfor %}
+            </div>
           </section>
-        </div>
+        {% endif %}
 
-        <!-- Боковая панель -->
-        <div class="sidebar">
-          <section>
-            <h2>Герои истории</h2>
-            <div class="section-subtitle">Персонажи и их характеристики</div>
-            {% if characters %}
+        <!-- Герои книги (первые 5) -->
+        {% with characters_count=characters|length %}
+          {% if characters_count > 0 %}
+            <section>
+              <h2>Герои истории</h2>
+              <div class="section-subtitle">Персонажи и их характеристики</div>
               <ul class="characters-column">
-                {% for character in characters %}
+                {% for character in characters|slice:":5" %}
                   <li class="character-card">
                     <strong>{{ character.name }}</strong>
                     {% if character.description %}
@@ -578,70 +551,194 @@
                     {% endif %}
                   </li>
                 {% endfor %}
+                {% if characters_count > 5 %}
+                  <li class="character-card" style="background: rgba(194, 106, 90, 0.08); text-align: center; font-style: italic;">
+                    <strong>И другие персонажи...</strong>
+                    <p>Ещё {{ characters_count|add:"-5" }} персонаж(ей) на следующей странице</p>
+                  </li>
+                {% endif %}
               </ul>
-            {% else %}
-              <p class="empty-note">Список персонажей пока пуст</p>
-            {% endif %}
-          </section>
-        </div>
+            </section>
+          {% endif %}
+        {% endwith %}
       </div>
 
-      <!-- Заметки и цитаты (могут переходить на след. страницы) -->
-      <section class="full-width auto-break">
-        <h2>Комментарии и цитаты</h2>
-        <div class="section-subtitle">Заметки, мысли и любимые цитаты из книги</div>
-        
-        {% if notes or saved_notes or saved_quotes %}
-          {% if notes %}
-            <div class="notes">{{ notes|linebreaksbr }}</div>
+      <!-- Правая колонка -->
+      <div class="right-column">
+        <!-- Отзыв (всегда на первой странице, начало) -->
+        <section>
+          <h2>Отзыв</h2>
+          {% if rating.review %}
+            {# Рассчитываем приблизительное количество символов, которое помещается на первой странице #}
+            {# Примерно 1500-2000 символов с учетом остального контента #}
+            {% with review_length=rating.review|length %}
+              {% if review_length > 1500 %}
+                {# Показываем первую часть отзыва ~1200 символов #}
+                <div class="review">
+                  {{ rating.review|slice:":1200"|linebreaksbr }}
+                  <div class="review-continued">
+                    Отзыв продолжается на следующей странице...
+                  </div>
+                </div>
+              {% else %}
+                <div class="review">{{ rating.review|linebreaksbr }}</div>
+              {% endif %}
+            {% endwith %}
+          {% else %}
+            <p class="empty-note">Текст отзыва ещё не написан.</p>
           {% endif %}
+        </section>
 
-          {% if saved_notes %}
-            <h3 style="font-size: 12px; margin: 15px 0 8px 0; color: var(--accent-dark);">Короткие заметки</h3>
-            <ul class="annotations">
-              {% for note in saved_notes %}
-                <li>
-                  {% if note.location %}
-                    <div class="annotation-meta">{{ note.location }}</div>
-                  {% endif %}
-                  <div class="annotation-body">{{ note.body|linebreaksbr }}</div>
-                  {% if note.comment %}
-                    <div class="annotation-comment">{{ note.comment|linebreaksbr }}</div>
-                  {% endif %}
-                </li>
-              {% endfor %}
-            </ul>
+        <!-- Комментарии и цитаты (только если помещаются) -->
+        {% with review_length=rating.review|length %}
+          {% if review_length <= 1500 %}
+            {% if notes or saved_notes or saved_quotes %}
+              <section>
+                <h2>Комментарии и цитаты</h2>
+                <div class="section-subtitle">Заметки, мысли и любимые цитаты из книги</div>
+                
+                {% if notes %}
+                  <div class="notes">{{ notes|linebreaksbr }}</div>
+                {% endif %}
+
+                {% if saved_notes %}
+                  <h3 style="font-size: 11px; margin: 15px 0 8px 0; color: var(--accent-dark); page-break-after: avoid;">Короткие заметки</h3>
+                  <ul class="annotations">
+                    {% for note in saved_notes %}
+                      <li>
+                        {% if note.location %}
+                          <div class="annotation-meta">{{ note.location }}</div>
+                        {% endif %}
+                        <div class="annotation-body">{{ note.body|linebreaksbr }}</div>
+                        {% if note.comment %}
+                          <div class="annotation-comment">{{ note.comment|linebreaksbr }}</div>
+                        {% endif %}
+                      </li>
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+
+                {% if saved_quotes %}
+                  <h3 style="font-size: 11px; margin: 15px 0 8px 0; color: var(--accent-dark); page-break-after: avoid;">Цитаты</h3>
+                  <ul class="annotations">
+                    {% for quote in saved_quotes %}
+                      <li>
+                        {% if quote.location %}
+                          <div class="annotation-meta">{{ quote.location }}</div>
+                        {% endif %}
+                        <blockquote>{{ quote.body|linebreaksbr }}</blockquote>
+                        {% if quote.comment %}
+                          <div class="annotation-comment">{{ quote.comment|linebreaksbr }}</div>
+                        {% endif %}
+                      </li>
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+              </section>
+            {% endif %}
           {% endif %}
+        {% endwith %}
+      </div>
+    </div>
 
-          {% if saved_quotes %}
-            <h3 style="font-size: 12px; margin: 15px 0 8px 0; color: var(--accent-dark);">Цитаты</h3>
-            <ul class="annotations">
-              {% for quote in saved_quotes %}
-                <li>
-                  {% if quote.location %}
-                    <div class="annotation-meta">{{ quote.location }}</div>
-                  {% endif %}
-                  <blockquote>{{ quote.body|linebreaksbr }}</blockquote>
-                  {% if quote.comment %}
-                    <div class="annotation-comment">{{ quote.comment|linebreaksbr }}</div>
-                  {% endif %}
-                </li>
-              {% endfor %}
-            </ul>
-          {% endif %}
-        {% else %}
-          <p class="empty-note">Здесь можно записывать любимые моменты и цитаты.</p>
-        {% endif %}
-      </section>
-    </main>
-
-    <div class="footer-note">Сформировано {{ rating.created_at|date:"d.m.Y" }} • Читательский дневник • В Калейдоскоп Книг</div>
-    <div class="page-number">1</div>
+    <!-- Футер первой страницы -->
+    <div class="footer-container">
+      <div class="footer-note">Сформировано {{ rating.created_at|date:"d.m.Y" }} • Читательский дневник в kalejdoskopknig.ru</div>
+      <div class="page-number">1</div>
+    </div>
   </div>
 
-  <!-- Автоматически генерируемые продолжения -->
-  {% if notes|length > 500 or saved_notes|length > 10 or saved_quotes|length > 10 %}
-    <!-- Дополнительные страницы будут создаваться автоматически браузером при печати -->
-  {% endif %}
+  <!-- Вторая страница -->
+  <div class="page">
+    <div class="continued-header">«{{ book.title }}» - Продолжение</div>
+    
+    <div class="second-page-content">
+      <!-- Продолжение отзыва (если не поместился) -->
+      {% with review_length=rating.review|length %}
+        {% if review_length > 1500 %}
+          <section>
+            <h2>Отзыв (продолжение)</h2>
+            <div class="review">
+              {{ rating.review|slice:"1200:"|linebreaksbr }}
+            </div>
+          </section>
+        {% endif %}
+      {% endwith %}
+
+      <!-- Оставшиеся персонажи (если есть) -->
+      {% with characters_count=characters|length %}
+        {% if characters_count > 5 %}
+          <section>
+            <h2>Герои истории (продолжение)</h2>
+            <div class="section-subtitle">Оставшиеся персонажи и их характеристики</div>
+            <ul class="characters-column">
+              {% for character in characters|slice:"5:" %}
+                <li class="character-card">
+                  <strong>{{ character.name }}</strong>
+                  {% if character.description %}
+                    <p>{{ character.description }}</p>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          </section>
+        {% endif %}
+      {% endwith %}
+
+      <!-- Комментарии и цитаты (если не поместились на первой странице или всегда на второй) -->
+      {% with review_length=rating.review|length %}
+        {% if review_length > 1500 or not notes and not saved_notes and not saved_quotes %}
+          <section>
+            <h2>Комментарии и цитаты</h2>
+            <div class="section-subtitle">Заметки, мысли и любимые цитаты из книги</div>
+            
+            {% if notes %}
+              <div class="notes">{{ notes|linebreaksbr }}</div>
+            {% endif %}
+
+            {% if saved_notes %}
+              <h3 style="font-size: 11px; margin: 15px 0 8px 0; color: var(--accent-dark); page-break-after: avoid;">Короткие заметки</h3>
+              <ul class="annotations">
+                {% for note in saved_notes %}
+                  <li>
+                    {% if note.location %}
+                      <div class="annotation-meta">{{ note.location }}</div>
+                    {% endif %}
+                    <div class="annotation-body">{{ note.body|linebreaksbr }}</div>
+                    {% if note.comment %}
+                      <div class="annotation-comment">{{ note.comment|linebreaksbr }}</div>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+
+            {% if saved_quotes %}
+              <h3 style="font-size: 11px; margin: 15px 0 8px 0; color: var(--accent-dark); page-break-after: avoid;">Цитаты</h3>
+              <ul class="annotations">
+                {% for quote in saved_quotes %}
+                  <li>
+                    {% if quote.location %}
+                      <div class="annotation-meta">{{ quote.location }}</div>
+                    {% endif %}
+                    <blockquote>{{ quote.body|linebreaksbr }}</blockquote>
+                    {% if quote.comment %}
+                      <div class="annotation-comment">{{ quote.comment|linebreaksbr }}</div>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </section>
+        {% endif %}
+      {% endwith %}
+    </div>
+
+    <!-- Футер второй страницы -->
+    <div class="footer-container">
+      <div class="footer-note">Сформировано {{ rating.created_at|date:"d.m.Y" }} • Читательский дневник в kalejdoskopknig.ru</div>
+      <div class="page-number">2</div>
+    </div>
+  </div>
 </body>
 </html>

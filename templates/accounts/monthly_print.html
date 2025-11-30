@@ -513,6 +513,7 @@
   </style>
 </head>
 <body>
+  <!-- Страница 1: Шапка и календарь -->
   <div class="page">
     <div class="content">
       <header class="print-header">
@@ -600,7 +601,12 @@
           </tbody>
         </table>
       </section>
+    </div>
+  </div>
 
+  <!-- Страница 2: Трекеры настроения и первые 12 книг -->
+  <div class="page">
+    <div class="content">
       <section class="section">
         <h2>Трекеры настроения</h2>
         <div class="tracker-grid">
@@ -637,16 +643,12 @@
           </div>
         </div>
       </section>
-    </div>
-  </div>
 
-  <div class="page">
-    <div class="content">
       <section class="section">
         <h2>Завершённые книги</h2>
         {% if completed_books %}
           <div class="completed-books">
-            {% for book in completed_books %}
+            {% for book in completed_books|slice:":12" %}
               <div class="book-card">
                 <div class="book-cover">
                   {% if book.cover_url %}
@@ -669,10 +671,50 @@
               </div>
             {% endfor %}
           </div>
+          {% if completed_books|length > 12 %}
+            <p style="text-align: center; color: var(--muted); font-size: 11px; margin-top: 10px;">
+              Продолжение списка на следующей странице...
+            </p>
+          {% endif %}
         {% else %}
           <p class="empty-note">В этом месяце ещё нет завершённых книг — зато впереди новые истории.</p>
         {% endif %}
       </section>
+    </div>
+  </div>
+
+  <!-- Страница 3: Оставшиеся книги (если есть) и остальные разделы -->
+  <div class="page">
+    <div class="content">
+      {% if completed_books|length > 12 %}
+        <section class="section">
+          <h2>Завершённые книги (продолжение)</h2>
+          <div class="completed-books">
+            {% for book in completed_books|slice:"12:" %}
+              <div class="book-card">
+                <div class="book-cover">
+                  {% if book.cover_url %}
+                    <img src="{{ book.cover_url }}" alt="Обложка {{ book.title }}">
+                  {% else %}
+                    Нет обложки
+                  {% endif %}
+                </div>
+                <div class="book-info">
+                  <h3>{{ book.title }}</h3>
+                  <div class="authors">{{ book.authors|join:", "|default:"Автор не указан" }}</div>
+                  <div class="book-tags">
+                    {% if book.format %}<span class="book-tag">{{ book.format }}</span>{% endif %}
+                    {% if book.has_review %}<span class="book-tag">Есть отзыв</span>{% endif %}
+                    {% for genre in book.genres|slice:":2" %}
+                      <span class="book-tag">{{ genre }}</span>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
 
       <section class="section">
         <h2>Диаграммы месяца</h2>
