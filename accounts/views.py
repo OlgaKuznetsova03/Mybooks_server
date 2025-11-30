@@ -1096,9 +1096,9 @@ def profile_monthly_print(request):
             if not items:
                 return None
 
-            scale = 3
+            scale = 20
             width, height = 720 * scale, 280 * scale
-            padding = 16 * scale
+            padding = 20 * scale
             label_width = 170 * scale
             value_width = 120 * scale
             bar_gap = 12 * scale
