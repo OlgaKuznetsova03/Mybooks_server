@@ -141,13 +141,16 @@ def _build_calendar_url(params, year, month):
 
 def _build_reading_calendar(user: User, params, read_items_qs, period_meta):
     today = timezone.localdate()
-    selected_year = period_meta.get("selected_year") or today.year
-    selected_month = period_meta.get("selected_month") or today.month
+    calendar_year = _parse_int(params.get("calendar_year"), None)
+    calendar_month = _parse_int(params.get("calendar_month"), None)
 
-    calendar_year = _parse_int(params.get("calendar_year"), selected_year)
-    calendar_month = _parse_int(params.get("calendar_month"), selected_month)
+    if calendar_year is None:
+        calendar_year = period_meta.get("selected_year") or today.year
+    if calendar_month is None:
+        calendar_month = period_meta.get("selected_month") or today.month
+
     if calendar_month < 1 or calendar_month > 12:
-        calendar_month = selected_month
+        calendar_month = today.month
 
     first_day = date(calendar_year, calendar_month, 1)
     _, last_day_num = calendar.monthrange(calendar_year, calendar_month)
@@ -1096,7 +1099,7 @@ def profile_monthly_print(request):
             if not items:
                 return None
 
-            scale = 20
+            scale = 3
             width, height = 720 * scale, 280 * scale
             padding = 20 * scale
             label_width = 170 * scale
