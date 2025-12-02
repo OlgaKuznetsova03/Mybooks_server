@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from datetime import date, datetime, timedelta
 
 from django.db.models import (
@@ -276,6 +277,13 @@ def _perform_book_lookup(
     normalized_author = (author or "").strip()
     isbn = _isbn_query(isbn_raw)
 
+    def _yo_equivalent_iregex(query: str) -> str:
+        """Return a regex that treats "е" and "ё" as interchangeable."""
+
+        lowered = query.lower()
+        escaped = re.escape(lowered)
+        return escaped.replace("е", "[её]").replace("ё", "[её]")
+
     if not any([normalized_title, normalized_author, isbn]):
         raise BookLookupQueryError("Укажите название, автора или ISBN.")
 
@@ -283,14 +291,16 @@ def _perform_book_lookup(
 
     filters: list[Q] = []
     if normalized_title:
+        title_pattern = _yo_equivalent_iregex(normalized_title)
         filters.append(
-            Q(title__icontains=normalized_title)
-            | Q(isbn__title__icontains=normalized_title)
+            Q(title__iregex=title_pattern)
+            | Q(isbn__title__iregex=title_pattern)
         )
     if normalized_author:
+        author_pattern = _yo_equivalent_iregex(normalized_author)
         filters.append(
-            Q(authors__name__icontains=normalized_author)
-            | Q(isbn__authors__name__icontains=normalized_author)
+            Q(authors__name__iregex=author_pattern)
+            | Q(isbn__authors__name__iregex=author_pattern)
         )
     if isbn:
         filters.append(Q(isbn__isbn__iexact=isbn) | Q(isbn__isbn13__iexact=isbn))
