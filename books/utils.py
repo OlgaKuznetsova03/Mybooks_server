@@ -22,11 +22,18 @@ def normalize_title(title: str | None) -> str:
     return " ".join(part for part in (title or "").strip().split())
 
 
+def yo_equivalent_iregex(query: str) -> str:
+    """Return a case-insensitive regex where «е» and «ё» are interchangeable."""
+
+    lowered = (query or "").lower()
+    escaped = re.escape(lowered)
+    return escaped.replace("е", "[её]").replace("ё", "[её]")
+
+
 def build_edition_group_key(title: str | None, authors: Iterable[str]) -> str:
     normalized_title = normalize_title(title).casefold()
     normalized_authors = sorted(normalize_title(author).casefold() for author in authors if author)
     return "::".join([normalized_title, *normalized_authors]) if normalized_title or normalized_authors else ""
-
 
 _MULTISPACE_RE = re.compile(r"\s+")
 

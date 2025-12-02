@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 from datetime import date, datetime, timedelta
 
 from django.db.models import (
@@ -59,7 +58,7 @@ from .models import Author, Book, Genre, Rating, ISBNModel
 from .forms import BookForm, RatingForm
 from .services import EditionRegistrationResult, register_book_edition
 from .api_clients import isbndb_client
-from .utils import normalize_isbn
+from .utils import normalize_isbn, yo_equivalent_iregex
 
 
 logger = logging.getLogger(__name__)
@@ -276,13 +275,6 @@ def _perform_book_lookup(
     normalized_title = (title or "").strip()
     normalized_author = (author or "").strip()
     isbn = _isbn_query(isbn_raw)
-
-    def _yo_equivalent_iregex(query: str) -> str:
-        """Return a regex that treats "е" and "ё" as interchangeable."""
-
-        lowered = query.lower()
-        escaped = re.escape(lowered)
-        return escaped.replace("е", "[её]").replace("ё", "[её]")
 
     if not any([normalized_title, normalized_author, isbn]):
         raise BookLookupQueryError("Укажите название, автора или ISBN.")
@@ -549,13 +541,13 @@ def book_list(request):
     isbndb_reset_url = None
     discovery_shelves: list[dict[str, object]] = []
 
-    if view_mode == "grid":
+   if view_mode == "grid":
         qs = annotated_books
         if q:
             qs = qs.filter(
-                Q(title__icontains=q)
-                | Q(authors__name__icontains=q)
-                | Q(genres__name__icontains=q)
+                Q(title__iregex=yo_equivalent_iregex(q))
+                | Q(authors__name__iregex=yo_equivalent_iregex(q))
+                | Q(genres__name__iregex=yo_equivalent_iregex(q))
             ).distinct()
 
         qs = qs.order_by(*sort_definitions[active_sort]["order"])
