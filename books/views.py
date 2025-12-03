@@ -549,11 +549,25 @@ def book_list(request):
     if view_mode == "grid":
         qs = annotated_books
         if q:
-            qs = qs.filter(
-                Q(title__iregex=yo_equivalent_iregex(q))
-                | Q(authors__name__iregex=yo_equivalent_iregex(q))
-                | Q(genres__name__iregex=yo_equivalent_iregex(q))
-            ).distinct()
+        # Используем icontains с вариантами вместо iregex
+            search_variants = _yo_equivalent_variants(q)
+            search_filter = Q()
+            for variant in search_variants:
+                search_filter |= (
+                    Q(title__icontains=variant)
+                    | Q(isbn__title__icontains=variant)
+                    | Q(authors__name__icontains=variant)
+                    | Q(isbn__authors__name__icontains=variant)
+                    | Q(genres__name__icontains=variant)
+                )
+
+            isbn_query = normalize_isbn(q)
+            if isbn_query:
+                search_filter |= Q(isbn__isbn__icontains=isbn_query) | Q(
+                    isbn__isbn13__icontains=isbn_query
+                )
+
+            qs = qs.filter(search_filter).distinct()
 
         qs = qs.order_by(*sort_definitions[active_sort]["order"])
 
