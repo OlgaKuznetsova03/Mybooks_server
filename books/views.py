@@ -66,6 +66,13 @@ logger = logging.getLogger(__name__)
 ISBNDB_MISSING_KEY_ERROR = "Поиск через ISBNdb временно недоступен: API-ключ не настроен."
 
 
+def _yo_equivalent_variants(query: str) -> list[str]:
+    """Return lowercase variants that treat "е" and "ё" as interchangeable."""
+    lowered = query.lower()
+    variants = {lowered, lowered.replace("ё", "е"), lowered.replace("е", "ё")}
+    return [value for value in variants if value]
+
+
 def _with_rating_stats(queryset):
     rating_stats = (
         Rating.objects.filter(book=OuterRef("pk"))
@@ -283,17 +290,15 @@ def _perform_book_lookup(
 
     filters: list[Q] = []
     if normalized_title:
-        title_pattern = _yo_equivalent_iregex(normalized_title)
-        filters.append(
-            Q(title__iregex=title_pattern)
-            | Q(isbn__title__iregex=title_pattern)
-        )
+        title_filter = Q()
+        for variant in _yo_equivalent_variants(normalized_title):
+            title_filter |= Q(title__icontains=variant) | Q(isbn__title__icontains=variant)
+        filters.append(title_filter)
     if normalized_author:
-        author_pattern = _yo_equivalent_iregex(normalized_author)
-        filters.append(
-            Q(authors__name__iregex=author_pattern)
-            | Q(isbn__authors__name__iregex=author_pattern)
-        )
+        author_filter = Q()
+        for variant in _yo_equivalent_variants(normalized_author):
+            author_filter |= Q(authors__name__icontains=variant) | Q(isbn__authors__name__icontains=variant)
+        filters.append(author_filter)
     if isbn:
         filters.append(Q(isbn__isbn__iexact=isbn) | Q(isbn__isbn13__iexact=isbn))
 
@@ -541,7 +546,7 @@ def book_list(request):
     isbndb_reset_url = None
     discovery_shelves: list[dict[str, object]] = []
 
-   if view_mode == "grid":
+    if view_mode == "grid":
         qs = annotated_books
         if q:
             qs = qs.filter(
@@ -595,7 +600,6 @@ def book_list(request):
                     "url": f"?{params.urlencode()}",
                 }
             )
-
 
         if q and page_obj:
             isbn_candidate = normalize_isbn(q)
@@ -775,7 +779,6 @@ def book_list(request):
                             "books": popular_serialized_books,
                         }
                     )
-
 
         genre_reader_count_queryset = (
             BookProgress.objects.filter(
@@ -1397,7 +1400,7 @@ def book_detail(request, pk):
         cover_variants.append({
             "key": "book-cover",
             "image": book.cover.url,
-            "alt": f"Обложка книги «{book.title}»",
+            "alt": f"Обложки книги «{book.title}»",
             "label": "Текущее издание",
             "is_primary": True,
             "is_active": False,
