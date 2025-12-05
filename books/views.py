@@ -114,7 +114,7 @@ def _book_cover_url(book: Book) -> str:
     return book.get_cover_url()
 
 
-SHELF_BOOKS_LIMIT = 12
+SHELF_BOOKS_LIMIT = 14
 
 
 def _serialize_book_for_shelf(
@@ -591,7 +591,7 @@ def book_list(request):
 
         qs = qs.order_by(*sort_definitions[active_sort]["order"])
 
-        paginator = Paginator(qs, 12)
+        paginator = Paginator(qs, 14)
         page = request.GET.get("page")
         page_obj = paginator.get_page(page)
 
@@ -986,7 +986,7 @@ def genre_detail(request, slug):
 
     qs = base_qs.order_by(*sort_definitions[active_sort]["order"])
 
-    paginator = Paginator(qs, 12)
+    paginator = Paginator(qs, 14)
     page = request.GET.get("page")
     page_obj = paginator.get_page(page)
 
@@ -1020,7 +1020,7 @@ def genre_detail(request, slug):
             )
         )
         .filter(book_count__gt=0)
-        .order_by("-book_count", "name")[:12]
+        .order_by("-book_count", "name")[:14]
     )
 
     preserved_query = request.GET.copy()

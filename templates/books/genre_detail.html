@@ -7,6 +7,82 @@
 
 {% block extra_css %}
   {{ block.super }}
+  <style>
+    .books-page--grid .book-shelf-wrapper {
+      overflow: visible;
+    }
+
+    .books-page--grid .book-shelf {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: .85rem;
+      overflow: visible;
+      padding: 0;
+      scroll-snap-type: none;
+      -ms-touch-action: auto;
+      touch-action: auto;
+    }
+
+    .books-page--grid .book-shelf::before,
+    .books-page--grid .book-shelf::after {
+      display: none;
+    }
+
+    .books-page--grid .book-shelf__nav {
+      display: none !important;
+    }
+
+    .books-page--grid .book-item {
+      flex: 1 1 auto;
+      width: 100%;
+      max-width: none;
+      gap: .65rem;
+    }
+
+    .books-page--grid .book-item__media {
+      box-shadow: 0 0.85rem 1.2rem rgba(33, 37, 41, .12);
+    }
+
+    .books-page--grid .book-item__info {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: .35rem;
+    }
+
+    .books-page--grid .book-item__info .book-item__title {
+      min-width: 0;
+      width: 100%;
+    }
+
+    .books-page--grid .book-item__actions {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    @media (min-width: 576px) {
+      .books-page--grid .book-shelf {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (min-width: 768px) {
+      .books-page--grid .book-shelf {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+
+    @media (min-width: 992px) {
+      .books-page--grid .book-shelf {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+      }
+    }
+
+    @media (min-width: 1200px) {
+      .books-page--grid .book-shelf {
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+      }
+    }
+  </style>
 {% endblock %}
 
 {% block content %}
@@ -16,7 +92,7 @@
         <div>
           <h1 class="genre-hero__title">{{ genre.name }}</h1>
           <p class="genre-hero__subtitle">
-            {{ total_books }} {{ total_books|ru_pluralize:"книга,книги,книг" }} в каталоге ReadTogether
+            {{ total_books }} {{ total_books|ru_pluralize:"книга,книги,книг" }} в каталоге Калейдоскоп книг
           </p>
         </div>
         <a class="btn btn-light text-primary-emphasis" href="{% url 'book_list' %}">
