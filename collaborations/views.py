@@ -15,6 +15,8 @@ from django.views.generic import DetailView, ListView, TemplateView
 from django.views.generic.edit import CreateView, FormView, UpdateView
 
 from accounts.services import charge_feature_access, InsufficientCoinsError
+from games.models import BookExchangeOffer
+from reading_clubs.models import ReadingParticipant
 
 from .forms import (
     AuthorOfferForm,
@@ -1256,6 +1258,24 @@ class CollaborationNotificationsView(LoginRequiredMixin, TemplateView):
             status__in=[Collaboration.Status.NEGOTIATION, Collaboration.Status.ACTIVE],
         ).select_related("author", "partner", "offer", "request")
 
+        pending_reading_participants = (
+            ReadingParticipant.objects.filter(
+                reading__creator=user,
+                status=ReadingParticipant.Status.PENDING,
+            )
+            .select_related("reading", "user")
+            .order_by("-joined_at")
+        )
+
+        pending_game_offers = (
+            BookExchangeOffer.objects.filter(
+                challenge__user=user,
+                status=BookExchangeOffer.Status.PENDING,
+            )
+            .select_related("challenge", "challenge__game", "offered_by", "book")
+            .order_by("-created_at")
+        )
+
         unread_offer_threads = (
             AuthorOfferResponse.objects.unread_for(user)
             .select_related("offer", "offer__author", "respondent")
@@ -1276,10 +1296,11 @@ class CollaborationNotificationsView(LoginRequiredMixin, TemplateView):
 
         context.update(
             {
-                "pending_offer_responses": pending_offer_responses,
                 "pending_blogger_request_responses": pending_blogger_request_responses,
                 "pending_partner_collaborations": pending_partner_collaborations,
                 "pending_author_collaborations": pending_author_collaborations,
+                "pending_reading_participants": pending_reading_participants,
+                "pending_game_offers": pending_game_offers,
                 "unread_offer_threads": unread_offer_threads,
                 "unread_blogger_request_threads": unread_blogger_request_threads,
                 "unread_collaborations": unread_collaborations,

@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from reading_clubs.models import ReadingParticipant
+
+from games.models import BookExchangeOffer
+
 from .models import AuthorOfferResponse, Collaboration
 
 
@@ -12,6 +16,8 @@ def collaboration_notifications(request):
         "unread_offer_threads": 0,
         "unread_collaboration_threads": 0,
         "total": 0,
+        "pending_reading_participants": 0,
+        "pending_game_offers": 0,
     }
 
     if user is None or not getattr(user, "is_authenticated", False):
@@ -39,6 +45,16 @@ def collaboration_notifications(request):
     unread_offer_threads = AuthorOfferResponse.objects.unread_for(user).count()
     unread_collaborations = Collaboration.objects.unread_for(user).count()
 
+    pending_reading_participants = ReadingParticipant.objects.filter(
+        reading__creator=user,
+        status=ReadingParticipant.Status.PENDING,
+    ).count()
+
+    pending_game_offers = BookExchangeOffer.objects.filter(
+        challenge__user=user,
+        status=BookExchangeOffer.Status.PENDING,
+    ).count()
+
     notifications.update(
         {
             "pending_offer_responses": pending_offer_responses,
@@ -46,6 +62,8 @@ def collaboration_notifications(request):
             "pending_author_confirmations": awaiting_author,
             "unread_offer_threads": unread_offer_threads,
             "unread_collaboration_threads": unread_collaborations,
+            "pending_reading_participants": pending_reading_participants,
+            "pending_game_offers": pending_game_offers,
         }
     )
     notifications["total"] = (
@@ -54,5 +72,7 @@ def collaboration_notifications(request):
         + awaiting_author
         + unread_offer_threads
         + unread_collaborations
+        + pending_reading_participants
+        + pending_game_offers
     )
     return {"collaboration_notifications": notifications}
