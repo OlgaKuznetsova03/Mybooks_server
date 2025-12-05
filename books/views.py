@@ -122,6 +122,7 @@ def _serialize_book_for_shelf(
     *,
     extra: dict[str, object] | None = None,
     cover_url: str | None = None,
+    include_genres: bool = False,
 ) -> dict[str, object]:
     if (
         hasattr(book, "_prefetched_objects_cache")
@@ -152,6 +153,25 @@ def _serialize_book_for_shelf(
     default_status = getattr(book, "default_shelf_status", None)
     if default_status is not None:
         data["default_shelf_status"] = default_status
+
+    if include_genres:
+        genres: list[dict[str, str]] = []
+        if (
+            hasattr(book, "_prefetched_objects_cache")
+            and "genres" in book._prefetched_objects_cache
+        ):
+            genres_qs = book._prefetched_objects_cache["genres"]
+        else:
+            genres_qs = book.genres.all()
+
+        for genre in genres_qs:
+            if getattr(genre, "name", None):
+                genres.append({
+                    "name": genre.name,
+                    "url": genre.get_absolute_url(),
+                })
+
+        data["genres"] = genres
 
     if extra:
         data.update(extra)
@@ -929,82 +949,62 @@ def book_list(request):
 def genre_detail(request, slug):
     genre = get_object_or_404(Genre, slug=slug)
 
+    active_sort = (request.GET.get("sort") or "recent").lower()
+
+    sort_definitions = {
+        "popular": {
+            "label": "Популярное",
+            "icon": "bi-fire",
+            "order": ("-rating_count", "-average_rating", "title"),
+        },
+        "rating": {
+            "label": "Высокий рейтинг",
+            "icon": "bi-star-fill",
+            "order": ("-average_rating", "-rating_count", "title"),
+        },
+        "recent": {
+            "label": "Недавно добавлены",
+            "icon": "bi-clock-history",
+            "order": ("-created_at", "-pk"),
+        },
+        "title": {
+            "label": "По алфавиту",
+            "icon": "bi-sort-alpha-down",
+            "order": ("title",),
+        },
+    }
+
+    if active_sort not in sort_definitions:
+        active_sort = "recent"
+
     base_qs = _with_rating_stats(
         genre.books.prefetch_related(
-            Prefetch("authors", queryset=Author.objects.order_by("name"))
+            Prefetch("authors", queryset=Author.objects.order_by("name")),
+            Prefetch("genres", queryset=Genre.objects.only("id", "name", "slug")),
         )
     )
 
-    total_books = base_qs.count()
+    qs = base_qs.order_by(*sort_definitions[active_sort]["order"])
 
-    shelves: list[dict[str, object]] = []
+    paginator = Paginator(qs, 12)
+    page = request.GET.get("page")
+    page_obj = paginator.get_page(page)
 
-    popular_selection = list(
-        base_qs.order_by("-rating_count", "-average_rating", "title")[
-            :SHELF_BOOKS_LIMIT
-        ]
-    )
-    if popular_selection:
-        popular_selection = _attach_default_shelf_status(
-            popular_selection,
+    want_shelf_id: int | None = None
+    if request.user.is_authenticated and page_obj:
+        page_obj.object_list = _attach_default_shelf_status(
+            page_obj.object_list,
             request.user,
         )
-        shelves.append(
-            {
-                "title": "Популярное",
-                "subtitle": "Читатели выбирают чаще всего.",
-                "variant": None,
-                "texture_url": None,
-                "cta": None,
-                "books": [
-                    _serialize_book_for_shelf(book)
-                    for book in popular_selection
-                ],
-            }
+        quick_add_form = QuickAddShelfForm(user=request.user)
+        want_shelf_id = (
+            quick_add_form.fields["shelf"]
+            .queryset.filter(name=DEFAULT_WANT_SHELF)
+            .values_list("id", flat=True)
+            .first()
         )
 
-    top_rated_selection = list(
-        base_qs.filter(average_rating__isnull=False)
-        .order_by("-average_rating", "-rating_count", "title")[:SHELF_BOOKS_LIMIT]
-    )
-    if top_rated_selection:
-        top_rated_selection = _attach_default_shelf_status(
-            top_rated_selection,
-            request.user,
-        )
-        shelves.append(
-            {
-                "title": "С высоким рейтингом",
-                "subtitle": "Лучшие оценки сообщества ReadTogether.",
-                "variant": None,
-                "texture_url": None,
-                "cta": None,
-                "books": [
-                    _serialize_book_for_shelf(book)
-                    for book in top_rated_selection
-                ],
-            }
-        )
-
-    newest_selection = list(base_qs.order_by("-pk")[:SHELF_BOOKS_LIMIT])
-    if newest_selection:
-        newest_selection = _attach_default_shelf_status(
-            newest_selection,
-            request.user,
-        )
-        shelves.append(
-            {
-                "title": "Недавно добавлены",
-                "subtitle": "Свежие истории в этом жанре.",
-                "variant": None,
-                "texture_url": None,
-                "cta": None,
-                "books": [
-                    _serialize_book_for_shelf(book)
-                    for book in newest_selection
-                ],
-            }
-        )
+    total_books = qs.count()
 
     genre_book_count_subquery = Subquery(
         _genre_book_count_subquery()[:1]
@@ -1023,14 +1023,34 @@ def genre_detail(request, slug):
         .order_by("-book_count", "name")[:12]
     )
 
+    preserved_query = request.GET.copy()
+    preserved_query._mutable = True
+    preserved_query.pop("page", None)
+
+    sort_options = []
+    for key, definition in sort_definitions.items():
+        params = preserved_query.copy()
+        params["sort"] = key
+        sort_options.append(
+            {
+                "key": key,
+                "label": definition["label"],
+                "icon": definition["icon"],
+                "url": f"?{params.urlencode()}",
+            }
+        )
+
     return render(
         request,
         "books/genre_detail.html",
         {
             "genre": genre,
-            "shelves": shelves,
+            "page_obj": page_obj,
             "total_books": total_books,
             "other_genres": other_genres,
+            "sort_options": sort_options,
+            "active_sort": active_sort,
+            "want_shelf_id": want_shelf_id,
         },
     )
 

@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 {% load static shelf_extras %}
 
+{% block body_class %}books-page books-page--grid{% endblock %}
+
 {% block title %}{{ genre.name }} · Калейдоскоп книг{% endblock %}
 
 {% block extra_css %}
   {{ block.super }}
-  <link rel="stylesheet" href="{% static 'books/genre-shelf.css?v=1762270644' %}">
 {% endblock %}
 
 {% block content %}
@@ -28,25 +29,206 @@
     </div>
   </section>
 
-  <div class="genre-shelf-collection">
-    {% for shelf in shelves %}
-      {% include "books/includes/genre_shelf.html" with shelf=shelf variant=shelf.variant %}
-    {% empty %}
-      <div class="alert alert-info mb-0">В этом жанре пока нет книг. Добавьте первую!</div>
-    {% endfor %}
-  </div>
+  {% if page_obj and page_obj.paginator.count %}
+    <nav class="books-sort" aria-label="Сортировка книг">
+      <div class="nav nav-pills flex-nowrap gap-2 overflow-auto pb-2">
+        {% for option in sort_options %}
+          <a class="nav-link {% if option.key == active_sort %}active{% endif %}" href="{{ option.url }}">
+            <i class="bi {{ option.icon }} me-2"></i>{{ option.label }}
+          </a>
+        {% endfor %}
+      </div>
+    </nav>
+
+    <section class="books-shelf-card mt-4" aria-label="Все книги жанра {{ genre.name }}">
+      <div class="books-shelf-card__body" style="--books-shelf-texture: url('{{ MEDIA_URL }}book_list/bookshelfhell.PNG')">
+        <div class="book-shelf-wrapper">
+          <button class="book-shelf__nav book-shelf__nav--prev" type="button" aria-label="Прокрутить каталог назад">
+            <span class="visually-hidden">Прокрутить каталог назад</span>
+            <i class="bi bi-chevron-left" aria-hidden="true"></i>
+          </button>
+
+          <div class="book-shelf">
+            {% for b in page_obj.object_list %}
+              <article class="book-item" style="animation-delay: {{ forloop.counter0|add:1 }}0ms">
+                <div class="book-item__media">
+                  {% with cover_url=b.get_cover_url %}
+                    <a class="book-item__cover-link" href="{% url 'book_detail' b.pk %}">
+                      {% if cover_url %}
+                        <img src="{{ cover_url }}" class="book-item__cover" alt="Обложка {{ b.title }}" loading="lazy">
+                      {% else %}
+                        <div class="book-item__cover book-item__cover--placeholder">
+                          {{ b.title|default_if_none:"?"|slice:":1"|upper }}
+                        </div>
+                      {% endif %}
+                    </a>
+                  {% endwith %}
+                  {% if b.average_rating %}
+                    <span class="rating-badge rating-badge--overlay">
+                      <i class="bi bi-star-fill"></i>{{ b.average_rating|floatformat:1 }}
+                    </span>
+                  {% endif %}
+                </div>
+
+                <div class="book-item__content">
+                  <div class="book-item__info">
+                    <h2 class="book-item__title line-clamp-2 mb-0">
+                      <a class="stretched-link" href="{% url 'book_detail' b.pk %}">{{ b.title }}</a>
+                    </h2>
+                    <div class="book-item__authors line-clamp-2">{{ b.authors.all|join:', ' }}</div>
+                    <div class="book-item__meta">
+                      <span>{{ b.rating_count|default:0 }} оценок</span>
+                    </div>
+                    {% if request.user.is_authenticated %}
+                      <div class="book-item__actions position-relative">
+                        {% with status=b.default_shelf_status %}
+                          {% if status and status.code == 'read' %}
+                            <span class="badge rounded-pill text-bg-success-subtle text-success-emphasis book-gallery-card__status">
+                              <i class="bi bi-check-circle-fill me-1"></i>Прочитано{% if status.added_at %} {{ status.added_at|date:"d.m.Y" }}{% endif %}
+                            </span>
+                          {% elif status and status.code == 'want' %}
+                            <span class="badge rounded-pill text-bg-light text-secondary book-gallery-card__status">
+                              <i class="bi bi-bookmark-check-fill me-1"></i>На полке Хочу прочитать
+                            </span>
+                          {% elif status %}
+                            <span class="badge rounded-pill text-bg-light text-secondary book-gallery-card__status">
+                              <i class="bi bi-bookmark-check-fill me-1"></i>На полке «{{ status.label }}»
+                            </span>
+                          {% else %}
+                            {% if want_shelf_id %}
+                              <form method="post" action="{% url 'book_detail' b.pk %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="quick-add-shelf">
+                                <input type="hidden" name="shelf" value="{{ want_shelf_id }}">
+                                <button class="btn btn-outline-primary btn-sm position-relative z-1" type="submit">
+                                  <i class="bi bi-bookmark-plus me-1"></i>Хочу прочитать
+                                </button>
+                              </form>
+                            {% endif %}
+                          {% endif %}
+                        {% endwith %}
+                      </div>
+                    {% endif %}
+                  </div>
+
+                  {% with genres=b.genres.all genre_count=b.genres.count %}
+                    {% if genre_count %}
+                      <div class="book-item__genres">
+                        {% for g in genres|slice:':3' %}
+                          <a class="badge rounded-pill text-decoration-none" href="{{ g.get_absolute_url }}">{{ g.name }}</a>
+                        {% endfor %}
+                        {% if genre_count > 3 %}
+                          <span class="badge rounded-pill">+{{ genre_count|add:'-3' }}</span>
+                        {% endif %}
+                      </div>
+                    {% endif %}
+                  {% endwith %}
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+
+          <button class="book-shelf__nav book-shelf__nav--next" type="button" aria-label="Прокрутить каталог вперёд">
+            <span class="visually-hidden">Прокрутить каталог вперёд</span>
+            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <nav class="mt-4">
+      <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+          <li class="page-item"><a class="page-link" href="?sort={{ active_sort }}&amp;page={{ page_obj.previous_page_number }}">«</a></li>
+        {% else %}<li class="page-item disabled"><span class="page-link">«</span></li>{% endif %}
+        <li class="page-item disabled"><span class="page-link">Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span></li>
+        {% if page_obj.has_next %}
+          <li class="page-item"><a class="page-link" href="?sort={{ active_sort }}&amp;page={{ page_obj.next_page_number }}">»</a></li>
+        {% else %}<li class="page-item disabled"><span class="page-link">»</span></li>{% endif %}
+      </ul>
+    </nav>
+  {% else %}
+    <div class="alert alert-info mb-0">В этом жанре пока нет книг. Добавьте первую!</div>
+  {% endif %}
 
   {% if other_genres %}
     <section class="mt-5" aria-labelledby="other-genres-heading">
       <h2 class="h5 mb-3" id="other-genres-heading">Другие жанры</h2>
       <div class="d-flex flex-wrap gap-2">
-        {% for other in other_genres %}
+          {% for other in other_genres %}
           <a class="badge text-bg-light text-decoration-none" href="{{ other.get_absolute_url }}">
             {{ other.name }} · {{ other.book_count }} {{ other.book_count|ru_pluralize:"книга,книги,книг" }}
           </a>
         {% endfor %}
-      </div>
+        </div>
      </section>
   {% endif %}
   <!-- Yandex.RTB R-A-17641153-1 -->
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  <script>
+    (() => {
+      const initShelfNav = () => {
+        document.querySelectorAll('.book-shelf-wrapper').forEach((wrapper) => {
+          if (wrapper.dataset.shelfNavBound === 'true') return;
+
+          const shelf = wrapper.querySelector('.book-shelf');
+          const prev = wrapper.querySelector('.book-shelf__nav--prev');
+          const next = wrapper.querySelector('.book-shelf__nav--next');
+          if (!shelf || !prev || !next) return;
+
+          wrapper.dataset.shelfNavBound = 'true';
+
+          const updateState = () => {
+            const maxScroll = Math.max(shelf.scrollWidth - shelf.clientWidth, 0);
+            const hasOverflow = maxScroll > 1;
+            wrapper.classList.toggle('book-shelf-wrapper--overflow', hasOverflow);
+            prev.disabled = !hasOverflow || shelf.scrollLeft <= 1;
+            next.disabled = !hasOverflow || shelf.scrollLeft >= maxScroll - 1;
+          };
+
+          const requestUpdate = () => window.requestAnimationFrame(updateState);
+          const scrollShelf = (direction) => {
+            const distance = direction * Math.max(shelf.clientWidth * 0.8, 200);
+            try { shelf.scrollBy({ left: distance, behavior: 'smooth' }); }
+            catch { shelf.scrollLeft += distance; }
+            requestUpdate();
+          };
+
+          prev.addEventListener('click', (e) => {
+            e.preventDefault();
+            scrollShelf(-1);
+          });
+
+          next.addEventListener('click', (e) => {
+            e.preventDefault();
+            scrollShelf(1);
+          });
+
+          shelf.addEventListener('scroll', requestUpdate, { passive: true });
+
+          if (typeof ResizeObserver !== 'undefined') {
+            const ro = new ResizeObserver(updateState);
+            ro.observe(shelf);
+          } else {
+            window.addEventListener('resize', updateState);
+          }
+
+          shelf.querySelectorAll('img').forEach((img) => {
+            if (!img.complete) img.addEventListener('load', updateState, { once: true });
+          });
+
+          updateState();
+        });
+      };
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initShelfNav, { once: true });
+      } else {
+        initShelfNav();
+      }
+    })();
+  </script>
 {% endblock %}
