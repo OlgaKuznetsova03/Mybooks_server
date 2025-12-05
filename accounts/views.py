@@ -856,6 +856,27 @@ def _build_absolute_url(request, url: str | None) -> str | None:
 
 
 @login_required
+def statistics_overview(request):
+    stats_payload = _collect_profile_stats(request.user, request.GET)
+
+    stats_data = stats_payload.get("stats", {})
+
+    context = {
+        "stats": stats_data,
+        "stats_period": stats_payload.get("stats_period", {}),
+        "genre_pairs": list(
+            zip(stats_data.get("genre_labels", []), stats_data.get("genre_values", []))
+        ),
+        "format_pairs": list(
+            zip(stats_data.get("format_labels", []), stats_data.get("format_values", []))
+        ),
+        "page_title": "Статистика чтения",
+    }
+
+    return render(request, "accounts/statistics.html", context)
+
+
+@login_required
 def profile_monthly_print(request):
     """
     Генерация PDF версии месячного отчета о чтении

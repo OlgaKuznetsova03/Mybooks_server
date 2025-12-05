@@ -1,0 +1,708 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title|default:"Статистика чтения" }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root {
+    --profile-accent-color: #9e8185;
+    --profile-accent-color-dark: #b07c63;
+    --profile-accent-color-text: #011627;
+  }
+
+  .profile-theme {
+    color: var(--profile-accent-color-text);
+  }
+
+  .period-selector {
+    background: linear-gradient(135deg, rgba(194, 150, 129, 0.1), rgba(194, 150, 129, 0.05));
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+  }
+
+  .period-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .period-tab {
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 0.55rem 1.5rem;
+    background: rgba(194, 150, 129, 0.12);
+    color: var(--profile-accent-color-text);
+    font-weight: 600;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .period-tab:hover,
+  .period-tab:focus {
+    background: rgba(194, 150, 129, 0.24);
+    transform: translateY(-1px);
+    outline: none;
+  }
+
+  .period-tab.active {
+    background: var(--profile-accent-color);
+    color: #fff;
+    box-shadow: 0 10px 30px rgba(194, 150, 129, 0.25);
+  }
+
+  .stat-card {
+    border-radius: 1rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+  }
+
+  .chart-container {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.4s ease;
+  }
+
+  .chart-container.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .reading-calendar__table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .reading-calendar__day {
+    min-width: 120px;
+    border-radius: 1rem;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.65);
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+    height: 100%;
+  }
+
+  .reading-calendar__day.inactive {
+    opacity: 0.55;
+    background: rgba(255, 255, 255, 0.35);
+  }
+
+  .reading-calendar__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+    color: var(--profile-accent-color-text);
+  }
+
+  .calendar-day__stats {
+    margin-top: auto;
+    padding-top: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    color: var(--profile-accent-color-text);
+  }
+
+  .calendar-day__meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 999px;
+    background: rgba(194, 150, 129, 0.12);
+    width: fit-content;
+    margin-inline: auto;
+  }
+
+  .calendar-day__meta-label {
+    color: var(--bs-secondary-color);
+  }
+
+  .calendar-day__meta-empty {
+    opacity: 0.7;
+    color: var(--bs-secondary-color);
+    font-size: 0.7rem;
+  }
+
+  .library-summary {
+    background: linear-gradient(120deg, rgba(158, 129, 133, 0.1), rgba(64, 83, 92, 0.08));
+    border-radius: 1rem;
+  }
+
+  @media (max-width: 576px) {
+    .reading-calendar__day {
+      min-width: auto;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 profile-theme">
+  <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3">
+    <div>
+      <p class="text-uppercase text-muted small mb-1">Ваши данные</p>
+      <h1 class="h3 mb-1">{{ page_title|default:"Статистика чтения" }}</h1>
+      <p class="text-muted mb-0">Следите за динамикой чтения и возвращайтесь к любимым книгам.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary" href="{% url 'profile' request.user.username %}">
+        <i class="bi bi-person-circle me-1"></i>Профиль
+      </a>
+      <a class="btn btn-primary" href="{% url 'book_list' %}"><i class="bi bi-book-half me-1"></i>Каталог книг</a>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-4 stat-card">
+    <div class="card-body period-selector">
+      <form method="get" class="period-form" id="statsFilterForm">
+        <input type="hidden" name="tab" value="stats">
+
+        <div class="period-tabs" role="tablist" aria-label="Выбор периода статистики">
+          <button type="button" class="period-tab{% if stats_period.period == 'day' %} active{% endif %}" data-period="day" aria-pressed="{% if stats_period.period == 'day' %}true{% else %}false{% endif %}">
+            <i class="bi bi-sun"></i>
+            День
+          </button>
+          <button type="button" class="period-tab{% if stats_period.period == 'week' %} active{% endif %}" data-period="week" aria-pressed="{% if stats_period.period == 'week' %}true{% else %}false{% endif %}">
+            <i class="bi bi-calendar-week"></i>
+            Неделя
+          </button>
+          <button type="button" class="period-tab{% if stats_period.period == 'month' %} active{% endif %}" data-period="month" aria-pressed="{% if stats_period.period == 'month' %}true{% else %}false{% endif %}">
+            <i class="bi bi-calendar-event"></i>
+            Месяц
+          </button>
+          <button type="button" class="period-tab{% if stats_period.period == 'year' %} active{% endif %}" data-period="year" aria-pressed="{% if stats_period.period == 'year' %}true{% else %}false{% endif %}">
+            <i class="bi bi-calendar3"></i>
+            Год
+          </button>
+        </div>
+
+        <div class="row g-3 align-items-end">
+          <div class="col-12 col-md-4">
+            <label class="form-label">Период</label>
+            <select class="form-select" id="id_period" name="period">
+              <option value="day"{% if stats_period.period == 'day' %} selected{% endif %}>День</option>
+              <option value="week"{% if stats_period.period == 'week' %} selected{% endif %}>Неделя</option>
+              <option value="month"{% if stats_period.period == 'month' %} selected{% endif %}>Месяц</option>
+              <option value="year"{% if stats_period.period == 'year' %} selected{% endif %}>Год</option>
+            </select>
+          </div>
+          {% if stats_period.available_years %}
+          <div class="col-6 col-md-4">
+            <label class="form-label">Год</label>
+            <select class="form-select" name="calendar_year">
+              {% for year in stats_period.available_years %}
+                <option value="{{ year }}"{% if year == stats_period.selected_year %} selected{% endif %}>{{ year }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+          {% if stats_period.available_months %}
+          <div class="col-6 col-md-4">
+            <label class="form-label">Месяц</label>
+            <select class="form-select" name="calendar_month">
+              {% for month in stats_period.available_months %}
+                <option value="{{ month.value }}"{% if month.value == stats_period.selected_month %} selected{% endif %}>{{ month.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 mt-3">
+          <div class="text-muted">{{ stats_period.label }}</div>
+          <div class="d-flex gap-2">
+            {% if stats.reading_calendar.prev_month_url %}
+              <a class="btn btn-outline-secondary btn-sm" href="{{ stats.reading_calendar.prev_month_url }}">Предыдущий месяц</a>
+            {% endif %}
+            {% if stats.reading_calendar.next_month_url %}
+              <a class="btn btn-outline-secondary btn-sm" href="{{ stats.reading_calendar.next_month_url }}">Следующий месяц</a>
+            {% endif %}
+            <button type="submit" class="btn btn-primary btn-sm">Обновить</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-lg-6 col-xl-3">
+      <div class="card border-0 shadow-sm h-100 stat-card">
+        <div class="card-body">
+          <h3 class="h6 mb-2">Прочитано страниц</h3>
+          <p class="display-6 mb-0 animated-number" data-target="{{ stats.pages_total|default_if_none:0 }}">0</p>
+          {% if stats.pages_average %}
+            <p class="text-muted mb-0">В среднем <span class="animated-number" data-target="{{ stats.pages_average|default_if_none:0 }}" data-decimals="2">0</span> стр./день</p>
+          {% else %}
+            <p class="text-muted mb-0">Нет данных о страницах в выбранный период.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-6 col-xl-3">
+      <div class="card border-0 shadow-sm h-100 stat-card">
+        <div class="card-body">
+          <h3 class="h6 mb-2">Аудиокниги</h3>
+          {% if stats.audio_tracked_display %}
+            <p class="mb-1">Учтено прослушивания: <strong>{{ stats.audio_tracked_display }}</strong></p>
+          {% endif %}
+          {% if stats.audio_total_display or stats.audio_adjusted_display %}
+            <p class="text-muted mb-0">
+              {% if stats.audio_total_display %}Длительность книг: {{ stats.audio_total_display }}{% endif %}
+              {% if stats.audio_adjusted_display %}<br>С учётом скорости: {{ stats.audio_adjusted_display }}{% endif %}
+            </p>
+          {% else %}
+            <p class="text-muted mb-0">Нет аудиостатистики за выбранный период.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-6 col-xl-3">
+      <div class="card border-0 shadow-sm h-100 stat-card">
+        <div class="card-body">
+          <h3 class="h6 mb-2">Любимые жанры</h3>
+          {% if genre_pairs %}
+            <ul class="list-unstyled mb-0">
+              {% for label, value in genre_pairs %}
+                <li class="d-flex justify-content-between">
+                  <span>{{ label }}</span>
+                  <strong>{{ value }}</strong>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-muted mb-0">Нет жанров в текущем периоде.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-6 col-xl-3">
+      <div class="card border-0 shadow-sm h-100 stat-card">
+        <div class="card-body">
+          <h3 class="h6 mb-2">Форматы чтения</h3>
+          {% if format_pairs %}
+            <ul class="list-unstyled mb-0">
+              {% for label, value in format_pairs %}
+                <li class="d-flex justify-content-between">
+                  <span>{{ label }}</span>
+                  <strong>{{ value }}%</strong>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-muted mb-0">Нет данных по форматам.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% with calendar=stats.reading_calendar %}
+    {% if calendar %}
+      <div class="card border-0 shadow-sm mb-4 stat-card">
+        <div class="card-body">
+          <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
+            <div>
+              <h3 class="h5 mb-1">Календарь чтения</h3>
+              <p class="text-muted mb-0">Просматривайте дневные записи за выбранный месяц.</p>
+            </div>
+            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#readingCalendarCollapse" aria-expanded="true" aria-controls="readingCalendarCollapse" id="calendarToggleButton" data-show-label="Показать календарь чтения" data-hide-label="Скрыть календарь чтения">
+              <span class="calendar-toggle-label">Скрыть календарь чтения</span>
+            </button>
+          </div>
+
+          <div class="collapse show mt-3" id="readingCalendarCollapse">
+            <div class="table-responsive">
+              <table class="reading-calendar__table align-middle text-center">
+                <thead>
+                  <tr>
+                    {% for weekday in calendar.weekdays %}
+                      <th class="text-muted small fw-semibold py-2">{{ weekday }}</th>
+                    {% endfor %}
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for week in calendar.weeks %}
+                    <tr>
+                      {% for day in week %}
+                        <td class="p-2" data-date="{{ day.date|date:'Y-m-d' }}" tabindex="0">
+                          <div class="reading-calendar__day{% if not day.in_month %} inactive{% endif %}" role="button" onclick="showDayDetails('{{ day.date|date:"Y-m-d" }}')" aria-label="{{ day.date|date:'d E, Y' }}">
+                            <div class="reading-calendar__header">
+                              <span>{{ day.day }}</span>
+                              {% if day.is_today %}<span class="badge text-bg-primary">Сегодня</span>{% endif %}
+                            </div>
+                            <div class="calendar-day__stats">
+                              {% if day.pages_total %}
+                                <div class="calendar-day__meta-item">
+                                  <strong class="calendar-day__meta-value">{{ day.pages_total }}</strong>
+                                  <span class="calendar-day__meta-label">{{ day.pages_total|ru_pluralize:"страница,страницы,страниц" }}</span>
+                                </div>
+                              {% endif %}
+                              {% if day.books_count %}
+                                <div class="calendar-day__meta-item">
+                                  <strong class="calendar-day__meta-value">{{ day.books_count }}</strong>
+                                  <span class="calendar-day__meta-label">{{ day.books_count|ru_pluralize:"книга,книги,книг" }}</span>
+                                </div>
+                              {% endif %}
+                              {% if day.audio_minutes %}
+                                <div class="calendar-day__meta-item">
+                                  <strong class="calendar-day__meta-value">{{ day.audio_minutes }}</strong>
+                                  <span class="calendar-day__meta-label">{{ day.audio_minutes|ru_pluralize:"минута,минуты,минут" }}</span>
+                                </div>
+                              {% endif %}
+                              {% if not day.books_count and not day.pages_total and not day.audio_minutes and day.in_month %}
+                                <div class="calendar-day__meta-empty">Нет записей</div>
+                              {% endif %}
+                            </div>
+                          </div>
+                        </td>
+                      {% endfor %}
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% if not calendar.has_activity %}
+              <p class="text-muted small mb-0 mt-3">В этом месяце пока нет активностей чтения.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      {% if calendar.month_totals %}
+        <div class="card border-0 shadow-sm mb-4 stat-card">
+          <div class="card-body">
+            <h4 class="mb-3">Статистика за {{ calendar.month_name }} {{ calendar.year }}</h4>
+            <div class="row g-3">
+              <div class="col-6 col-md-3">
+                <div class="fw-semibold">{{ calendar.month_totals.pages_total|default_if_none:0 }}</div>
+                <div class="text-muted small">Страниц</div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="fw-semibold">{{ calendar.month_totals.books_count|default_if_none:0 }}</div>
+                <div class="text-muted small">Книг</div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="fw-semibold">{{ calendar.month_totals.reading_days|default_if_none:0 }}</div>
+                <div class="text-muted small">Дней с чтением</div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="fw-semibold">{{ calendar.month_totals.avg_pages|default_if_none:0 }}</div>
+                <div class="text-muted small">Среднее страниц в день</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if calendar.day_payloads %}
+        {{ calendar.day_payloads|json_script:"profile-calendar-day-data" }}
+      {% endif %}
+    {% endif %}
+  {% endwith %}
+
+  {% if stats.books %}
+    <div class="card border-0 shadow-sm mb-4 stat-card">
+      <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h3 class="h5 mb-0">Книги в периоде</h3>
+          <a class="btn btn-outline-primary btn-sm" href="{% url 'shelves:reading_now' %}">Мои полки</a>
+        </div>
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3">
+          {% for entry in stats.books %}
+            <div class="col">
+              <div class="card h-100 border-0 shadow-sm stat-card">
+                {% if entry.cover_url %}
+                  <img src="{{ entry.cover_url }}" class="card-img-top" alt="Обложка {{ entry.book.title }}">
+                {% endif %}
+                <div class="card-body d-flex flex-column">
+                  <h5 class="card-title h6 mb-1">{{ entry.book.title }}</h5>
+                  <p class="card-text text-muted small mb-2">
+                    {% for author in entry.book.authors.all %}
+                      {{ author.name }}{% if not forloop.last %}, {% endif %}
+                    {% empty %}
+                      Автор не указан
+                    {% endfor %}
+                  </p>
+                  <div class="d-flex align-items-center justify-content-between mt-auto">
+                    {% if entry.format %}<span class="badge text-bg-light">{{ entry.format }}</span>{% endif %}
+                    {% if entry.has_review %}
+                      <a href="{{ entry.review_url }}" class="text-decoration-none"><i class="bi bi-chat-quote"></i> Отзыв</a>
+                    {% else %}
+                      <a href="{{ entry.review_url }}" class="text-decoration-none">Написать отзыв</a>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if stats.home_library.total %}
+    <div class="card border-0 shadow-sm mb-4 stat-card library-summary">
+      <div class="card-body">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+          <div>
+            <h3 class="h5 mb-1">Домашняя библиотека</h3>
+            <p class="text-muted mb-0">Краткий обзор ваших полок.</p>
+          </div>
+          <a class="btn btn-outline-secondary btn-sm" href="{% url 'shelves:home_library' %}">Открыть библиотеку</a>
+        </div>
+        <div class="row g-3 mt-2">
+          <div class="col-6 col-md-3">
+            <div class="fw-semibold">{{ stats.home_library.total }}</div>
+            <div class="text-muted small">Книг</div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="fw-semibold">{{ stats.home_library.classic_count }}</div>
+            <div class="text-muted small">Классика</div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="fw-semibold">{{ stats.home_library.modern_count }}</div>
+            <div class="text-muted small">Современные</div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="fw-semibold">{{ stats.home_library.disposed_total }}</div>
+            <div class="text-muted small">Отдано/продано</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<div class="modal fade profile-day-modal" id="readingDayModal" tabindex="-1" aria-labelledby="dayModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="dayModalTitle">Статистика дня</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3 mb-3 text-center text-md-start">
+          <div class="col-6 col-md-3">
+            <div class="fw-bold" id="dayModalPages">0</div>
+            <div class="text-muted small">Страниц</div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="fw-bold" id="dayModalBooks">0</div>
+            <div class="text-muted small">Книг</div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="fw-bold" id="dayModalSessions">0</div>
+            <div class="text-muted small">Сессий</div>
+          </div>
+          <div class="col-6 col-md-3" id="dayModalAudioWrapper">
+            <div class="fw-bold" id="dayModalAudio">0</div>
+            <div class="text-muted small">Аудио</div>
+          </div>
+        </div>
+        <div id="dayModalEmptyMessage" class="alert alert-secondary" role="alert">Нет записей за этот день.</div>
+        <div class="row g-3" id="dayModalBooksList"></div>
+      </div>
+      <div class="modal-footer">
+        <a href="#" class="btn btn-primary" id="dayModalDetailLink" target="_self">Открыть подробную статистику</a>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    const calendarDayDataElement = document.getElementById('profile-calendar-day-data');
+    const calendarDayData = calendarDayDataElement ? JSON.parse(calendarDayDataElement.textContent) : null;
+    const numberFormatter = new Intl.NumberFormat('ru-RU');
+
+    function buildDayDetailUrl(isoDate) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', 'stats');
+      url.searchParams.set('period', 'day');
+      url.searchParams.set('calendar_year', isoDate.split('-')[0]);
+      url.searchParams.set('calendar_month', isoDate.split('-')[1]);
+      url.searchParams.set('calendar_day', isoDate.split('-')[2]);
+      return url.toString();
+    }
+
+    function renderDayBooks(listElement, books) {
+      if (!listElement) {
+        return;
+      }
+      listElement.innerHTML = '';
+      books.forEach((book) => {
+        const col = document.createElement('div');
+        col.className = 'col-12 col-md-6';
+        const card = document.createElement('div');
+        card.className = 'day-book';
+        card.innerHTML = `
+          <div class="d-flex align-items-start gap-3">
+            ${book.cover_url ? `<img src="${book.cover_url}" alt="Обложка ${book.title}" class="rounded" width="64" height="96">` : ''}
+            <div>
+              <h6 class="mb-1">${book.title}</h6>
+              <p class="text-muted small mb-1">${book.authors ? book.authors.join(', ') : 'Автор не указан'}</p>
+              <a href="${book.detail_url}" class="btn btn-sm btn-outline-primary">К книге</a>
+            </div>
+          </div>`;
+        col.appendChild(card);
+        listElement.appendChild(col);
+      });
+    }
+
+    function openDayModal(isoDate) {
+      const payload = calendarDayData ? calendarDayData[isoDate] : null;
+      if (!payload) {
+        window.location.assign(buildDayDetailUrl(isoDate));
+        return;
+      }
+
+      const modalElement = document.getElementById('readingDayModal');
+      const titleElement = document.getElementById('dayModalTitle');
+      const pagesElement = document.getElementById('dayModalPages');
+      const booksElement = document.getElementById('dayModalBooks');
+      const sessionsElement = document.getElementById('dayModalSessions');
+      const audioWrapper = document.getElementById('dayModalAudioWrapper');
+      const audioElement = document.getElementById('dayModalAudio');
+      const listElement = document.getElementById('dayModalBooksList');
+      const emptyMessage = document.getElementById('dayModalEmptyMessage');
+      const detailLink = document.getElementById('dayModalDetailLink');
+
+      if (!modalElement || !titleElement || !pagesElement || !booksElement || !sessionsElement || !listElement || !emptyMessage || !detailLink) {
+        window.location.assign(buildDayDetailUrl(isoDate));
+        return;
+      }
+
+      titleElement.textContent = `Статистика за ${payload.date_display || isoDate}`;
+      pagesElement.textContent = numberFormatter.format(payload.pages_total || 0);
+      booksElement.textContent = numberFormatter.format(payload.books_count || 0);
+      sessionsElement.textContent = numberFormatter.format(payload.reading_sessions || 0);
+
+      if (payload.audio_display) {
+        audioElement.textContent = payload.audio_display;
+        audioWrapper.hidden = false;
+      } else {
+        audioWrapper.hidden = true;
+      }
+
+      renderDayBooks(listElement, payload.books || []);
+      const hasBooks = Boolean(payload.books && payload.books.length);
+      emptyMessage.hidden = hasBooks;
+      detailLink.href = buildDayDetailUrl(isoDate);
+
+      const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+      modal.show();
+    }
+
+    function showDayDetails(isoDate) {
+      if (!isoDate) {
+        return;
+      }
+      if (calendarDayData && Object.prototype.hasOwnProperty.call(calendarDayData, isoDate)) {
+        openDayModal(isoDate);
+        return;
+      }
+      window.location.assign(buildDayDetailUrl(isoDate));
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const periodTabs = document.querySelectorAll('.period-tab');
+      const periodSelect = document.getElementById('id_period');
+      const periodForm = document.getElementById('statsFilterForm');
+
+      periodTabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+          if (!periodSelect) {
+            return;
+          }
+          const targetPeriod = tab.dataset.period;
+          if (!targetPeriod) {
+            return;
+          }
+          const shouldSubmit = periodSelect.value !== targetPeriod;
+          periodSelect.value = targetPeriod;
+          periodTabs.forEach((btn) => {
+            const isActive = btn === tab;
+            btn.classList.toggle('active', isActive);
+            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+          });
+          if (shouldSubmit && periodForm) {
+            periodForm.submit();
+          }
+        });
+      });
+
+      document.querySelectorAll('td[data-date]').forEach((cell) => {
+        cell.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            const isoDate = cell.dataset.date;
+            showDayDetails(isoDate);
+          }
+        });
+      });
+
+      const calendarCollapseElement = document.getElementById('readingCalendarCollapse');
+      const calendarToggleButton = document.getElementById('calendarToggleButton');
+
+      if (calendarCollapseElement && calendarToggleButton && typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
+        const collapseInstance = bootstrap.Collapse.getOrCreateInstance(calendarCollapseElement, { toggle: false });
+        const labelElement = calendarToggleButton.querySelector('.calendar-toggle-label');
+        const showLabel = calendarToggleButton.dataset.showLabel || 'Показать календарь чтения';
+        const hideLabel = calendarToggleButton.dataset.hideLabel || 'Скрыть календарь чтения';
+
+        const updateButtonState = (expanded) => {
+          calendarToggleButton.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+          if (labelElement) {
+            labelElement.textContent = expanded ? hideLabel : showLabel;
+          } else {
+            calendarToggleButton.textContent = expanded ? hideLabel : showLabel;
+          }
+        };
+
+        calendarCollapseElement.addEventListener('shown.bs.collapse', () => {
+          updateButtonState(true);
+        });
+        calendarCollapseElement.addEventListener('hidden.bs.collapse', () => {
+          updateButtonState(false);
+        });
+
+        const mediaQuery = window.matchMedia('(min-width: 576px)');
+        const handleViewportChange = (event) => {
+          if (event.matches) {
+            collapseInstance.show();
+          } else {
+            collapseInstance.hide();
+          }
+        };
+
+        handleViewportChange(mediaQuery);
+        mediaQuery.addEventListener('change', handleViewportChange);
+        updateButtonState(calendarCollapseElement.classList.contains('show'));
+      } else if (calendarToggleButton && !calendarCollapseElement) {
+        calendarToggleButton.hidden = true;
+      }
+
+      const charts = document.querySelectorAll('.chart-container');
+      charts.forEach((chart, index) => {
+        setTimeout(() => {
+          chart.classList.add('visible');
+        }, index * 300);
+      });
+    });
+  </script>
+{% endblock %}
