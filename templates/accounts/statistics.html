@@ -247,22 +247,22 @@
             <p class="text-uppercase text-muted small mb-1">Выбор периода</p>
             <p class="mb-0">Настройте период статистики, чтобы увидеть нужные данные.</p>
           </div>
-          <button
+          <button␊
             type="button"
             class="btn btn-outline-primary w-100 w-md-auto"
             id="periodFiltersToggleButton"
             data-bs-toggle="collapse"
             data-bs-target="#periodFiltersCollapse"
-            aria-expanded="{% if current_period != 'month' %}true{% else %}false{% endif %}"
+            aria-expanded="false"
             aria-controls="periodFiltersCollapse"
             data-show-label="Показать выбор периода"
             data-hide-label="Скрыть выбор периода"
           >
-            <span class="period-toggle-label">{% if current_period != 'month' %}Скрыть выбор периода{% else %}Показать выбор периода{% endif %}</span>
+            <span class="period-toggle-label">Показать выбор периода</span>
           </button>
         </div>
 
-        <div id="periodFiltersCollapse" class="collapse{% if current_period != 'month' %} show{% endif %}">
+        <div id="periodFiltersCollapse" class="collapse">
           <form method="get" class="period-form" id="statsFilterForm">
             <input type="hidden" name="tab" value="stats">
             <input type="hidden" id="id_period" name="period" value="{{ current_period }}">
