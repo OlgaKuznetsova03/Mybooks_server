@@ -386,11 +386,20 @@ def _resolve_cover(book: Book) -> str:
     return book.get_cover_url()
 
 
-def _resolve_stats_period(params, read_items):
+def _resolve_stats_period(params, read_items, reading_logs=None):
     today = timezone.localdate()
     period = params.get("period", "week")
 
-    available_years = [d.year for d in read_items.dates("added_at", "year", order="DESC")]
+    reading_logs = reading_logs or ReadingLog.objects.none()
+
+    available_years = sorted(
+        {
+            d.year
+            for d in read_items.dates("added_at", "year", order="DESC")
+        }
+        | {d.year for d in reading_logs.dates("log_date", "year", order="DESC")},
+        reverse=True,
+    )
     selected_year = today.year
     if available_years:
         selected_year = available_years[0]
@@ -404,8 +413,16 @@ def _resolve_stats_period(params, read_items):
 
     available_months = []
     if available_years:
-        month_dates = read_items.filter(added_at__year=selected_year).dates("added_at", "month", order="DESC")
-        available_months = [d.month for d in month_dates]
+        month_dates = read_items.filter(added_at__year=selected_year).dates(
+            "added_at", "month", order="DESC"
+        )
+        month_logs = reading_logs.filter(log_date__year=selected_year).dates(
+            "log_date", "month", order="DESC"
+        )
+        available_months = sorted(
+            {d.month for d in month_dates} | {d.month for d in month_logs},
+            reverse=True,
+        )
 
     selected_month = today.month
     if available_months:
@@ -418,7 +435,15 @@ def _resolve_stats_period(params, read_items):
         if selected_month not in available_months and available_months:
             selected_month = available_months[0]
 
-    available_days_all = list(read_items.dates("added_at", "day", order="DESC"))
+    available_days_all = sorted(
+        {
+            d
+            for d in read_items.dates("added_at", "day", order="DESC")
+        }
+        | {d for d in reading_logs.dates("log_date", "day", order="DESC")},
+        reverse=True,
+    )
+
     available_days = available_days_all
     if period == "day" and available_days_all:
         days_for_year = [d for d in available_days_all if d.year == selected_year]
@@ -573,8 +598,9 @@ def _collect_profile_stats(user: User, params):
         shelf__user=user,
         shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES,
     )
+    reading_logs = ReadingLog.objects.filter(progress__user=user)
     today = timezone.localdate()
-    if not read_items.exists():
+    if not read_items.exists() and not reading_logs.exists():
         period_meta = {
             "period": "week",
             "label": "Последние 7 дней",
@@ -605,7 +631,7 @@ def _collect_profile_stats(user: User, params):
             "stats_period": period_meta,
         }
 
-    period_meta = _resolve_stats_period(params, read_items)
+    period_meta = _resolve_stats_period(params, read_items, reading_logs)
     start = period_meta["start"]
     end = period_meta["end"]
 
