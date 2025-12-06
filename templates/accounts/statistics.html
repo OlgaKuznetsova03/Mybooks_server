@@ -4,15 +4,22 @@
 {% block title %}{{ page_title|default:"Статистика чтения" }}{% endblock %}
 
 {% block extra_css %}
+{{ block.super }}
 <style>
   :root {
     --profile-accent-color: #9e8185;
     --profile-accent-color-dark: #b07c63;
     --profile-accent-color-text: #011627;
+    --profile-glow: rgba(194, 150, 129, 0.3);
   }
 
   .profile-theme {
     color: var(--profile-accent-color-text);
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   .period-selector {
@@ -58,12 +65,61 @@
   .stat-card {
     border-radius: 1rem;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
+    opacity: 0;
+    animation: fadeInUp 0.6s ease-out forwards;
   }
 
   .stat-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
   }
+
+  .reading-calendar-wrapper {
+    border-radius: 1.25rem;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(194, 150, 129, 0.15);
+  }
+
+  .reading-calendar { width:100%; border-collapse:collapse; table-layout:fixed; }
+  .reading-calendar thead th,
+  .reading-calendar tbody td {
+    border: 1px solid rgba(194, 150, 129, 0.1);
+  }
+
+  .reading-calendar tbody td {
+    min-width: 140px;
+    background: #fff;
+  }
+
+  .reading-calendar thead th {
+    background: linear-gradient(180deg, rgba(194, 150, 129, 0.08), rgba(194, 150, 129, 0.02));
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    color: var(--profile-accent-color-text);
+    padding: 0.75rem;
+  }
+
+  .reading-calendar thead th:hover {
+    background: rgba(194, 150, 129, 0.12);
+  }
+
+  .reading-calendar__cell{
+    display:flex; flex-direction:column; gap:.5rem; padding:.6rem .6rem .75rem; text-align:left; min-height:150px;
+    background:linear-gradient(180deg, rgba(194,150,129,.04), rgba(194,150,129,.015)); border-radius:.75rem; transition:all .2s ease;
+  }
+
+  .reading-calendar__cell:hover {
+    box-shadow: 0 10px 22px rgba(0,0,0,.06); transform: translateY(-3px);
+  }
+
+  .reading-calendar__header{
+    display:flex; align-items:center; justify-content:space-between; font-weight:700; color:var(--profile-accent-color-text);
+  }
+
+  .reading-calendar__header .text-muted{ color:var(--bs-secondary-color)!important; }
 
   .chart-container {
     opacity: 0;
@@ -74,35 +130,6 @@
   .chart-container.visible {
     opacity: 1;
     transform: translateY(0);
-  }
-
-  .reading-calendar__table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .reading-calendar__day {
-    min-width: 120px;
-    border-radius: 1rem;
-    padding: 0.75rem;
-    background: rgba(255, 255, 255, 0.65);
-    border: 1px solid rgba(0, 0, 0, 0.03);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
-    height: 100%;
-  }
-
-  .reading-calendar__day.inactive {
-    opacity: 0.55;
-    background: rgba(255, 255, 255, 0.35);
-  }
-
-  .reading-calendar__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.5rem;
-    font-weight: 700;
-    color: var(--profile-accent-color-text);
   }
 
   .calendar-day__stats {
@@ -130,11 +157,22 @@
     color: var(--bs-secondary-color);
   }
 
+  .calendar-day__meta-audio { display:flex; align-items:center; gap:.25rem; }
+
   .calendar-day__meta-empty {
     opacity: 0.7;
     color: var(--bs-secondary-color);
     font-size: 0.7rem;
   }
+
+  .calendar-day-active { background:rgba(194,150,129,.07); }
+
+  .calendar-day-active:hover {
+    background: rgba(194,150,129,.12);
+  }
+
+  .period-stats .stat-value { font-size: 1.5rem; font-weight: 700; }
+  .period-stats .stat-label { color: var(--bs-secondary-color); }
 
   .library-summary {
     background: linear-gradient(120deg, rgba(158, 129, 133, 0.1), rgba(64, 83, 92, 0.08));
@@ -142,9 +180,8 @@
   }
 
   @media (max-width: 576px) {
-    .reading-calendar__day {
-      min-width: auto;
-    }
+    .reading-calendar__cell{ min-height:120px; gap:.35rem; }
+    .calendar-day__stats{ font-size:.65rem; gap:.15rem; }
   }
 </style>
 {% endblock %}
@@ -272,27 +309,12 @@
     <div class="col-12 col-lg-6 col-xl-3">
       <div class="card border-0 shadow-sm h-100 stat-card">
         <div class="card-body">
-          <h3 class="h6 mb-2">Любимые жанры</h3>
-          {% if genre_pairs %}
-            <ul class="list-unstyled mb-0">
-              {% for label, value in genre_pairs %}
-                <li class="d-flex justify-content-between">
-                  <span>{{ label }}</span>
-                  <strong>{{ value }}</strong>
-                </li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p class="text-muted mb-0">Нет жанров в текущем периоде.</p>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-lg-6 col-xl-3">
-      <div class="card border-0 shadow-sm h-100 stat-card">
-        <div class="card-body">
           <h3 class="h6 mb-2">Форматы чтения</h3>
-          {% if format_pairs %}
+          {% if stats.format_labels %}
+            <div class="ratio ratio-1x1 chart-container">
+              <canvas id="readingFormatChart"></canvas>
+            </div>
+          {% elif format_pairs %}
             <ul class="list-unstyled mb-0">
               {% for label, value in format_pairs %}
                 <li class="d-flex justify-content-between">
@@ -307,7 +329,79 @@
         </div>
       </div>
     </div>
+    <div class="col-12 col-lg-6 col-xl-3">
+      <div class="card border-0 shadow-sm h-100 stat-card">
+        <div class="card-body">
+          <h3 class="h6 mb-2">Жанры</h3>
+          {% if stats.genre_labels %}
+            <div class="ratio ratio-1x1 chart-container">
+              <canvas id="genreChart"></canvas>
+            </div>
+          {% elif genre_pairs %}
+            <ul class="list-unstyled mb-0">
+              {% for label, value in genre_pairs %}
+                <li class="d-flex justify-content-between">
+                  <span>{{ label }}</span>
+                  <strong>{{ value }}</strong>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-muted mb-0">Нет жанров в текущем периоде.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
   </div>
+
+  {% if stats.genre_labels or stats.format_labels %}
+    {% if stats.genre_labels %}
+      {{ stats.genre_labels|json_script:"genre-chart-labels" }}
+      {{ stats.genre_values|json_script:"genre-chart-values" }}
+    {% endif %}
+    {% if stats.format_labels %}
+      {{ stats.format_labels|json_script:"reading-format-chart-labels" }}
+      {{ stats.format_values|json_script:"reading-format-chart-values" }}
+      {{ stats.format_palette|json_script:"reading-format-chart-colors" }}
+    {% endif %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+    <script>
+      (function() {
+        if (typeof Chart === 'undefined') { return; }
+
+        const genreLabelsEl = document.getElementById('genre-chart-labels');
+        const genreValuesEl = document.getElementById('genre-chart-values');
+        const genreCanvas = document.getElementById('genreChart');
+        if (genreLabelsEl && genreValuesEl && genreCanvas) {
+          const labels = JSON.parse(genreLabelsEl.textContent || '[]');
+          const values = JSON.parse(genreValuesEl.textContent || '[]');
+          const palette = labels.map((_, i) => `hsl(${(i * 57) % 360}, 70%, 55%)`);
+          new Chart(genreCanvas.getContext('2d'), {
+            type: 'doughnut',
+            data: { labels, datasets: [{ data: values, backgroundColor: palette, borderColor: '#fff', borderWidth: 2 }] },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+          });
+          genreCanvas.parentElement.classList.add('visible');
+        }
+
+        const formatLabelsEl = document.getElementById('reading-format-chart-labels');
+        const formatValuesEl = document.getElementById('reading-format-chart-values');
+        const formatColorsEl = document.getElementById('reading-format-chart-colors');
+        const formatCanvas = document.getElementById('readingFormatChart');
+        if (formatLabelsEl && formatValuesEl && formatColorsEl && formatCanvas) {
+          const labels = JSON.parse(formatLabelsEl.textContent || '[]');
+          const values = JSON.parse(formatValuesEl.textContent || '[]');
+          const colors = JSON.parse(formatColorsEl.textContent || '[]');
+          new Chart(formatCanvas.getContext('2d'), {
+            type: 'doughnut',
+            data: { labels, datasets: [{ data: values, backgroundColor: colors, borderColor: '#fff', borderWidth: 2 }] },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+          });
+          formatCanvas.parentElement.classList.add('visible');
+        }
+      })();
+    </script>
+  {% endif %}
 
   {% with calendar=stats.reading_calendar %}
     {% if calendar %}
@@ -324,12 +418,12 @@
           </div>
 
           <div class="collapse show mt-3" id="readingCalendarCollapse">
-            <div class="table-responsive">
-              <table class="reading-calendar__table align-middle text-center">
-                <thead>
+            <div class="table-responsive reading-calendar-wrapper">
+              <table class="reading-calendar align-middle text-center">
+                <thead class="text-muted text-uppercase small">
                   <tr>
                     {% for weekday in calendar.weekdays %}
-                      <th class="text-muted small fw-semibold py-2">{{ weekday }}</th>
+                      <th scope="col">{{ weekday }}</th>
                     {% endfor %}
                   </tr>
                 </thead>
@@ -337,10 +431,15 @@
                   {% for week in calendar.weeks %}
                     <tr>
                       {% for day in week %}
-                        <td class="p-2" data-date="{{ day.date|date:'Y-m-d' }}" tabindex="0">
-                          <div class="reading-calendar__day{% if not day.in_month %} inactive{% endif %}" role="button" onclick="showDayDetails('{{ day.date|date:"Y-m-d" }}')" aria-label="{{ day.date|date:'d E, Y' }}">
+                        <td class="{% if not day.in_month %}opacity-75{% endif %} {% if day.pages_total or day.books_count or day.audio_minutes %}calendar-day-active{% endif %}"
+                          {% if day.in_month %}data-date="{{ day.date|date:"Y-m-d" }}"{% endif %}
+                          role="button"
+                          tabindex="0"
+                          aria-label="{{ day.date|date:'d E Y' }}{% if day.books_count %}, книг: {{ day.books_count }}{% endif %}{% if day.pages_total %}, страниц: {{ day.pages_total }}{% endif %}"
+                          onclick="showDayDetails('{{ day.date|date:"Y-m-d" }}')">
+                          <div class="reading-calendar__cell">
                             <div class="reading-calendar__header">
-                              <span>{{ day.day }}</span>
+                              <span class="{% if not day.in_month %}text-muted{% endif %}">{{ day.day }}</span>
                               {% if day.is_today %}<span class="badge text-bg-primary">Сегодня</span>{% endif %}
                             </div>
                             <div class="calendar-day__stats">
@@ -352,12 +451,14 @@
                               {% endif %}
                               {% if day.books_count %}
                                 <div class="calendar-day__meta-item">
+                                  <i class="bi bi-book"></i>
                                   <strong class="calendar-day__meta-value">{{ day.books_count }}</strong>
                                   <span class="calendar-day__meta-label">{{ day.books_count|ru_pluralize:"книга,книги,книг" }}</span>
                                 </div>
                               {% endif %}
                               {% if day.audio_minutes %}
-                                <div class="calendar-day__meta-item">
+                                <div class="calendar-day__meta-item calendar-day__meta-audio">
+                                  <i class="bi bi-headphones"></i>
                                   <strong class="calendar-day__meta-value">{{ day.audio_minutes }}</strong>
                                   <span class="calendar-day__meta-label">{{ day.audio_minutes|ru_pluralize:"минута,минуты,минут" }}</span>
                                 </div>
@@ -383,24 +484,24 @@
 
       {% if calendar.month_totals %}
         <div class="card border-0 shadow-sm mb-4 stat-card">
-          <div class="card-body">
+          <div class="card-body period-stats">
             <h4 class="mb-3">Статистика за {{ calendar.month_name }} {{ calendar.year }}</h4>
             <div class="row g-3">
               <div class="col-6 col-md-3">
-                <div class="fw-semibold">{{ calendar.month_totals.pages_total|default_if_none:0 }}</div>
-                <div class="text-muted small">Страниц</div>
+                <div class="stat-value">{{ calendar.month_totals.pages_total|default_if_none:0 }}</div>
+                <div class="stat-label">Страниц</div>
               </div>
               <div class="col-6 col-md-3">
-                <div class="fw-semibold">{{ calendar.month_totals.books_count|default_if_none:0 }}</div>
-                <div class="text-muted small">Книг</div>
+                <div class="stat-value">{{ calendar.month_totals.books_count|default_if_none:0 }}</div>
+                <div class="stat-label">Книг</div>
               </div>
               <div class="col-6 col-md-3">
-                <div class="fw-semibold">{{ calendar.month_totals.reading_days|default_if_none:0 }}</div>
-                <div class="text-muted small">Дней с чтением</div>
+                <div class="stat-value">{{ calendar.month_totals.reading_days|default_if_none:0 }}</div>
+                <div class="stat-label">Дней с чтением</div>
               </div>
               <div class="col-6 col-md-3">
-                <div class="fw-semibold">{{ calendar.month_totals.avg_pages|default_if_none:0 }}</div>
-                <div class="text-muted small">Среднее страниц в день</div>
+                <div class="stat-value">{{ calendar.month_totals.avg_pages|default_if_none:0 }}</div>
+                <div class="stat-label">Среднее страниц в день</div>
               </div>
             </div>
           </div>
