@@ -90,6 +90,7 @@
   .reading-calendar tbody td {
     min-width: 140px;
     background: #fff;
+    cursor: pointer;
   }
 
   .reading-calendar thead th {
@@ -100,6 +101,8 @@
     font-size: 0.75rem;
     color: var(--profile-accent-color-text);
     padding: 0.75rem;
+    text-align: center;
+    cursor: pointer;
   }
 
   .reading-calendar thead th:hover {
@@ -120,6 +123,30 @@
   }
 
   .reading-calendar__header .text-muted{ color:var(--bs-secondary-color)!important; }
+  .reading-calendar__books{ display:flex; flex-wrap:wrap; gap:.35rem; }
+  .reading-calendar__book-cover,.reading-calendar__book-placeholder{
+    width:40px;
+    height:60px;
+    border-radius:var(--bs-border-radius-sm);
+    box-shadow:0 .125rem .25rem rgba(15,23,42,.12);
+    flex:0 0 auto;
+    transition: all 0.3s ease;
+  }
+  .reading-calendar__book-cover{ object-fit:cover; }
+  .reading-calendar__book-placeholder{
+    background:var(--bs-tertiary-bg);
+    border:1px dashed var(--bs-border-color);
+    color:var(--bs-secondary-color);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:.75rem;
+  }
+  .reading-calendar__book-cover:hover,
+  .reading-calendar__book-placeholder:hover {
+    transform: scale(1.1) rotate(2deg);
+    box-shadow: 0 4px 12px rgba(15,23,42,.2);
+  }
 
   .chart-container {
     opacity: 0;
@@ -179,9 +206,18 @@
     border-radius: 1rem;
   }
 
-  @media (max-width: 576px) {
-    .reading-calendar__cell{ min-height:120px; gap:.35rem; }
-    .calendar-day__stats{ font-size:.65rem; gap:.15rem; }
+  @media (max-width:991.98px){ .reading-calendar__cell{ min-height:120px; } }
+  @media (max-width:575.98px){
+    .reading-calendar thead th{ font-size:.65rem; }
+    .reading-calendar__cell{ min-height:110px; gap:.35rem; }
+    .reading-calendar__header{ font-size:.75rem; }
+    .reading-calendar__books{ gap:.25rem; }
+    .reading-calendar__book-cover,.reading-calendar__book-placeholder{ width:32px; height:48px; }
+    .calendar-day__stats{ font-size:.6rem; gap:.1rem; }
+    .calendar-day__meta-item{ gap:.2rem; padding:.1rem .35rem; }
+    .calendar-day__meta-item i{ font-size:.65rem; }
+    .calendar-day__meta-value{ font-size:.65rem; }
+    .calendar-day__meta-label{ display:none; }
   }
 </style>
 {% endblock %}
@@ -273,6 +309,8 @@
       </form>
     </div>
   </div>
+
+  <p class="text-muted">Период: {{ stats_period.label }} ({{ stats_period.start|date:"d.m.Y" }} — {{ stats_period.end|date:"d.m.Y" }})</p>
 
   <div class="row g-3 mb-4">
     <div class="col-12 col-lg-6 col-xl-3">
@@ -407,22 +445,44 @@
     {% if calendar %}
       <div class="card border-0 shadow-sm mb-4 stat-card">
         <div class="card-body">
-          <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
             <div>
-              <h3 class="h5 mb-1">Календарь чтения</h3>
-              <p class="text-muted mb-0">Просматривайте дневные записи за выбранный месяц.</p>
+              <h3 class="h6 mb-1">Календарь чтения</h3>
+              <p class="text-muted small mb-0">Сколько вы прочитали в этом месяце?</p>
             </div>
-            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#readingCalendarCollapse" aria-expanded="true" aria-controls="readingCalendarCollapse" id="calendarToggleButton" data-show-label="Показать календарь чтения" data-hide-label="Скрыть календарь чтения">
-              <span class="calendar-toggle-label">Скрыть календарь чтения</span>
-            </button>
+            <div class="d-flex flex-column flex-md-row align-items-md-center gap-2">
+              <div class="btn-group btn-group-sm" role="group" aria-label="Навигация по месяцам">
+                <a class="btn btn-outline-secondary" href="{{ calendar.prev_url }}" aria-label="Предыдущий месяц">
+                  <i class="bi bi-chevron-left"></i>
+                </a>
+                <span class="btn btn-light disabled text-nowrap">
+                  {{ calendar.month_name }} {{ calendar.year }}
+                </span>
+                <a class="btn btn-outline-secondary" href="{{ calendar.next_url }}" aria-label="Следующий месяц">
+                  <i class="bi bi-chevron-right"></i>
+                </a>
+              </div>
+            </div>
           </div>
-
-          <div class="collapse show mt-3" id="readingCalendarCollapse">
+          <button
+            type="button"
+            class="btn btn-outline-primary btn-sm w-100 d-sm-none mb-3"
+            id="calendarToggleButton"
+            data-bs-toggle="collapse"
+            data-bs-target="#readingCalendarCollapse"
+            aria-expanded="false"
+            aria-controls="readingCalendarCollapse"
+            data-show-label="Показать календарь чтения"
+            data-hide-label="Скрыть календарь чтения"
+          >
+            <span class="calendar-toggle-label">Показать календарь чтения</span>
+          </button>
+          <div id="readingCalendarCollapse" class="collapse d-sm-block">
             <div class="table-responsive reading-calendar-wrapper">
-              <table class="reading-calendar align-middle text-center">
+              <table class="reading-calendar align-middle mb-0">
                 <thead class="text-muted text-uppercase small">
                   <tr>
-                    {% for weekday in calendar.weekdays %}
+                    {% for weekday in calendar.weekday_labels %}
                       <th scope="col">{{ weekday }}</th>
                     {% endfor %}
                   </tr>
@@ -431,17 +491,33 @@
                   {% for week in calendar.weeks %}
                     <tr>
                       {% for day in week %}
-                        <td class="{% if not day.in_month %}opacity-75{% endif %} {% if day.pages_total or day.books_count or day.audio_minutes %}calendar-day-active{% endif %}"
+                        <td class="{% if not day.in_month %}opacity-75{% endif %} {% if day.books %}calendar-day-active{% endif %}"
                           {% if day.in_month %}data-date="{{ day.date|date:"Y-m-d" }}"{% endif %}
                           role="button"
                           tabindex="0"
-                          aria-label="{{ day.date|date:'d E Y' }}{% if day.books_count %}, книг: {{ day.books_count }}{% endif %}{% if day.pages_total %}, страниц: {{ day.pages_total }}{% endif %}"
+                          aria-label="{{ day.date|date:'d E Y' }}{% if day.books_count %}, книг: {{ day.books_count }}{% endif %}{% if day.pages_total %}, страниц: {{ day.pages_total }}{% endif %}{% if day.audio_minutes %}, аудио: {{ day.audio_minutes }}{% endif %}"
                           onclick="showDayDetails('{{ day.date|date:"Y-m-d" }}')">
                           <div class="reading-calendar__cell">
                             <div class="reading-calendar__header">
-                              <span class="{% if not day.in_month %}text-muted{% endif %}">{{ day.day }}</span>
-                              {% if day.is_today %}<span class="badge text-bg-primary">Сегодня</span>{% endif %}
+                              <span class="{% if not day.in_month %}text-muted{% endif %}">{{ day.date.day }}</span>
+                              {% if day.is_completion_day and day.in_month %}
+                                <i class="bi bi-star-fill text-warning" title="Есть завершённые книги"></i>
+                              {% endif %}
                             </div>
+                            {% if day.in_month and day.books %}
+                              <div class="reading-calendar__books">
+                                {% for book in day.books %}
+                                  {% if book.cover_url %}
+                                    <img src="{{ book.cover_url }}" alt="Обложка {{ book.title }}" class="reading-calendar__book-cover">
+                                  {% else %}
+                                    <div class="reading-calendar__book-placeholder">
+                                      <span class="visually-hidden">{{ book.title }}</span>
+                                      Нет
+                                    </div>
+                                  {% endif %}
+                                {% endfor %}
+                              </div>
+                            {% endif %}
                             <div class="calendar-day__stats">
                               {% if day.pages_total %}
                                 <div class="calendar-day__meta-item">
@@ -475,10 +551,10 @@
                 </tbody>
               </table>
             </div>
-            {% if not calendar.has_activity %}
-              <p class="text-muted small mb-0 mt-3">В этом месяце пока нет активностей чтения.</p>
-            {% endif %}
           </div>
+          {% if not calendar.has_activity %}
+            <p class="text-muted small mb-0 mt-3">В этом месяце пока нет активностей чтения.</p>
+          {% endif %}
         </div>
       </div>
 
