@@ -1566,7 +1566,16 @@
             if(gl&&gv&&gc){
               const labels=JSON.parse(gl.textContent);
               const values=JSON.parse(gv.textContent);
-              const palette=labels.map((_,i)=>`hsl(${(i*57)%360},70%,55%)`);
+              const basePalette=[
+                '#9b7d61',
+                '#b99573',
+                '#daa38f',
+                '#92ada4',
+                '#c4b39f',
+                '#7d8c81',
+                '#b3c0b5',
+              ];
+              const palette=labels.map((_,i)=>basePalette[i%basePalette.length]);
               new Chart(gc.getContext('2d'),{
                 type:'doughnut',
                 data:{labels,datasets:[{data:values,backgroundColor:palette,borderColor:'#fff',borderWidth:2}]},

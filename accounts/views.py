@@ -747,9 +747,9 @@ def _collect_profile_stats(user: User, params):
 
     format_display_map = dict(BookProgress.FORMAT_CHOICES)
     format_palette_map = {
-        BookProgress.FORMAT_PAPER: "#f59f00",
-        BookProgress.FORMAT_EBOOK: "#4c6ef5",
-        BookProgress.FORMAT_AUDIO: "#be4bdb",
+        BookProgress.FORMAT_PAPER: "#9b7d61",
+        BookProgress.FORMAT_EBOOK: "#daa38f",
+        BookProgress.FORMAT_AUDIO: "#92ada4",
     }
     total_equivalent = sum(format_totals.values(), Decimal("0"))
     format_labels: list[str] = []

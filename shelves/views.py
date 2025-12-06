@@ -977,9 +977,9 @@ def _build_reading_track_context(
         format_totals[medium_code] += total_value
     total_equivalent = sum(format_totals.values(), Decimal("0"))
     format_palette_map = {
-        BookProgress.FORMAT_PAPER: "#f59f00",
-        BookProgress.FORMAT_EBOOK: "#4c6ef5",
-        BookProgress.FORMAT_AUDIO: "#be4bdb",
+        BookProgress.FORMAT_PAPER: "#9b7d61",
+        BookProgress.FORMAT_EBOOK: "#daa38f",
+        BookProgress.FORMAT_AUDIO: "#92ada4",
     }
     format_chart_labels = []
     format_chart_values = []
