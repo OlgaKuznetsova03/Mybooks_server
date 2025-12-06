@@ -1179,8 +1179,8 @@
                 <div class="col-6 col-md-4">
                   <label class="form-label" for="id_month">Месяц</label>
                   <select class="form-select" id="id_month" name="month">
-                    {% for month_value, month_name in stats_period.available_months %}
-                      <option value="{{ month_value }}"{% if month_value == stats_period.selected_month %} selected{% endif %}>{{ month_name }}</option>
+                    {% for month in stats_period.available_months %}
+                      <option value="{{ month.value }}"{% if month.value == stats_period.selected_month %} selected{% endif %}>{{ month.label }}</option>
                     {% endfor %}
                   </select>
                 </div>

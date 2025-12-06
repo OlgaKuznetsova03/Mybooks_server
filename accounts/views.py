@@ -510,7 +510,9 @@ def _resolve_stats_period(params, read_items, reading_logs=None):
         "end": end,
         "label": label,
         "available_years": available_years,
-        "available_months": [(m, MONTH_NAMES[m]) for m in available_months],
+        "available_months": [
+            {"value": m, "label": MONTH_NAMES[m]} for m in available_months
+        ],
         "available_days": available_days_meta,
         "first_available_day": first_available_day,
         "last_available_day": last_available_day,

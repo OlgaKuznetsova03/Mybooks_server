@@ -243,6 +243,7 @@
     <div class="card-body period-selector">
       <form method="get" class="period-form" id="statsFilterForm">
         <input type="hidden" name="tab" value="stats">
+        <input type="hidden" id="id_period" name="period" value="{{ stats_period.period }}">
 
         <div class="period-tabs" role="tablist" aria-label="Выбор периода статистики">
           <button type="button" class="period-tab{% if stats_period.period == 'day' %} active{% endif %}" data-period="day" aria-pressed="{% if stats_period.period == 'day' %}true{% else %}false{% endif %}">
@@ -264,34 +265,25 @@
         </div>
 
         <div class="row g-3 align-items-end">
-          <div class="col-12 col-md-4">
-            <label class="form-label">Период</label>
-            <select class="form-select" id="id_period" name="period">
-              <option value="day"{% if stats_period.period == 'day' %} selected{% endif %}>День</option>
-              <option value="week"{% if stats_period.period == 'week' %} selected{% endif %}>Неделя</option>
-              <option value="month"{% if stats_period.period == 'month' %} selected{% endif %}>Месяц</option>
-              <option value="year"{% if stats_period.period == 'year' %} selected{% endif %}>Год</option>
-            </select>
-          </div>
           {% if stats_period.available_years %}
-          <div class="col-6 col-md-4">
-            <label class="form-label">Год</label>
-            <select class="form-select" name="calendar_year">
-              {% for year in stats_period.available_years %}
-                <option value="{{ year }}"{% if year == stats_period.selected_year %} selected{% endif %}>{{ year }}</option>
-              {% endfor %}
-            </select>
-          </div>
+            <div class="col-6 col-md-4 col-lg-3">
+              <label class="form-label">Год</label>
+              <select class="form-select" name="calendar_year">
+                {% for year in stats_period.available_years %}
+                  <option value="{{ year }}"{% if year == stats_period.selected_year %} selected{% endif %}>{{ year }}</option>
+                {% endfor %}
+              </select>
+            </div>
           {% endif %}
           {% if stats_period.available_months %}
-          <div class="col-6 col-md-4">
-            <label class="form-label">Месяц</label>
-            <select class="form-select" name="calendar_month">
-              {% for month in stats_period.available_months %}
-                <option value="{{ month.value }}"{% if month.value == stats_period.selected_month %} selected{% endif %}>{{ month.label }}</option>
-              {% endfor %}
-            </select>
-          </div>
+            <div class="col-6 col-md-4 col-lg-3">
+              <label class="form-label">Месяц</label>
+              <select class="form-select" name="calendar_month">
+                {% for month in stats_period.available_months %}
+                  <option value="{{ month.value }}"{% if month.value == stats_period.selected_month %} selected{% endif %}>{{ month.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
           {% endif %}
         </div>
 
