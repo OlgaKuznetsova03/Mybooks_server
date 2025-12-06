@@ -185,7 +185,7 @@ def _build_reading_calendar(user: User, params, read_items_qs, period_meta):
         record = ensure_day(log.log_date)
         books_map = record["books"]
         record["reading_sessions"] = (record.get("reading_sessions") or 0) + 1
-        if log.pages_equivalent:
+        if log.medium != BookProgress.FORMAT_AUDIO and log.pages_equivalent:
             record["pages_equivalent"] = record.get("pages_equivalent") + log.pages_equivalent
         if log.audio_seconds:
             record["audio_seconds"] = (record.get("audio_seconds") or 0) + log.audio_seconds
@@ -200,7 +200,7 @@ def _build_reading_calendar(user: User, params, read_items_qs, period_meta):
                 "audio_seconds": 0,
             }
 
-        if log.pages_equivalent:
+        if log.medium != BookProgress.FORMAT_AUDIO and log.pages_equivalent:
             books_map[book.id]["pages_equivalent"] = (
                 books_map[book.id].get("pages_equivalent") or Decimal("0")
             ) + log.pages_equivalent
@@ -724,13 +724,20 @@ def _collect_profile_stats(user: User, params):
         pages_total = entry.get("pages_total") or Decimal("0")
         if not isinstance(pages_total, Decimal):
             pages_total = Decimal(str(pages_total))
-        logged_pages_total += pages_total
-        if medium in format_totals:
-            format_totals[medium] += pages_total
+
         if medium == BookProgress.FORMAT_AUDIO:
             audio_total_seconds = entry.get("audio_total")
             if audio_total_seconds:
                 audio_tracked_seconds += int(audio_total_seconds)
+            continue
+
+        target_medium = medium
+        if medium == BookProgress.FORMAT_EBOOK:
+            target_medium = BookProgress.FORMAT_PAPER
+
+        logged_pages_total += pages_total
+        if target_medium in format_totals:
+            format_totals[target_medium] += pages_total
 
     if logged_pages_total > 0:
         total_pages = logged_pages_total

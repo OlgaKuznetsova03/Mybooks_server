@@ -379,60 +379,62 @@
                   {% for week in calendar.weeks %}
                     <tr>
                       {% for day in week %}
-                        <td class="{% if not day.in_month %}opacity-75{% endif %} {% if day.books %}calendar-day-active{% endif %}"
-                          {% if day.in_month %}data-date="{{ day.date|date:"Y-m-d" }}"{% endif %}
-                          role="button"
-                          tabindex="0"
-                          aria-label="{{ day.date|date:'d E Y' }}{% if day.books_count %}, книг: {{ day.books_count }}{% endif %}{% if day.pages_total %}, страниц: {{ day.pages_total }}{% endif %}{% if day.audio_minutes %}, аудио: {{ day.audio_minutes }}{% endif %}"
-                          onclick="showDayDetails('{{ day.date|date:"Y-m-d" }}')">
-                          <div class="reading-calendar__cell">
-                            <div class="reading-calendar__header">
-                              <span class="{% if not day.in_month %}text-muted{% endif %}">{{ day.date.day }}</span>
-                              {% if day.is_completion_day and day.in_month %}
-                                <i class="bi bi-star-fill text-warning" title="Есть завершённые книги"></i>
-                              {% endif %}
-                            </div>
-                            {% if day.in_month and day.books %}
-                              <div class="reading-calendar__books">
-                                {% for book in day.books %}
-                                  {% if book.cover_url %}
-                                    <img src="{{ book.cover_url }}" alt="Обложка {{ book.title }}" class="reading-calendar__book-cover">
-                                  {% else %}
-                                    <div class="reading-calendar__book-placeholder">
-                                      <span class="visually-hidden">{{ book.title }}</span>
-                                      Нет
-                                    </div>
-                                  {% endif %}
-                                {% endfor %}
+                        {% with day.pages_total|floatformat:0 as day_pages_total %}
+                          <td class="{% if not day.in_month %}opacity-75{% endif %} {% if day.books %}calendar-day-active{% endif %}"
+                            {% if day.in_month %}data-date="{{ day.date|date:"Y-m-d" }}"{% endif %}
+                            role="button"
+                            tabindex="0"
+                            aria-label="{{ day.date|date:'d E Y' }}{% if day.books_count %}, книг: {{ day.books_count }}{% endif %}{% if day.pages_total %}, страниц: {{ day_pages_total }}{% endif %}{% if day.audio_minutes %}, аудио: {{ day.audio_minutes }}{% endif %}"
+                            onclick="showDayDetails('{{ day.date|date:"Y-m-d" }}')">
+                            <div class="reading-calendar__cell">
+                              <div class="reading-calendar__header">
+                                <span class="{% if not day.in_month %}text-muted{% endif %}">{{ day.date.day }}</span>
+                                {% if day.is_completion_day and day.in_month %}
+                                  <i class="bi bi-star-fill text-warning" title="Есть завершённые книги"></i>
+                                {% endif %}
                               </div>
-                            {% endif %}
-                            <div class="calendar-day__stats">
-                              {% if day.pages_total %}
-                                <div class="calendar-day__meta-item">
-                                  <strong class="calendar-day__meta-value">{{ day.pages_total }}</strong>
-                                  <span class="calendar-day__meta-label">{{ day.pages_total|ru_pluralize:"страница,страницы,страниц" }}</span>
+                              {% if day.in_month and day.books %}
+                                <div class="reading-calendar__books">
+                                  {% for book in day.books %}
+                                    {% if book.cover_url %}
+                                      <img src="{{ book.cover_url }}" alt="Обложка {{ book.title }}" class="reading-calendar__book-cover">
+                                    {% else %}
+                                      <div class="reading-calendar__book-placeholder">
+                                        <span class="visually-hidden">{{ book.title }}</span>
+                                        Нет
+                                      </div>
+                                    {% endif %}
+                                  {% endfor %}
                                 </div>
                               {% endif %}
-                              {% if day.books_count %}
-                                <div class="calendar-day__meta-item">
-                                  <i class="bi bi-book"></i>
-                                  <strong class="calendar-day__meta-value">{{ day.books_count }}</strong>
-                                  <span class="calendar-day__meta-label">{{ day.books_count|ru_pluralize:"книга,книги,книг" }}</span>
-                                </div>
-                              {% endif %}
-                              {% if day.audio_minutes %}
-                                <div class="calendar-day__meta-item calendar-day__meta-audio">
-                                  <i class="bi bi-headphones"></i>
-                                  <strong class="calendar-day__meta-value">{{ day.audio_minutes }}</strong>
-                                  <span class="calendar-day__meta-label">{{ day.audio_minutes|ru_pluralize:"минута,минуты,минут" }}</span>
-                                </div>
-                              {% endif %}
-                              {% if not day.books_count and not day.pages_total and not day.audio_minutes and day.in_month %}
-                                <div class="calendar-day__meta-empty">Нет записей</div>
-                              {% endif %}
+                              <div class="calendar-day__stats">
+                                {% if day.pages_total %}
+                                  <div class="calendar-day__meta-item">
+                                    <strong class="calendar-day__meta-value">{{ day_pages_total }}</strong>
+                                    <span class="calendar-day__meta-label">{{ day_pages_total|ru_pluralize:"страница,страницы,страниц" }}</span>
+                                  </div>
+                                {% endif %}
+                                {% if day.books_count %}
+                                  <div class="calendar-day__meta-item">
+                                    <i class="bi bi-book"></i>
+                                    <strong class="calendar-day__meta-value">{{ day.books_count }}</strong>
+                                    <span class="calendar-day__meta-label">{{ day.books_count|ru_pluralize:"книга,книги,книг" }}</span>
+                                  </div>
+                                {% endif %}
+                                {% if day.audio_minutes %}
+                                  <div class="calendar-day__meta-item calendar-day__meta-audio">
+                                    <i class="bi bi-headphones"></i>
+                                    <strong class="calendar-day__meta-value">{{ day.audio_minutes }}</strong>
+                                    <span class="calendar-day__meta-label">{{ day.audio_minutes|ru_pluralize:"минута,минуты,минут" }}</span>
+                                  </div>
+                                {% endif %}
+                                {% if not day.books_count and not day.pages_total and not day.audio_minutes and day.in_month %}
+                                  <div class="calendar-day__meta-empty">Нет записей</div>
+                                {% endif %}
+                              </div>
                             </div>
-                          </div>
-                        </td>
+                          </td>
+                        {% endwith %}
                       {% endfor %}
                     </tr>
                   {% endfor %}
@@ -452,7 +454,7 @@
             <h4 class="mb-3">Статистика за {{ calendar.month_name }} {{ calendar.year }}</h4>
             <div class="row g-3">
               <div class="col-6 col-md-3">
-                <div class="stat-value">{{ calendar.month_totals.pages_total|default_if_none:0 }}</div>
+                <div class="stat-value">{{ calendar.month_totals.pages_total|default_if_none:0|floatformat:0 }}</div>
                 <div class="stat-label">Страниц</div>
               </div>
               <div class="col-6 col-md-3">
@@ -464,8 +466,8 @@
                 <div class="stat-label">Дней с чтением</div>
               </div>
               <div class="col-6 col-md-3">
-                <div class="stat-value">{{ calendar.month_totals.avg_pages|default_if_none:0 }}</div>
-                <div class="stat-label">Среднее страниц в день</div>
+                <div class="stat-value">{{ calendar.month_totals.avg_pages|default_if_none:0|floatformat:0 }}</div>
+                <div class="stat-label">Среднее страниц в день</div>␊
               </div>
             </div>
           </div>
@@ -529,9 +531,9 @@
       <div class="card border-0 shadow-sm h-100 stat-card">
         <div class="card-body">
           <h3 class="h6 mb-2">Прочитано страниц</h3>
-          <p class="display-6 mb-0 animated-number" data-target="{{ stats.pages_total|default_if_none:0 }}">0</p>
+          <p class="display-6 mb-0 animated-number" data-target="{{ stats.pages_total|default_if_none:0|floatformat:0 }}">0</p>
           {% if stats.pages_average %}
-            <p class="text-muted mb-0">В среднем <span class="animated-number" data-target="{{ stats.pages_average|default_if_none:0 }}" data-decimals="2">0</span> стр./день</p>
+            <p class="text-muted mb-0">В среднем <span class="animated-number" data-target="{{ stats.pages_average|default_if_none:0|floatformat:0 }}">0</span> стр./день</p>
           {% else %}
             <p class="text-muted mb-0">Нет данных о страницах в выбранный период.</p>
           {% endif %}
@@ -822,7 +824,10 @@
 
     const calendarDayDataElement = document.getElementById('profile-calendar-day-data');
     const calendarDayData = calendarDayDataElement ? JSON.parse(calendarDayDataElement.textContent) : null;
-    const numberFormatter = new Intl.NumberFormat('ru-RU');
+    const numberFormatter = new Intl.NumberFormat('ru-RU', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
 
     function buildDayDetailUrl(isoDate) {
       const url = new URL(window.location.href);
