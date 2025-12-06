@@ -196,7 +196,19 @@ def _build_reading_calendar(user: User, params, read_items_qs, period_meta):
                 "cover_url": _resolve_cover(book),
                 "authors": [author.name for author in book.authors.all()],
                 "detail_url": reverse("book_detail", args=[book.id]),
+                "pages_equivalent": Decimal("0"),
+                "audio_seconds": 0,
             }
+
+        if log.pages_equivalent:
+            books_map[book.id]["pages_equivalent"] = (
+                books_map[book.id].get("pages_equivalent") or Decimal("0")
+            ) + log.pages_equivalent
+
+        if log.audio_seconds:
+            books_map[book.id]["audio_seconds"] = (
+                books_map[book.id].get("audio_seconds") or 0
+            ) + log.audio_seconds
 
     if read_items_qs is not None:
         completed_items = (
@@ -221,6 +233,8 @@ def _build_reading_calendar(user: User, params, read_items_qs, period_meta):
                     "cover_url": _resolve_cover(book),
                     "authors": [author.name for author in book.authors.all()],
                     "detail_url": reverse("book_detail", args=[book.id]),
+                    "pages_equivalent": Decimal("0"),
+                    "audio_seconds": 0,
                 }
             record["completed_ids"].add(book.id)
 
@@ -243,8 +257,13 @@ def _build_reading_calendar(user: User, params, read_items_qs, period_meta):
             audio_minutes = None
             if record and day.month == calendar_month:
                 completion_ids = record["completed_ids"]
-                books = sorted(
-                    (
+                books = []
+                for book_id, info in record["books"].items():
+                    book_pages = _decimal_to_number(
+                        info.get("pages_equivalent") or Decimal("0")
+                    )
+                    book_audio_seconds = info.get("audio_seconds") or 0
+                    books.append(
                         {
                             "id": book_id,
                             "title": info["title"],
@@ -252,11 +271,18 @@ def _build_reading_calendar(user: User, params, read_items_qs, period_meta):
                             "detail_url": info.get("detail_url"),
                             "authors": info.get("authors", []),
                             "is_completion": book_id in completion_ids,
+                            "pages_total": book_pages,
+                            "audio_minutes": math.ceil(book_audio_seconds / 60)
+                            if book_audio_seconds
+                            else None,
+                            "audio_display": _format_duration(
+                                timedelta(seconds=book_audio_seconds)
+                            )
+                            if book_audio_seconds
+                            else None,
                         }
-                        for book_id, info in record["books"].items()
-                    ),
-                    key=lambda entry: entry["title"].lower(),
-                )
+                    )
+                books = sorted(books, key=lambda entry: entry["title"].lower())
                 is_completion_day = bool(completion_ids)
                 has_activity = True
                 pages_total = record.get("pages_equivalent") or Decimal("0")

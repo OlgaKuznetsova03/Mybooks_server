@@ -91,6 +91,7 @@
     min-width: 140px;
     background: #fff;
     cursor: pointer;
+    vertical-align: top;
   }
 
   .reading-calendar thead th {
@@ -479,7 +480,7 @@
           </button>
           <div id="readingCalendarCollapse" class="collapse d-sm-block">
             <div class="table-responsive reading-calendar-wrapper">
-              <table class="reading-calendar align-middle mb-0">
+              <table class="reading-calendar mb-0">
                 <thead class="text-muted text-uppercase small">
                   <tr>
                     {% for weekday in calendar.weekday_labels %}
@@ -727,12 +728,23 @@
         col.className = 'col-12 col-md-6';
         const card = document.createElement('div');
         card.className = 'day-book';
+        const statsBadges = [];
+        if (book.pages_total) {
+          statsBadges.push(`<span class="badge rounded-pill text-bg-light">${numberFormatter.format(book.pages_total)} стр.</span>`);
+        }
+        if (book.audio_display) {
+          statsBadges.push(`<span class="badge rounded-pill text-bg-light"><i class="bi bi-headphones me-1"></i>${book.audio_display}</span>`);
+        } else if (book.audio_minutes) {
+          statsBadges.push(`<span class="badge rounded-pill text-bg-light"><i class="bi bi-headphones me-1"></i>${numberFormatter.format(book.audio_minutes)} мин</span>`);
+        }
+
         card.innerHTML = `
           <div class="d-flex align-items-start gap-3">
             ${book.cover_url ? `<img src="${book.cover_url}" alt="Обложка ${book.title}" class="rounded" width="64" height="96">` : ''}
             <div>
               <h6 class="mb-1">${book.title}</h6>
               <p class="text-muted small mb-1">${book.authors ? book.authors.join(', ') : 'Автор не указан'}</p>
+              ${statsBadges.length ? `<div class="d-flex flex-wrap gap-2 mb-2">${statsBadges.join('')}</div>` : ''}
               <a href="${book.detail_url}" class="btn btn-sm btn-outline-primary">К книге</a>
             </div>
           </div>`;
