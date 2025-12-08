@@ -725,19 +725,18 @@ def _collect_profile_stats(user: User, params):
         if not isinstance(pages_total, Decimal):
             pages_total = Decimal(str(pages_total))
 
+        contribution = pages_total
         if medium == BookProgress.FORMAT_AUDIO:
             audio_total_seconds = entry.get("audio_total")
             if audio_total_seconds:
                 audio_tracked_seconds += int(audio_total_seconds)
-            continue
+                if contribution == 0:
+                    contribution = Decimal(str(audio_total_seconds)) / Decimal("60")
+        else:
+            logged_pages_total += pages_total
 
-        target_medium = medium
-        if medium == BookProgress.FORMAT_EBOOK:
-            target_medium = BookProgress.FORMAT_PAPER
-
-        logged_pages_total += pages_total
-        if target_medium in format_totals:
-            format_totals[target_medium] += pages_total
+        if contribution > 0 and medium in format_totals:
+            format_totals[medium] += contribution
 
     if logged_pages_total > 0:
         total_pages = logged_pages_total
