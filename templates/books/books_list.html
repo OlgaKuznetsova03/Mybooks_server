@@ -693,7 +693,11 @@
                     <h2 class="book-item__title line-clamp-2 mb-0">
                       <a class="stretched-link" href="{% url 'book_detail' b.pk %}">{{ b.title }}</a>
                     </h2>
-                    <div class="book-item__authors line-clamp-2">{{ b.authors.all|join:', ' }}</div>
+                    <div class="book-item__authors line-clamp-2">
+                      {% for a in b.authors.all %}
+                        <a href="{{ a.get_absolute_url }}">{{ a.name }}</a>{% if not forloop.last %}, {% endif %}
+                      {% endfor %}
+                    </div>
                     <div class="book-item__meta">
                       <span>{{ b.rating_count|default:0 }} оценок</span>
                     </div>

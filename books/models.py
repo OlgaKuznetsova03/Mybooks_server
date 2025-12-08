@@ -16,11 +16,34 @@ from .utils import build_edition_group_key, normalize_genre_name
 
 class Author(models.Model):
     name = models.CharField(max_length=255)
+    slug = models.SlugField(
+        max_length=150,
+        unique=True,
+        blank=True,
+    )
     bio = models.TextField(max_length=1000, blank=True, null=True)
     country = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug and self.name:
+            base_slug = _build_slug_base(self.name, fallback="author")
+            slug_candidate = base_slug
+            counter = 2
+            while (
+                Author.objects.filter(slug=slug_candidate)
+                .exclude(pk=self.pk)
+                .exists()
+            ):
+                slug_candidate = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug_candidate
+        super().save(*args, **kwargs)
+
+    def get_absolute_url(self) -> str:
+        return reverse("author_detail", args=[self.slug])
 
 
 class Publisher(models.Model):
@@ -74,9 +97,13 @@ def _transliterate_for_slug(value: str) -> str:
     return "".join(CYRILLIC_TO_LATIN.get(ch, ch) for ch in value.lower())
 
 
-def _build_genre_slug_base(name: str) -> str:
+def _build_slug_base(name: str, *, fallback: str) -> str:
     transliterated = _transliterate_for_slug(name)
-    return slugify(transliterated, allow_unicode=False) or "genre"
+    return slugify(transliterated, allow_unicode=False) or fallback
+
+
+def _build_genre_slug_base(name: str) -> str:
+    return _build_slug_base(name, fallback="genre")
 
 
 class Genre(models.Model):

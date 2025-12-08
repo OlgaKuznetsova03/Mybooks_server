@@ -26,4 +26,11 @@ class GenreAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("name",)}
 
 
-admin.site.register([Author, Publisher, AudioBook, Rating])
+@admin.register(Author)
+class AuthorAdmin(admin.ModelAdmin):
+    list_display = ("name", "slug")
+    search_fields = ("name", "slug")
+    prepopulated_fields = {"slug": ("name",)}
+
+
+admin.site.register([Publisher, AudioBook, Rating])

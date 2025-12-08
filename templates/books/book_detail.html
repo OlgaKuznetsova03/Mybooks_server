@@ -227,7 +227,15 @@
       <div class="book-appbar__meta flex-grow-1">
         <h1 class="book-appbar__title h5 mb-0">{{ book.title }}</h1>
         <div class="book-appbar__authors small">
-          {{ book.authors.all|join:", "|default:"Автор неизвестен" }}
+          {% with authors=book.authors.all %}
+            {% if authors %}
+              {% for author in authors %}
+                <a href="{{ author.get_absolute_url }}" class="text-reset text-decoration-none">{{ author.name }}</a>{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            {% else %}
+              Автор неизвестен
+            {% endif %}
+          {% endwith %}
         </div>
         {% with genres=book.genres.all %}
           {% if genres %}

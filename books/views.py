@@ -1055,6 +1055,98 @@ def genre_detail(request, slug):
     )
 
 
+def author_detail(request, slug):
+    author = get_object_or_404(Author, slug=slug)
+
+    active_sort = (request.GET.get("sort") or "recent").lower()
+
+    sort_definitions = {
+        "popular": {
+            "label": "Популярное",
+            "icon": "bi-fire",
+            "order": ("-rating_count", "-average_rating", "title"),
+        },
+        "rating": {
+            "label": "Высокий рейтинг",
+            "icon": "bi-star-fill",
+            "order": ("-average_rating", "-rating_count", "title"),
+        },
+        "recent": {
+            "label": "Недавно добавлены",
+            "icon": "bi-clock-history",
+            "order": ("-created_at", "-pk"),
+        },
+        "title": {
+            "label": "По алфавиту",
+            "icon": "bi-sort-alpha-down",
+            "order": ("title",),
+        },
+    }
+
+    if active_sort not in sort_definitions:
+        active_sort = "recent"
+
+    base_qs = _with_rating_stats(
+        author.books_author.prefetch_related(
+            Prefetch("authors", queryset=Author.objects.order_by("name")),
+            Prefetch("genres", queryset=Genre.objects.only("id", "name", "slug")),
+        ).distinct()
+    )
+
+    qs = base_qs.order_by(*sort_definitions[active_sort]["order"])
+
+    paginator = Paginator(qs, 14)
+    page = request.GET.get("page")
+    page_obj = paginator.get_page(page)
+
+    want_shelf_id: int | None = None
+    quick_add_form: QuickAddShelfForm | None = None
+    if request.user.is_authenticated and page_obj:
+        page_obj.object_list = _attach_default_shelf_status(
+            page_obj.object_list,
+            request.user,
+        )
+        quick_add_form = QuickAddShelfForm(user=request.user)
+        want_shelf_id = (
+            quick_add_form.fields["shelf"]
+            .queryset.filter(name=DEFAULT_WANT_SHELF)
+            .values_list("id", flat=True)
+            .first()
+        )
+
+    total_books = qs.count()
+
+    preserved_query = request.GET.copy()
+    preserved_query._mutable = True
+    preserved_query.pop("page", None)
+
+    sort_options = []
+    for key, definition in sort_definitions.items():
+        params = preserved_query.copy()
+        params["sort"] = key
+        sort_options.append(
+            {
+                "key": key,
+                "label": definition["label"],
+                "icon": definition["icon"],
+                "url": f"?{params.urlencode()}",
+            }
+        )
+
+    return render(
+        request,
+        "books/author_detail.html",
+        {
+            "author": author,
+            "page_obj": page_obj,
+            "total_books": total_books,
+            "sort_options": sort_options,
+            "active_sort": active_sort,
+            "want_shelf_id": want_shelf_id,
+        },
+    )
+
+
 def _update_home_library(
     request,
     book: Book,

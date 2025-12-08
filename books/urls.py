@@ -6,6 +6,7 @@ urlpatterns = [
     path("book_list", views.book_list, name="book_list"),
 
     path("genres/<slug:slug>/", views.genre_detail, name="genre_detail"),
+    path("authors/<slug:slug>/", views.author_detail, name="author_detail"),
 
     path("lookup/", views.book_lookup, name="book_lookup"),
     path("api/lookup/", views.book_lookup_api, name="book_lookup_api"),
