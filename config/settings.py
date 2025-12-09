@@ -246,6 +246,9 @@ TEMPLATES = [
                 "collaborations.context_processors.collaboration_notifications",
                 "config.context_processors.static_version",
             ],
+            'builtins': [
+                'shelves.templatetags.shelf_extras',
+            ],
             'loaders': [
                 'config.template_loaders.SafeFilesystemLoader',
                 'django.template.loaders.app_directories.Loader',
