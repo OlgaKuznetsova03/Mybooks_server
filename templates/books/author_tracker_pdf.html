@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Трекер книг {{ author.name }}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm;
+    }
+
+    body {
+      font-family: "Inter", "Helvetica", "Arial", sans-serif;
+      color: #1f2937;
+      line-height: 1.4;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin: 0 0 4px;
+    }
+
+    .muted {
+      color: #6b7280;
+      font-size: 13px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      margin: 0 0 8px;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .section-title small {
+      color: #6b7280;
+      font-weight: normal;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+      margin: 12px 0 24px;
+    }
+
+    .book-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 86px 1fr;
+      gap: 10px;
+      min-height: 130px;
+    }
+
+    .cover-box {
+      width: 86px;
+      height: 120px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: #f8fafc;
+      font-weight: 700;
+      color: #9ca3af;
+    }
+
+    .cover-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .book-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin: 0 0 6px;
+    }
+
+    .series {
+      font-size: 13px;
+      color: #374151;
+      margin: 0 0 10px;
+    }
+
+    .stars {
+      letter-spacing: 2px;
+      color: #d1d5db;
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+    }
+
+    .checkbox {
+      width: 14px;
+      height: 14px;
+      border: 1.2px solid #374151;
+      border-radius: 3px;
+      display: inline-block;
+    }
+
+    .book-list {
+      margin: 0;
+      padding-left: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 6px 18px;
+    }
+
+    .book-list li {
+      list-style: square;
+      padding-left: 4px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>{{ author.name }}</h1>
+    <div class="muted">{{ total_books }} {{ total_books|ru_pluralize:"книга,книги,книг" }} в подборке</div>
+  </header>
+
+  <section>
+    <div class="section-title">
+      Трекер чтения
+      <small>звёзды и галочка — для ручных пометок</small>
+    </div>
+    <div class="card-grid">
+      {% for book in books %}
+        <article class="book-card">
+          <div class="cover-box">
+            {% if book.cover_url %}
+              <img src="{{ book.cover_url }}" alt="Обложка {{ book.title }}">
+            {% else %}
+              {{ book.title|default_if_none:"?"|slice:":1"|upper }}
+            {% endif %}
+          </div>
+          <div>
+            <div class="book-title">{{ book.title }}</div>
+            {% if book.series %}
+              <div class="series">Серия: {{ book.series }}{% if book.series_order %} · №{{ book.series_order }}{% endif %}</div>
+            {% endif %}
+            <div class="stars">☆ ☆ ☆ ☆ ☆</div>
+            <div class="check-row"><span class="checkbox"></span> Прочитано</div>
+          </div>
+        </article>
+      {% empty %}
+        <p class="muted">У автора пока нет книг в каталоге.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title">Список книг для зачёркивания</div>
+    {% if books %}
+      <ol class="book-list">
+        {% for book in books %}
+          <li>{{ book.title }}{% if book.series %} ({{ book.series }}{% if book.series_order %} · №{{ book.series_order }}{% endif %}){% endif %}</li>
+        {% endfor %}
+      </ol>
+    {% else %}
+      <p class="muted">Пока нечего выводить.</p>
+    {% endif %}
+  </section>
+</body>
+</html>

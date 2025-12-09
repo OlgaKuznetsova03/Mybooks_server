@@ -114,6 +114,26 @@ def _book_cover_url(book: Book) -> str:
     return book.get_cover_url()
 
 
+def _absolute_cover_url(request, book: Book) -> str | None:
+    """Вернуть абсолютный URL обложки для генерации PDF."""
+
+    cover_url = _book_cover_url(book)
+    if not cover_url:
+        return None
+
+    cover_url = str(cover_url).strip()
+    if cover_url.startswith("//"):
+        return f"{request.scheme}:{cover_url}"
+    if cover_url.startswith("/"):
+        return request.build_absolute_uri(cover_url)
+    if cover_url.startswith("http://") or cover_url.startswith("https://"):
+        return cover_url
+
+    normalized = cover_url if cover_url.startswith("/") else f"/{cover_url.lstrip('/')}"
+    return request.build_absolute_uri(normalized)
+
+
+
 SHELF_BOOKS_LIMIT = 14
 
 
@@ -1145,6 +1165,44 @@ def author_detail(request, slug):
             "want_shelf_id": want_shelf_id,
         },
     )
+
+
+@require_GET
+def author_tracker_pdf(request, slug):
+    author = get_object_or_404(Author, slug=slug)
+
+    books_qs = author.books_author.order_by("title")
+    books = [
+        {
+            "title": book.title or "Без названия",
+            "series": book.series,
+            "series_order": book.series_order,
+            "cover_url": _absolute_cover_url(request, book),
+        }
+        for book in books_qs
+    ]
+
+    html_string = render_to_string(
+        "books/author_tracker_pdf.html",
+        {
+            "author": author,
+            "books": books,
+            "total_books": len(books),
+        },
+    )
+
+    html = HTML(
+        string=html_string,
+        base_url=request.build_absolute_uri("/"),
+        encoding="utf-8",
+    )
+
+    pdf_file = html.write_pdf()
+
+    filename = f"{slugify(author.name) or author.slug}-tracker.pdf"
+    response = HttpResponse(pdf_file, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
 
 
 def _update_home_library(

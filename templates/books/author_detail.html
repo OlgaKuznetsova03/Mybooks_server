@@ -98,9 +98,14 @@
             <div class="text-secondary small">{{ author.country }}</div>
           {% endif %}
         </div>
-        <a class="btn btn-light text-primary-emphasis" href="{% url 'book_list' %}">
-          <i class="bi bi-arrow-left me-2"></i>Вернуться к каталогу
-        </a>
+        <div class="d-flex flex-column flex-sm-row gap-2">
+          <a class="btn btn-primary" href="{% url 'author_tracker_pdf' author.slug %}">
+            <i class="bi bi-printer me-2"></i>Распечатать трекер
+          </a>
+          <a class="btn btn-light text-primary-emphasis" href="{% url 'book_list' %}">
+            <i class="bi bi-arrow-left me-2"></i>Вернуться к каталогу
+          </a>
+        </div>
       </div>
       {% if author.bio %}
         <p class="genre-hero__description">{{ author.bio }}</p>

@@ -7,6 +7,11 @@ urlpatterns = [
 
     path("genres/<slug:slug>/", views.genre_detail, name="genre_detail"),
     path("authors/<slug:slug>/", views.author_detail, name="author_detail"),
+    path(
+        "authors/<slug:slug>/tracker/pdf/",
+        views.author_tracker_pdf,
+        name="author_tracker_pdf",
+    ),
 
     path("lookup/", views.book_lookup, name="book_lookup"),
     path("api/lookup/", views.book_lookup_api, name="book_lookup_api"),
