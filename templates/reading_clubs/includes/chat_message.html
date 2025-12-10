@@ -52,9 +52,9 @@
 </div>
 
 <!-- РЕКУРСИВНОЕ ОТОБРАЖЕНИЕ ВЛОЖЕННЫХ СООБЩЕНИЙ -->
-{% if post.children %}
+{% if post.thread_children %}
   <div class="chat-message__children">
-    {% for child in post.children %}
+    {% for child in post.thread_children %}
       {% include "reading_clubs/includes/chat_message.html" with post=child %}
     {% endfor %}
   </div>
