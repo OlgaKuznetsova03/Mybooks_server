@@ -10,8 +10,6 @@ import 'package:flutter/foundation.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart'; 
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
-import '../../features/ads/ad_banner.dart';
-import '../../features/ads/yandex_ad_dialog.dart';
 import '../../features/celebration/finish_celebration.dart';
 import '../../features/offline_notes/offline_note_model.dart';
 import '../../features/offline_notes/offline_notes_panel.dart';
@@ -47,8 +45,6 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
   bool _showOfflineRecoveryOverlay = false;
   bool _wasOffline = false;
   bool _reconnectDialogVisible = false;
-  int _coinsBalance = 0;
-  bool _rewardInProgress = false;
   bool _loadingTimedOut = false;
   bool _shouldReloadAfterReconnect = false;
   bool _celebrationLoading = false;
@@ -533,46 +529,6 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     );
   }
 
-  Widget _buildRewardBanner() {
-    return AdBanner(
-      isEnabled: AppConstants.isYandexAdEnabled,
-      rewardInProgress: _rewardInProgress,
-      onWatchAd: _handleWatchYandexAd,
-    );
-  }
-
-  Future<void> _handleWatchYandexAd() async {
-    if (_rewardInProgress || !AppConstants.isYandexAdEnabled) return;
-    setState(() => _rewardInProgress = true);
-    try {
-      final rewarded = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => const YandexAdDialog(),
-      ).timeout(const Duration(seconds: 30), onTimeout: () => false);
-      if (rewarded == true && mounted) {
-        setState(() => _coinsBalance += 20);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Спасибо! На ваш счёт зачислено 20 монет.')),
-        );
-      } else if (rewarded == false && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Не удалось показать рекламу. Попробуйте позже.')),
-        );
-      }
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка при показе рекламы: $error')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _rewardInProgress = false);
-      }
-    }
-  }
-
   Future<bool> _handleBack() async {
     return _navigation.handleBack();
   }
@@ -583,6 +539,10 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
 
   @override
   Widget build(BuildContext context) {
+    final showQuickNav = MediaQuery.of(context).size.width < 900;
+    const quickNavHeight = 92.0;
+    final webViewPadding = EdgeInsets.only(bottom: showQuickNav ? quickNavHeight : 0);
+
     return PopScope(
       canPop: false,
       onPopInvoked: (bool didPop) async {
@@ -593,29 +553,192 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
       },
       child: Scaffold(
         backgroundColor: Colors.white,
-        body: Column(
-          children: [
-            SafeArea(bottom: false, child: _buildRewardBanner()),
-            Expanded(
-              child: Stack(
-                clipBehavior: Clip.none,
+        body: SafeArea(
+          bottom: false,
+          child: Stack(
+            children: [
+              Column(
                 children: [
-                  WebViewWidget(controller: _webViewManager.controller),
-                  if (_webViewManager.showOfflineBanner) _buildOfflineBanner(),
-                  _buildStatusOverlays(),
-                  
-                  // СТАРАЯ АНИМАЦИЯ ИЗ MAIN.DART
-                  if (_celebrationData != null)
-                    Positioned.fill(
-                      child: FinishBookCelebration(
-                        data: _celebrationData!,
-                        onClose: _handleCelebrationClosed,
-                      ),
+                  Expanded(
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Padding(
+                          padding: webViewPadding,
+                          child:
+                              WebViewWidget(controller: _webViewManager.controller),
+                        ),
+                        if (_webViewManager.showOfflineBanner) _buildOfflineBanner(),
+                        _buildStatusOverlays(),
+
+                        // СТАРАЯ АНИМАЦИЯ ИЗ MAIN.DART
+                        if (_celebrationData != null)
+                          Positioned.fill(
+                            child: FinishBookCelebration(
+                              data: _celebrationData!,
+                              onClose: _handleCelebrationClosed,
+                            ),
+                          ),
+                      ],
                     ),
+                  ),
                 ],
               ),
-            ),
-          ],
+              if (showQuickNav) _buildQuickNavBar(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickNavBar() {
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: SafeArea(
+        top: false,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(top: BorderSide(color: Colors.grey.shade300, width: 1)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 18,
+                offset: const Offset(0, -6),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: _quickNavItems
+                .map(
+                  (item) => Expanded(
+                    child: _QuickNavButton(
+                      item: item,
+                      onTap: () => _handleQuickNavTap(item.destination),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<_QuickNavItem> get _quickNavItems => [
+        _QuickNavItem(
+          icon: Icons.house_outlined,
+          label: 'Главная',
+          destination: _webViewManager.siteOrigin,
+        ),
+        _QuickNavItem(
+          icon: Icons.menu_book_outlined,
+          label: 'Книги',
+          destination: _buildSiteUri('/books/book_list'),
+        ),
+        _QuickNavItem(
+          icon: Icons.bar_chart_rounded,
+          label: 'Статистика',
+          destination: _buildSiteUri('/accounts/statistics/'),
+        ),
+        _QuickNavItem(
+          icon: Icons.search,
+          label: 'Поиск',
+          destination: _buildSiteUri(
+            '/books/book_list',
+            queryParameters: const {'q': ''},
+          ),
+        ),
+        _QuickNavItem(
+          icon: Icons.chat_bubble_outline,
+          label: 'Отзывы',
+          destination: _buildSiteUri('/events/reading/feed/'),
+        ),
+      ];
+
+  Uri _buildSiteUri(String path, {Map<String, String>? queryParameters}) {
+    final normalizedPath = path.startsWith('/') ? path : '/$path';
+    return _webViewManager.siteOrigin.replace(
+      path: normalizedPath,
+      queryParameters: queryParameters,
+    );
+  }
+
+  Future<void> _handleQuickNavTap(Uri destination) async {
+    if (!mounted) return;
+
+    if (_webViewManager.isOffline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Нет соединения. Попробуйте позже.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _webViewError = false;
+      _loadingTimedOut = false;
+      _showOfflineRecoveryOverlay = false;
+    });
+
+    try {
+      await _webViewManager.controller.loadRequest(destination);
+    } catch (_) {
+      _reloadWebView();
+    }
+  }
+}
+
+class _QuickNavItem {
+  const _QuickNavItem({
+    required this.icon,
+    required this.label,
+    required this.destination,
+  });
+
+  final IconData icon;
+  final String label;
+  final Uri destination;
+}
+
+class _QuickNavButton extends StatelessWidget {
+  const _QuickNavButton({required this.item, required this.onTap});
+
+  final _QuickNavItem item;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                item.icon,
+                size: 22,
+                color: const Color(0xFF40535c),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                item.label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF25323a),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -30,6 +30,26 @@ class DownloadService {
   }
 
   Future<Directory> _resolveDownloadsDirectory() async {
+    if (!kIsWeb && Platform.isAndroid) {
+      final downloads = await getExternalStorageDirectories(type: StorageDirectory.downloads);
+      if (downloads != null && downloads.isNotEmpty) {
+        final directory = downloads.first;
+        if (!await directory.exists()) {
+          await directory.create(recursive: true);
+        }
+        return directory;
+      }
+    }
+
+    if (!kIsWeb && Platform.isIOS) {
+      final documents = await getApplicationDocumentsDirectory();
+      final downloads = Directory('${documents.path}/Downloads');
+      if (!await downloads.exists()) {
+        await downloads.create(recursive: true);
+      }
+      return downloads;
+    }
+
     if (!kIsWeb && (Platform.isMacOS || Platform.isWindows || Platform.isLinux)) {
       final downloads = await getDownloadsDirectory();
       if (downloads != null) {

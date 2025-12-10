@@ -5,7 +5,6 @@ class AppConstants {
     defaultValue: fallbackSiteUrl,
   );
   static const int loadingTimeoutSeconds = 5;
-  static const bool isYandexAdEnabled = true;
 }
 
 class AppRoutes {
