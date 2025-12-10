@@ -7,8 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:flutter/foundation.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart'; 
-import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 import '../../features/celebration/finish_celebration.dart';
 import '../../features/offline_notes/offline_note_model.dart';
@@ -636,9 +634,9 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
           destination: _webViewManager.siteOrigin,
         ),
         _QuickNavItem(
-          icon: Icons.menu_book_outlined,
-          label: 'Книги',
-          destination: _buildSiteUri('/books/book_list'),
+          icon: Icons.track_changes,
+          label: 'Трекер',
+          destination: _buildSiteUri('/events/reading/'),
         ),
         _QuickNavItem(
           icon: Icons.bar_chart_rounded,

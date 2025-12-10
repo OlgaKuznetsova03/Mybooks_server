@@ -83,7 +83,7 @@ class OfflineNotesPanel extends StatelessWidget {
   }
 
   String _formatNoteDate(DateTime date) {
-    final twoDigits = (int value) => value.toString().padLeft(2, '0');
+    String twoDigits(int value) => value.toString().padLeft(2, '0');
     final day = twoDigits(date.day);
     final month = twoDigits(date.month);
     final hours = twoDigits(date.hour);

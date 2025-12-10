@@ -3,7 +3,11 @@
      id="post-{{ post.pk }}">
   <!-- Аватар -->
   <div class="chat-message__avatar">
-    {{ post.author.get_full_name|first|default:post.author.username|first|upper }}
+    {% if post.author.profile.avatar %}
+      <img src="{{ post.author.profile.avatar.url }}" alt="Аватар {{ post.author.get_full_name|default:post.author.username }}">
+    {% else %}
+      <span>{{ post.author.get_full_name|first|default:post.author.username|first|upper }}</span>
+    {% endif %}
   </div>
   
   <!-- Пузырь с сообщением -->

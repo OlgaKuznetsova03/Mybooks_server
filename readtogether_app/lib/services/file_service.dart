@@ -73,7 +73,7 @@ class FileService {
     final sanitizedName = sanitizeFileName(originalName);
     final generatedName =
         sanitizedName ?? buildFallbackName(fallbackExtension: fallbackExtension);
-    final uniqueName = '${DateTime.now().microsecondsSinceEpoch}_${generatedName}';
+    final uniqueName = '${DateTime.now().microsecondsSinceEpoch}_$generatedName';
     final file = File('$dirPath/$uniqueName');
     if (!await file.exists()) {
       await file.create(recursive: true);

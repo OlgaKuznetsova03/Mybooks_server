@@ -28,7 +28,14 @@
     .discussion-theme {
       background: var(--chat-bg);
       min-height: 100vh;
-      padding-bottom: 2rem;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
     }
 
     /* ===== ШАПКА ЧАТА (FIXED) ===== */
@@ -92,6 +99,14 @@
     }
 
     /* ===== ФОРМА ВВОДА СООБЩЕНИЙ ===== */
+    .chat-input-wrapper {
+      position: sticky;
+      bottom: 0;
+      background: linear-gradient(180deg, rgba(240, 242, 245, 0) 0%, rgba(240, 242, 245, 0.95) 35%, rgba(240, 242, 245, 1) 100%);
+      padding: 0 1rem 1.5rem;
+      margin-top: 1rem;
+    }
+
     .chat-input-container {
       background: var(--input-bg);
       border: 1px solid rgba(0, 0, 0, .1);
@@ -173,8 +188,14 @@
     .chat-messages {
       max-width: 800px;
       margin: 0 auto;
+      padding: 0 1rem 7rem;
+      padding-top: 110px; /* Отступ под фиксированную шапку */
+    }
+
+    .chat-input-inner {
+      max-width: 800px;
+      margin: 0 auto;
       padding: 0 1rem;
-      padding-top: 180px; /* Отступ под фиксированную шапку */
     }
 
     .chat-thread {
@@ -214,6 +235,20 @@
       font-weight: 600;
       font-size: 0.9rem;
       margin-top: 4px;
+      overflow: hidden;
+    }
+
+    .chat-message__avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .chat-message__avatar span {
+      display: block;
+      width: 100%;
+      text-align: center;
     }
 
     .chat-message__bubble {
@@ -404,7 +439,7 @@
       }
       
       .chat-messages {
-        padding-top: 160px;
+        padding-top: 100px;
         padding-left: 0.75rem;
         padding-right: 0.75rem;
       }
@@ -504,95 +539,101 @@
           {% else %}
             <span class="chat-badge chat-badge-locked">Закрыто</span>
           {% endif %}
-          <span class="chat-info-btn" data-bs-toggle="tooltip" 
+          <span class="chat-info-btn" data-bs-toggle="tooltip"
                 title="Открыто: {{ topic.discussion_opens_at|date:'d E Y' }} · Сообщений: {{ topic.posts.all|length }}">
             <i class="bi bi-info-circle"></i>
           </span>
         </div>
       </div>
-
-      <!-- ФОРМА ВВОДА СООБЩЕНИЯ -->
-      <div class="chat-input-container" id="reply-form">
-        {% if can_post %}
-          <form class="chat-form" action="{% url 'reading_clubs:post_add' reading.slug topic.pk %}" method="post">
-            {% csrf_token %}
-            <input type="hidden" name="parent" value="{% if reply_to_post %}{{ reply_to_post.pk }}{% endif %}">
-            
-            {% if reply_to_post %}
-              <div class="chat-reply-preview">
-                <div class="d-flex justify-content-between align-items-center">
-                  <span class="text-truncate-2">
-                    Ответ для {{ reply_to_post.author.get_full_name|default:reply_to_post.author.username }}
-                  </span>
-                  <a href="{% url 'reading_clubs:topic_detail' reading.slug topic.pk %}#reply-form" 
-                     class="chat-cancel-reply" title="Отменить ответ">×</a>
-                </div>
-              </div>
-            {% endif %}
-
-            <div class="input-group">
-              <textarea name="content" 
-                        class="form-control" 
-                        placeholder="Напишите сообщение..." 
-                        rows="1" 
-                        required
-                        oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
-              <button class="btn btn-chat-send" type="submit" title="Отправить">
-                <i class="bi bi-send"></i>
-              </button>
-            </div>
-            
-            {% if form.errors %}
-              {% for field, errors in form.errors.items %}
-                {% for error in errors %}
-                  <div class="invalid-feedback d-block mt-1">{{ error }}</div>
-                {% endfor %}
-              {% endfor %}
-            {% endif %}
-          </form>
-        {% elif not is_participant %}
-          <div class="alert alert-warning py-2 mb-0">
-            <i class="bi bi-lock me-1"></i> Присоединитесь к чтению, чтобы участвовать в обсуждении
-          </div>
-        {% else %}
-          <div class="alert alert-secondary py-2 mb-0">
-            <i class="bi bi-clock me-1"></i> Обсуждение откроется {{ topic.discussion_opens_at|date:"d E Y в H:i" }}
-          </div>
-        {% endif %}
-      </div>
     </div>
   </div>
 
-  <!-- ОСНОВНАЯ ЛЕНТА СООБЩЕНИЙ -->
-  <div class="chat-messages">
-    {% if threaded_posts %}
-      <div class="chat-thread">
-        {% for post in threaded_posts %}
-          <!-- Включение шаблона сообщения с рекурсивной обработкой вложенных сообщений -->
-          {% include "reading_clubs/includes/chat_message.html" with post=post %}
-        {% endfor %}
-      </div>
-
-      <!-- Статус прочтения -->
-      <div class="chat-status-divider">
-        <span>{{ topic.posts.all|length }} сообщений • Прочитано всеми</span>
-      </div>
-      
-    {% else %}
-      <!-- Приветственный экран при отсутствии сообщений -->
-      <div class="chat-welcome">
-        <div class="chat-welcome-icon">
-          <i class="bi bi-chat-dots"></i>
+  <div class="chat-content">
+    <!-- ОСНОВНАЯ ЛЕНТА СООБЩЕНИЙ -->
+    <div class="chat-messages">
+      {% if threaded_posts %}
+        <div class="chat-thread">
+          {% for post in threaded_posts %}
+            <!-- Включение шаблона сообщения с рекурсивной обработкой вложенных сообщений -->
+            {% include "reading_clubs/includes/chat_message.html" with post=post %}
+          {% endfor %}
         </div>
-        <h4>Обсуждение начинается здесь</h4>
-        <p class="text-muted">Напишите первое сообщение о прочитанной главе</p>
-        {% if not can_post and not is_participant %}
-          <a href="{{ reading.get_absolute_url }}" class="btn btn-reading mt-2">
-            <i class="bi bi-person-plus me-1"></i> Присоединиться к чтению
-          </a>
-        {% endif %}
+
+        <!-- Статус прочтения -->
+        <div class="chat-status-divider">
+          <span>{{ topic.posts.all|length }} сообщений • Прочитано всеми</span>
+        </div>
+
+      {% else %}
+        <!-- Приветственный экран при отсутствии сообщений -->
+        <div class="chat-welcome">
+          <div class="chat-welcome-icon">
+            <i class="bi bi-chat-dots"></i>
+          </div>
+          <h4>Обсуждение начинается здесь</h4>
+          <p class="text-muted">Напишите первое сообщение о прочитанной главе</p>
+          {% if not can_post and not is_participant %}
+            <a href="{{ reading.get_absolute_url }}" class="btn btn-reading mt-2">
+              <i class="bi bi-person-plus me-1"></i> Присоединиться к чтению
+            </a>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- ФОРМА ВВОДА СООБЩЕНИЯ -->
+    <div class="chat-input-wrapper" id="reply-form">
+      <div class="chat-input-inner">
+        <div class="chat-input-container">
+          {% if can_post %}
+            <form class="chat-form" action="{% url 'reading_clubs:post_add' reading.slug topic.pk %}" method="post">
+              {% csrf_token %}
+              <input type="hidden" name="parent" value="{% if reply_to_post %}{{ reply_to_post.pk }}{% endif %}">
+
+              {% if reply_to_post %}
+                <div class="chat-reply-preview">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-truncate-2">
+                      Ответ для {{ reply_to_post.author.get_full_name|default:reply_to_post.author.username }}
+                    </span>
+                    <a href="{% url 'reading_clubs:topic_detail' reading.slug topic.pk %}#reply-form"
+                       class="chat-cancel-reply" title="Отменить ответ">×</a>
+                  </div>
+                </div>
+              {% endif %}
+
+              <div class="input-group">
+                <textarea name="content"
+                          class="form-control"
+                          placeholder="Напишите сообщение..."
+                          rows="1"
+                          required
+                          oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+                <button class="btn btn-chat-send" type="submit" title="Отправить">
+                  <i class="bi bi-send"></i>
+                </button>
+              </div>
+
+              {% if form.errors %}
+                {% for field, errors in form.errors.items %}
+                  {% for error in errors %}
+                    <div class="invalid-feedback d-block mt-1">{{ error }}</div>
+                  {% endfor %}
+                {% endfor %}
+              {% endif %}
+            </form>
+          {% elif not is_participant %}
+            <div class="alert alert-warning py-2 mb-0">
+              <i class="bi bi-lock me-1"></i> Присоединитесь к чтению, чтобы участвовать в обсуждении
+            </div>
+          {% else %}
+            <div class="alert alert-secondary py-2 mb-0">
+              <i class="bi bi-clock me-1"></i> Обсуждение откроется {{ topic.discussion_opens_at|date:"d E Y в H:i" }}
+            </div>
+          {% endif %}
+        </div>
       </div>
-    {% endif %}
+    </div>
   </div>
 </div>
 

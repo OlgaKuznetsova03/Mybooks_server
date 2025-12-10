@@ -94,7 +94,13 @@ class WebViewManager {
       final android = controller.platform as AndroidWebViewController;
       android
         ..setMediaPlaybackRequiresUserGesture(false)
-        ..setOnShowFileSelector(_fileService.onShowFileSelector);
+        ..setOnShowFileSelector(_fileService.onShowFileSelector)
+        ..setOnDownloadStart((request) {
+          final uri = Uri.tryParse(request.url);
+          if (uri != null) {
+            unawaited(startDownload(uri, context));
+          }
+        });
     }
 
     this.controller = controller;
@@ -177,19 +183,12 @@ class WebViewManager {
   Future<Map<String, String>> collectCookies() async {
     try {
       final rawResult = await controller.runJavaScriptReturningResult('document.cookie');
-      if (rawResult == null) {
-        return {};
-      }
 
       String? cookieString;
       if (rawResult is String) {
         cookieString = rawResult;
       } else {
         cookieString = rawResult.toString();
-      }
-
-      if (cookieString == null) {
-        return {};
       }
 
       final trimmed = cookieString.trim();
