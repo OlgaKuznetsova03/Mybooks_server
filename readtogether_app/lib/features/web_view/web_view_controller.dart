@@ -71,7 +71,16 @@ class WebViewManager {
             _injectLinkInterceptor();
           },
           onWebResourceError: (error) => _handleWebResourceError(error),
-          onNavigationRequest: onNavigationRequest,
+          onNavigationRequest: (request) async {
+            final uri = Uri.tryParse(request.url);
+
+            if (uri != null && uri.path.toLowerCase().endsWith('.pdf')) {
+              unawaited(startDownload(uri, context));
+              return NavigationDecision.prevent;
+            }
+
+            return onNavigationRequest(request);
+          },
         ),
       );
 
@@ -94,13 +103,7 @@ class WebViewManager {
       final android = controller.platform as AndroidWebViewController;
       android
         ..setMediaPlaybackRequiresUserGesture(false)
-        ..setOnShowFileSelector(_fileService.onShowFileSelector)
-        ..setOnDownloadStart((request) {
-          final uri = Uri.tryParse(request.url);
-          if (uri != null) {
-            unawaited(startDownload(uri, context));
-          }
-        });
+        ..setOnShowFileSelector(_fileService.onShowFileSelector);
     }
 
     this.controller = controller;
