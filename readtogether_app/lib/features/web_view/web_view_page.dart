@@ -22,30 +22,6 @@ import '../../widgets/dialogs/terms_dialog.dart';
 import 'web_view_controller.dart';
 import 'web_view_navigation.dart';
 
-class _AppSection {
-  const _AppSection({
-    required this.label,
-    required this.icon,
-    required this.path,
-  });
-
-  final String label;
-  final IconData icon;
-  final String path;
-}
-
-class _ShortcutLink {
-  const _ShortcutLink({
-    required this.label,
-    required this.icon,
-    required this.path,
-  });
-
-  final String label;
-  final IconData icon;
-  final String path;
-}
-
 class MainWebViewPage extends StatefulWidget {
   const MainWebViewPage({super.key, this.onlineNotifier});
 
@@ -60,57 +36,9 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
   late final WebViewManager _webViewManager;
   late final WebViewNavigation _navigation;
   late final OfflineNotesStorage _offlineNotesStorage;
-  late final Uri _baseSiteUri;
   final TextEditingController _noteController = TextEditingController();
   final HttpClient _httpClient = HttpClient();
 
-  final List<_AppSection> _sections = const [
-    _AppSection(
-      label: 'Главная',
-      icon: Icons.auto_awesome,
-      path: AppPaths.home,
-    ),
-    _AppSection(
-      label: 'Мои книги',
-      icon: Icons.menu_book_outlined,
-      path: AppPaths.myBooks,
-    ),
-    _AppSection(
-      label: 'Совместные',
-      icon: Icons.groups_rounded,
-      path: AppPaths.clubs,
-    ),
-    _AppSection(
-      label: 'Марафоны',
-      icon: Icons.flag_rounded,
-      path: AppPaths.marathons,
-    ),
-    _AppSection(
-      label: 'Профиль',
-      icon: Icons.person_rounded,
-      path: AppPaths.profile,
-    ),
-  ];
-
-  final List<_ShortcutLink> _shortcuts = const [
-    _ShortcutLink(
-      label: 'Коллаборации',
-      icon: Icons.handshake_rounded,
-      path: AppPaths.collaborations,
-    ),
-    _ShortcutLink(
-      label: 'Блогерский хаб',
-      icon: Icons.campaign_rounded,
-      path: AppPaths.communities,
-    ),
-    _ShortcutLink(
-      label: 'Игры',
-      icon: Icons.extension_rounded,
-      path: AppPaths.games,
-    ),
-  ];
-
-  int _currentSectionIndex = 0;
   List<OfflineNote> _offlineNotes = [];
   bool _savingNote = false;
   ValueListenable<bool>? _connectivityListenable;
@@ -131,12 +59,10 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
   void initState() {
     super.initState();
 
-    _baseSiteUri = Uri.parse(_prepareStartUrl(AppConstants.defaultSiteUrl));
-    _startUrl = _buildSectionUrl(_sections[_currentSectionIndex].path);
+    _startUrl = _prepareStartUrl(AppConstants.defaultSiteUrl);
     _webViewManager = WebViewManager(startUrl: _startUrl);
     _navigation = WebViewNavigation(webViewManager: _webViewManager, context: context);
     _offlineNotesStorage = OfflineNotesStorage();
-
 
     _attachConnectivity(widget.onlineNotifier);
     _loadOfflineNotes();
@@ -351,57 +277,9 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     }
   }
 
-  String _buildSectionUrl(String path) {
-    final sanitized = path.trim();
-    if (sanitized.isEmpty || sanitized == '/') {
-      return _baseSiteUri.toString();
-    }
-
-    try {
-      final normalized = sanitized.startsWith('/') ? sanitized.substring(1) : sanitized;
-      return _baseSiteUri.resolve(normalized).toString();
-    } catch (_) {
-      return _baseSiteUri.toString();
-    }
-  }
-
-  Future<void> _navigateToSection(int index) async {
-    if (!mounted || index < 0 || index >= _sections.length) return;
-    final destination = _sections[index];
-    final targetUrl = _buildSectionUrl(destination.path);
-
-    if (index == _currentSectionIndex) {
-      _webViewManager.reload();
-      return;
-    }
-
-    setState(() {
-      _currentSectionIndex = index;
-      _webViewError = false;
-      _loadingTimedOut = false;
-      _showOfflineRecoveryOverlay = false;
-    });
-
-    await _webViewManager.controller.loadRequest(Uri.parse(targetUrl));
-  }
-
-  Future<void> _openShortcut(String path) async {
-    if (!mounted) return;
-    final targetUrl = _buildSectionUrl(path);
-    final matchedIndex = _sections.indexWhere((section) => section.path == path);
-
-    setState(() {
-      if (matchedIndex != -1) _currentSectionIndex = matchedIndex;
-      _webViewError = false;
-      _loadingTimedOut = false;
-      _showOfflineRecoveryOverlay = false;
-    });
-
-    await _webViewManager.controller.loadRequest(Uri.parse(targetUrl));
-  }
-
   Future<void> _handleJavaScriptMessage(JavaScriptMessage message) async {
     Map<String, dynamic>? payload;
+
     try {
       final decoded = jsonDecode(message.message);
       if (decoded is Map<String, dynamic>) {
@@ -574,15 +452,12 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
   Future<void> _openCatalog() async {
     if (!mounted) return;
     try {
-      final targetUrl = _buildSectionUrl(AppPaths.myBooks);
-      final booksIndex = _sections.indexWhere((section) => section.path == AppPaths.myBooks);
       setState(() {
-        if (booksIndex != -1) _currentSectionIndex = booksIndex;
         _webViewError = false;
         _loadingTimedOut = false;
         _showOfflineRecoveryOverlay = false;
       });
-      await _webViewManager.controller.loadRequest(Uri.parse(targetUrl));
+      await _webViewManager.controller.loadRequest(Uri.parse(_startUrl));
     } catch (_) {
       _reloadWebView();
     }
@@ -629,57 +504,6 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildShortcutBar() {
-    if (_shortcuts.isEmpty) return const SizedBox.shrink();
-
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeInOut,
-      child: Material(
-        color: Colors.white,
-        elevation: 1,
-        child: SafeArea(
-          bottom: false,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  for (final shortcut in _shortcuts)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ActionChip(
-                        visualDensity: VisualDensity.compact,
-                        avatar: Icon(shortcut.icon, size: 18),
-                        label: Text(shortcut.label),
-                        onPressed: () => _openShortcut(shortcut.path),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavigationBar() {
-    return NavigationBar(
-      labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-      selectedIndex: _currentSectionIndex,
-      onDestinationSelected: _navigateToSection,
-      destinations: [
-        for (final section in _sections)
-          NavigationDestination(
-            icon: Icon(section.icon),
-            label: section.label,
-          )
-      ],
     );
   }
 
@@ -769,11 +593,9 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
       },
       child: Scaffold(
         backgroundColor: Colors.white,
-        bottomNavigationBar: _buildNavigationBar(),
         body: Column(
           children: [
             SafeArea(bottom: false, child: _buildRewardBanner()),
-            _buildShortcutBar(),
             Expanded(
               child: Stack(
                 clipBehavior: Clip.none,
