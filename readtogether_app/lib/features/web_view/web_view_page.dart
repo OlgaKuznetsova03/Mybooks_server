@@ -47,10 +47,9 @@ class _ShortcutLink {
 }
 
 class MainWebViewPage extends StatefulWidget {
-  const MainWebViewPage({super.key, this.onlineNotifier, this.initialPath});
+  const MainWebViewPage({super.key, this.onlineNotifier});
 
   final ValueListenable<bool>? onlineNotifier;
-  final String? initialPath;
 
   @override
   State<MainWebViewPage> createState() => _MainWebViewPageState();
@@ -133,13 +132,7 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     super.initState();
 
     _baseSiteUri = Uri.parse(_prepareStartUrl(AppConstants.defaultSiteUrl));
-
-    if (widget.initialPath != null && widget.initialPath!.trim().isNotEmpty) {
-      _currentSectionIndex = _matchSectionIndex(widget.initialPath!);
-      _startUrl = _buildSectionUrl(widget.initialPath!);
-    } else {
-      _startUrl = _buildSectionUrl(_sections[_currentSectionIndex].path);
-    }
+    _startUrl = _buildSectionUrl(_sections[_currentSectionIndex].path);
     _webViewManager = WebViewManager(startUrl: _startUrl);
     _navigation = WebViewNavigation(webViewManager: _webViewManager, context: context);
     _offlineNotesStorage = OfflineNotesStorage();
@@ -370,23 +363,6 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     } catch (_) {
       return _baseSiteUri.toString();
     }
-  }
-
-  String _normalizePath(String path) {
-    if (path.isEmpty) return '/';
-    final withLeading = path.startsWith('/') ? path : '/$path';
-    return withLeading.endsWith('/') ? withLeading : '$withLeading/';
-  }
-
-  int _matchSectionIndex(String path) {
-    final target = _normalizePath(path);
-    for (var i = 0; i < _sections.length; i++) {
-      final normalizedSection = _normalizePath(_sections[i].path);
-      if (target.startsWith(normalizedSection)) {
-        return i;
-      }
-    }
-    return _currentSectionIndex;
   }
 
   Future<void> _navigateToSection(int index) async {

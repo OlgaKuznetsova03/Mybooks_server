@@ -1,4 +1,5 @@
 <!doctype html>
+{% load static %}
 <html lang="ru">
 <head>
   <meta charset="utf-8">
@@ -23,18 +24,36 @@
       line-height: 1.5;
       font-size: 11pt;
       margin: 0;
+      padding-top: 0; /* Убрали отступ сверху */
+    }
+
+    /* Логотип - в самом правом верхнем углу */
+    .logo-container {
+      position: absolute;
+      top: 0mm; /* Самый верх */
+      right: 0mm; /* Самый правый край */
+      width: 70px;
+      height: 70px;
+      z-index: 100;
+    }
+
+    .logo-container img {
+      width: 70px;
+      height: 70px;
+      object-fit: contain;
     }
 
     /* Заголовок */
     .header {
       text-align: center;
-      margin-bottom: 25px;
-      padding-bottom: 15px;
-      border-bottom: 2px solid var(--accent-color);
+      margin-bottom: 20px;
+      padding-top: 5mm; /* Небольшой отступ сверху для заголовка */
+      padding-bottom: 9px;
+      border-bottom: none;
     }
 
     .author-name {
-      font-size: 24pt;
+      font-size: 20pt;
       font-weight: 700;
       margin: 0 0 5px;
       color: var(--text-primary);
@@ -80,12 +99,12 @@
       font-weight: 600;
       margin: 0 0 12px 0;
       padding-bottom: 5px;
-      border-bottom: 1px solid var(--border-color);
+      border-bottom: none; /* УБРАНА ПОЛОСА - было: 1px solid var(--border-color) */
       color: var(--text-primary);
     }
 
     .section-subtitle {
-      font-size: 10pt;
+      font-size: 8pt; /* Изменено с 10pt на 8pt */
       color: var(--text-secondary);
       margin: -10px 0 15px 0;
       font-style: italic;
@@ -265,6 +284,7 @@
     .strike-list-container {
       display: block;
       width: 100%;
+      margin-bottom: 30px; /* Увеличен отступ снизу */
     }
 
     .strike-row {
@@ -317,7 +337,7 @@
     }
 
     .book-series-inline {
-      font-size: 9pt;
+      font-size: 8pt;
       color: var(--text-secondary);
       display: block;
       margin-top: 2px;
@@ -339,6 +359,16 @@
       body {
         font-size: 10pt;
         margin: 0;
+        padding-top: 0;
+      }
+      
+      .logo-container {
+        top: 0mm;
+        right: 0mm;
+      }
+      
+      .header {
+        padding-top: 8mm; /* Больше отступ для печати */
       }
       
       .section {
@@ -390,12 +420,18 @@
       .section-title {
         break-after: avoid;
       }
+      
+      /* Нижняя строчка в самом низу при печати */
+      .page-footer {
+        bottom: 0mm !important;
+        padding: 3mm 0;
+      }
     }
 
     /* Инструкция */
     .instructions {
-      margin-top: 25px;
-      padding: 12px;
+      margin-top: 9px;
+      padding: 9px;
       background: #f0f9ff;
       border: 1px solid #bae6fd;
       border-radius: 6px;
@@ -416,9 +452,31 @@
     .instructions-list li {
       margin-bottom: 3px;
     }
+
+    /* Нижняя строчка - максимально внизу */
+    .page-footer {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0mm; /* Самый низ */
+      text-align: center;
+      font-size: 9pt;
+      color: var(--text-secondary);
+      padding: 8px 0;
+      background: white;
+      z-index: 50;
+      border-top: 1px solid var(--border-color);
+    }
   </style>
 </head>
 <body>
+  <div class="logo-container">
+    <img src="{% static 'img/logo_1.png' %}" alt="Логотип Калейдоскоп книг">
+  </div>
+  
+  <!-- Добавляем header для отступа от логотипа -->
+  <div class="header"></div>
+  
   <section class="section">
     <h2 class="section-title">Трекер чтения {{ author.name }} </h2>
     <div class="section-subtitle">
@@ -501,7 +559,7 @@
                 <span class="book-title-inline">{{ book.title }}</span>
                 {% if book.series %}
                   <span class="book-series-inline">
-                    ({{ book.series }}{% if book.series_order %} · №{{ book.series_order }}{% endif %})
+                    {{ book.series }}{% if book.series_order %} · №{{ book.series_order }}{% endif %}
                   </span>
                 {% endif %}
               </li>
@@ -519,6 +577,8 @@
       </div>
     {% endif %}
   </section>
+
+  <div class="page-footer">Создано в Калейдоскоп книг kalejdoskopknig.ru</div>
 
 </body>
 </html>

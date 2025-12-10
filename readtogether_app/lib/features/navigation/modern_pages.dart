@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../services/api_service.dart';
-import '../web_view/web_view_page.dart';
 import 'widgets.dart';
 
 final _palette = <Color>[
@@ -64,17 +63,17 @@ class _HomeExperiencePageState extends State<HomeExperiencePage> {
           ExperienceSection(
             title: 'Полка «Читаю»',
             description: 'Личные книги и прогресс загружаются из /api/v1/home/.',
-            cards: _readingCards(context, data.readingItems),
+            cards: _readingCards(data.readingItems),
           ),
           ExperienceSection(
             title: 'Активные клубы',
             description: 'Живые обсуждения с книгами и датами из общего API.',
-            cards: _clubTiles(context, data.activeClubs),
+            cards: _clubTiles(data.activeClubs),
           ),
           ExperienceSection(
             title: 'Марафоны',
             description: 'Статус и прогресс марафонов, рассчитанный по датам.',
-            cards: _marathonCards(context, data.activeMarathons),
+            cards: _marathonCards(data.activeMarathons),
           ),
         ],
       ),
@@ -138,17 +137,17 @@ class _BooksExperiencePageState extends State<BooksExperiencePage> {
             ExperienceSection(
               title: 'Подборки недели',
               description: 'Свежие книги с жанрами и описанием.',
-              cards: _bookCards(context, spotlight),
+              cards: _bookCards(spotlight),
             ),
             ExperienceSection(
               title: 'Ещё книги',
               description: 'Расширенный список по ответу API.',
-              cards: _bookCards(context, more),
+              cards: _bookCards(more),
             ),
             ExperienceSection(
               title: 'Клубы вокруг этих книг',
               description: 'Связанные книги и статус клубов.',
-              cards: _clubTiles(context, clubs),
+              cards: _clubTiles(clubs),
             ),
           ],
         );
@@ -203,12 +202,12 @@ class _ReadingNowPageState extends State<ReadingNowPage> {
             ExperienceSection(
               title: 'Клубные сессии',
               description: 'Даты, статус и количество сообщений.',
-              cards: _clubTiles(context, clubs),
+              cards: _clubTiles(clubs),
             ),
             ExperienceSection(
               title: 'Марафоны в работе',
               description: 'Прогресс рассчитывается по времени проведения.',
-              cards: _marathonCards(context, marathons),
+              cards: _marathonCards(marathons),
             ),
           ],
         );
@@ -263,12 +262,12 @@ class _HomeLibraryPageState extends State<HomeLibraryPage> {
             ExperienceSection(
               title: 'Эндпоинты библиотеки',
               description: 'Статусы доступности функций по карте API.',
-              cards: _featureMapCards(context, feature),
+              cards: _featureMapCards(feature),
             ),
             ExperienceSection(
               title: 'Недавно добавленные книги',
               description: 'Используем свежие книги из каталога.',
-              cards: _bookCards(context, books),
+              cards: _bookCards(books),
             ),
           ],
         );
@@ -313,7 +312,7 @@ class _CoReadingPageState extends State<CoReadingPage> {
           ExperienceSection(
             title: 'Клубы',
             description: 'Вся метаинформация доступна без заглушек.',
-            cards: _clubTiles(context, clubs),
+            cards: _clubTiles(clubs),
           ),
         ],
       ),
@@ -357,7 +356,7 @@ class _MarathonsPageState extends State<MarathonsPage> {
           ExperienceSection(
             title: 'Активные марафоны',
             description: 'Из API без выдуманных данных.',
-            cards: _marathonCards(context, marathons),
+            cards: _marathonCards(marathons),
           ),
         ],
       ),
@@ -401,7 +400,7 @@ class _GamesPageState extends State<GamesPage> {
           ExperienceSection(
             title: 'Эндпоинты игр',
             description: 'Используем карту возможностей сервиса.',
-            cards: _featureGroupCards(context, featureMap, 'games'),
+            cards: _featureGroupCards(featureMap, 'games'),
           ),
         ],
       ),
@@ -444,14 +443,14 @@ class _ReviewsPageState extends State<ReviewsPage> {
             ),
           ),
           sections: [
-          ExperienceSection(
-            title: 'Лидеры рейтинга',
-            description: 'Без заглушек: реальные книги и оценки.',
-            cards: _ratingCards(context, sorted),
-          ),
-        ],
-      );
-    },
+            ExperienceSection(
+              title: 'Лидеры рейтинга',
+              description: 'Без заглушек: реальные книги и оценки.',
+              cards: _ratingCards(sorted),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -492,7 +491,7 @@ class _CollaborationPageState extends State<CollaborationPage> {
           ExperienceSection(
             title: 'Комьюнити',
             description: 'Готовые и планируемые эндпоинты.',
-            cards: _featureGroupCards(context, featureMap, 'communities'),
+            cards: _featureGroupCards(featureMap, 'communities'),
           ),
         ],
       ),
@@ -536,7 +535,7 @@ class _BloggerHubPageState extends State<BloggerHubPage> {
           ExperienceSection(
             title: 'Возможности',
             description: 'Статусы API для блогеров и аудиторий.',
-            cards: _featureMapCards(context, featureMap),
+            cards: _featureMapCards(featureMap),
           ),
         ],
       ),
@@ -580,7 +579,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
           ExperienceSection(
             title: 'Профиль и подписки',
             description: 'Текущее состояние API, чтобы понимать, что доступно.',
-            cards: _featureGroupCards(context, featureMap, 'profile'),
+            cards: _featureGroupCards(featureMap, 'profile'),
           ),
         ],
       ),
@@ -628,19 +627,19 @@ class _PremiumPageState extends State<PremiumPage> {
             ),
           ),
           sections: [
-          ExperienceSection(
-            title: 'Статус подписки',
-            description: 'Берём информацию из профиля/подписок в feature-map.',
-            cards: _featureGroupCards(context, feature, 'profile'),
-          ),
-          ExperienceSection(
-            title: 'Выбор редакции',
-            description: 'Книги без вымышленных данных.',
-            cards: _bookCards(context, books),
-          ),
-        ],
-      );
-    },
+            ExperienceSection(
+              title: 'Статус подписки',
+              description: 'Берём информацию из профиля/подписок в feature-map.',
+              cards: _featureGroupCards(feature, 'profile'),
+            ),
+            ExperienceSection(
+              title: 'Выбор редакции',
+              description: 'Книги без вымышленных данных.',
+              cards: _bookCards(books),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -706,7 +705,7 @@ List<String> _homeStats(HomeFeed feed) {
   ];
 }
 
-List<Widget> _readingCards(BuildContext context, List<ReadingShelfItem> items) {
+List<Widget> _readingCards(List<ReadingShelfItem> items) {
   if (items.isEmpty) {
     return const [InfoCard(icon: Icons.local_library_outlined, message: 'Нет активных книг на полке')];
   }
@@ -722,8 +721,6 @@ List<Widget> _readingCards(BuildContext context, List<ReadingShelfItem> items) {
         subtitle: _readingSubtitle(item),
         progress: progress.clamp(0, 1),
         accent: accent,
-        coverUrl: item.book.coverUrl,
-        onTap: () => _openPath(context, '/books/${item.book.id}/'),
       ),
     );
   }
@@ -789,7 +786,7 @@ class _AsyncExperience<T> extends StatelessWidget {
   }
 }
 
-List<Widget> _bookCards(BuildContext context, List<BookSummary> books) {
+List<Widget> _bookCards(List<BookSummary> books) {
   if (books.isEmpty) {
     return const [
       InfoCard(icon: Icons.menu_book_outlined, message: 'Книги пока не найдены'),
@@ -805,15 +802,13 @@ List<Widget> _bookCards(BuildContext context, List<BookSummary> books) {
         subtitle: book.subtitle,
         tag: book.primaryTag,
         accent: accent,
-        coverUrl: book.coverUrl,
-        onTap: () => _openPath(context, '/books/${book.id}/'),
       ),
     );
   }
   return cards;
 }
 
-List<Widget> _clubTiles(BuildContext context, List<ReadingClubSummary> clubs) {
+List<Widget> _clubTiles(List<ReadingClubSummary> clubs) {
   if (clubs.isEmpty) {
     return const [InfoCard(icon: Icons.group_outlined, message: 'Нет активных клубов')];
   }
@@ -824,8 +819,6 @@ List<Widget> _clubTiles(BuildContext context, List<ReadingClubSummary> clubs) {
           title: club.title,
           subtitle: _clubSubtitle(club),
           trailing: Text(club.status, style: const TextStyle(color: Colors.white70)),
-          onTap: club.slug.isNotEmpty ? () => _openPath(context, '/reading-clubs/${club.slug}/') : null,
-          coverUrl: club.book?.coverUrl,
         ),
       )
       .toList();
@@ -844,7 +837,7 @@ String _clubSubtitle(ReadingClubSummary club) {
   return club.description.isNotEmpty ? club.description : 'Детали клуба будут позже';
 }
 
-List<Widget> _marathonCards(BuildContext context, List<ReadingMarathonSummary> marathons) {
+List<Widget> _marathonCards(List<ReadingMarathonSummary> marathons) {
   if (marathons.isEmpty) {
     return const [InfoCard(icon: Icons.flag_outlined, message: 'Марафоны пока не найдены')];
   }
@@ -864,21 +857,20 @@ List<Widget> _marathonCards(BuildContext context, List<ReadingMarathonSummary> m
         subtitle: subtitleParts.join(' · '),
         progress: progress,
         accent: accent,
-        onTap: marathon.slug.isNotEmpty ? () => _openPath(context, '/marathons/${marathon.slug}/') : null,
       ),
     );
   }
   return cards;
 }
 
-List<Widget> _featureMapCards(BuildContext context, FeatureMap featureMap) {
+List<Widget> _featureMapCards(FeatureMap featureMap) {
   if (featureMap.groups.isEmpty) {
     return const [InfoCard(icon: Icons.public, message: 'Карта возможностей пустая')];
   }
-  return featureMap.groups.expand((group) => _featureGroupCards(context, featureMap, group.key)).toList();
+  return featureMap.groups.expand((group) => _featureGroupCards(featureMap, group.key)).toList();
 }
 
-List<Widget> _featureGroupCards(BuildContext context, FeatureMap featureMap, String groupKey) {
+List<Widget> _featureGroupCards(FeatureMap featureMap, String groupKey) {
   final group = featureMap.groups.firstWhere(
     (item) => item.key == groupKey,
     orElse: () => FeatureGroup(key: groupKey, description: 'Нет описания', endpoints: const []),
@@ -903,7 +895,7 @@ List<Widget> _featureGroupCards(BuildContext context, FeatureMap featureMap, Str
       .toList();
 }
 
-List<Widget> _ratingCards(BuildContext context, List<BookSummary> books) {
+List<Widget> _ratingCards(List<BookSummary> books) {
   if (books.isEmpty) {
     return const [InfoCard(icon: Icons.star_border, message: 'Рейтинги появятся позже')];
   }
@@ -911,15 +903,13 @@ List<Widget> _ratingCards(BuildContext context, List<BookSummary> books) {
   for (var i = 0; i < books.length; i++) {
     final book = books[i];
     final accent = _palette[i % _palette.length];
-    final rating = book.averageRating ?? 0;
+    final rating = book.averageRating?.toStringAsFixed(1) ?? '—';
     cards.add(
       HighlightCard(
         title: book.title,
         subtitle: book.subtitle,
         accent: accent,
-        progress: rating / 5,
-        coverUrl: book.coverUrl,
-        onTap: () => _openPath(context, '/books/${book.id}/'),
+        progress: (book.averageRating ?? 0) / 5,
       ),
     );
     cards.add(
@@ -927,24 +917,8 @@ List<Widget> _ratingCards(BuildContext context, List<BookSummary> books) {
         icon: Icons.star,
         title: 'Оценка: $rating',
         subtitle: book.primaryTag,
-        onTap: () => _openPath(context, '/books/${book.id}/'),
       ),
     );
   }
   return cards;
-}
-
-String _normalizePath(String path) {
-  if (path.isEmpty) return '/';
-  final withLeading = path.startsWith('/') ? path : '/$path';
-  return withLeading.endsWith('/') ? withLeading : '$withLeading/';
-}
-
-void _openPath(BuildContext context, String path) {
-  final normalized = _normalizePath(path);
-  Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (_) => MainWebViewPage(initialPath: normalized),
-    ),
-  );
 }
