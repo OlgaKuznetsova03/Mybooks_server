@@ -1,0 +1,61 @@
+<!-- reading_clubs/includes/chat_message.html -->
+<div class="chat-message {% if post.author == request.user %}chat-message--user{% endif %}" 
+     id="post-{{ post.pk }}">
+  <!-- Аватар -->
+  <div class="chat-message__avatar">
+    {{ post.author.get_full_name|first|default:post.author.username|first|upper }}
+  </div>
+  
+  <!-- Пузырь с сообщением -->
+  <div class="chat-message__bubble">
+    <!-- Автор -->
+    <div class="chat-message__author">
+      <a href="{% url 'profile' post.author.username %}" class="chat-message__author-link">
+        {{ post.author.get_full_name|default:post.author.username }}
+      </a>
+    </div>
+    
+    <!-- Ответ на другое сообщение -->
+    {% if post.parent %}
+      <div class="chat-message__reply" onclick="location.href='#post-{{ post.parent.pk }}'">
+        <div class="chat-message__reply-author">
+          {{ post.parent.author.get_full_name|default:post.parent.author.username }}
+        </div>
+        <div class="chat-message__reply-text">
+          {{ post.parent.content|truncatewords:20 }}
+        </div>
+      </div>
+    {% endif %}
+    
+    <!-- Текст сообщения -->
+    <div class="chat-message__content">
+      {{ post.content|linebreaksbr }}
+    </div>
+    
+    <!-- Время и действия -->
+    <div class="chat-message__time">
+      {{ post.created_at|date:"H:i" }}
+      {% if post.created_at|date:"d.m.y" != now|date:"d.m.y" %}
+        • {{ post.created_at|date:"d M" }}
+      {% endif %}
+      
+      {% if can_post %}
+        <div class="chat-message__menu">
+          <a href="{% url 'reading_clubs:topic_detail' reading.slug topic.pk %}?reply_to={{ post.pk }}#reply-form" 
+             class="chat-message__reply-btn" title="Ответить">
+            <i class="bi bi-reply"></i>
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- РЕКУРСИВНОЕ ОТОБРАЖЕНИЕ ВЛОЖЕННЫХ СООБЩЕНИЙ -->
+{% if post.children %}
+  <div class="chat-message__children">
+    {% for child in post.children %}
+      {% include "reading_clubs/includes/chat_message.html" with post=child %}
+    {% endfor %}
+  </div>
+{% endif %}

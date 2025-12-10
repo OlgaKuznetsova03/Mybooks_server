@@ -7,226 +7,633 @@
   {{ block.super }}
   <link rel="stylesheet" href="{% static 'reading_clubs/style.css?v=1762270644' %}">
   <style>
-    /* ===== Палитра страницы обсуждения ===== */
-    .discussion-theme{
-      --page-primary:#9d6f51;                 /* акцент/кнопки */
-      --page-primary-rgb:157,111,81;
-      --hero-bg:#e1b797;                      /* фон шапки */
-      --card-bg:#f3e6dd;                      /* карточки/посты */
-      --card-bg-hover:#efe0d5;
-      --card-border:rgba(157,111,81,.25);
-      --card-shadow:0 10px 24px rgba(157,111,81,.10);
-
-      --muted:#5a3c2b;
-      --link:#7e573f;
-
+    /* ===== ОСНОВНЫЕ ПЕРЕМЕННЫЕ ===== */
+    .discussion-theme {
+      --page-primary: #9d6f51;
+      --page-primary-rgb: 157, 111, 81;
+      --chat-bg: #f0f2f5;
+      --msg-bg-user: #d9fdd3;
+      --msg-bg-other: #fff;
+      --msg-border: rgba(0, 0, 0, .08);
+      --msg-text: #111b21;
+      --msg-time: #667781;
+      --input-bg: #fff;
+      
       /* прокидываем в bootstrap */
-      --bs-primary:var(--page-primary);
-      --bs-primary-rgb:var(--page-primary-rgb);
+      --bs-primary: var(--page-primary);
+      --bs-primary-rgb: var(--page-primary-rgb);
     }
 
-    /* ===== Шапка топика ===== */
-    .discussion-theme .reading-detail-header{
-      background:var(--hero-bg);
-      border:1px solid rgba(0,0,0,.08);
-      border-radius:1rem;
-      box-shadow:0 18px 40px rgba(0,0,0,.10);
-      padding:1.25rem 1rem 1.5rem;
-      color:#000;
-      margin-bottom:1.25rem;
-    }
-    .discussion-theme .reading-detail-header .text-muted{ color:#000; opacity:.85; }
-
-    /* ===== Кнопки ===== */
-    .discussion-theme .btn-reading,
-    .discussion-theme .btn-primary{
-      --bs-btn-bg:var(--page-primary);
-      --bs-btn-border-color:var(--page-primary);
-      --bs-btn-hover-bg:#b48264;
-      --bs-btn-hover-border-color:#b48264;
-      --bs-btn-active-bg:var(--page-primary);
-      --bs-btn-active-border-color:var(--page-primary);
-      color:#fff !important;
-      background-color:var(--bs-btn-bg);
-      border-color:var(--bs-btn-border-color);
-    }
-    .discussion-theme .btn-outline-primary{
-      --bs-btn-color:var(--page-primary);
-      --bs-btn-border-color:var(--page-primary);
-      --bs-btn-hover-bg:var(--page-primary);
-      --bs-btn-hover-border-color:var(--page-primary);
-      color:var(--page-primary);
-      border-color:var(--page-primary);
-    }
-    .discussion-theme .btn-outline-primary:hover{ color:#fff !important; }
-
-    /* ===== Карточка формы справа ===== */
-    .discussion-theme .card.border-0.shadow-sm{
-      background:#fff;
-      border:1px solid rgba(0,0,0,.08) !important;
-      border-radius:1rem;
-      box-shadow:0 10px 24px rgba(0,0,0,.08) !important;
-    }
-    .discussion-theme .discussion-form textarea,
-    .discussion-theme textarea{
-      border-radius:.75rem;
-      border:1px solid rgba(157,111,81,.35);
-    }
-    .discussion-theme .discussion-form textarea:focus{
-      border-color:rgba(157,111,81,.6);
-      box-shadow:0 0 0 .25rem rgba(157,111,81,.25);
+    /* ===== ОБЩИЕ СТИЛИ ЧАТА ===== */
+    .discussion-theme {
+      background: var(--chat-bg);
+      min-height: 100vh;
+      padding-bottom: 2rem;
     }
 
-    /* ===== Посты и вложенность ===== */
-    .discussion-theme .discussion-thread{ display:flex; flex-direction:column; gap:1rem; }
-
-    .discussion-theme .discussion-post{
-      background:var(--card-bg);
-      border:1px solid var(--card-border);
-      border-radius:1rem;
-      padding:1rem;
-      box-shadow:var(--card-shadow);
-      transition:background-color .15s ease, box-shadow .15s ease, transform .15s ease;
-    }
-    .discussion-theme .discussion-post:hover{
-      background:var(--card-bg-hover);
-      box-shadow:0 14px 36px rgba(157,111,81,.16);
-      transform:translateY(-1px);
+    /* ===== ШАПКА ЧАТА (FIXED) ===== */
+    .chat-header {
+      background: #fff;
+      border-bottom: 1px solid rgba(0, 0, 0, .08);
+      padding: 1rem 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .05);
+      position: sticky;
+      top: 0;
+      z-index: 1030;
     }
 
-    /* вложенные посты: вертикальная линия и отступы */
-    .discussion-theme .discussion-post--nested{
-      margin-left:1rem;
-      border-left:3px solid rgba(157,111,81,.35);
-    }
-    .discussion-theme .discussion-post__children{
-      margin-left:1rem;
-      display:flex; flex-direction:column; gap:1rem;
-      border-left:3px solid rgba(157,111,81,.25);
-      padding-left:1rem;
+    .chat-header-inner {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 1rem;
     }
 
-    .discussion-theme .discussion-post__author{ font-weight:600; color:#2b1d17; }
-    .discussion-theme .discussion-post__author-link{ color:inherit; text-decoration:none; }
-    .discussion-theme .discussion-post__author-link:hover,
-    .discussion-theme .discussion-post__author-link:focus{ text-decoration:underline; }
-    .discussion-theme .discussion-post__timestamp{ color:rgba(0,0,0,.55); }
-    .discussion-theme .discussion-post__reply-meta{ color:var(--muted); font-size:.95rem; }
-    .discussion-theme .discussion-post__content{ color:#2b1d17; }
-
-    .discussion-theme .discussion-link{
-      color:var(--link);
-      text-decoration:none;
-      border-bottom:1px dotted rgba(157,111,81,.45);
-    }
-    .discussion-theme .discussion-link:hover{ color:#4c3324; border-bottom-color:transparent; }
-
-    /* бейджи */
-    .discussion-theme .badge.text-bg-success{ background-color:#6fb27a !important; }
-    .discussion-theme .badge.text-bg-secondary{
-      background:rgba(157,111,81,.25) !important;
-      color:#2b1d17 !important;
-      border:1px solid rgba(157,111,81,.35);
+    .chat-header .back-link {
+      color: #666;
+      font-size: 0.9rem;
+      text-decoration: none;
     }
 
-    /* уведомление предпросмотра ответа */
-    .discussion-theme .alert-info.discussion-form__reply-preview{
-      background:rgba(157,111,81,.10);
-      border:1px solid rgba(157,111,81,.35);
-      color:#2b1d17;
-      border-radius:.75rem;
-    }
-    .discussion-theme .discussion-form__quoted{
-      max-height:10rem; overflow:auto;
-      padding:.5rem .75rem; border-radius:.5rem;
-      background:#fff; border:1px dashed rgba(157,111,81,.35);
+    .chat-header .back-link:hover {
+      color: #333;
     }
 
-    /* заголовки секций */
-    .discussion-theme .reading-section-title{ color:#2b1d17; }
+    .chat-header .topic-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0.25rem 0 0 0;
+      color: #111;
+    }
+
+    .chat-badge {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 12px;
+    }
+
+    .chat-badge-open {
+      background: #25d366 !important;
+      color: white !important;
+    }
+
+    .chat-badge-locked {
+      background: #ff6b6b !important;
+      color: white !important;
+    }
+
+    .chat-info-btn {
+      color: #999;
+      cursor: pointer;
+      font-size: 1.1rem;
+    }
+
+    .chat-info-btn:hover {
+      color: #666;
+    }
+
+    /* ===== ФОРМА ВВОДА СООБЩЕНИЙ ===== */
+    .chat-input-container {
+      background: var(--input-bg);
+      border: 1px solid rgba(0, 0, 0, .1);
+      border-radius: 24px;
+      padding: 0.5rem 1rem;
+      margin-top: 1rem;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, .05);
+    }
+
+    .chat-form {
+      width: 100%;
+    }
+
+    .chat-form textarea {
+      border: none !important;
+      background: transparent !important;
+      resize: none;
+      min-height: 24px;
+      max-height: 120px;
+      padding: 0.5rem 0;
+      box-shadow: none !important;
+      width: 100%;
+      font-size: 0.95rem;
+      line-height: 1.4;
+    }
+
+    .chat-form textarea:focus {
+      outline: none !important;
+      box-shadow: none !important;
+    }
+
+    .input-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-chat-send {
+      background: var(--page-primary) !important;
+      color: white !important;
+      border: none;
+      border-radius: 50% !important;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background-color 0.2s;
+    }
+
+    .btn-chat-send:hover {
+      background: #b48264 !important;
+    }
+
+    .chat-reply-preview {
+      background: rgba(157, 111, 81, .08);
+      border-left: 3px solid var(--page-primary);
+      padding: 0.5rem 0.75rem;
+      margin-bottom: 0.5rem;
+      border-radius: 0 8px 8px 0;
+      font-size: 0.9rem;
+      color: #333;
+    }
+
+    .chat-cancel-reply {
+      color: #999;
+      text-decoration: none;
+      font-size: 1.2rem;
+      line-height: 1;
+      padding-left: 0.5rem;
+    }
+
+    .chat-cancel-reply:hover {
+      color: #666;
+    }
+
+    /* ===== ОБЛАСТЬ СООБЩЕНИЙ ===== */
+    .chat-messages {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 1rem;
+      padding-top: 180px; /* Отступ под фиксированную шапку */
+    }
+
+    .chat-thread {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    /* ===== СТИЛИ СООБЩЕНИЙ-ПУЗЫРЕЙ ===== */
+    .chat-message {
+      display: flex;
+      gap: 0.75rem;
+      max-width: 75%;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .chat-message--user {
+      margin-left: auto;
+      flex-direction: row-reverse;
+    }
+
+    .chat-message__avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+
+    .chat-message__bubble {
+      background: var(--msg-bg-other);
+      border-radius: 18px;
+      border-bottom-left-radius: 4px;
+      padding: 0.75rem 1rem;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
+      position: relative;
+      max-width: 100%;
+      word-wrap: break-word;
+    }
+
+    .chat-message--user .chat-message__bubble {
+      background: var(--msg-bg-user);
+      border-bottom-left-radius: 18px;
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-message__author {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--msg-text);
+      margin-bottom: 0.15rem;
+    }
+
+    .chat-message__author-link {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .chat-message__author-link:hover {
+      text-decoration: underline;
+    }
+
+    .chat-message__content {
+      color: var(--msg-text);
+      line-height: 1.4;
+      font-size: 0.95rem;
+      white-space: pre-line;
+    }
+
+    .chat-message__time {
+      font-size: 0.75rem;
+      color: var(--msg-time);
+      text-align: right;
+      margin-top: 0.25rem;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .chat-message__menu {
+      opacity: 0;
+      transition: opacity 0.2s;
+      margin-left: 0.5rem;
+    }
+
+    .chat-message:hover .chat-message__menu {
+      opacity: 1;
+    }
+
+    .chat-message__reply-btn {
+      color: #999;
+      text-decoration: none;
+      font-size: 0.9rem;
+      padding: 0.25rem;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    .chat-message__reply-btn:hover {
+      color: var(--page-primary);
+      background: rgba(0, 0, 0, .05);
+    }
+
+    /* ===== БЛОК ОТВЕТА НА СООБЩЕНИЕ ===== */
+    .chat-message__reply {
+      background: rgba(0, 0, 0, .04);
+      border-left: 3px solid var(--page-primary);
+      padding: 0.5rem 0.75rem;
+      margin-bottom: 0.75rem;
+      border-radius: 0 8px 8px 0;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .chat-message__reply:hover {
+      background: rgba(0, 0, 0, .06);
+    }
+
+    .chat-message__reply-author {
+      font-weight: 600;
+      color: var(--page-primary);
+      margin-bottom: 0.15rem;
+    }
+
+    .chat-message__reply-text {
+      color: #666;
+      line-height: 1.3;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    /* ===== ВЛОЖЕННЫЕ СООБЩЕНИЯ ===== */
+    .chat-message__children {
+      margin-left: 3rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .chat-message--user .chat-message__children {
+      margin-left: 0;
+      margin-right: 3rem;
+    }
+
+    /* Дочерние сообщения имеют меньший отступ */
+    .chat-message__children .chat-message {
+      max-width: 70%;
+    }
+
+    .chat-message__children .chat-message__avatar {
+      width: 28px;
+      height: 28px;
+      font-size: 0.8rem;
+    }
+
+    .chat-message__children .chat-message__bubble {
+      padding: 0.6rem 0.85rem;
+      font-size: 0.9rem;
+    }
+
+    /* ===== ПРИВЕТСТВЕННЫЙ ЭКРАН ===== */
+    .chat-welcome {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: #999;
+    }
+
+    .chat-welcome-icon {
+      font-size: 3rem;
+      color: #ccc;
+      margin-bottom: 1rem;
+    }
+
+    .chat-welcome h4 {
+      font-weight: 600;
+      color: #666;
+      margin-bottom: 0.5rem;
+    }
+
+    /* ===== РАЗДЕЛИТЕЛИ И СТАТУСЫ ===== */
+    .chat-status-divider {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #999;
+      margin: 2rem 0;
+      position: relative;
+    }
+
+    .chat-status-divider::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: rgba(0, 0, 0, .1);
+    }
+
+    .chat-status-divider span {
+      background: var(--chat-bg);
+      padding: 0 1rem;
+      position: relative;
+    }
+
+    /* ===== АДАПТИВНОСТЬ ===== */
+    @media (max-width: 768px) {
+      .chat-header {
+        padding: 0.75rem 0;
+      }
+      
+      .chat-messages {
+        padding-top: 160px;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+      }
+      
+      .chat-message {
+        max-width: 85%;
+      }
+      
+      .chat-input-container {
+        margin-top: 0.75rem;
+        padding: 0.5rem 0.75rem;
+      }
+      
+      .chat-message__children {
+        margin-left: 2rem;
+      }
+      
+      .chat-message--user .chat-message__children {
+        margin-right: 2rem;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .chat-message {
+        max-width: 90%;
+      }
+      
+      .chat-message__avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
+      }
+      
+      .chat-message__bubble {
+        padding: 0.6rem 0.85rem;
+      }
+      
+      .chat-message__children .chat-message {
+        max-width: 85%;
+      }
+      
+      .chat-message__children .chat-message__avatar {
+        width: 24px;
+        height: 24px;
+        font-size: 0.7rem;
+      }
+    }
+
+    /* ===== СТИЛИ ДЛЯ УВЕДОМЛЕНИЙ ===== */
+    .alert-warning {
+      background: rgba(255, 193, 7, .1);
+      border: 1px solid rgba(255, 193, 7, .3);
+      color: #856404;
+      border-radius: 12px;
+      font-size: 0.9rem;
+    }
+
+    .alert-secondary {
+      background: rgba(108, 117, 125, .1);
+      border: 1px solid rgba(108, 117, 125, .3);
+      color: #6c757d;
+      border-radius: 12px;
+      font-size: 0.9rem;
+    }
+
+    /* ===== УТИЛИТЫ ===== */
+    .text-truncate-2 {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .cursor-pointer {
+      cursor: pointer;
+    }
   </style>
 {% endblock %}
 
 {% block content %}
 <div class="discussion-theme">
-  <div class="reading-detail-header">
-    <div class="d-flex justify-content-between flex-column flex-md-row gap-3">
-      <div>
-        <a class="text-decoration-none text-muted small" href="{{ reading.get_absolute_url }}">
-          <i class="bi bi-arrow-left me-1"></i> Назад к совместным чтениям
-        </a>
-        <h1 class="h3 mt-2 mb-1">{{ topic.title }}</h1>
-        <div class="text-muted">
-          Открыто: {{ topic.discussion_opens_at|date:"d E Y" }} · Сообщений: {{ topic.posts.all|length }}
+  <!-- ШАПКА ЧАТА С ФОРМОЙ ВВОДА -->
+  <div class="chat-header">
+    <div class="chat-header-inner">
+      <!-- Заголовок и информация -->
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <a class="back-link" href="{{ reading.get_absolute_url }}">
+            <i class="bi bi-arrow-left me-1"></i> {{ reading.title|truncatechars:30 }}
+          </a>
+          <h1 class="topic-title">{{ topic.title }}</h1>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+          {% if can_post %}
+            <span class="chat-badge chat-badge-open">Открыто</span>
+          {% else %}
+            <span class="chat-badge chat-badge-locked">Закрыто</span>
+          {% endif %}
+          <span class="chat-info-btn" data-bs-toggle="tooltip" 
+                title="Открыто: {{ topic.discussion_opens_at|date:'d E Y' }} · Сообщений: {{ topic.posts.all|length }}">
+            <i class="bi bi-info-circle"></i>
+          </span>
         </div>
       </div>
-      {% if can_post %}
-        <span class="badge text-bg-success align-self-start">Обсуждение открыто</span>
-      {% else %}
-        <span class="badge text-bg-secondary align-self-start">Только для участников</span>
-      {% endif %}
+
+      <!-- ФОРМА ВВОДА СООБЩЕНИЯ -->
+      <div class="chat-input-container" id="reply-form">
+        {% if can_post %}
+          <form class="chat-form" action="{% url 'reading_clubs:post_add' reading.slug topic.pk %}" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="parent" value="{% if reply_to_post %}{{ reply_to_post.pk }}{% endif %}">
+            
+            {% if reply_to_post %}
+              <div class="chat-reply-preview">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="text-truncate-2">
+                    Ответ для {{ reply_to_post.author.get_full_name|default:reply_to_post.author.username }}
+                  </span>
+                  <a href="{% url 'reading_clubs:topic_detail' reading.slug topic.pk %}#reply-form" 
+                     class="chat-cancel-reply" title="Отменить ответ">×</a>
+                </div>
+              </div>
+            {% endif %}
+
+            <div class="input-group">
+              <textarea name="content" 
+                        class="form-control" 
+                        placeholder="Напишите сообщение..." 
+                        rows="1" 
+                        required
+                        oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+              <button class="btn btn-chat-send" type="submit" title="Отправить">
+                <i class="bi bi-send"></i>
+              </button>
+            </div>
+            
+            {% if form.errors %}
+              {% for field, errors in form.errors.items %}
+                {% for error in errors %}
+                  <div class="invalid-feedback d-block mt-1">{{ error }}</div>
+                {% endfor %}
+              {% endfor %}
+            {% endif %}
+          </form>
+        {% elif not is_participant %}
+          <div class="alert alert-warning py-2 mb-0">
+            <i class="bi bi-lock me-1"></i> Присоединитесь к чтению, чтобы участвовать в обсуждении
+          </div>
+        {% else %}
+          <div class="alert alert-secondary py-2 mb-0">
+            <i class="bi bi-clock me-1"></i> Обсуждение откроется {{ topic.discussion_opens_at|date:"d E Y в H:i" }}
+          </div>
+        {% endif %}
+      </div>
     </div>
-    {% if topic.description %}
-      <p class="mt-3 mb-0 text-muted">{{ topic.description|linebreaksbr }}</p>
+  </div>
+
+  <!-- ОСНОВНАЯ ЛЕНТА СООБЩЕНИЙ -->
+  <div class="chat-messages">
+    {% if threaded_posts %}
+      <div class="chat-thread">
+        {% for post in threaded_posts %}
+          <!-- Включение шаблона сообщения с рекурсивной обработкой вложенных сообщений -->
+          {% include "reading_clubs/includes/chat_message.html" with post=post %}
+        {% endfor %}
+      </div>
+
+      <!-- Статус прочтения -->
+      <div class="chat-status-divider">
+        <span>{{ topic.posts.all|length }} сообщений • Прочитано всеми</span>
+      </div>
+      
+    {% else %}
+      <!-- Приветственный экран при отсутствии сообщений -->
+      <div class="chat-welcome">
+        <div class="chat-welcome-icon">
+          <i class="bi bi-chat-dots"></i>
+        </div>
+        <h4>Обсуждение начинается здесь</h4>
+        <p class="text-muted">Напишите первое сообщение о прочитанной главе</p>
+        {% if not can_post and not is_participant %}
+          <a href="{{ reading.get_absolute_url }}" class="btn btn-reading mt-2">
+            <i class="bi bi-person-plus me-1"></i> Присоединиться к чтению
+          </a>
+        {% endif %}
+      </div>
     {% endif %}
   </div>
-
-  <div class="row g-4">
-    <div class="col-lg-8">
-      {% if threaded_posts %}
-        <div class="discussion-thread">
-          {% for post in threaded_posts %}
-            {% include "reading_clubs/includes/discussion_post.html" with post=post level=0 can_post=can_post reading=reading topic=topic %}
-          {% endfor %}
-        </div>
-      {% else %}
-        <p class="text-muted">Пока нет сообщений. Станьте первым, кто поделится впечатлениями!</p>
-      {% endif %}
-    </div>
-
-    <div class="col-lg-4">
-      <div class="card border-0 shadow-sm">
-        <div class="card-body">
-          <h2 class="h5 reading-section-title">Новое сообщение</h2>
-
-          {% if can_post %}
-            <form class="discussion-form" action="{% url 'reading_clubs:post_add' reading.slug topic.pk %}" method="post" id="reply-form">
-              {% csrf_token %}
-              <input type="hidden" name="parent" value="{% if reply_to_post %}{{ reply_to_post.pk }}{% endif %}">
-              {% if reply_to_post %}
-                <div class="alert alert-info discussion-form__reply-preview" role="status">
-                  <div class="d-flex justify-content-between align-items-start gap-3">
-                    <div>
-                      <div class="fw-semibold">Ответ на <a class="discussion-post__author-link" href="{% url 'profile' reply_to_post.author.username %}">{{ reply_to_post.author.get_full_name|default:reply_to_post.author.username }}</a></div>
-                      <div class="small text-muted mb-1">{{ reply_to_post.created_at|date:"d E Y H:i" }}</div>
-                      <div class="discussion-form__quoted">{{ reply_to_post.content|linebreaksbr }}</div>
-                    </div>
-                    <a class="text-decoration-none discussion-link" href="{% url 'reading_clubs:topic_detail' reading.slug topic.pk %}#reply-form">Отменить</a>
-                  </div>
-                </div>
-              {% endif %}
-
-              {{ form.content }}
-
-              {% if form.errors %}
-                {% for field, errors in form.errors.items %}
-                  {% for error in errors %}
-                    <div class="invalid-feedback d-block">{{ error }}</div>
-                  {% endfor %}
-                {% endfor %}
-              {% endif %}
-
-              <button class="btn btn-reading mt-3" type="submit">Отправить</button>
-            </form>
-
-          {% elif not is_participant %}
-            <p class="text-muted">Только участники совместных чтений могут оставлять сообщения. Присоединитесь на главной странице чтения.</p>
-          {% else %}
-            <p class="text-muted">Обсуждение пока закрыто. Вернитесь {{ topic.discussion_opens_at|date:"d E" }}.</p>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
 </div>
+
+<script>
+  // Автоматическое увеличение высоты textarea
+  document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.querySelector('textarea[name="content"]');
+    if (textarea) {
+      textarea.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+      });
+      
+      // Инициализация подсказок
+      const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+      tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+      });
+    }
+    
+    // Плавная прокрутка к сообщению при ответе
+    const urlParams = new URLSearchParams(window.location.search);
+    const replyTo = urlParams.get('reply_to');
+    if (replyTo) {
+      const element = document.getElementById('post-' + replyTo);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          element.style.backgroundColor = 'rgba(157, 111, 81, 0.1)';
+          setTimeout(() => element.style.backgroundColor = '', 2000);
+        }, 300);
+      }
+    }
+    
+    // Автоматическая прокрутка к новым сообщениям
+    const newPost = document.querySelector('.chat-message:last-child');
+    if (newPost && !replyTo) {
+      setTimeout(() => {
+        newPost.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }, 500);
+    }
+  });
+</script>
 {% endblock %}
