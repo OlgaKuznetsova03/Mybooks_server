@@ -352,6 +352,35 @@ class Book(models.Model):
         super().save(*args, **kwargs)
         if self.pk:
             self.refresh_edition_group_key()
+
+
+class BookEditRequest(models.Model):
+    book = models.ForeignKey(
+        Book,
+        on_delete=models.CASCADE,
+        related_name="edit_requests",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="book_edit_requests",
+    )
+    comment = models.TextField()
+    is_resolved = models.BooleanField(default=False)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="resolved_book_edit_requests",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return f"Запрос на правку: {self.book.title}"
     
 class ReadingSession(models.Model):
     """Одна сессия чтения книги в рамках события/прогресса"""

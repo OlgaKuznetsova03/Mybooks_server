@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Book, ISBNModel, Author, Genre, Publisher, AudioBook, Rating
+from .models import Book, BookEditRequest, ISBNModel, Author, Genre, Publisher, AudioBook, Rating
 
 @admin.register(Book)
 class BookAdmin(admin.ModelAdmin):
@@ -34,3 +34,10 @@ class AuthorAdmin(admin.ModelAdmin):
 
 
 admin.site.register([Publisher, AudioBook, Rating])
+
+
+@admin.register(BookEditRequest)
+class BookEditRequestAdmin(admin.ModelAdmin):
+    list_display = ("book", "user", "created_at", "is_resolved")
+    list_filter = ("is_resolved", "created_at")
+    search_fields = ("book__title", "user__username", "comment")

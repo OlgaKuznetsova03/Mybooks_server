@@ -670,3 +670,17 @@ class RatingCommentForm(forms.ModelForm):
                 }
             )
         }
+
+
+class BookEditRequestForm(forms.Form):
+    comment = forms.CharField(
+        label="Что нужно исправить",
+        max_length=2000,
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control",
+                "rows": 4,
+                "placeholder": "Опишите, что именно нужно исправить или дополнить...",
+            }
+        ),
+    )

@@ -23,10 +23,12 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 from typing import Iterable, Optional
 from django.core.exceptions import PermissionDenied
+from django.core.mail import send_mail
 from django.core.paginator import Paginator
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required, permission_required
 from django.template.loader import get_template, render_to_string
 from django.urls import reverse
@@ -54,8 +56,8 @@ from shelves.services import (
 from games.services.read_before_buy import ReadBeforeBuyGame
 from user_ratings.services import award_for_review
 from reading_clubs.models import ReadingClub
-from .models import Author, Book, Genre, Rating, ISBNModel
-from .forms import BookForm, RatingForm
+from .models import Author, Book, BookEditRequest, Genre, Rating, ISBNModel
+from .forms import BookEditRequestForm, BookForm, RatingForm
 from .services import EditionRegistrationResult, register_book_edition
 from .api_clients import isbndb_client
 from .utils import normalize_isbn, yo_equivalent_iregex
@@ -509,6 +511,42 @@ def _notify_about_registration(request, result: EditionRegistrationResult) -> No
             request,
             "Книга уже была на сайте. Мы обновили связанные данные издания.",
         )
+
+
+def _notify_book_edit_request(request, edit_request: BookEditRequest) -> None:
+    UserModel = get_user_model()
+    recipient_emails = list(
+        UserModel.objects.filter(is_superuser=True, is_active=True)
+        .exclude(email="")
+        .values_list("email", flat=True)
+    )
+    if not recipient_emails:
+        return
+
+    detail_url = request.build_absolute_uri(
+        reverse("book_detail", args=[edit_request.book_id])
+    )
+    edit_url = request.build_absolute_uri(
+        reverse("book_edit", args=[edit_request.book_id])
+    )
+    user_label = edit_request.user.get_username() if edit_request.user else "Пользователь"
+    message = (
+        "Поступила просьба отредактировать книгу.\n\n"
+        f"Книга: {edit_request.book.title}\n"
+        f"Страница: {detail_url}\n"
+        f"Редактировать: {edit_url}\n"
+        f"Пользователь: {user_label}\n\n"
+        "Комментарий:\n"
+        f"{edit_request.comment}\n"
+    )
+
+    send_mail(
+        subject=f"Запрос на правку книги: {edit_request.book.title}",
+        message=message,
+        from_email=None,
+        recipient_list=recipient_emails,
+        fail_silently=True,
+    )
 
 
 def book_list(request):
@@ -1310,8 +1348,10 @@ def book_detail(request, pk):
     read_shelf_ids: list[int] = []
     read_shelf_ids_str: list[str] = []
     read_shelf_name_tokens: list[str] = []
+    edit_request_form: BookEditRequestForm | None = None
 
     if request.user.is_authenticated:
+        edit_request_form = BookEditRequestForm()
         home_library_shelf = get_home_library_shelf(request.user)
         home_library_shelf_id = getattr(home_library_shelf, "id", None)
         home_library_item = (
@@ -1324,7 +1364,29 @@ def book_detail(request, pk):
         if home_library_item and home_library_entry is None:
             home_library_entry = HomeLibraryEntry.objects.filter(shelf_item=home_library_item).first()
 
-        is_quick_add_action = request.method == "POST" and request.POST.get("action") == "quick-add-shelf"
+        is_edit_request_action = (
+            request.method == "POST"
+            and request.POST.get("action") == "book-edit-request"
+        )
+        if is_edit_request_action:
+            edit_request_form = BookEditRequestForm(request.POST)
+            if edit_request_form.is_valid():
+                edit_request = BookEditRequest.objects.create(
+                    book=book,
+                    user=request.user,
+                    comment=edit_request_form.cleaned_data["comment"].strip(),
+                )
+                _notify_book_edit_request(request, edit_request)
+                messages.success(
+                    request,
+                    "Спасибо! Мы передали вашу просьбу администратору.",
+                )
+                return redirect("book_detail", pk=book.pk)
+
+        is_quick_add_action = (
+            request.method == "POST"
+            and request.POST.get("action") == "quick-add-shelf"
+        )
         if is_quick_add_action:
             quick_add_form = QuickAddShelfForm(request.POST, user=request.user)
             if quick_add_form.is_valid():
@@ -1424,7 +1486,10 @@ def book_detail(request, pk):
                 messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")
                 return redirect("book_detail", pk=book.pk)
             
-        is_home_library_action = request.method == "POST" and request.POST.get("action") == "home-library-add"
+        is_home_library_action = (
+            request.method == "POST"
+            and request.POST.get("action") == "home-library-add"
+        )
         if is_home_library_action:
             home_library_form = HomeLibraryQuickAddForm(request.POST)
             if home_library_form.is_valid():
@@ -1965,6 +2030,7 @@ def book_detail(request, pk):
         "read_shelf_ids": read_shelf_ids,
         "read_shelf_ids_str": read_shelf_ids_str,
         "read_shelf_name_tokens": read_shelf_name_tokens,
+        "edit_request_form": edit_request_form,
         "genre_shelves": genre_shelves,
         "reading_clubs_by_status": reading_clubs_by_status,
     })

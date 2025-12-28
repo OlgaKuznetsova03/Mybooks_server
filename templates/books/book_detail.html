@@ -307,6 +307,11 @@
             В домашнюю библиотеку
           </button>
         {% endif %}
+        {% if edit_request_form %}
+          <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#bookEditRequestModal">
+            Попросить правку
+          </button>
+        {% endif %}
       </div>
       {% endif %}
 
@@ -560,6 +565,11 @@
                   </div>
                 </form>
             {% endif %}
+          {% endif %}
+          {% if edit_request_form %}
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#bookEditRequestModal">
+              Попросить правку
+            </button>
           {% endif %}
         </div>
 
@@ -848,6 +858,36 @@
   </div>
 </div>
 
+{% if edit_request_form %}
+  <!-- Modal: Запрос на правку книги -->
+  <div class="modal fade" id="bookEditRequestModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content" method="post" action="{% url 'book_detail' book.pk %}">
+        <div class="modal-header">
+          <h5 class="modal-title">Попросить отредактировать книгу</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        </div>
+        <div class="modal-body">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="book-edit-request">
+          <div class="mb-3">
+            <label class="form-label" for="{{ edit_request_form.comment.id_for_label }}">{{ edit_request_form.comment.label }}</label>
+            {{ edit_request_form.comment }}
+            {% if edit_request_form.comment.errors %}
+              <div class="invalid-feedback d-block">{{ edit_request_form.comment.errors|join:", " }}</div>
+            {% endif %}
+            <div class="form-text">Мы отправим ваш комментарий суперпользователю для правок.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">Закрыть</button>
+          <button type="submit" class="btn btn-primary">Отправить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endif %}
+
 {% endblock %}
 
 {% block extra_js %}
@@ -861,6 +901,18 @@
     window.addEventListener('scroll', onScroll, { passive:true });
   })();
 </script>
+
+{% if edit_request_form and edit_request_form.errors %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const modalEl = document.getElementById('bookEditRequestModal');
+    if (modalEl && window.bootstrap) {
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.show();
+    }
+  });
+</script>
+{% endif %}
 
 <script>
   document.addEventListener('DOMContentLoaded', () => {
