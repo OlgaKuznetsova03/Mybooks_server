@@ -34,11 +34,13 @@ from .models import (
 from .services import (
     move_book_to_read_shelf,
     move_book_to_reading_shelf,
+    move_book_to_unfinished_shelf,
     remove_book_from_want_shelf,
     remove_user_book_data,
     DEFAULT_WANT_SHELF,
     DEFAULT_READING_SHELF,
     DEFAULT_READ_SHELF,
+    DEFAULT_UNFINISHED_SHELF,
     ALL_DEFAULT_READ_SHELF_NAMES,
     READING_PROGRESS_LABEL,
     DEFAULT_HOME_LIBRARY_SHELF,
@@ -696,6 +698,7 @@ DEFAULT_SHELF_MAP = {
     "want": DEFAULT_WANT_SHELF,
     "reading": DEFAULT_READING_SHELF,
     "read": DEFAULT_READ_SHELF,
+    "unfinished": DEFAULT_UNFINISHED_SHELF,
 }
 
 @login_required
@@ -1750,6 +1753,16 @@ def reading_mark_finished(request, progress_id):
             review_link,
         ),
     )
+    return redirect("shelves:reading_track", book_id=progress.book_id)
+
+
+@login_required
+@require_POST
+def reading_mark_unfinished(request, progress_id):
+    """Отметить книгу как недочитанную."""
+    progress = get_object_or_404(BookProgress, pk=progress_id, user=request.user)
+    move_book_to_unfinished_shelf(request.user, progress.book)
+    messages.success(request, "Книга перенесена в «Недочитано».")
     return redirect("shelves:reading_track", book_id=progress.book_id)
 
 

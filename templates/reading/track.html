@@ -584,7 +584,17 @@
     50% { transform: scale(1.02); }
   }
 
-  .reading-finished-button .btn {
+  .reading-finished-button {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .reading-finished-button__form {
+    flex: 1 1 220px;
+  }
+
+  .reading-finished-button__primary {
     background-color: #5f5c3b;
     border-radius: 999px;
     border: none;
@@ -593,10 +603,25 @@
     transition: all 0.3s ease;
   }
 
-  .reading-finished-button .btn:hover {
+  .reading-finished-button__primary:hover {
     background-color: #474329;
     animation: none;
     transform: scale(1.05);
+  }
+
+  .reading-finished-button__secondary {
+    background-color: transparent;
+    border: 1px solid #5f5c3b;
+    color: #5f5c3b;
+    border-radius: 999px;
+    padding: 0.65rem 1.6rem;
+    transition: all 0.3s ease;
+  }
+
+  .reading-finished-button__secondary:hover {
+    background-color: #5f5c3b;
+    color: #ffffff;
+    transform: scale(1.03);
   }
 
   .reading-chart-card {
@@ -1006,9 +1031,13 @@
       {% endfor %}
     </div>
     <div class="reading-finished-button mt-4">
-      <form method="post" action="{% url 'shelves:reading_mark_finished' progress.id %}">
+      <form method="post" action="{% url 'shelves:reading_mark_finished' progress.id %}" class="reading-finished-button__form">
         {% csrf_token %}
-        <button type="submit" class="btn btn-success text-white fw-semibold">Отметить книгу завершённой</button>
+        <button type="submit" class="btn reading-finished-button__primary text-white fw-semibold w-100">Отметить книгу прочитанной</button>
+      </form>
+      <form method="post" action="{% url 'shelves:reading_mark_unfinished' progress.id %}" class="reading-finished-button__form">
+        {% csrf_token %}
+        <button type="submit" class="btn reading-finished-button__secondary fw-semibold w-100">Недочитано</button>
       </form>
     </div>
   </section>

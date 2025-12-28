@@ -18,7 +18,8 @@ from .models import BookProgress, Shelf, ShelfItem, HomeLibraryEntry
 
 DEFAULT_WANT_SHELF = "Хочу прочитать"
 DEFAULT_READING_SHELF = "Читаю"
-DEFAULT_READ_SHELF = "Прочитал"
+DEFAULT_READ_SHELF = "Прочитано"
+DEFAULT_UNFINISHED_SHELF = "Недочитано"
 DEFAULT_READ_SHELF_ALIASES: tuple[str, ...] = (
     "Прочитал",
     "Прочитано",
@@ -94,6 +95,7 @@ def ensure_default_shelves(user: User) -> None:
 
     _get_default_shelf(user, DEFAULT_WANT_SHELF)
     _get_default_shelf(user, DEFAULT_READING_SHELF)
+    _get_default_shelf(user, DEFAULT_UNFINISHED_SHELF)
     _get_default_shelf(
         user,
         DEFAULT_READ_SHELF,
@@ -141,6 +143,7 @@ def move_book_to_read_shelf(user: User, book: Book, *, read_date: date | None = 
 
     with transaction.atomic():
         _remove_book_from_named_shelf(user, book, DEFAULT_READING_SHELF)
+        _remove_book_from_named_shelf(user, book, DEFAULT_UNFINISHED_SHELF)
         _remove_book_from_named_shelf(user, book, ALL_DEFAULT_READ_SHELF_NAMES)
         _remove_book_from_named_shelf(user, book, DEFAULT_WANT_SHELF)
 
@@ -217,10 +220,37 @@ def move_book_to_reading_shelf(user: User, book: Book) -> None:
 
     with transaction.atomic():
         _remove_book_from_named_shelf(user, book, ALL_DEFAULT_READ_SHELF_NAMES)
+        _remove_book_from_named_shelf(user, book, DEFAULT_UNFINISHED_SHELF)
         _remove_book_from_named_shelf(user, book, DEFAULT_WANT_SHELF)
 
         reading_shelf = _get_default_shelf(user, DEFAULT_READING_SHELF)
         ShelfItem.objects.get_or_create(shelf=reading_shelf, book=book)
+
+
+def move_book_to_unfinished_shelf(user: User, book: Book) -> None:
+    """Ensure the book is on the user's "Недочитано" shelf."""
+
+    if not user.is_authenticated:
+        return
+
+    with transaction.atomic():
+        _remove_book_from_named_shelf(user, book, DEFAULT_READING_SHELF)
+        _remove_book_from_named_shelf(user, book, ALL_DEFAULT_READ_SHELF_NAMES)
+        _remove_book_from_named_shelf(user, book, DEFAULT_WANT_SHELF)
+        unfinished_shelf = _get_default_shelf(user, DEFAULT_UNFINISHED_SHELF)
+        ShelfItem.objects.get_or_create(shelf=unfinished_shelf, book=book)
+
+        home_item = (
+            ShelfItem.objects
+            .filter(shelf__user=user, shelf__name=DEFAULT_HOME_LIBRARY_SHELF, book=book)
+            .select_related("home_entry")
+            .first()
+        )
+        if home_item and hasattr(home_item, "home_entry"):
+            entry = home_item.home_entry
+            if entry.read_at is not None:
+                entry.read_at = None
+                entry.save(update_fields=["read_at"])
 
 
 def get_default_shelf_status_map(
@@ -229,8 +259,8 @@ def get_default_shelf_status_map(
 ) -> dict[int, dict[str, object]]:
     """Return mapping of book ids to default shelf status for ``user``.
 
-    The status respects the priority order of the default shelves: "Хочу прочитать"
-    < "Читаю" < "Прочитал". Unknown or malformed book identifiers are ignored.
+     The status respects the priority order of the default shelves: "Хочу прочитать"␊
+    < "Читаю" < "Недочитано" < "Прочитал". Unknown or malformed book identifiers are ignored.
     """
 
     if not getattr(user, "is_authenticated", False):
@@ -261,6 +291,7 @@ def get_default_shelf_status_map(
             shelf__name__in=[
                 DEFAULT_WANT_SHELF,
                 DEFAULT_READING_SHELF,
+                DEFAULT_UNFINISHED_SHELF,
                 *read_shelf_names,
             ],
             book_id__in=normalized_ids,
@@ -268,13 +299,15 @@ def get_default_shelf_status_map(
         .select_related("shelf")
     )
 
-    priority_map = {"want": 1, "reading": 2, "read": 3}
+    priority_map = {"want": 1, "reading": 2, "unfinished": 3, "read": 4}
     status_map: dict[int, dict[str, object]] = {}
 
     for item in shelf_items:
         shelf_name = item.shelf.name
         if shelf_name in read_shelf_names:
             code = "read"
+        elif shelf_name == DEFAULT_UNFINISHED_SHELF:
+            code = "unfinished"
         elif shelf_name == DEFAULT_READING_SHELF:
             code = "reading"
         else:
