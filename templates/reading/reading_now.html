@@ -1,272 +1,526 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Читаю сейчас · ReadTogether{% endblock %}
+{% block title %}Читаю сейчас · Калейдоскоп книг{% endblock %}
 {% block body_class %} reading-now-page{% endblock %}
 
 {% block extra_css %}
-  {{ block.super }}
-  <link rel="stylesheet" href="{% static 'books/genre-shelf.css?v=1762270644' %}">
-  <style>
-    .reading-now-page{
-      --rn-hero-bg: #f2d9c7;
-      --rn-shelf-texture: var(--books-shelf-texture, url('{{ MEDIA_URL }}book_list/bookshelfhell.PNG'));
-      --rn-accent: #5d768b;
-      --rn-accent-rgb: 93,118,139;
-      --rn-muted: var(--bs-secondary-color, #6c757d);
-      --bs-primary: var(--rn-accent);
-      --bs-primary-rgb: var(--rn-accent-rgb);
-    }
+{{ block.super }}
+<style>
+  /* Импорт анимаций из главной страницы */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(50px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 
-    .reading-hero{
-      background: var(--rn-hero-bg);
-      border: 1px solid rgba(0,0,0,.06);
-      border-radius: 1rem;
-      padding: 1.5rem 1.25rem;
-      box-shadow: 0 12px 28px rgba(154,104,82,.18);
-      color: #2b1a0f;
-    }
-    .reading-hero__title{ margin:0 0 .25rem; color:#2b1a0f; }
-    .reading-hero__subtitle{ margin:0; color: rgba(43,26,15,.85); }
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+  }
 
-    .btn-accent{
-      background-color: var(--rn-accent) !important;
-      border-color: var(--rn-accent) !important;
-      color:#fff !important;
-      border-radius:.85rem;
-    }
-    .btn-accent:hover{
-      background-color: color-mix(in oklab, var(--rn-accent) 92%, white) !important;
-      border-color: color-mix(in oklab, var(--rn-accent) 92%, white) !important;
-      color:#fff !important;
-    }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
 
-    .reading-shelf-card{ border:0; border-radius:1rem; box-shadow:0 12px 28px rgba(0,0,0,.06); background:#fff; }
-    .reading-shelf-card__body{
-      padding: 1rem 0 1.25rem;
-      background:
-        linear-gradient(0deg, rgba(0,0,0,.03), rgba(0,0,0,.03)) top/100% 60px no-repeat,
-        var(--rn-shelf-texture) center/contain repeat-y;
-      border-radius: 1rem;
-      overflow: hidden;
-    }
+  @keyframes glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(171, 120, 67, 0.3); }
+    50% { box-shadow: 0 0 40px rgba(171, 120, 67, 0.6); }
+  }
 
-    .book-shelf-wrapper{ position:relative; }
-    .book-shelf{
-      display:grid; grid-auto-flow:column; grid-auto-columns:minmax(170px, 200px);
-      gap: 1rem 1.25rem; overflow-x:auto; padding:1rem 3.25rem; scroll-snap-type:x proximity;
-    }
-    .book-shelf::-webkit-scrollbar{ height:10px; }
-    .book-shelf::-webkit-scrollbar-thumb{ background:rgba(0,0,0,.15); border-radius:6px; }
+  @keyframes shimmer {
+    0% { background-position: -1000px 0; }
+    100% { background-position: 1000px 0; }
+  }
 
-    .book-shelf__nav{
-      position:absolute; top:50%; transform:translateY(-50%);
-      width:40px; height:40px; border-radius:50%;
-      border:1px solid rgba(0,0,0,.15); background:#fff; box-shadow:0 6px 16px rgba(0,0,0,.12);
-      display:inline-flex; align-items:center; justify-content:center; z-index:2;
-    }
-    .book-shelf__nav[disabled]{ opacity:.4; pointer-events:none; }
-    .book-shelf__nav--prev{ left:.75rem; }
-    .book-shelf__nav--next{ right:.75rem; }
+  @keyframes bookFlip {
+    0% { transform: perspective(1000px) rotateY(0deg); }
+    50% { transform: perspective(1000px) rotateY(10deg); }
+    100% { transform: perspective(1000px) rotateY(0deg); }
+  }
 
-    .book-item{
-      width:100%;
-      scroll-snap-align:start;
-      display:flex; flex-direction:column;
-      position: relative; /* ВАЖНО: контейнер для stretched-link */
-    }
+  .animate-fade-in { animation: fadeInUp 0.8s ease-out forwards; }
+  .animate-float { animation: float 3s ease-in-out infinite; }
+  .animate-pulse { animation: pulse 2s ease-in-out infinite; }
+  .animate-glow { animation: glow 2s ease-in-out infinite; }
+  .animate-book { animation: bookFlip 3s ease-in-out infinite; }
 
-    .book-item__media{ position:relative; }
-    .book-item__ratio{
-      aspect-ratio: 2 / 3;
-      width: 100%;
-      border-radius: .75rem;
-      background: #f5f6fa;
-      box-shadow: 0 8px 20px rgba(0,0,0,.18);
-      position: relative;
-      overflow: hidden;
-    }
-    .book-item__ratio > img{
-      position:absolute; inset:0;
-      width:100%; height:100%;
-      object-fit: contain;
-      display:block;
-      background:#fff;
-      border-radius: inherit;
-    }
+  /* Hero Section как на главной */
+  .hero-section {
+    background: 
+      radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.8) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(171, 120, 67, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at top right, rgba(255, 255, 255, 0.65), transparent 55%), 
+      #d7bda6;
+    border-radius: 2.5rem;
+    padding: clamp(2.5rem, 6vw, 4rem);
+    color: #2f1d0f;
+    box-shadow: 0 2.75rem 4rem rgba(77, 54, 28, 0.15);
+    position: relative;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeInUp 1s ease-out 0.3s forwards;
+    margin-bottom: 2.5rem;
+  }
 
-    .reading-badge{
-      position:absolute; top:.5rem; left:.5rem;
-      background: rgba(0,0,0,.72); color:#fff; border-radius:999px;
-      padding:.25rem .6rem; font-weight:600; z-index:1;
+  .hero-section::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: shimmer 3s ease-in-out infinite;
+  }
+
+  .hero-section::after {
+    content: "";
+    position: absolute;
+    inset: 1.5rem;
+    border-radius: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    pointer-events: none;
+  }
+
+  /* Карточки книг в стиле главной страницы */
+  .reading-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+
+  @media (max-width: 768px) {
+    .reading-cards-grid {
+      grid-template-columns: 1fr;
     }
+  }
 
-    .book-item__shelf-shadow{
-      height:10px; margin-top:.45rem; border-radius:6px;
-      background: radial-gradient(closest-side, rgba(0,0,0,.16), rgba(0,0,0,0)) center/100% 100% no-repeat;
-      opacity:.35;
+  .reading-card {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 1.5rem;
+    padding: 1.75rem;
+    box-shadow: 0 20px 40px rgba(77, 54, 28, 0.12);
+    border: 1px solid rgba(171, 120, 67, 0.2);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeInUp 0.6s ease-out forwards;
+    animation-delay: calc(var(--card-index, 0) * 0.1s + 0.5s);
+  }
+
+  .reading-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(171, 120, 67, 0.1), transparent);
+    transition: left 0.6s ease;
+  }
+
+  .reading-card:hover::before {
+    left: 100%;
+  }
+
+  .reading-card:hover {
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: 
+      inset 0 0 0 1px rgba(171, 120, 67, 0.3),
+      0 25px 50px rgba(77, 54, 28, 0.2);
+    background: rgba(255, 255, 255, 0.95);
+  }
+
+  .reading-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .reading-card-cover {
+    width: 80px;
+    height: 120px;
+    flex-shrink: 0;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    background: #f3ece4;
+    box-shadow:
+      inset 0 0 0 1px rgba(171, 120, 67, 0.2),
+      0 10px 20px rgba(77, 54, 28, 0.18);
+    position: relative;
+    animation: bookFlip 4s ease-in-out infinite;
+  }
+
+  .reading-card:hover .reading-card-cover {
+    animation: none;
+    transform: perspective(1000px) rotateY(15deg) scale(1.1);
+  }
+
+  .reading-card-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .reading-card-title {
+    flex: 1;
+  }
+
+  .reading-card-title h3 {
+    margin: 0 0 0.5rem;
+    font-weight: 700;
+    color: #2f1d0f;
+    font-size: 1.25rem;
+  }
+
+  .reading-card-authors {
+    color: #6f5843;
+    font-size: 0.95rem;
+  }
+
+  .reading-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #ab7843, #d7bda6);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(171, 120, 67, 0.25);
+  }
+
+  .reading-progress {
+    margin-bottom: 1.5rem;
+  }
+
+  .reading-progress-bar {
+    height: 12px;
+    border-radius: 999px;
+    background: rgba(215, 189, 166, 0.2);
+    overflow: hidden;
+    border: 1px solid rgba(171, 120, 67, 0.1);
+  }
+
+  .reading-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ab7843, #d7bda6);
+    border-radius: 999px;
+    transition: width 1s ease-out;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .reading-progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: shimmer 2s infinite;
+  }
+
+  .reading-progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.5rem;
+    color: #6f5843;
+    font-size: 0.9rem;
+  }
+
+  .reading-progress-percent {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #ab7843;
+  }
+
+  .reading-card-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+
+  .btn-track {
+    flex: 1;
+    background: linear-gradient(135deg, #ab7843, #d7bda6);
+    border: none;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.85rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-track:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(171, 120, 67, 0.4);
+  }
+
+  .btn-track::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+  }
+
+  .btn-track:hover::before {
+    left: 100%;
+  }
+
+  .btn-details {
+    flex: 1;
+    background: transparent;
+    border: 2px solid #ab7843;
+    color: #ab7843;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.85rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+
+  .btn-details:hover {
+    background: rgba(171, 120, 67, 0.1);
+    transform: translateY(-2px);
+  }
+
+  /* Empty state */
+  .reading-empty {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 2rem;
+    box-shadow: 0 20px 40px rgba(77, 54, 28, 0.1);
+    opacity: 0;
+    animation: fadeInUp 0.8s ease-out 0.5s forwards;
+  }
+
+  .reading-empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1.5rem;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .reading-empty h2 {
+    color: #2f1d0f;
+    margin-bottom: 1rem;
+  }
+
+  .reading-empty p {
+    color: #6f5843;
+    max-width: 500px;
+    margin: 0 auto 2rem;
+  }
+
+  .btn-start-reading {
+    background: linear-gradient(135deg, #ab7843, #d7bda6);
+    border: none;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 1rem;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+  }
+
+  .btn-start-reading:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 30px rgba(171, 120, 67, 0.3);
+  }
+
+  /* Ripple эффект для кнопок */
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.7);
+    transform: scale(0);
+    animation: ripple 0.6s linear;
+  }
+
+  @keyframes ripple {
+    to {
+      transform: scale(4);
+      opacity: 0;
     }
+  }
 
-    .book-item__content{ padding:.5rem .25rem 0; display:flex; flex-direction:column; }
-    .book-item__title{ font-size:.98rem; margin:0; }
-    .book-item__title a{ text-decoration:none; }
-    .book-item__authors{ color:var(--rn-muted); font-size:.9rem; }
-
-    /* Резерв под 2 строки заголовка и 1 строку авторов — выравнивает карточки */
-    .book-item__title{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height: calc(1.2em * 2); }
-    .book-item__authors{ display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; min-height: 1.2em; }
-
-    .book-item__progress{ margin-top:.4rem; }
-    .book-item__progress .progress{
-      height:8px; border-radius:999px; overflow:hidden; background:#ececec; border:1px solid rgba(0,0,0,.06);
-    }
-    .book-item__progress .progress-bar{ border-radius:999px; }
-
-    .book-item__actions{
-      margin-top:.6rem;
-      position: relative;   /* ВАЖНО: кнопки выше растянутой ссылки */
-      z-index: 2;
-    }
-    .book-item__actions .btn{ width:100%; padding:.5rem .75rem; border-radius:.75rem; }
-
-    @media (max-width: 576px){
-      .book-shelf{ grid-auto-columns: minmax(140px, 170px); }
-    }
-  </style>
+  .btn-track, .btn-details, .btn-start-reading {
+    position: relative;
+    overflow: hidden;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
 
-<section class="reading-hero mb-4">
-  <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-lg-between gap-2">
-    <div>
-      <h1 class="reading-hero__title">Читаю сейчас</h1>
-      <p class="reading-hero__subtitle">Ваши активные книги с прогрессом и форматом чтения.</p>
+<section class="hero-section">
+  <div class="d-flex flex-column gap-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div>
+        <p class="text-muted mb-1">Ваши активные книги</p>
+        <h1 class="h3 mb-0">Продолжайте читать книги на полке</h1>
+      </div>
+      <a class="btn btn-outline-dark btn-magic" href="{% url 'shelves:reading_feed' %}">
+        <i class="bi bi-activity me-2"></i>Лента чтения
+      </a>
     </div>
-    <a class="btn btn-accent" href="{% url 'shelves:reading_feed' %}"><i class="bi bi-activity me-2"></i>Лента чтения</a>
   </div>
 </section>
 
-{% if not shelf or not items %}
-  <div class="reading-empty d-flex align-items-center gap-3">
-    <div class="flex-shrink-0 bg-light text-primary rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;">
-      <span class="fs-4" aria-hidden="true">📚</span>
-      <span class="visually-hidden">Нет активных книг</span>
-    </div>
-    <div>
-      <h2 class="h6 mb-1">Пока здесь пусто</h2>
-      <p class="mb-0 text-muted">Добавьте книги на полку «Читаю», чтобы отслеживать прогресс.</p>
-    </div>
-  </div>
-{% else %}
-  <section class="reading-shelf-card">
-    <div class="reading-shelf-card__body" style="--books-shelf-texture: url('{{ MEDIA_URL }}book_list/bookshelfhell.PNG')">
-      <div class="book-shelf-wrapper">
-        <button class="book-shelf__nav book-shelf__nav--prev" type="button" aria-label="Прокрутить назад">
-          <span class="visually-hidden">Назад</span><i class="bi bi-chevron-left"></i>
-        </button>
-
-        <div class="book-shelf">
-          {% for it in items %}
-            <article class="book-item">
-              <div class="book-item__media">
-                <span class="reading-badge">Читаю</span>
-                <a class="book-item__cover-link" href="{% url 'book_detail' it.book.id %}">
-                  <div class="book-item__ratio">
-                    {% with cover_url=it.book.get_cover_url %}
-                      {% if cover_url %}
-                        <img src="{{ cover_url }}" alt="Обложка {{ it.book.title }}" loading="lazy">
-                      {% else %}
-                        <img src="{% static 'books/cover-placeholder-2x3.png' %}" alt="Нет обложки">
-                      {% endif %}
-                    {% endwith %}
-                  </div>
-                </a>
-              </div>
-
-              <div class="book-item__shelf-shadow" aria-hidden="true"></div>
-
-              <div class="book-item__content">
-                <h2 class="book-item__title">
-                  <a class="stretched-link" href="{% url 'book_detail' it.book.id %}">{{ it.book.title }}</a>
-                </h2>
-                {% with authors=it.book.authors.all %}
-                  {% if authors %}<div class="book-item__authors">{{ authors|join:", " }}</div>{% endif %}
-                {% endwith %}
-
-                {% if it.progress %}
-                  <div class="book-item__progress">
-                    <div class="progress">
-                      <div class="progress-bar bg-primary" style="width: {{ it.progress_percent|floatformat:'0' }}%" role="progressbar"
-                           aria-valuenow="{{ it.progress_percent|floatformat:'0' }}" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                    <div class="d-flex justify-content-between small text-muted mt-1">
-                      <span>{{ it.progress_percent|floatformat:"0" }}%</span>
-                      {% if it.progress_current_page %}
-                        <span>{{ it.progress_current_page }} стр.</span>
-                      {% elif it.progress_total_pages %}
-                        <span>{{ it.progress_total_pages }} стр.</span>
-                      {% endif %}
-                    </div>
-                  </div>
-                {% endif %}
-
-                <div class="book-item__actions">
-                  <a class="btn btn-accent" href="{% url 'shelves:reading_track' it.book.id %}">Продолжить чтение</a>
-                </div>
-              </div>
-            </article>
-          {% endfor %}
+{% if items %}
+  <div class="reading-cards-grid">
+    {% for it in items %}
+      <article class="reading-card" style="--card-index: {{ forloop.counter0 }}">
+        <div class="reading-card-header">
+          <div class="reading-card-cover">
+            {% with cover_url=it.book.get_cover_url %}
+              {% if cover_url %}
+                <img src="{{ cover_url }}" alt="Обложка {{ it.book.title }}" loading="lazy" />
+              {% else %}
+                <img src="{% static 'books/cover-placeholder-2x3.png' %}" alt="Нет обложки" />
+              {% endif %}
+            {% endwith %}
+          </div>
+          
+          <div class="reading-card-title">
+            <h3>{{ it.book.title }}</h3>
+            {% with authors=it.book.authors.all %}
+              {% if authors %}
+                <div class="reading-card-authors">{{ authors|join:", " }}</div>
+              {% endif %}
+            {% endwith %}
+            <span class="reading-badge">Читаю</span>
+          </div>
         </div>
 
-        <button class="book-shelf__nav book-shelf__nav--next" type="button" aria-label="Прокрутить вперёд">
-          <span class="visually-hidden">Вперёд</span><i class="bi bi-chevron-right"></i>
-        </button>
-      </div>
+        {% if it.progress %}
+          <div class="reading-progress">
+            <div class="reading-progress-bar">
+              <div class="reading-progress-fill" style="width: {{ it.progress_percent|floatformat:'0' }}%"></div>
+            </div>
+            <div class="reading-progress-info">
+              <span class="reading-progress-percent">{{ it.progress_percent|floatformat:"0" }}%</span>
+              {% if it.progress_current_page %}
+                <span>{{ it.progress_current_page }} стр.</span>
+              {% elif it.progress_total_pages %}
+                <span>{{ it.progress_total_pages }} стр.</span>
+              {% endif %}
+            </div>
+          </div>
+        {% else %}
+          <div class="reading-progress">
+            <p class="text-muted mb-3">Добавьте прогресс, чтобы трекер подстроился под вас.</p>
+          </div>
+        {% endif %}
+
+        <div class="reading-card-actions">
+          <a class="btn btn-track" href="{% url 'shelves:reading_track' it.book.id %}">
+            <i class="bi bi-graph-up-arrow me-1"></i>К трекеру
+          </a>
+          <a class="btn btn-details" href="{% url 'book_detail' it.book.id %}">
+            <i class="bi bi-info-circle me-1"></i>Подробнее
+          </a>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="reading-empty">
+    <div class="reading-empty-icon">📚</div>
+    <h2>Пока здесь пусто</h2>
+    <p>Добавьте книги на полку «Читаю», чтобы отслеживать прогресс и получать персонализированные рекомендации.</p>
+    <div class="d-flex justify-content-center gap-2 flex-wrap">
+      <a class="btn btn-start-reading" href="{% url 'shelves:home_library' %}">
+        <i class="bi bi-plus-circle me-2"></i>Добавить книги
+      </a>
+      <a class="btn btn-details" href="{% url 'shelves:my_shelves' %}">
+        <i class="bi bi-archive me-2"></i>Перейти к полкам
+      </a>
     </div>
-  </section>
+  </div>
 {% endif %}
 
 {% endblock %}
 
 {% block extra_js %}
-  {{ block.super }}
-  <script>
-    (function(){
-      document.querySelectorAll('.book-shelf-wrapper').forEach((wrapper) => {
-        if (wrapper.dataset.shelfNavBound === 'true') return;
-        const shelf = wrapper.querySelector('.book-shelf');
-        const prev  = wrapper.querySelector('.book-shelf__nav--prev');
-        const next  = wrapper.querySelector('.book-shelf__nav--next');
-        if (!shelf || !prev || !next) return;
-        wrapper.dataset.shelfNavBound = 'true';
+{{ block.super }}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Ripple эффект для кнопок
+    function createRipple(event) {
+      const button = event.currentTarget;
+      const circle = document.createElement("span");
+      const diameter = Math.max(button.clientWidth, button.clientHeight);
+      const radius = diameter / 2;
 
-        const update = () => {
-          const max = Math.max(shelf.scrollWidth - shelf.clientWidth, 0);
-          prev.disabled = shelf.scrollLeft <= 1;
-          next.disabled = shelf.scrollLeft >= max - 1;
-        };
-        const jump = (dir) => {
-          const dist = Math.max(shelf.clientWidth * 0.8, 220) * dir;
-          try { shelf.scrollBy({ left: dist, behavior: 'smooth' }); }
-          catch { shelf.scrollLeft += dist; }
-          requestAnimationFrame(update);
-        };
+      circle.style.width = circle.style.height = `${diameter}px`;
+      circle.style.left = `${event.clientX - button.offsetLeft - radius}px`;
+      circle.style.top = `${event.clientY - button.offsetTop - radius}px`;
+      circle.classList.add("ripple");
 
-        prev.addEventListener('click', (e)=>{ e.preventDefault(); jump(-1); });
-        next.addEventListener('click', (e)=>{ e.preventDefault(); jump(1);  });
-        shelf.addEventListener('scroll', ()=>requestAnimationFrame(update), { passive:true });
+      const ripple = button.getElementsByClassName("ripple")[0];
+      if (ripple) {
+        ripple.remove();
+      }
 
-        if (typeof ResizeObserver !== 'undefined'){
-          new ResizeObserver(update).observe(shelf);
-        } else {
-          window.addEventListener('resize', update);
-        }
-        shelf.querySelectorAll('img').forEach(img => {
-          if (!img.complete) img.addEventListener('load', update, { once:true });
-        });
+      button.appendChild(circle);
+    }
 
-        update();
+    // Добавление ripple эффекта ко всем кнопкам
+    const buttons = document.querySelectorAll('.btn-track, .btn-details, .btn-start-reading');
+    buttons.forEach(button => {
+      button.addEventListener('click', createRipple);
+    });
+
+    // Анимация прогресс-баров при скролле
+    function animateProgressBars() {
+      const progressBars = document.querySelectorAll('.reading-progress-fill');
+      progressBars.forEach(bar => {
+        const width = bar.style.width;
+        bar.style.width = '0%';
+        setTimeout(() => {
+          bar.style.width = width;
+        }, 300);
       });
-    })();
-  </script>
+    }
+
+    // Запуск анимации прогресс-баров
+    setTimeout(animateProgressBars, 1000);
+
+    // Анимация появления карточек
+    const cards = document.querySelectorAll('.reading-card');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.animationPlayState = 'running';
+        }
+      });
+    }, { threshold: 0.1 });
+
+    cards.forEach(card => {
+      card.style.animationPlayState = 'paused';
+      observer.observe(card);
+    });
+
+    // Параллакс эффект для hero section
+    window.addEventListener('scroll', () => {
+      const scrolled = window.pageYOffset;
+      const hero = document.querySelector('.hero-section');
+      if (hero) {
+        hero.style.transform = `translateY(${scrolled * 0.5}px)`;
+      }
+    });
+  });
+</script>
 {% endblock %}

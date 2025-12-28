@@ -3,119 +3,164 @@
 
 {% block extra_css %}
 <style>
+  :root {
+    --color-coffee-light: #f9f5f0;
+    --color-coffee-cream: #f0e6d8;
+    --color-coffee-milk: #e8d9c8;
+    --color-coffee-medium: #d4b899;
+    --color-coffee-dark: #a78b6f;
+    --color-coffee-darker: #8a7158;
+    --color-coffee-text: #5c4a36;
+    --color-coffee-text-light: #7d6650;
+    --color-coffee-border: #e0d1bf;
+    --color-coffee-shadow: rgba(92, 74, 54, 0.08);
+    --color-coffee-accent: #c9a67a;
+  }
+
   .reading-feed-wrapper {
     max-width: 900px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem;
   }
 
+  /* Герой-секция */
   .reading-feed-hero {
-    background: linear-gradient(145deg, rgba(70, 112, 126, 0.18) 0%, rgba(70, 112, 126, 0.05) 100%);
-    border-radius: 28px;
-    padding: 2.5rem 2rem;
-    color: #23404a;
-    box-shadow: 0 24px 40px rgba(25, 53, 63, 0.08);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 2rem;
-  }
-
-  .reading-feed-hero__content {
-    max-width: 520px;
-  }
-
-  .reading-feed-hero__image {
-    max-width: 240px;
-    flex-shrink: 0;
-  }
-
-  .reading-feed-hero__image img {
-    width: 100%;
-    height: auto;
-    display: block;
+    background: linear-gradient(145deg, var(--color-coffee-cream) 0%, var(--color-coffee-light) 100%);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--color-coffee-border);
+    box-shadow: 0 8px 25px var(--color-coffee-shadow);
   }
 
   .reading-feed-hero h1 {
+    color: var(--color-coffee-darker);
     font-weight: 700;
     margin-bottom: 0.75rem;
+    font-size: 1.75rem;
+    line-height: 1.2;
   }
 
   .reading-feed-hero p {
-    margin: 0;
+    color: var(--color-coffee-text-light);
     font-size: 1rem;
-    max-width: 620px;
+    line-height: 1.5;
+    margin-bottom: 1.25rem;
   }
 
-  .reading-feed-hero__actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-top: 1.5rem;
-  }
-
-  .reading-feed-hero__actions .reading-btn-primary {
-    background-color: #46707e;
-    border-color: #46707e;
-    border-radius: 999px;
-    padding-inline: 1.5rem;
+  .reading-btn-primary {
+    background: linear-gradient(to right, var(--color-coffee-dark), var(--color-coffee-darker));
+    color: white;
+    border: none;
+    padding: 0.625rem 1.5rem;
+    border-radius: 50px;
     font-weight: 600;
-    color: #ffffff;
+    font-size: 0.95rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 10px rgba(167, 139, 111, 0.25);
   }
 
-  .reading-feed-entry {
-    background: #ffffff;
-    border-radius: 22px;
-    padding: 1.5rem 1.75rem;
-    margin-top: 1.5rem;
-    box-shadow: 0 18px 36px rgba(25, 53, 63, 0.08);
-    border: 1px solid rgba(70, 112, 126, 0.12);
+  .reading-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(167, 139, 111, 0.35);
+    color: white;
   }
 
+  /* Переключатель вкладок */
+  .reading-feed-switcher {
+    display: inline-flex;
+    background: var(--color-coffee-cream);
+    border-radius: 50px;
+    padding: 0.375rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--color-coffee-border);
+  }
+
+  .reading-feed-switcher__button {
+    background: transparent;
+    border: none;
+    padding: 0.5rem 1.25rem;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--color-coffee-text-light);
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .reading-feed-switcher__button[aria-pressed="true"] {
+    background: white;
+    color: var(--color-coffee-darker);
+    box-shadow: 0 3px 8px rgba(92, 74, 54, 0.1);
+  }
+
+  /* Заголовки секций */
   .reading-feed-section-title {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
     margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--color-coffee-border);
   }
 
   .reading-feed-section-title h2 {
-    margin: 0;
+    color: var(--color-coffee-darker);
     font-weight: 700;
-    color: #1e3b45;
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
   }
 
   .reading-feed-section-title p {
+    color: var(--color-coffee-text-light);
     margin: 0;
-    color: rgba(30, 59, 69, 0.75);
+    font-size: 0.95rem;
   }
 
+  /* Карточки записей */
+  .reading-feed-entry {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+    border: 1px solid var(--color-coffee-border);
+    box-shadow: 0 5px 15px var(--color-coffee-shadow);
+    transition: transform 0.2s ease;
+  }
+
+  .reading-feed-entry:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(92, 74, 54, 0.1);
+  }
+
+  .reading-feed-entry::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(to bottom, var(--color-coffee-medium), var(--color-coffee-accent));
+    border-radius: 16px 0 0 16px;
+  }
+
+  /* Шапка карточки */
   .reading-feed-entry__header {
     display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    gap: 1.5rem;
-    margin-bottom: 1rem;
-    align-items: flex-start;
-  }
-
-  .reading-feed-entry__meta {
-    display: flex;
     gap: 1rem;
-    flex: 1;
+    margin-bottom: 1.25rem;
     align-items: flex-start;
   }
 
   .reading-feed-entry__avatar {
-    width: 56px;
-    height: 56px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     overflow: hidden;
-    background: rgba(70, 112, 126, 0.18);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    color: #1e3b45;
-    text-transform: uppercase;
+    background: var(--color-coffee-cream);
+    border: 2px solid white;
+    box-shadow: 0 3px 8px rgba(92, 74, 54, 0.1);
     flex-shrink: 0;
   }
 
@@ -123,462 +168,656 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    display: block;
   }
 
   .reading-feed-entry__avatar span {
-    font-size: 1.1rem;
-  }
-
-  .reading-feed-entry__avatar--placeholder {
-    border: 2px solid rgba(70, 112, 126, 0.24);
-    background: rgba(70, 112, 126, 0.08);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-coffee-darker);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
   }
 
   .reading-feed-entry__details {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
+    flex: 1;
+    min-width: 0;
   }
 
   .reading-feed-entry__user {
-    font-weight: 600;
-    color: #1e3b45;
+    color: var(--color-coffee-darker);
+    font-weight: 700;
     font-size: 1rem;
     text-decoration: none;
+    display: block;
+    margin-bottom: 0.125rem;
   }
 
-  .reading-feed-entry__user:hover,
-  .reading-feed-entry__user:focus {
+  .reading-feed-entry__user:hover {
+    color: var(--color-coffee-dark);
     text-decoration: underline;
   }
-  
+
   .reading-feed-entry__book {
-    font-size: 1.05rem;
-    color: #46707e;
+    color: var(--color-coffee-text);
     font-weight: 600;
+    font-size: 0.95rem;
+    display: block;
+    margin-bottom: 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .reading-feed-entry__stats {
+  /* Мета-информация и бейджи */
+  .reading-feed-entry__meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.75rem;
-    font-size: 0.95rem;
-    color: #2d4b55;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+  }
+
+  .reading-feed-entry__badge {
+    background: var(--color-coffee-cream);
+    color: var(--color-coffee-text);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border: 1px solid var(--color-coffee-border);
+    white-space: nowrap;
+  }
+
+  .reading-feed-entry__score {
+    background: linear-gradient(to right, var(--color-coffee-medium), var(--color-coffee-accent));
+    color: white;
+    border: none;
   }
 
   .reading-feed-entry__cover {
-    width: 96px;
-    border-radius: 16px;
+    width: 70px;
+    border-radius: 10px;
     overflow: hidden;
-    background: rgba(70, 112, 126, 0.12);
-    box-shadow: 0 12px 24px rgba(25, 53, 63, 0.12);
+    box-shadow: 0 4px 12px rgba(92, 74, 54, 0.12);
     flex-shrink: 0;
+    border: 1px solid var(--color-coffee-border);
   }
 
   .reading-feed-entry__cover img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    display: block;
   }
 
-  .reading-feed-entry__badge {
-    background: rgba(70, 112, 126, 0.12);
-    border-radius: 999px;
-    padding: 0.35rem 0.75rem;
-    font-size: 0.85rem;
-    color: #2d4b55;
-  }
-
-  .reading-feed-entry__reaction {
-    font-size: 1rem;
+  /* Текст отзыва/реакции с обрезкой на мобильных */
+  .reading-feed-entry__content {
+    background: var(--color-coffee-light);
+    border-radius: 12px;
+    padding: 1rem;
+    margin: 1.25rem 0;
+    border: 1px solid var(--color-coffee-border);
+    color: var(--color-coffee-text);
     line-height: 1.6;
-    color: #243f49;
-    background: rgba(70, 112, 126, 0.08);
-    border-radius: 16px;
-    padding: 1rem 1.25rem;
-    margin-bottom: 1.25rem;
+    font-size: 1rem;
+    position: relative;
   }
 
-  .reading-feed-switcher {
-    display: inline-flex;
-    gap: 0.75rem;
-    align-items: center;
-    background: rgba(70, 112, 126, 0.08);
-    padding: 0.5rem;
-    border-radius: 999px;
-    margin-bottom: 2rem;
-  }
-
-  .reading-feed-switcher__button {
-    border: none;
-    background: transparent;
-    padding: 0.5rem 1.5rem;
-    border-radius: 999px;
-    font-weight: 600;
-    color: #30515b;
+  .reading-feed-entry__content.truncated {
+    max-height: 6rem;
+    overflow: hidden;
     cursor: pointer;
-    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
   }
 
-  .reading-feed-switcher__button[aria-pressed="true"] {
-    background: #ffffff;
-    color: #1e3b45;
-    box-shadow: 0 8px 20px rgba(25, 53, 63, 0.12);
+  .reading-feed-entry__content.truncated::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3rem;
+    background: linear-gradient(to bottom, transparent, var(--color-coffee-light));
+    pointer-events: none;
   }
 
-  .reading-feed-switcher__button:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(70, 112, 126, 0.3);
+  .reading-feed-entry__content.truncated::before {
+    content: 'Читать полностью...';
+    position: absolute;
+    bottom: 0.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-coffee-medium);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    z-index: 1;
+    opacity: 0.9;
   }
 
-  .reading-feed-review__text {
-    font-size: 1.05rem;
-    line-height: 1.7;
-    color: #243f49;
-    margin-bottom: 1.25rem;
+  .reading-feed-entry__content.truncated.expanded {
+    max-height: none;
   }
 
-  .reading-feed-review__badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+  .reading-feed-entry__content.truncated.expanded::after,
+  .reading-feed-entry__content.truncated.expanded::before {
+    display: none;
   }
 
-  .reading-feed-review__score {
-    background: rgba(246, 158, 91, 0.16);
-    color: #b4551a;
-  }
-
+  /* Комментарии - более компактные */
   .reading-feed-comments {
+    background: var(--color-coffee-cream);
+    border-radius: 12px;
+    padding: 1rem;
     margin-top: 1.25rem;
-    border-top: 1px solid rgba(70, 112, 126, 0.16);
-    padding-top: 1rem;
+    border: 1px solid var(--color-coffee-border);
+  }
+
+  .reading-feed-comments h4 {
+    color: var(--color-coffee-darker);
+    font-size: 0.95rem;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
   }
 
   .reading-feed-comment {
-    padding: 0.75rem 0;
-    border-bottom: 1px dashed rgba(70, 112, 126, 0.1);
+    background: white;
+    border-radius: 10px;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--color-coffee-border);
+    font-size: 0.9rem;
   }
 
   .reading-feed-comment:last-child {
-    border-bottom: none;
+    margin-bottom: 0;
   }
 
-  .reading-feed-comment strong {
-    color: #1e3b45;
+  .reading-feed-comment__header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+    flex-wrap: wrap;
   }
 
   .reading-feed-comment__author {
-    color: inherit;
+    color: var(--color-coffee-darker);
+    font-weight: 600;
+    font-size: 0.9rem;
     text-decoration: none;
   }
 
-  .reading-feed-comment__author:hover,
-  .reading-feed-comment__author:focus {
+  .reading-feed-comment__author:hover {
     text-decoration: underline;
   }
 
-  .reading-feed-comment small {
-    color: rgba(30, 59, 69, 0.65);
+  .reading-feed-comment__time {
+    color: var(--color-coffee-text-light);
+    font-size: 0.8rem;
   }
 
-  .reading-feed-comment p {
-    margin: 0.35rem 0 0;
-    color: #2c4a54;
+  .reading-feed-comment__text {
+    color: var(--color-coffee-text);
+    margin: 0;
+    line-height: 1.5;
+    font-size: 0.9rem;
+  }
+
+  /* Форма комментария - более компактная */
+  .reading-feed-comment-form {
+    margin-top: 1rem;
   }
 
   .reading-feed-comment-form textarea {
+    background: white;
+    border: 1px solid var(--color-coffee-border);
+    border-radius: 10px;
+    padding: 0.75rem;
+    width: 100%;
     resize: vertical;
-    border-radius: 14px;
-    border: 1px solid rgba(70, 112, 126, 0.24);
+    color: var(--color-coffee-text);
+    font-size: 0.9rem;
+    min-height: 60px;
+    max-height: 120px;
+    transition: all 0.2s ease;
   }
 
-  .reading-feed-comment-form .reading-btn-primary {
-    background-color: #46707e;
-    border-color: #46707e;
-    border-radius: 999px;
-    padding-inline: 1.5rem;
-    font-weight: 600;
-    color: #ffffff;
+  .reading-feed-comment-form textarea:focus {
+    outline: none;
+    border-color: var(--color-coffee-medium);
+    box-shadow: 0 0 0 2px rgba(212, 184, 153, 0.2);
   }
 
-  .reading-feed-comment-form .reading-btn-primary:hover {
-    background-color: #385c68;
-    border-color: #385c68;
+  .reading-feed-comment-form button {
+    margin-top: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    font-size: 0.9rem;
   }
 
+  /* Пустые состояния */
   .reading-feed-empty {
-    margin-top: 2rem;
-    background: rgba(70, 112, 126, 0.08);
-    border-radius: 22px;
-    padding: 2rem;
+    background: var(--color-coffee-light);
+    border-radius: 16px;
+    padding: 2rem 1.5rem;
     text-align: center;
-    color: #2a4751;
+    border: 2px dashed var(--color-coffee-border);
+    color: var(--color-coffee-text-light);
   }
 
+  .reading-feed-empty::before {
+    content: '📚';
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 0.75rem;
+    opacity: 0.5;
+  }
+
+  /* Адаптивность - оптимизировано для мобильных */
   @media (max-width: 768px) {
+    .reading-feed-wrapper {
+      padding: 1rem 0.75rem;
+    }
+
     .reading-feed-hero {
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .reading-feed-hero h1 {
+      font-size: 1.5rem;
+    }
+
+    .reading-feed-hero p {
+      font-size: 0.95rem;
+    }
+
+    .reading-btn-primary {
+      padding: 0.5rem 1.25rem;
+      font-size: 0.9rem;
+    }
+
+    .reading-feed-entry {
+      padding: 1.25rem 1rem;
+    }
+
+    .reading-feed-entry__header {
       flex-direction: column;
-      text-align: center;
+      gap: 0.75rem;
     }
 
-    .reading-feed-hero__content {
-      max-width: none;
+    .reading-feed-entry__cover {
+      width: 80px;
+      align-self: flex-start;
     }
 
-    .reading-feed-hero__image {
-      max-width: 200px;
+    .reading-feed-switcher {
+      width: 100%;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .reading-feed-section-title h2 {
+      font-size: 1.35rem;
+    }
+
+    /* Уменьшаем элементы на очень маленьких экранах */
+    @media (max-width: 360px) {
+      .reading-feed-entry__avatar {
+        width: 40px;
+        height: 40px;
+      }
+
+      .reading-feed-entry__badge {
+        font-size: 0.75rem;
+        padding: 0.2rem 0.6rem;
+      }
+
+      .reading-btn-primary {
+        padding: 0.4rem 1rem;
+        font-size: 0.85rem;
+      }
     }
   }
 
   @media (max-width: 576px) {
-    .reading-feed-entry {
-      padding: 1.25rem;
-    }
-
-    .reading-feed-hero {
-      padding: 2rem 1.5rem;
-    }
-    .reading-feed-entry__header {
-      flex-direction: column;
-      gap: 1rem;
+    .reading-feed-switcher__button {
+      padding: 0.4rem 1rem;
+      font-size: 0.85rem;
     }
 
     .reading-feed-entry__meta {
-      width: 100%;
+      flex-direction: column;
+      gap: 0.375rem;
     }
 
-    .reading-feed-entry__cover {
-      width: 100%;
-      max-width: 180px;
+    /* Для длинных отзывов на мобильных - ограничение 3 строк */
+    .reading-feed-entry__content.mobile-truncate {
+      max-height: 4.8rem;
+      overflow: hidden;
     }
 
-    .reading-feed-section-title {
-      text-align: center;
+    .reading-feed-entry__content.mobile-truncate.expanded {
+      max-height: none;
     }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container py-4 reading-feed-wrapper">
-  <section class="reading-feed-hero mb-4">
-    <div class="reading-feed-hero__content">
-      <h1>Общая лента чтения</h1>
-      <p>Делитесь своими впечатлениями прямо в момент чтения: друзья увидят, на какой странице вы остановились, и смогут поддержать вас комментариями.</p>
-      <div class="reading-feed-hero__actions">
-        <a class="btn reading-btn-primary" href="{% url 'shelves:reading_leaderboard' %}">Рейтинг читателей</a>
-      </div>
-    </div>
-    <div class="reading-feed-hero__image">
-      <img src="{{ MEDIA_URL }}config/img/readgirl.png" alt="Иллюстрация чтения">
-    </div>
+<div class="reading-feed-wrapper">
+  <!-- Герой-секция -->
+  <section class="reading-feed-hero">
+    <h1>Лента чтения</h1>
+    <p>Отслеживайте прогресс друзей, делитесь своими впечатлениями и обсуждайте книги в уютной атмосфере.</p>
+    <a class="reading-btn-primary" href="{% url 'shelves:reading_leaderboard' %}">
+      📊 Рейтинг читателей
+    </a>
   </section>
 
-  <div class="reading-feed-switcher" role="tablist" aria-label="Переключение между отзывами и реакциями" data-default-panel="{% if has_reviews %}reviews{% elif has_reactions %}reactions{% else %}reviews{% endif %}">
-    <button type="button" class="reading-feed-switcher__button" data-target="reviews" role="tab" aria-selected="{% if has_reviews or not has_reactions %}true{% else %}false{% endif %}" aria-pressed="{% if has_reviews or not has_reactions %}true{% else %}false{% endif %}">Отзывы</button>
-    <button type="button" class="reading-feed-switcher__button" data-target="reactions" role="tab" aria-selected="{% if not has_reviews and has_reactions %}true{% else %}false{% endif %}" aria-pressed="{% if not has_reviews and has_reactions %}true{% else %}false{% endif %}">Реакции в моменте</button>
+  <!-- Переключатель вкладок -->
+  <div class="reading-feed-switcher" role="tablist" data-default-panel="{% if has_reviews %}reviews{% elif has_reactions %}reactions{% else %}reviews{% endif %}">
+    <button type="button" class="reading-feed-switcher__button" data-target="reviews" 
+            aria-selected="{% if has_reviews or not has_reactions %}true{% else %}false{% endif %}" 
+            aria-pressed="{% if has_reviews or not has_reactions %}true{% else %}false{% endif %}">
+      📝 Отзывы
+    </button>
+    <button type="button" class="reading-feed-switcher__button" data-target="reactions" 
+            aria-selected="{% if not has_reviews and has_reactions %}true{% else %}false{% endif %}" 
+            aria-pressed="{% if not has_reviews and has_reactions %}true{% else %}false{% endif %}">
+      ⚡ Реакции
+    </button>
   </div>
 
-  <section class="reading-feed-reviews" aria-labelledby="reading-feed-reviews-title" data-feed-panel="reviews" {% if not has_reviews and has_reactions %}hidden{% endif %}>
+  <!-- Секция отзывов -->
+  <section class="reading-feed-reviews" data-feed-panel="reviews" {% if not has_reviews and has_reactions %}hidden{% endif %}>
     <div class="reading-feed-section-title">
-      <h2 id="reading-feed-reviews-title">Свежие отзывы читателей</h2>
-      <p>Собрали все опубликованные впечатления о книгах — делитесь своими мыслями и обсуждайте прочитанное.</p>
+      <h2>Свежие отзывы</h2>
+      <p>Поделитесь своими впечатлениями о прочитанных книгах</p>
     </div>
-      {% if has_reviews %}
-        {% for review in reviews %}
+
+    {% if has_reviews %}
+      {% for review in reviews %}
         {% with display_name=review.user.get_full_name|default:review.user.username cover_url=review.book.get_cover_url %}
-          <article class="reading-feed-entry reading-feed-review" id="review-{{ review.id }}">
-            <div class="reading-feed-entry__header">
-              <div class="reading-feed-entry__meta">
-                <div class="reading-feed-entry__avatar{% if not review.user.profile.avatar %} reading-feed-entry__avatar--placeholder{% endif %}">
-                  {% if review.user.profile.avatar %}
-                    <img src="{{ review.user.profile.avatar.url }}" alt="Аватар {{ display_name }}">
-                  {% else %}
-                    <span>{{ display_name|slice:":1" }}</span>
-                  {% endif %}
-                </div>
-                <div class="reading-feed-entry__details">
-                  <a class="reading-feed-entry__user" href="{% url 'profile' review.user.username %}">{{ display_name }}</a>
-                  <span class="reading-feed-entry__book">{{ review.book.title }}</span>
-                  <div class="reading-feed-entry__stats small text-muted">
-                    <span>{{ review.created_at|date:"d E Y, H:i" }}</span>
-                  </div>
-                  <div class="reading-feed-review__badges">
-                    {% if review.score %}
-                      <span class="reading-feed-entry__badge reading-feed-review__score">Оценка: {{ review.score }}/10</span>
-                    {% endif %}
-                    {% for label, value in review.get_category_scores %}
-                      <span class="reading-feed-entry__badge">{{ label }}: {{ value }}/10</span>
-                    {% endfor %}
-                  </div>
-                </div>
-              </div>
-              {% if cover_url %}
-                <div class="reading-feed-entry__cover">
-                  <img src="{{ cover_url }}" alt="Обложка книги «{{ review.book.title }}»">
-                </div>
-              {% endif %}
-            </div>
-
-            {% if review.review %}
-              <div class="reading-feed-review__text">{{ review.review|linebreaksbr }}</div>
-            {% endif %}
-
-            <div class="reading-feed-comments">
-              {% for comment in review.comments.all %}
-                <div class="reading-feed-comment">
-                  {% with comment_name=comment.user.get_full_name|default:comment.user.username %}
-                  <strong><a class="reading-feed-comment__author" href="{% url 'profile' comment.user.username %}">{{ comment_name }}</a></strong>
-                  {% endwith %}
-                  <small class="ms-2">{{ comment.created_at|date:"d.m.Y H:i" }}</small>
-                  <p>{{ comment.body|linebreaksbr }}</p>
-                </div>
-              {% empty %}
-                <p class="text-muted mb-3">Пока нет комментариев — поделитесь своими впечатлениями о книге.</p>
-              {% endfor %}
-
-              {% if request.user.is_authenticated %}
-                <form method="post" action="{% url 'shelves:reading_feed_review_comment' review.id %}" class="reading-feed-comment-form mt-3">
-                  {% csrf_token %}
-                  <div class="mb-2">
-                    <label class="form-label" for="id_review_body_{{ review.id }}">Оставить комментарий</label>
-                    <textarea id="id_review_body_{{ review.id }}" name="body" rows="2" class="form-control" placeholder="Поддержите автора отзыва или задайте вопрос..."></textarea>
-                  </div>
-                  <button type="submit" class="btn reading-btn-primary">Отправить</button>
-                </form>
-              {% else %}
-                <p class="text-muted small mt-3 mb-0">Авторизуйтесь, чтобы обсуждать отзывы.</p>
-              {% endif %}
-            </div>
-            </article>
-        {% endwith %}
-      {% endfor %}
-    {% else %}
-        <div class="reading-feed-empty">
-          Отзывы пока не опубликованы — поделитесь своими впечатлениями о книге.
-        </div>
-      {% endif %}
-  </section>
-
-  <section class="reading-feed-progress" aria-labelledby="reading-feed-progress-title" data-feed-panel="reactions" {% if has_reviews or not has_reactions %}hidden{% endif %}>
-    <div class="reading-feed-section-title">
-      <h2 id="reading-feed-progress-title">Обновления чтения</h2>
-      <p>Следите за прогрессом друзей и поддерживайте их комментариями.</p>
-    </div>
-
-    {% if has_reactions %}
-      {% for entry in reactions %}
-      <article class="reading-feed-entry" id="entry-{{ entry.id }}">
-        {% with display_name=entry.user.get_full_name|default:entry.user.username cover_url=entry.book.get_cover_url %}
+        <article class="reading-feed-entry" id="review-{{ review.id }}">
           <div class="reading-feed-entry__header">
-            <div class="reading-feed-entry__meta">
-              <div class="reading-feed-entry__avatar{% if not entry.user.profile.avatar %} reading-feed-entry__avatar--placeholder{% endif %}">
-                {% if entry.user.profile.avatar %}
-                  <img src="{{ entry.user.profile.avatar.url }}" alt="Аватар {{ display_name }}">
-                {% else %}
-                  <span>{{ display_name|slice:":1" }}</span>
+            <div class="reading-feed-entry__avatar">
+              {% if review.user.profile.avatar %}
+                <img src="{{ review.user.profile.avatar.url }}" alt="{{ display_name }}">
+              {% else %}
+                <span>{{ display_name|slice:":1" }}</span>
+              {% endif %}
+            </div>
+            <div class="reading-feed-entry__details">
+              <a class="reading-feed-entry__user" href="{% url 'profile' review.user.username %}">
+                {{ display_name }}
+              </a>
+              <span class="reading-feed-entry__book">{{ review.book.title }}</span>
+              <div class="reading-feed-entry__meta">
+                <span class="reading-feed-entry__badge">{{ review.created_at|date:"d.m.Y H:i" }}</span>
+                {% if review.score %}
+                  <span class="reading-feed-entry__badge reading-feed-entry__score">
+                    ⭐ {{ review.score }}/10
+                  </span>
                 {% endif %}
-              </div>
-             <div class="reading-feed-entry__details">
-                <a class="reading-feed-entry__user" href="{% url 'profile' entry.user.username %}">{{ display_name }}</a>
-                <span class="reading-feed-entry__book">{{ entry.book.title }}</span>
-                <div class="reading-feed-entry__stats small text-muted">
-                  <span>{{ entry.created_at|date:"d E Y, H:i" }}</span>
-                  <span class="reading-feed-entry__badge">{{ entry.get_medium_display }}</span>
-                  {% if entry.current_page_display %}
-                    <span>Страница: {{ entry.current_page_display }}</span>
-                  {% endif %}
-                  {% if entry.percent is not None %}
-                    <span>Прогресс: {{ entry.percent|floatformat:-2 }}%</span>
-                  {% endif %}
-                </div>
+                {% for label, value in review.get_category_scores %}
+                  <span class="reading-feed-entry__badge">{{ label }}: {{ value }}/10</span>
+                {% endfor %}
               </div>
             </div>
             {% if cover_url %}
               <div class="reading-feed-entry__cover">
-                <img src="{{ cover_url }}" alt="Обложка книги «{{ entry.book.title }}»">
+                <img src="{{ cover_url }}" alt="Обложка «{{ review.book.title }}»">
+              </div>
+            {% endif %}
+          </div>
+
+          {% if review.review %}
+            <div class="reading-feed-entry__content{% if review.review|length > 200 %} truncated{% endif %} mobile-truncate"
+                 data-review-id="{{ review.id }}">
+              {{ review.review|linebreaksbr }}
+            </div>
+          {% endif %}
+
+          <div class="reading-feed-comments">
+            <h4>Комментарии</h4>
+            
+            {% for comment in review.comments.all|slice:":3" %}
+              <div class="reading-feed-comment">
+                <div class="reading-feed-comment__header">
+                  {% with comment_name=comment.user.get_full_name|default:comment.user.username %}
+                  <a class="reading-feed-comment__author" href="{% url 'profile' comment.user.username %}">
+                    {{ comment_name }}
+                  </a>
+                  {% endwith %}
+                  <span class="reading-feed-comment__time">{{ comment.created_at|date:"d.m.Y H:i" }}</span>
+                </div>
+                <p class="reading-feed-comment__text">{{ comment.body|linebreaksbr }}</p>
+              </div>
+            {% empty %}
+              <p class="text-center" style="color: var(--color-coffee-text-light); font-size: 0.9rem; margin: 0;">
+                Пока нет комментариев
+              </p>
+            {% endfor %}
+
+            {% if review.comments.all|length > 3 %}
+              <p class="text-center mb-2" style="color: var(--color-coffee-text-light); font-size: 0.85rem;">
+                + ещё {{ review.comments.all|length|add:"-3" }} комментариев
+              </p>
+            {% endif %}
+
+            {% if request.user.is_authenticated %}
+              <form method="post" action="{% url 'shelves:reading_feed_review_comment' review.id %}" class="reading-feed-comment-form">
+                {% csrf_token %}
+                <textarea name="body" rows="2" placeholder="Ваш комментарий..." maxlength="500"></textarea>
+                <button type="submit" class="reading-btn-primary">Отправить</button>
+              </form>
+            {% else %}
+              <p class="text-center mt-2" style="color: var(--color-coffee-text-light); font-size: 0.85rem;">
+                <a href="{% url 'login' %}" style="color: var(--color-coffee-dark); font-weight: 500;">Войдите</a>, чтобы комментировать
+              </p>
+            {% endif %}
+          </div>
+        </article>
+        {% endwith %}
+      {% endfor %}
+    {% else %}
+      <div class="reading-feed-empty">
+        <h3 style="color: var(--color-coffee-darker); margin-bottom: 0.5rem; font-size: 1.1rem;">
+          Пока нет отзывов
+        </h3>
+        <p style="font-size: 0.95rem;">Будьте первым, кто поделится впечатлениями!</p>
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- Секция реакций -->
+  <section class="reading-feed-progress" data-feed-panel="reactions" {% if has_reviews or not has_reactions %}hidden{% endif %}>
+    <div class="reading-feed-section-title">
+      <h2>Обновления чтения</h2>
+      <p>Следите за прогрессом друзей и поддерживайте их</p>
+    </div>
+
+    {% if has_reactions %}
+      {% for entry in reactions %}
+        <article class="reading-feed-entry" id="entry-{{ entry.id }}">
+          {% with display_name=entry.user.get_full_name|default:entry.user.username cover_url=entry.book.get_cover_url %}
+          <div class="reading-feed-entry__header">
+            <div class="reading-feed-entry__avatar">
+              {% if entry.user.profile.avatar %}
+                <img src="{{ entry.user.profile.avatar.url }}" alt="{{ display_name }}">
+              {% else %}
+                <span>{{ display_name|slice:":1" }}</span>
+              {% endif %}
+            </div>
+            <div class="reading-feed-entry__details">
+              <a class="reading-feed-entry__user" href="{% url 'profile' entry.user.username %}">
+                {{ display_name }}
+              </a>
+              <span class="reading-feed-entry__book">{{ entry.book.title }}</span>
+              <div class="reading-feed-entry__meta">
+                <span class="reading-feed-entry__badge">{{ entry.created_at|date:"d.m.Y H:i" }}</span>
+                <span class="reading-feed-entry__badge">{{ entry.get_medium_display }}</span>
+                {% if entry.current_page_display %}
+                  <span class="reading-feed-entry__badge">📖 {{ entry.current_page_display }}</span>
+                {% endif %}
+                {% if entry.percent is not None %}
+                  <span class="reading-feed-entry__badge">📊 {{ entry.percent|floatformat:-2 }}%</span>
+                {% endif %}
+              </div>
+            </div>
+            {% if cover_url %}
+              <div class="reading-feed-entry__cover">
+                <img src="{{ cover_url }}" alt="Обложка «{{ entry.book.title }}»">
               </div>
             {% endif %}
           </div>
           {% endwith %}
 
-        {% if entry.reaction %}
-          <div class="reading-feed-entry__reaction">{{ entry.reaction|linebreaksbr }}</div>
-        {% endif %}
-
-        <div class="reading-feed-comments">
-          {% for comment in entry.comments.all %}
-            <div class="reading-feed-comment">
-              {% with comment_name=comment.user.get_full_name|default:comment.user.username %}
-              <strong><a class="reading-feed-comment__author" href="{% url 'profile' comment.user.username %}">{{ comment_name }}</a></strong>
-              {% endwith %}
-              <small class="ms-2">{{ comment.created_at|date:"d.m.Y H:i" }}</small>
-              <p>{{ comment.body|linebreaksbr }}</p>
+          {% if entry.reaction %}
+            <div class="reading-feed-entry__content{% if entry.reaction|length > 150 %} truncated{% endif %} mobile-truncate"
+                 data-reaction-id="{{ entry.id }}">
+              {{ entry.reaction|linebreaksbr }}
             </div>
-            {% empty %}
-            <p class="text-muted mb-3">Пока нет комментариев — будьте первым, кто поддержит читателя!</p>
-          {% endfor %}
-
-          {% if request.user.is_authenticated %}
-            <form method="post" action="{% url 'shelves:reading_feed_comment' entry.id %}" class="reading-feed-comment-form mt-3">
-              {% csrf_token %}
-              <div class="mb-2">
-                <label class="form-label" for="id_body_{{ entry.id }}">Оставить комментарий</label>
-                <textarea id="id_body_{{ entry.id }}" name="body" rows="2" class="form-control" placeholder="Поддержите читателя или задайте вопрос..."></textarea>
-              </div>
-              <button type="submit" class="btn reading-btn-primary">Отправить</button>
-            </form>
-          {% else %}
-            <p class="text-muted small mt-3 mb-0">Авторизуйтесь, чтобы оставлять комментарии.</p>
           {% endif %}
+
+          <div class="reading-feed-comments">
+            <h4>Поддержка</h4>
+            
+            {% for comment in entry.comments.all|slice:":2" %}
+              <div class="reading-feed-comment">
+                <div class="reading-feed-comment__header">
+                  {% with comment_name=comment.user.get_full_name|default:comment.user.username %}
+                  <a class="reading-feed-comment__author" href="{% url 'profile' comment.user.username %}">
+                    {{ comment_name }}
+                  </a>
+                  {% endwith %}
+                  <span class="reading-feed-comment__time">{{ comment.created_at|date:"d.m.Y H:i" }}</span>
+                </div>
+                <p class="reading-feed-comment__text">{{ comment.body|linebreaksbr }}</p>
+              </div>
+            {% empty %}
+              <p class="text-center" style="color: var(--color-coffee-text-light); font-size: 0.9rem; margin: 0;">
+                Поддержите читателя первым
+              </p>
+            {% endfor %}
+
+            {% if entry.comments.all|length > 2 %}
+              <p class="text-center mb-2" style="color: var(--color-coffee-text-light); font-size: 0.85rem;">
+                + ещё {{ entry.comments.all|length|add:"-2" }} комментариев
+              </p>
+            {% endif %}
+
+            {% if request.user.is_authenticated %}
+              <form method="post" action="{% url 'shelves:reading_feed_comment' entry.id %}" class="reading-feed-comment-form">
+                {% csrf_token %}
+                <textarea name="body" rows="2" placeholder="Слова поддержки..." maxlength="300"></textarea>
+                <button type="submit" class="reading-btn-primary">Поддержать</button>
+              </form>
+            {% else %}
+              <p class="text-center mt-2" style="color: var(--color-coffee-text-light); font-size: 0.85rem;">
+                <a href="{% url 'login' %}" style="color: var(--color-coffee-dark); font-weight: 500;">Войдите</a>, чтобы поддержать
+              </p>
+            {% endif %}
           </div>
-      </article>
+        </article>
       {% endfor %}
     {% else %}
       <div class="reading-feed-empty">
-        Пока никто не делился реакциями в моменте. Оставьте заметку во время чтения, чтобы вдохновить других!
+        <h3 style="color: var(--color-coffee-darker); margin-bottom: 0.5rem; font-size: 1.1rem;">
+          Пока нет обновлений
+        </h3>
+        <p style="font-size: 0.95rem;">Делитесь впечатлениями во время чтения!</p>
       </div>
     {% endif %}
   </section>
 </div>
+
 <script>
   (function () {
+    // Переключение вкладок
     const switcher = document.querySelector('.reading-feed-switcher');
-    if (!switcher) {
-      return;
+    if (switcher) {
+      const buttons = switcher.querySelectorAll('[data-target]');
+      const panels = document.querySelectorAll('[data-feed-panel]');
+      const defaultPanel = switcher.dataset.defaultPanel || 'reviews';
+
+      function activate(panelName) {
+        buttons.forEach(button => {
+          const isActive = button.dataset.target === panelName;
+          button.setAttribute('aria-pressed', isActive);
+          button.setAttribute('aria-selected', isActive);
+        });
+
+        panels.forEach(panel => {
+          panel.hidden = panel.dataset.feedPanel !== panelName;
+        });
+        
+        localStorage.setItem('readingFeedActiveTab', panelName);
+      }
+
+      const savedTab = localStorage.getItem('readingFeedActiveTab');
+      activate(savedTab || defaultPanel);
+
+      buttons.forEach(button => {
+        button.addEventListener('click', () => activate(button.dataset.target));
+      });
     }
 
-    const buttons = Array.from(switcher.querySelectorAll('[data-target]'));
-    const panels = document.querySelectorAll('[data-feed-panel]');
-    const defaultPanel = switcher.dataset.defaultPanel || 'reviews';
-
-    function activate(panelName) {
-      buttons.forEach((button) => {
-        const isActive = button.dataset.target === panelName;
-        button.setAttribute('aria-pressed', String(isActive));
-        button.setAttribute('aria-selected', String(isActive));
-      });
-
-      panels.forEach((panel) => {
-        const matches = panel.dataset.feedPanel === panelName;
-        if (matches) {
-          panel.removeAttribute('hidden');
+    // Разворачивание длинных отзывов на мобильных
+    function handleTruncatedContent() {
+      const isMobile = window.innerWidth <= 576;
+      
+      document.querySelectorAll('.reading-feed-entry__content.truncated').forEach(content => {
+        if (isMobile) {
+          content.classList.add('mobile-truncate');
         } else {
-          panel.setAttribute('hidden', '');
+          content.classList.remove('mobile-truncate');
+        }
+
+        // Добавляем обработчик клика для разворачивания
+        if (!content.hasAttribute('data-click-handled')) {
+          content.setAttribute('data-click-handled', 'true');
+          content.addEventListener('click', function() {
+            this.classList.toggle('expanded');
+            this.classList.remove('mobile-truncate');
+          });
         }
       });
     }
 
-    activate(defaultPanel);
+    // Проверяем длину текста и добавляем класс для обрезки
+    document.querySelectorAll('.reading-feed-entry__content').forEach(content => {
+      const text = content.textContent.trim();
+      const lineCount = text.split('\n').length;
+      const charCount = text.length;
+      
+      // Обрезаем если больше 200 символов ИЛИ больше 3 строк
+      if (charCount > 200 || lineCount > 3) {
+        content.classList.add('truncated');
+      }
+    });
 
-    buttons.forEach((button) => {
-      button.addEventListener('click', () => {
-        activate(button.dataset.target);
+    // Инициализируем обработку при загрузке
+    handleTruncatedContent();
+    
+    // Обновляем при изменении размера окна
+    window.addEventListener('resize', handleTruncatedContent);
+
+    // Фокус на поле ввода комментария при клике на форму
+    document.querySelectorAll('.reading-feed-comment-form textarea').forEach(textarea => {
+      textarea.addEventListener('focus', function() {
+        this.style.minHeight = '80px';
+      });
+      
+      textarea.addEventListener('blur', function() {
+        if (this.value === '') {
+          this.style.minHeight = '60px';
+        }
       });
     });
+
   })();
 </script>
 {% endblock %}
