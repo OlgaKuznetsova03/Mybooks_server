@@ -39,6 +39,7 @@ from shelves.services import (
     DEFAULT_READ_SHELF,
     DEFAULT_READ_SHELF_ALIASES,
     DEFAULT_READING_SHELF,
+    DEFAULT_UNFINISHED_SHELF,
     DEFAULT_WANT_SHELF,
     ALL_DEFAULT_READ_SHELF_NAMES,
     READING_PROGRESS_LABEL,
@@ -1733,14 +1734,24 @@ def profile(request, username=None):
     )
 
     if user_shelves:
-        reading_names = {
-            DEFAULT_READING_SHELF.lower(),
-            READING_PROGRESS_LABEL.lower(),
-        }
+        normalized_order = {}
+        for label in (READING_PROGRESS_LABEL, DEFAULT_READING_SHELF):
+            if label:
+                normalized_order[label.lower()] = 0
+        if DEFAULT_WANT_SHELF:
+            normalized_order[DEFAULT_WANT_SHELF.lower()] = 1
+        if DEFAULT_HOME_LIBRARY_SHELF:
+            normalized_order[DEFAULT_HOME_LIBRARY_SHELF.lower()] = 2
+        if DEFAULT_READ_SHELF:
+            normalized_order[DEFAULT_READ_SHELF.lower()] = 3
+        if DEFAULT_UNFINISHED_SHELF:
+            normalized_order[DEFAULT_UNFINISHED_SHELF.lower()] = 4
+        for alias in DEFAULT_READ_SHELF_ALIASES:
+            normalized_order.setdefault(alias.lower(), normalized_order.get(DEFAULT_READ_SHELF.lower(), 3))
         indexed_shelves = list(enumerate(user_shelves))
         indexed_shelves.sort(
             key=lambda pair: (
-                0 if pair[1].name.lower() in reading_names else 1,
+                normalized_order.get(pair[1].name.lower(), len(normalized_order)),
                 pair[0],
             )
         )
