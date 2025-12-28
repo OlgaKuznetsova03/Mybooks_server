@@ -3,6 +3,7 @@ from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView
+from shelves import views as shelves_views
 from . import views
 
 urlpatterns = [
@@ -19,10 +20,15 @@ urlpatterns = [
     ),
     path("books/", include("books.urls")),  # подключаем роуты приложения books
     path("accounts/", include("accounts.urls")), 
-    path(
+     path(
         "events/",
         include(("shelves.urls", "shelves"), namespace="shelves"),
     ),  # подключаем роуты полок с ивентами shelves
+    path(
+        "events/reading/unfinished/<int:progress_id>/",
+        shelves_views.reading_mark_unfinished,
+        name="reading_mark_unfinished",
+    ),
     path("games/", include("games.urls")),  # подключаем роуты приложения games
     path("collaborations/", include("collaborations.urls")),
     path("reading-clubs/", include("reading_clubs.urls")),
