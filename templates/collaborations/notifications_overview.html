@@ -5,10 +5,36 @@
 
 {% block content %}
 <div class="coop-theme">
-  <h1 class="h3 mb-4">{% trans "Уведомления сотрудничества" %}</h1>
+  <h1 class="h3 mb-4">{% trans "Уведомления" %}</h1>
 
-  {% if pending_offer_responses or pending_blogger_request_responses or pending_partner_collaborations or pending_author_collaborations or unread_offer_threads or unread_blogger_request_threads or unread_collaborations %}
+  {% if pending_offer_responses or pending_blogger_request_responses or pending_partner_collaborations or pending_author_collaborations or unread_offer_threads or unread_blogger_request_threads or unread_collaborations or unread_reading_topics %}
     <div class="d-flex flex-column gap-4">
+      {% if unread_reading_topics %}
+        <section class="card shadow-sm">
+          <div class="card-body">
+            <h2 class="h5 mb-3">{% trans "Новые сообщения в совместных чтениях" %}</h2>
+            <p class="text-muted small mb-3">{% trans "Проверьте обсуждения, где появились новые сообщения." %}</p>
+            <div class="list-group list-group-flush">
+              {% for topic in unread_reading_topics %}
+                <a href="{{ topic.get_absolute_url }}" class="list-group-item list-group-item-action d-flex flex-column gap-1">
+                  <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div>
+                      <div class="fw-semibold">{{ topic.reading.title }}</div>
+                      <div class="small text-muted">{{ topic.title }}</div>
+                    </div>
+                    <span class="badge text-bg-secondary">{{ topic.unread_count }}</span>
+                  </div>
+                  {% if topic.last_post_at %}
+                    <div class="small text-muted">
+                      {% trans "Последнее сообщение" %}: {{ topic.last_post_at|date:"j E, H:i" }}
+                    </div>
+                  {% endif %}
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+      {% endif %}
       {% if unread_offer_threads %}
         <section class="card shadow-sm">
           <div class="card-body">
@@ -222,7 +248,7 @@
     </div>
   {% else %}
     <div class="alert alert-success" role="alert">
-      {% trans "Новых уведомлений нет. Все сотрудничества идут по плану!" %}
+      {% trans "Новых уведомлений нет." %}
     </div>
   {% endif %}
 </div>

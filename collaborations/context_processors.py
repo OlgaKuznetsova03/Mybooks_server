@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from reading_clubs.models import ReadingParticipant
+from reading_clubs.services import get_unread_discussion_total
 
 from games.models import BookExchangeOffer
 
@@ -15,6 +16,7 @@ def collaboration_notifications(request):
         "pending_author_confirmations": 0,
         "unread_offer_threads": 0,
         "unread_collaboration_threads": 0,
+        "unread_reading_topics": 0,
         "total": 0,
         "pending_reading_participants": 0,
         "pending_game_offers": 0,
@@ -55,6 +57,8 @@ def collaboration_notifications(request):
         status=BookExchangeOffer.Status.PENDING,
     ).count()
 
+    unread_reading_topics = get_unread_discussion_total(user)
+
     notifications.update(
         {
             "pending_offer_responses": pending_offer_responses,
@@ -62,6 +66,7 @@ def collaboration_notifications(request):
             "pending_author_confirmations": awaiting_author,
             "unread_offer_threads": unread_offer_threads,
             "unread_collaboration_threads": unread_collaborations,
+            "unread_reading_topics": unread_reading_topics,
             "pending_reading_participants": pending_reading_participants,
             "pending_game_offers": pending_game_offers,
         }
@@ -72,6 +77,7 @@ def collaboration_notifications(request):
         + awaiting_author
         + unread_offer_threads
         + unread_collaborations
+        + unread_reading_topics
         + pending_reading_participants
         + pending_game_offers
     )

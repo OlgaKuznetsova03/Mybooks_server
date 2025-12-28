@@ -258,6 +258,33 @@ class DiscussionPost(models.Model):
 
     class Meta:
         ordering = ("created_at", "id")
+
+
+class DiscussionRead(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="reading_discussion_reads",
+        verbose_name=_("Пользователь"),
+    )
+    topic = models.ForeignKey(
+        ReadingNorm,
+        on_delete=models.CASCADE,
+        related_name="read_statuses",
+        verbose_name=_("Тема"),
+    )
+    last_read_at = models.DateTimeField(
+        default=timezone.now,
+        verbose_name=_("Последний просмотр"),
+    )
+
+    class Meta:
+        unique_together = ("user", "topic")
+        verbose_name = _("Просмотр обсуждения")
+        verbose_name_plural = _("Просмотры обсуждений")
+
+    def __str__(self) -> str:  # pragma: no cover - simple display
+        return f"{self.user} — {self.topic}"
         verbose_name = _("Сообщение обсуждения")
         verbose_name_plural = _("Сообщения обсуждений")
 

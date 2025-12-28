@@ -23,6 +23,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import DiscussionPostForm, ReadingClubForm, ReadingNormForm
 from .models import DiscussionPost, ReadingClub, ReadingNorm, ReadingParticipant
+from .services import mark_topic_read
 from shelves.models import BookProgress, ShelfItem
 from shelves.services import ALL_DEFAULT_READ_SHELF_NAMES
 
@@ -388,6 +389,8 @@ class ReadingTopicDetailView(DetailView):
             ).exists()
             can_post = is_participant and topic.is_open()
             form = None
+            if is_participant:
+                mark_topic_read(user, topic)
         reply_to_post = None
         if can_post:
             reply_to_post = self._get_reply_post(topic)
@@ -439,6 +442,7 @@ class DiscussionPostCreateView(View):
                 post.parent = parent_post
             post.save()
             award_for_discussion_post(post)
+            mark_topic_read(request.user, topic)
             messages.success(request, "Сообщение добавлено.")
             return redirect(topic.get_absolute_url())
         context = {

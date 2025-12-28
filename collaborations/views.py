@@ -17,6 +17,7 @@ from django.views.generic.edit import CreateView, FormView, UpdateView
 from accounts.services import charge_feature_access, InsufficientCoinsError
 from games.models import BookExchangeOffer
 from reading_clubs.models import ReadingParticipant
+from reading_clubs.services import get_unread_discussion_topics
 
 from .forms import (
     AuthorOfferForm,
@@ -1294,6 +1295,8 @@ class CollaborationNotificationsView(LoginRequiredMixin, TemplateView):
             .order_by("-last_activity_at")
         )
 
+        unread_reading_topics, unread_reading_total = get_unread_discussion_topics(user)
+
         context.update(
             {
                 "pending_blogger_request_responses": pending_blogger_request_responses,
@@ -1304,6 +1307,8 @@ class CollaborationNotificationsView(LoginRequiredMixin, TemplateView):
                 "unread_offer_threads": unread_offer_threads,
                 "unread_blogger_request_threads": unread_blogger_request_threads,
                 "unread_collaborations": unread_collaborations,
+                "unread_reading_topics": unread_reading_topics,
+                "unread_reading_total": unread_reading_total,
             }
         )
         return context
