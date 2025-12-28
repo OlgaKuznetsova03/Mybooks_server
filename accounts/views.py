@@ -42,6 +42,7 @@ from shelves.services import (
     DEFAULT_WANT_SHELF,
     ALL_DEFAULT_READ_SHELF_NAMES,
     READING_PROGRESS_LABEL,
+    ensure_default_shelves,
 )
 from books.models import Rating, Book
 from user_ratings.models import LeaderboardPeriod, UserPointEvent
@@ -1698,6 +1699,8 @@ def profile(request, username=None):
     )
     profile_obj = user_obj.profile
     is_owner = request.user.is_authenticated and request.user == user_obj
+    if is_owner:
+        ensure_default_shelves(user_obj)
     if profile_obj.is_private and not is_owner:
         return render(
             request,
@@ -1728,6 +1731,20 @@ def profile(request, username=None):
         .prefetch_related(shelf_items_prefetch)
         .order_by("-is_default", "name")
     )
+
+    if user_shelves:
+        reading_names = {
+            DEFAULT_READING_SHELF.lower(),
+            READING_PROGRESS_LABEL.lower(),
+        }
+        indexed_shelves = list(enumerate(user_shelves))
+        indexed_shelves.sort(
+            key=lambda pair: (
+                0 if pair[1].name.lower() in reading_names else 1,
+                pair[0],
+            )
+        )
+        user_shelves = [shelf for _, shelf in indexed_shelves]
 
     if user_shelves:
         book_ids = set()
