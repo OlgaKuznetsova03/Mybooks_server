@@ -4,13 +4,11 @@ from typing import Iterable
 
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.db.models import Count, IntegerField, OuterRef, Q, Subquery
+from django.db.models import Count, Q
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
-
-from django.db.models.functions import Coalesce
 
 from books.models import Book
 
@@ -19,29 +17,12 @@ User = get_user_model()
 
 class ReadingClubQuerySet(models.QuerySet):
     def with_message_count(self) -> "ReadingClubQuerySet":
-        message_count_subquery = Subquery(
-            DiscussionPost.objects.filter(topic__reading=OuterRef("pk"))
-            .order_by()
-            .values("topic__reading")
-            .annotate(total=Count("pk"))
-            .values("total")[:1],
-            output_field=IntegerField(),
-        )
-        approved_participant_count_subquery = Subquery(
-            ReadingParticipant.objects.filter(
-                reading=OuterRef("pk"),
-                status=ReadingParticipant.Status.APPROVED,
-            )
-            .order_by()
-            .values("reading")
-            .annotate(total=Count("pk"))
-            .values("total")[:1],
-            output_field=IntegerField(),
-        )
         return self.annotate(
-            message_count=Coalesce(message_count_subquery, 0),
-            approved_participant_count=Coalesce(
-                approved_participant_count_subquery, 0
+            message_count=Count("topics__posts", distinct=True),
+            approved_participant_count=Count(
+                "participants",
+                distinct=True,
+                filter=Q(participants__status=ReadingParticipant.Status.APPROVED),
             ),
         )
 

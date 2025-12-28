@@ -63,8 +63,8 @@ class ReadingClubListView(ListView):
 
     def get_queryset(self):  # type: ignore[override]
         base_qs = (
-            ReadingClub.objects.select_related("book", "book__primary_isbn", "creator")
-            .with_message_count()
+            ReadingClub.objects.with_message_count()
+            .select_related("book", "book__primary_isbn", "creator")
             .prefetch_related("participants", "book__isbn")
             .order_by("start_date", "title")
         )
@@ -150,7 +150,8 @@ class ReadingClubDetailView(DetailView):
 
     def get_queryset(self):  # type: ignore[override]
         return (
-            ReadingClub.objects.select_related("book", "creator")
+            ReadingClub.objects.with_message_count()
+            .select_related("book", "creator")
             .prefetch_related(
                 Prefetch(
                     "topics",
@@ -161,7 +162,6 @@ class ReadingClubDetailView(DetailView):
                     queryset=ReadingParticipant.objects.select_related("user"),
                 ),
             )
-            .with_message_count()
         )
 
     def get_context_data(self, **kwargs):
