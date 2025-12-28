@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from dataclasses import dataclass
-from typing import Iterable
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -48,17 +46,6 @@ def _resolve_parent_post(topic: ReadingNorm, parent_value: str | None) -> Discus
         return topic.posts.select_related("author").get(pk=parent_id)
     except DiscussionPost.DoesNotExist:
         return None
-
-
-def _build_post_threads(posts: Iterable[DiscussionPost]) -> list[DiscussionPost]:
-    posts_list = list(posts)
-    children_map: dict[int | None, list[DiscussionPost]] = defaultdict(list)
-    for post in posts_list:
-        children_map[post.parent_id].append(post)
-    for post in posts_list:
-        children = children_map.get(post.pk, ())
-        setattr(post, "thread_children", list(children))
-    return list(children_map.get(None, ()))
 
 
 @dataclass
@@ -408,7 +395,6 @@ class ReadingTopicDetailView(DetailView):
             if reply_to_post:
                 initial["content"] = _format_reply_prefill(reply_to_post)
             form = DiscussionPostForm(initial=initial)
-        threaded_posts = _build_post_threads(topic.posts.all())
         context.update(
             {
                 "reading": reading,
@@ -416,7 +402,7 @@ class ReadingTopicDetailView(DetailView):
                 "can_post": can_post,
                 "form": form,
                 "reply_to_post": reply_to_post,
-                "threaded_posts": threaded_posts,
+                "posts": topic.posts.all(),
             }
         )
         return context

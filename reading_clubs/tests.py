@@ -144,7 +144,7 @@ class ReadingTopicDetailViewTests(TestCase):
             discussion_opens_at=date.today(),
         )
 
-    def test_threaded_posts_in_context(self):
+    def test_posts_in_context(self):
         parent = DiscussionPost.objects.create(
             topic=self.topic,
             author=self.creator,
@@ -160,8 +160,5 @@ class ReadingTopicDetailViewTests(TestCase):
             reverse("reading_clubs:topic_detail", args=[self.reading.slug, self.topic.pk])
         )
         self.assertEqual(response.status_code, 200)
-        threaded_posts = response.context["threaded_posts"]
-        self.assertEqual(len(threaded_posts), 1)
-        self.assertEqual(threaded_posts[0].pk, parent.pk)
-        self.assertTrue(hasattr(threaded_posts[0], "thread_children"))
-        self.assertEqual([child.pk for child in threaded_posts[0].thread_children], [reply.pk])
+        posts = list(response.context["posts"])
+        self.assertEqual([post.pk for post in posts], [parent.pk, reply.pk])

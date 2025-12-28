@@ -21,14 +21,14 @@
     
     <!-- Ответ на другое сообщение -->
     {% if post.parent %}
-      <div class="chat-message__reply" onclick="location.href='#post-{{ post.parent.pk }}'">
+      <a class="chat-message__reply" href="#post-{{ post.parent.pk }}">
         <div class="chat-message__reply-author">
           {{ post.parent.author.get_full_name|default:post.parent.author.username }}
         </div>
         <div class="chat-message__reply-text">
           {{ post.parent.content|truncatewords:20 }}
         </div>
-      </div>
+      </a>
     {% endif %}
     
     <!-- Текст сообщения -->
@@ -54,12 +54,3 @@
     </div>
   </div>
 </div>
-
-<!-- РЕКУРСИВНОЕ ОТОБРАЖЕНИЕ ВЛОЖЕННЫХ СООБЩЕНИЙ -->
-{% if post.thread_children %}
-  <div class="chat-message__children">
-    {% for child in post.thread_children %}
-      {% include "reading_clubs/includes/chat_message.html" with post=child %}
-    {% endfor %}
-  </div>
-{% endif %}

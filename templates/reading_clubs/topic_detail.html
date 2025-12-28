@@ -335,6 +335,9 @@
       border-radius: 0 8px 8px 0;
       font-size: 0.85rem;
       cursor: pointer;
+      display: block;
+      color: inherit;
+      text-decoration: none;
       transition: background-color 0.2s;
     }
 
@@ -356,36 +359,6 @@
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
-    }
-
-    /* ===== ВЛОЖЕННЫЕ СООБЩЕНИЯ ===== */
-    .chat-message__children {
-      margin-left: 3rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      margin-top: 0.5rem;
-    }
-
-    .chat-message--user .chat-message__children {
-      margin-left: 0;
-      margin-right: 3rem;
-    }
-
-    /* Дочерние сообщения имеют меньший отступ */
-    .chat-message__children .chat-message {
-      max-width: 70%;
-    }
-
-    .chat-message__children .chat-message__avatar {
-      width: 28px;
-      height: 28px;
-      font-size: 0.8rem;
-    }
-
-    .chat-message__children .chat-message__bubble {
-      padding: 0.6rem 0.85rem;
-      font-size: 0.9rem;
     }
 
     /* ===== ПРИВЕТСТВЕННЫЙ ЭКРАН ===== */
@@ -452,14 +425,6 @@
         margin-top: 0.75rem;
         padding: 0.5rem 0.75rem;
       }
-      
-      .chat-message__children {
-        margin-left: 2rem;
-      }
-      
-      .chat-message--user .chat-message__children {
-        margin-right: 2rem;
-      }
     }
 
     @media (max-width: 576px) {
@@ -475,16 +440,6 @@
       
       .chat-message__bubble {
         padding: 0.6rem 0.85rem;
-      }
-      
-      .chat-message__children .chat-message {
-        max-width: 85%;
-      }
-      
-      .chat-message__children .chat-message__avatar {
-        width: 24px;
-        height: 24px;
-        font-size: 0.7rem;
       }
     }
 
@@ -551,10 +506,10 @@
   <div class="chat-content">
     <!-- ОСНОВНАЯ ЛЕНТА СООБЩЕНИЙ -->
     <div class="chat-messages">
-      {% if threaded_posts %}
+      {% if posts %}
         <div class="chat-thread">
-          {% for post in threaded_posts %}
-            <!-- Включение шаблона сообщения с рекурсивной обработкой вложенных сообщений -->
+          {% for post in posts %}
+            <!-- Включение шаблона сообщения -->
             {% include "reading_clubs/includes/chat_message.html" with post=post %}
           {% endfor %}
         </div>
