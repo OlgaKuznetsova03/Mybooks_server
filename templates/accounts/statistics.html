@@ -309,6 +309,16 @@
         <i class="bi bi-person-circle me-1"></i>Профиль
       </a>
       <a class="btn btn-primary" href="{% url 'book_list' %}"><i class="bi bi-book-half me-1"></i>Каталог книг</a>
+      <a
+        class="btn btn-outline-primary book-challenge-toggle"
+        href="#bookChallengeCollapse"
+        data-bs-toggle="collapse"
+        role="button"
+        aria-expanded="false"
+        aria-controls="bookChallengeCollapse"
+      >
+        <i class="bi bi-stars me-1"></i>Книжный вызов
+      </a>
     </div>
   </div>
 
@@ -633,7 +643,7 @@
     </div>
   </div>
 
-  <div class="card border-0 shadow-sm mb-4 stat-card book-challenge-card">
+  <div class="card border-0 shadow-sm mb-4 stat-card book-challenge-card" id="book-challenge">
     <div class="card-body">
       <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
         <div>
@@ -641,9 +651,6 @@
           <h3 class="h5 mb-1">Книжный вызов {{ book_challenge.year }}</h3>
           <p class="text-muted mb-0">Планируйте чтение на год и следите за прогрессом.</p>
         </div>
-        <button class="btn btn-outline-primary book-challenge-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#bookChallengeCollapse" aria-expanded="false" aria-controls="bookChallengeCollapse">
-          <i class="bi bi-stars me-1"></i>Книжный вызов
-        </button>
       </div>
 
       <div class="collapse mt-4" id="bookChallengeCollapse">
@@ -651,6 +658,16 @@
           <form method="post" class="row g-3 align-items-end">
             {% csrf_token %}
             <input type="hidden" name="form_type" value="book_challenge">
+            <div class="col-12 col-md-6 col-lg-3">
+              <label for="bookChallengeYear" class="form-label">Год</label>
+              <select class="form-select" id="bookChallengeYear" name="book_challenge_year">
+                {% for year in book_challenge.available_years %}
+                  <option value="{{ year }}" {% if year == book_challenge.year %}selected{% endif %}>
+                    {{ year }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
             <div class="col-12 col-md-6 col-lg-4">
               <label for="bookChallengeGoal" class="form-label">План книг на {{ book_challenge.year }}</label>
               <input
@@ -668,14 +685,14 @@
               <button class="btn btn-primary w-100" type="submit">Сохранить цель</button>
             </div>
             {% if book_challenge.goal %}
-              <div class="col-12 col-lg-5 text-muted small">
+              <div class="col-12 text-muted small">
                 Уже прочитано {{ book_challenge.year_books_count }}
                 {{ book_challenge.year_books_count|ru_pluralize:"книга,книги,книг" }}.
                 До цели осталось {{ book_challenge.books_remaining }}
                 {{ book_challenge.books_remaining|ru_pluralize:"книга,книги,книг" }}.
               </div>
             {% else %}
-              <div class="col-12 col-lg-5 text-muted small">
+              <div class="col-12 text-muted small">
                 С начала года прочитано {{ book_challenge.year_books_count }}
                 {{ book_challenge.year_books_count|ru_pluralize:"книга,книги,книг" }}.
               </div>
