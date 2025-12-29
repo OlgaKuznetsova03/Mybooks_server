@@ -15,7 +15,7 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from .models import PremiumPayment
+from .models import PremiumPayment, BookChallenge
 from django.db.models import Count, Sum, Prefetch
 from django.http import JsonResponse, Http404, HttpResponse, QueryDict, HttpRequest
 from django.urls import reverse
@@ -524,6 +524,142 @@ def _resolve_stats_period(params, read_items, reading_logs=None):
     }
 
 
+def _build_book_challenge_context(user: User) -> dict[str, object]:
+    today = timezone.localdate()
+    year = today.year
+    start = date(year, 1, 1)
+    end = date(year, 12, 31)
+
+    challenge = BookChallenge.objects.filter(user=user, year=year).first()
+    goal = challenge.goal if challenge and challenge.goal else None
+
+    read_items = (
+        ShelfItem.objects.filter(
+            shelf__user=user,
+            shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+            added_at__date__gte=start,
+            added_at__date__lte=end,
+        )
+        .select_related("book")
+        .order_by("-added_at")
+    )
+    year_books_count = read_items.count()
+
+    monthly_counts_qs = (
+        read_items.values("added_at__month")
+        .annotate(total=Count("id"))
+        .values("added_at__month", "total")
+    )
+    monthly_counts = {
+        entry["added_at__month"]: entry["total"]
+        for entry in monthly_counts_qs
+        if entry.get("added_at__month")
+    }
+
+    monthly_covers: dict[int, list[dict[str, object]]] = {month: [] for month in range(1, 13)}
+    max_covers = 6
+    for item in read_items:
+        month = item.added_at.month
+        if month > today.month:
+            continue
+        covers = monthly_covers[month]
+        if len(covers) >= max_covers:
+            continue
+        cover_url = _resolve_cover(item.book)
+        if cover_url:
+            covers.append({"book": item.book, "cover_url": cover_url})
+
+    month_labels = [MONTH_NAMES[month] for month in range(1, 13)]
+    month_values = [monthly_counts.get(month, 0) for month in range(1, 13)]
+
+    days_elapsed = max(1, (today - start).days + 1)
+    logs_total_pages = (
+        ReadingLog.objects.filter(
+            progress__user=user,
+            log_date__gte=start,
+            log_date__lte=today,
+        ).aggregate(total=Sum("pages_equivalent"))
+    ).get("total")
+
+    total_pages = Decimal("0")
+    if logs_total_pages:
+        total_pages = Decimal(str(logs_total_pages))
+    else:
+        book_ids = [item.book_id for item in read_items]
+        progress_map = {
+            progress.book_id: progress
+            for progress in BookProgress.objects.filter(
+                user=user,
+                event__isnull=True,
+                book_id__in=book_ids,
+            )
+        }
+        for item in read_items:
+            progress = progress_map.get(item.book_id)
+            if progress and progress.is_audiobook:
+                continue
+            pages = 0
+            if progress:
+                pages = progress.get_effective_total_pages() or 0
+            else:
+                pages = item.book.get_total_pages() or 0
+            if pages:
+                total_pages += Decimal(str(pages))
+
+    pages_average = None
+    if total_pages > 0:
+        pages_average = (
+            total_pages
+            / Decimal(days_elapsed)
+        ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    avg_pages_per_day = int(pages_average) if pages_average else None
+
+    books_remaining = None
+    monthly_goal = None
+    target_by_month = None
+    books_needed_this_month = None
+    recommended_pages = None
+    if goal:
+        books_remaining = max(goal - year_books_count, 0)
+        monthly_goal = int(math.ceil(goal / 12))
+        target_by_month = int(math.ceil(goal * today.month / 12))
+        books_needed_this_month = max(target_by_month - year_books_count, 0)
+        if avg_pages_per_day and books_remaining > 0:
+            days_remaining = max(1, (end - today).days + 1)
+            max_pages_total = avg_pages_per_day * days_remaining
+            recommended_pages = int(max_pages_total // books_remaining) if max_pages_total > 0 else 0
+
+    monthly_summaries = []
+    for month in range(1, today.month + 1):
+        total = monthly_counts.get(month, 0)
+        covers = monthly_covers.get(month, [])
+        monthly_summaries.append(
+            {
+                "month": month,
+                "label": MONTH_NAMES[month],
+                "total": total,
+                "covers": covers,
+                "extra_count": max(total - len(covers), 0),
+            }
+        )
+
+    return {
+        "year": year,
+        "goal": goal,
+        "year_books_count": year_books_count,
+        "books_remaining": books_remaining,
+        "monthly_goal": monthly_goal,
+        "target_by_month": target_by_month,
+        "books_needed_this_month": books_needed_this_month,
+        "avg_pages_per_day": avg_pages_per_day,
+        "recommended_pages": recommended_pages,
+        "month_labels": month_labels,
+        "month_values": month_values,
+        "current_month_label": MONTH_NAMES[today.month],
+        "monthly_summaries": monthly_summaries,
+    }
+
+
 def _collect_home_library_summary(user: User):
     shelf = Shelf.objects.filter(user=user, name=DEFAULT_HOME_LIBRARY_SHELF).first()
     summary = {
@@ -919,6 +1055,31 @@ def _build_absolute_url(request, url: str | None) -> str | None:
 
 @login_required
 def statistics_overview(request):
+    if request.method == "POST" and request.POST.get("form_type") == "book_challenge":
+        raw_goal = (request.POST.get("book_challenge_goal") or "").strip()
+        today = timezone.localdate()
+        challenge = BookChallenge.objects.filter(user=request.user, year=today.year).first()
+        if raw_goal:
+            try:
+                goal_value = int(raw_goal)
+            except (TypeError, ValueError):
+                goal_value = None
+            if goal_value and goal_value > 0:
+                BookChallenge.objects.update_or_create(
+                    user=request.user,
+                    year=today.year,
+                    defaults={"goal": goal_value},
+                )
+            elif challenge:
+                challenge.delete()
+        elif challenge:
+            challenge.delete()
+
+        redirect_url = request.path
+        if request.GET:
+            redirect_url = f"{request.path}?{request.GET.urlencode()}"
+        return redirect(redirect_url)
+
     stats_payload = _collect_profile_stats(request.user, request.GET)
 
     stats_data = stats_payload.get("stats", {})
@@ -926,6 +1087,7 @@ def statistics_overview(request):
     context = {
         "stats": stats_data,
         "stats_period": stats_payload.get("stats_period", {}),
+        "book_challenge": _build_book_challenge_context(request.user),
         "genre_pairs": list(
             zip(stats_data.get("genre_labels", []), stats_data.get("genre_values", []))
         ),

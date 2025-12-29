@@ -177,6 +177,30 @@ class Profile(models.Model):
             )
 
 
+class BookChallenge(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="book_challenges",
+    )
+    year = models.PositiveIntegerField()
+    goal = models.PositiveIntegerField(
+        validators=[MinValueValidator(1)],
+        null=True,
+        blank=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=("user", "year"), name="unique_book_challenge_year")
+        ]
+
+    def __str__(self) -> str:
+        return f"BookChallenge({self.user.username}, {self.year}, {self.goal})"
+
+
 class CoinTransaction(models.Model):
     class Type(models.TextChoices):
         AD_REWARD = ("ad_reward", "Награда за просмотр рекламы")
