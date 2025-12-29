@@ -66,8 +66,7 @@ def get_unread_discussion_topics(user):
             reading__participants__user=user,
             reading__participants__status=ReadingParticipant.Status.APPROVED,
         )
-        .select_related("reading")
-        .prefetch_related("reading__book")
+        .prefetch_related("reading", "reading__book")
         .annotate(
             last_read_at=Coalesce(
                 Subquery(last_read_subquery),
