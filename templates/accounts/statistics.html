@@ -322,6 +322,178 @@
     </div>
   </div>
 
+  <div class="card border-0 shadow-sm mb-4 stat-card book-challenge-card" id="book-challenge">
+    <div class="card-body">
+      <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+        <div>
+          <p class="text-uppercase text-muted small mb-1">Личный план</p>
+          <h3 class="h5 mb-1">Книжный вызов {{ book_challenge.year }}</h3>
+          <p class="text-muted mb-0">Планируйте чтение на год и следите за прогрессом.</p>
+        </div>
+      </div>
+
+      <div class="collapse mt-4" id="bookChallengeCollapse">
+        <div class="d-flex justify-content-end mb-3">
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            data-bs-toggle="collapse"
+            data-bs-target="#bookChallengeCollapse"
+            aria-controls="bookChallengeCollapse"
+          >
+            Свернуть
+          </button>
+        </div>
+        <div class="book-challenge-summary mb-4">
+          <form method="post" class="row g-3 align-items-end">
+            {% csrf_token %}
+              <input type="hidden" name="form_type" value="book_challenge">
+              <div class="col-12 col-md-4 col-lg-3">
+              <label for="bookChallengeYear" class="form-label">Год</label>
+              <select class="form-select" id="bookChallengeYear" name="book_challenge_year">
+              {% for year in book_challenge.available_years %}
+              <option value="{{ year }}" {% if year == book_challenge.year %}selected{% endif %}>
+              {{ year }}
+             </option>
+           {% endfor %}
+        </select>
+    </div>
+    <div class="col-12 col-md-8 col-lg-6">
+      <label for="bookChallengeGoal" class="form-label">План книг на {{ book_challenge.year }}</label>
+      <input
+        type="number"
+        min="1"
+        class="form-control"
+        id="bookChallengeGoal"
+        name="book_challenge_goal"
+        placeholder="Например, 50"
+        value="{{ book_challenge.goal|default_if_none:'' }}"
+      >
+      <div class="form-text">Если оставить пустым, будет показана только фактическая статистика.</div>
+    </div>
+    <div class="col-12 col-md-12 col-lg-3">
+      <button class="btn btn-primary w-100 h-100" type="submit" style="min-height: 42px;">Сохранить цель</button>
+    </div>
+            {% if book_challenge.goal %}
+              <div class="col-12 text-muted small">
+                Уже прочитано {{ book_challenge.year_books_count }}
+                {{ book_challenge.year_books_count|ru_pluralize:"книга,книги,книг" }}.
+                Осталось {{ book_challenge.books_remaining }}
+                {{ book_challenge.books_remaining|ru_pluralize:"книга,книги,книг" }}.
+              </div>
+            {% else %}
+              <div class="col-12 text-muted small">
+                С начала года прочитано {{ book_challenge.year_books_count }}
+                {{ book_challenge.year_books_count|ru_pluralize:"книга,книги,книг" }}.
+              </div>
+            {% endif %}
+          </form>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-md-6 col-lg-3">
+            <div class="book-challenge-stat h-100">
+              <div class="book-challenge-stat-value">{{ book_challenge.year_books_count }}</div>
+              <div class="text-muted small">Книг за {{ book_challenge.year }}</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-6 col-lg-3">
+            <div class="book-challenge-stat h-100">
+              <div class="book-challenge-stat-value">
+                {{ book_challenge.avg_pages_per_day|default_if_none:0 }}
+              </div>
+              <div class="text-muted small">Средняя скорость, стр./день</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-6 col-lg-3">
+            <div class="book-challenge-stat h-100">
+              <div class="book-challenge-stat-value">
+                {% if book_challenge.goal %}
+                  {{ book_challenge.books_needed_this_month }}
+                {% else %}
+                  0
+                {% endif %}
+              </div>
+              <div class="text-muted small">Книг осталось в этом месяце</div>
+            </div>
+          </div>
+          <div class="col-12 col-md-6 col-lg-3">
+            <div class="book-challenge-stat h-100">
+              <div class="book-challenge-stat-value">
+                {% if book_challenge.recommended_pages %}
+                  {{ book_challenge.recommended_pages }}
+                {% else %}
+                  0
+                {% endif %}
+              </div>
+              <div class="text-muted small">Максимум страниц на книгу</div>
+            </div>
+          </div>
+        </div>
+
+        {% if book_challenge.goal %}
+          <p class="text-muted mb-3">
+            План на месяц: {{ book_challenge.monthly_goal }}
+            {{ book_challenge.monthly_goal|ru_pluralize:"книга,книги,книг" }}.
+            К концу {{ book_challenge.current_month_label|default:"месяца" }} нужно быть на отметке
+            {{ book_challenge.target_by_month }}
+            {{ book_challenge.target_by_month|ru_pluralize:"книга,книги,книг" }}.
+          </p>
+        {% endif %}
+
+        <div class="row g-3 align-items-center mb-4">
+          <div class="col-12 col-lg-7">
+            <div class="ratio ratio-16x9 chart-container">
+              <canvas id="bookChallengeChart"></canvas>
+            </div>
+          </div>
+          <div class="col-12 col-lg-5">
+            <div class="book-challenge-stat h-100">
+              <h4 class="h6 mb-2">Как вписаться в план</h4>
+              {% if book_challenge.goal %}
+                {% if book_challenge.recommended_pages %}
+                  <p class="mb-2">
+                    При вашей средней скорости чтения стоит выбирать книги объёмом не более
+                    <strong>{{ book_challenge.recommended_pages }}</strong> страниц.
+                  </p>
+                {% else %}
+                  <p class="mb-2">Добавьте данные о чтении, чтобы получить рекомендацию по объёму книг.</p>
+                {% endif %}
+                <p class="mb-0 text-muted small">
+                  Расчёт обновляется каждый раз при открытии страницы и учитывает текущую скорость чтения.
+                </p>
+              {% else %}
+                <p class="mb-2">Задайте цель, чтобы увидеть подсказки по объёму книг и плану на месяц.</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <h4 class="h6 mb-3">Обложки по месяцам</h4>
+        <div class="book-challenge-month-grid">
+          {% for month in book_challenge.monthly_summaries %}
+            <div class="book-challenge-month-card">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <strong>{{ month.label }}</strong>
+                <span class="text-muted small">{{ month.total }}</span>
+              </div>
+              <div class="book-challenge-month-covers">
+                {% for cover in month.covers %}
+                  <img src="{{ cover.cover_url }}" alt="Обложка {{ cover.book.title }}">
+                {% empty %}
+                  <span class="text-muted small">Нет книг</span>
+                {% endfor %}
+                {% if month.extra_count %}
+                  <div class="book-challenge-month-extra">+{{ month.extra_count }}</div>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="card border-0 shadow-sm mb-4 stat-card">
     <div class="card-body period-selector">
       {% with current_period=stats_period.period|default:'month' %}
@@ -643,166 +815,6 @@
     </div>
   </div>
 
-  <div class="card border-0 shadow-sm mb-4 stat-card book-challenge-card" id="book-challenge">
-    <div class="card-body">
-      <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-        <div>
-          <p class="text-uppercase text-muted small mb-1">Личный план</p>
-          <h3 class="h5 mb-1">Книжный вызов {{ book_challenge.year }}</h3>
-          <p class="text-muted mb-0">Планируйте чтение на год и следите за прогрессом.</p>
-        </div>
-      </div>
-
-      <div class="collapse mt-4" id="bookChallengeCollapse">
-        <div class="book-challenge-summary mb-4">
-          <form method="post" class="row g-3 align-items-end">
-            {% csrf_token %}
-            <input type="hidden" name="form_type" value="book_challenge">
-            <div class="col-12 col-md-6 col-lg-3">
-              <label for="bookChallengeYear" class="form-label">Год</label>
-              <select class="form-select" id="bookChallengeYear" name="book_challenge_year">
-                {% for year in book_challenge.available_years %}
-                  <option value="{{ year }}" {% if year == book_challenge.year %}selected{% endif %}>
-                    {{ year }}
-                  </option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-12 col-md-6 col-lg-4">
-              <label for="bookChallengeGoal" class="form-label">План книг на {{ book_challenge.year }}</label>
-              <input
-                type="number"
-                min="1"
-                class="form-control"
-                id="bookChallengeGoal"
-                name="book_challenge_goal"
-                placeholder="Например, 50"
-                value="{{ book_challenge.goal|default_if_none:'' }}"
-              >
-              <div class="form-text">Если оставить пустым, будет показана только фактическая статистика.</div>
-            </div>
-            <div class="col-12 col-md-6 col-lg-3">
-              <button class="btn btn-primary w-100" type="submit">Сохранить цель</button>
-            </div>
-            {% if book_challenge.goal %}
-              <div class="col-12 text-muted small">
-                Уже прочитано {{ book_challenge.year_books_count }}
-                {{ book_challenge.year_books_count|ru_pluralize:"книга,книги,книг" }}.
-                До цели осталось {{ book_challenge.books_remaining }}
-                {{ book_challenge.books_remaining|ru_pluralize:"книга,книги,книг" }}.
-              </div>
-            {% else %}
-              <div class="col-12 text-muted small">
-                С начала года прочитано {{ book_challenge.year_books_count }}
-                {{ book_challenge.year_books_count|ru_pluralize:"книга,книги,книг" }}.
-              </div>
-            {% endif %}
-          </form>
-        </div>
-
-        <div class="row g-3 mb-4">
-          <div class="col-12 col-md-6 col-lg-3">
-            <div class="book-challenge-stat h-100">
-              <div class="book-challenge-stat-value">{{ book_challenge.year_books_count }}</div>
-              <div class="text-muted small">Книг за {{ book_challenge.year }}</div>
-            </div>
-          </div>
-          <div class="col-12 col-md-6 col-lg-3">
-            <div class="book-challenge-stat h-100">
-              <div class="book-challenge-stat-value">
-                {{ book_challenge.avg_pages_per_day|default_if_none:0 }}
-              </div>
-              <div class="text-muted small">Средняя скорость, стр./день</div>
-            </div>
-          </div>
-          <div class="col-12 col-md-6 col-lg-3">
-            <div class="book-challenge-stat h-100">
-              <div class="book-challenge-stat-value">
-                {% if book_challenge.goal %}
-                  {{ book_challenge.books_needed_this_month }}
-                {% else %}
-                  0
-                {% endif %}
-              </div>
-              <div class="text-muted small">Книг осталось в этом месяце</div>
-            </div>
-          </div>
-          <div class="col-12 col-md-6 col-lg-3">
-            <div class="book-challenge-stat h-100">
-              <div class="book-challenge-stat-value">
-                {% if book_challenge.recommended_pages %}
-                  {{ book_challenge.recommended_pages }}
-                {% else %}
-                  0
-                {% endif %}
-              </div>
-              <div class="text-muted small">Максимум страниц на книгу</div>
-            </div>
-          </div>
-        </div>
-
-        {% if book_challenge.goal %}
-          <p class="text-muted mb-3">
-            План на месяц: {{ book_challenge.monthly_goal }}
-            {{ book_challenge.monthly_goal|ru_pluralize:"книга,книги,книг" }}.
-            К концу {{ book_challenge.current_month_label|default:"месяца" }} нужно быть на отметке
-            {{ book_challenge.target_by_month }}
-            {{ book_challenge.target_by_month|ru_pluralize:"книга,книги,книг" }}.
-          </p>
-        {% endif %}
-
-        <div class="row g-3 align-items-center mb-4">
-          <div class="col-12 col-lg-7">
-            <div class="ratio ratio-16x9 chart-container">
-              <canvas id="bookChallengeChart"></canvas>
-            </div>
-          </div>
-          <div class="col-12 col-lg-5">
-            <div class="book-challenge-stat h-100">
-              <h4 class="h6 mb-2">Как вписаться в план</h4>
-              {% if book_challenge.goal %}
-                {% if book_challenge.recommended_pages %}
-                  <p class="mb-2">
-                    При вашей средней скорости чтения стоит выбирать книги объёмом не более
-                    <strong>{{ book_challenge.recommended_pages }}</strong> страниц.
-                  </p>
-                {% else %}
-                  <p class="mb-2">Добавьте данные о чтении, чтобы получить рекомендацию по объёму книг.</p>
-                {% endif %}
-                <p class="mb-0 text-muted small">
-                  Расчёт обновляется каждый раз при открытии страницы и учитывает текущую скорость чтения.
-                </p>
-              {% else %}
-                <p class="mb-2">Задайте цель, чтобы увидеть подсказки по объёму книг и плану на месяц.</p>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-
-        <h4 class="h6 mb-3">Обложки по месяцам</h4>
-        <div class="book-challenge-month-grid">
-          {% for month in book_challenge.monthly_summaries %}
-            <div class="book-challenge-month-card">
-              <div class="d-flex align-items-center justify-content-between mb-2">
-                <strong>{{ month.label }}</strong>
-                <span class="text-muted small">{{ month.total }}</span>
-              </div>
-              <div class="book-challenge-month-covers">
-                {% for cover in month.covers %}
-                  <img src="{{ cover.cover_url }}" alt="Обложка {{ cover.book.title }}">
-                {% empty %}
-                  <span class="text-muted small">Нет книг</span>
-                {% endfor %}
-                {% if month.extra_count %}
-                  <div class="book-challenge-month-extra">+{{ month.extra_count }}</div>
-                {% endif %}
-              </div>
-            </div>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-  </div>
 
   {% if stats.genre_labels or stats.format_labels or book_challenge.month_values %}
     {{ book_challenge.month_labels|json_script:"book-challenge-month-labels" }}
