@@ -60,7 +60,7 @@ from .models import Author, Book, BookEditRequest, Genre, Rating, ISBNModel
 from .forms import BookEditRequestForm, BookForm, RatingForm
 from .services import EditionRegistrationResult, register_book_edition
 from .api_clients import isbndb_client
-from .utils import normalize_isbn, yo_equivalent_iregex
+from .utils import enhance_cover_url_for_pdf, normalize_isbn, yo_equivalent_iregex
 
 
 logger = logging.getLogger(__name__)
@@ -1215,7 +1215,7 @@ def author_tracker_pdf(request, slug):
             "title": book.title or "Без названия",
             "series": book.series,
             "series_order": book.series_order,
-            "cover_url": _absolute_cover_url(request, book),
+            "cover_url": enhance_cover_url_for_pdf(_absolute_cover_url(request, book)),
         }
         for book in books_qs
     ]
@@ -1307,15 +1307,16 @@ def _update_home_library(
     if fields_to_update:
         entry.save(update_fields=[*fields_to_update, "updated_at"])
 
-    if mark_as_read:
-        move_book_to_read_shelf(request.user, book, read_date=effective_read_date)
-
-    return {
-        "shelf": home_library_shelf,
-        "item": home_library_item,
-        "entry": entry,
-        "created": created,
-        "entry_created": entry_created,
+    cover_url = book.get_cover_url()
+        if cover_url:
+            cover_url = str(cover_url).strip()
+            if cover_url.startswith("//"):
+                cover_url = f"{request.scheme}:{cover_url}"
+            elif cover_url.startswith("/"):
+                cover_url = request.build_absolute_uri(cover_url)
+            cover_url = enhance_cover_url_for_pdf(cover_url)
+        else:
+            cover_url = None
         "purchase_updated": purchase_updated,
         "read_updated": read_updated,
         "read_cleared": read_cleared,

@@ -6,7 +6,7 @@ import re
 import secrets
 from typing import Iterable
 from urllib.error import URLError
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlsplit, parse_qs, urlencode, urlunsplit
 from urllib.request import Request, urlopen
 
 from django.core.files.base import ContentFile
@@ -143,3 +143,46 @@ def download_cover_from_url(
 
     filename = f"metadata_{secrets.token_hex(8)}{extension}"
     return ContentFile(data, name=filename)
+
+
+_OPEN_LIBRARY_COVER_RE = re.compile(
+    r"(?P<prefix>https?://covers\.openlibrary\.org/b/[^/]+/[^?]+)-(?P<size>[smlSML])(?P<suffix>\.[a-zA-Z0-9]+)",
+)
+
+
+def enhance_cover_url_for_pdf(url: str | None) -> str | None:
+    """Return a higher-resolution cover URL for PDF printing when possible."""
+
+    if not url:
+        return None
+    raw_url = str(url).strip()
+    if not raw_url:
+        return None
+
+    open_library_match = _OPEN_LIBRARY_COVER_RE.match(raw_url)
+    if open_library_match:
+        return (
+            f"{open_library_match.group('prefix')}-L{open_library_match.group('suffix')}"
+        )
+
+    parsed = urlsplit(raw_url)
+    if "books.google." in parsed.netloc and parsed.path.endswith("/books/content"):
+        query = parse_qs(parsed.query)
+        zoom_values = query.get("zoom")
+        try:
+            current_zoom = int(zoom_values[0]) if zoom_values else 1
+        except (TypeError, ValueError):
+            current_zoom = 1
+        if current_zoom < 2:
+            query["zoom"] = ["2"]
+            return urlunsplit(
+                (
+                    parsed.scheme,
+                    parsed.netloc,
+                    parsed.path,
+                    urlencode(query, doseq=True),
+                    parsed.fragment,
+                )
+            )
+
+    return raw_url

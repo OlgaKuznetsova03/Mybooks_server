@@ -46,6 +46,7 @@ from shelves.services import (
     ensure_default_shelves,
 )
 from books.models import Rating, Book
+from books.utils import enhance_cover_url_for_pdf
 from user_ratings.models import LeaderboardPeriod, UserPointEvent
 
 from .forms import SignUpForm, ProfileForm, RoleForm, PremiumPurchaseForm
@@ -1413,7 +1414,9 @@ def profile_monthly_print(request):
                     "id": book.id,
                     "title": book.title,
                     "authors": book_authors,
-                    "cover_url": _build_absolute_url(request, entry.get("cover_url")),
+                    "cover_url": enhance_cover_url_for_pdf(
+                        _build_absolute_url(request, entry.get("cover_url"))
+                    ),
                     "format": entry.get("format"),
                     "has_review": entry.get("has_review"),
                     "review_url": entry.get("review_url"),
