@@ -679,7 +679,8 @@ def _build_book_challenge_context(user: User, year: int, available_years: list[i
     year_books_count = read_items.count()
 
     monthly_counts_qs = (
-        read_items.values("added_at__month")
+        read_items.order_by()
+        .values("added_at__month")
         .annotate(total=Count("id"))
         .values("added_at__month", "total")
     )
