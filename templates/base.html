@@ -325,6 +325,12 @@
       </li>
       {% if request.user.is_authenticated %}
       <li class="nav-item">
+        <a class="nav-link d-flex align-items-center gap-2" href="{% url 'statistics_overview' %}">
+          <i class="bi bi-bar-chart"></i>
+          <span>Статистика</span>
+        </a>
+      </li>
+      <li class="nav-item">
         <a class="nav-link d-flex align-items-center gap-2" href="{% url 'shelves:home_library' %}">
           <i class="bi bi-house-heart"></i>
           <span>Домашняя библиотека</span>

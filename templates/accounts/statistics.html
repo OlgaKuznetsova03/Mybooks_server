@@ -633,24 +633,31 @@
       <div class="card border-0 shadow-sm mb-4 stat-card">
         <div class="card-body">
           <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
-            <div>
-              <h3 class="h6 mb-1">Календарь чтения</h3>
-              <p class="text-muted small mb-0">Сколько вы прочитали в этом месяце?</p>
-            </div>
-            <div class="d-flex flex-column flex-md-row align-items-md-center gap-2">
-              <div class="btn-group btn-group-sm" role="group" aria-label="Навигация по месяцам">
-                <a class="btn btn-outline-secondary" href="{{ calendar.prev_url }}" aria-label="Предыдущий месяц">
-                  <i class="bi bi-chevron-left"></i>
-                </a>
-                <span class="btn btn-light disabled text-nowrap">
-                  {{ calendar.month_name }} {{ calendar.year }}
-                </span>
-                <a class="btn btn-outline-secondary" href="{{ calendar.next_url }}" aria-label="Следующий месяц">
-                  <i class="bi bi-chevron-right"></i>
+              <div>
+                <h3 class="h6 mb-1">Календарь чтения</h3>
+                <p class="text-muted small mb-0">Сколько вы прочитали в этом месяце?</p>
+              </div>
+              <div class="d-flex flex-column flex-md-row align-items-md-center gap-2">
+                <div class="btn-group btn-group-sm" role="group" aria-label="Навигация по месяцам">
+                  <a class="btn btn-outline-secondary" href="{{ calendar.prev_url }}" aria-label="Предыдущий месяц">
+                    <i class="bi bi-chevron-left"></i>
+                  </a>
+                  <span class="btn btn-light disabled text-nowrap">
+                    {{ calendar.month_name }} {{ calendar.year }}
+                  </span>
+                  <a class="btn btn-outline-secondary" href="{{ calendar.next_url }}" aria-label="Следующий месяц">
+                    <i class="bi bi-chevron-right"></i>
+                  </a>
+                </div>
+                <a
+                  class="btn btn-outline-secondary btn-sm"
+                  href="{% url 'profile_monthly_print' %}?year={{ calendar.year }}&amp;month={{ calendar.month }}"
+                  download
+                >
+                  <i class="bi bi-printer me-1"></i>Скачать PDF отчёт
                 </a>
               </div>
             </div>
-          </div>
           <button
             type="button"
             class="btn btn-outline-primary btn-sm w-100 d-sm-none mb-3"
