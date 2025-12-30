@@ -658,7 +658,7 @@ def _resolve_stats_period(params, read_items, reading_logs=None):
 
 
 def _build_book_challenge_context(user: User, year: int, available_years: list[int]) -> dict[str, object]:
-    today = timezone.localdate()␊
+    today = timezone.localdate()
     start = date(year, 1, 1)
     end = date(year, 12, 31)
     reference_date = min(max(today, start), end)
@@ -1156,7 +1156,7 @@ def statistics_overview(request):
         raw_goal = (request.POST.get("book_challenge_goal") or "").strip()
         challenge = BookChallenge.objects.filter(user=request.user, year=challenge_year).first()
         if raw_goal:
-            try:␊
+            try:
                 goal_value = int(raw_goal)
             except (TypeError, ValueError):
                 goal_value = None

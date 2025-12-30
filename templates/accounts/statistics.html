@@ -1,4 +1,4 @@
-{% extends "base.html" %}␊
+{% extends "base.html" %}
 {% load static shelf_extras %}
 
 {% block title %}{{ page_title|default:"Статистика чтения" }}{% endblock %}
@@ -330,7 +330,7 @@
             <p class="text-uppercase text-muted small mb-1">Выбор периода</p>
             <p class="mb-0">Настройте период статистики, чтобы увидеть нужные данные.</p>
           </div>
-          <button␊
+          <button
             type="button"
             class="btn btn-outline-primary w-100 w-md-auto"
             id="periodFiltersToggleButton"
@@ -550,7 +550,7 @@
               </div>
               <div class="col-6 col-md-3">
                 <div class="stat-value">{{ calendar.month_totals.avg_pages|default_if_none:0|floatformat:0 }}</div>
-                <div class="stat-label">Среднее страниц в день</div>␊
+                <div class="stat-label">Среднее страниц в день</div>
               </div>
             </div>
           </div>
