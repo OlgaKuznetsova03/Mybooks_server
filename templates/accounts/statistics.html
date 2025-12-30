@@ -11,6 +11,10 @@
     --profile-accent-color-dark: #b07c63;
     --profile-accent-color-text: #011627;
     --profile-glow: rgba(194, 150, 129, 0.3);
+    --profile-soft-rose: rgba(194, 150, 129, 0.22);
+    --profile-soft-sage: rgba(146, 173, 164, 0.2);
+    --profile-soft-sand: rgba(210, 196, 170, 0.2);
+    --profile-soft-lilac: rgba(158, 129, 133, 0.2);
   }
 
   .profile-theme {
@@ -224,16 +228,54 @@
     border: 1px solid rgba(194, 150, 129, 0.15);
   }
 
+  .book-challenge-form {
+    align-items: flex-start;
+  }
+
   .book-challenge-stat {
     background: rgba(255, 255, 255, 0.7);
     border-radius: 0.9rem;
     padding: 0.85rem 1rem;
     border: 1px solid rgba(194, 150, 129, 0.12);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .book-challenge-stat::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0));
+    pointer-events: none;
+  }
+
+  .book-challenge-stat--books {
+    background: linear-gradient(135deg, var(--profile-soft-rose), rgba(255, 255, 255, 0.8));
+  }
+
+  .book-challenge-stat--speed {
+    background: linear-gradient(135deg, var(--profile-soft-sage), rgba(255, 255, 255, 0.85));
+  }
+
+  .book-challenge-stat--monthly {
+    background: linear-gradient(135deg, var(--profile-soft-sand), rgba(255, 255, 255, 0.85));
+  }
+
+  .book-challenge-stat--max {
+    background: linear-gradient(135deg, var(--profile-soft-lilac), rgba(255, 255, 255, 0.85));
   }
 
   .book-challenge-stat-value {
     font-size: 1.35rem;
     font-weight: 700;
+  }
+
+  .book-challenge-form .form-text {
+    margin-top: 0.35rem;
+  }
+
+  .book-challenge-submit {
+    min-height: 42px;
   }
 
   .book-challenge-month-grid {
@@ -345,7 +387,7 @@
           </button>
         </div>
         <div class="book-challenge-summary mb-4">
-          <form method="post" class="row g-3 align-items-end">
+          <form method="post" class="row g-3 book-challenge-form">
             {% csrf_token %}
               <input type="hidden" name="form_type" value="book_challenge">
               <div class="col-12 col-md-4 col-lg-3">
@@ -369,10 +411,12 @@
         placeholder="Например, 50"
         value="{{ book_challenge.goal|default_if_none:'' }}"
       >
-      <div class="form-text">Если оставить пустым, будет показана только фактическая статистика.</div>
     </div>
     <div class="col-12 col-md-12 col-lg-3">
-      <button class="btn btn-primary w-100 h-100" type="submit" style="min-height: 42px;">Сохранить цель</button>
+      <button class="btn btn-primary w-100 book-challenge-submit" type="submit">Сохранить цель</button>
+    </div>
+    <div class="col-12">
+      <div class="form-text">Если оставить пустым, будет показана только фактическая статистика.</div>
     </div>
             {% if book_challenge.goal %}
               <div class="col-12 text-muted small">
@@ -392,13 +436,13 @@
 
         <div class="row g-3 mb-4">
           <div class="col-12 col-md-6 col-lg-3">
-            <div class="book-challenge-stat h-100">
+            <div class="book-challenge-stat book-challenge-stat--books h-100">
               <div class="book-challenge-stat-value">{{ book_challenge.year_books_count }}</div>
               <div class="text-muted small">Книг за {{ book_challenge.year }}</div>
             </div>
           </div>
           <div class="col-12 col-md-6 col-lg-3">
-            <div class="book-challenge-stat h-100">
+            <div class="book-challenge-stat book-challenge-stat--speed h-100">
               <div class="book-challenge-stat-value">
                 {{ book_challenge.avg_pages_per_day|default_if_none:0 }}
               </div>
@@ -406,7 +450,7 @@
             </div>
           </div>
           <div class="col-12 col-md-6 col-lg-3">
-            <div class="book-challenge-stat h-100">
+            <div class="book-challenge-stat book-challenge-stat--monthly h-100">
               <div class="book-challenge-stat-value">
                 {% if book_challenge.goal %}
                   {{ book_challenge.books_needed_this_month }}
@@ -418,7 +462,7 @@
             </div>
           </div>
           <div class="col-12 col-md-6 col-lg-3">
-            <div class="book-challenge-stat h-100">
+            <div class="book-challenge-stat book-challenge-stat--max h-100">
               <div class="book-challenge-stat-value">
                 {% if book_challenge.recommended_pages %}
                   {{ book_challenge.recommended_pages }}
