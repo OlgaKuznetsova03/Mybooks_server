@@ -55,9 +55,9 @@
     </div>
     <div class="mt-3">
       {% if pending_entries %}
-        <div class="fb-shelf-list">
+        <div class="fb-shelf-masonry">
           {% for entry in pending_entries %}
-          <article class="fb-book-card">
+          <article class="fb-book-card fb-masonry-item">
             <div class="fb-book-cover">
               <form method="post" class="fb-remove-form">
                 {% csrf_token %}
@@ -82,7 +82,7 @@
           </article>
           {% endfor %}
         </div>
-        <p class="small text-muted mt-3 mb-0">Подсказка: пролистывайте полку горизонтально, чтобы увидеть остальные книги.</p>
+        <p class="small text-muted mt-3 mb-0">Подсказка: обложки автоматически выстраиваются по высоте.</p>
       {% else %}
         <p class="text-muted mb-0">Пока на полке пусто — выберите книги из домашней библиотеки, чтобы вдохнуть в них новую жизнь.</p>
       {% endif %}
