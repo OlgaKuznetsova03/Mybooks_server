@@ -1308,15 +1308,23 @@ def _update_home_library(
         entry.save(update_fields=[*fields_to_update, "updated_at"])
 
     cover_url = book.get_cover_url()
-        if cover_url:
-            cover_url = str(cover_url).strip()
-            if cover_url.startswith("//"):
-                cover_url = f"{request.scheme}:{cover_url}"
-            elif cover_url.startswith("/"):
-                cover_url = request.build_absolute_uri(cover_url)
-            cover_url = enhance_cover_url_for_pdf(cover_url)
-        else:
-            cover_url = None
+    if cover_url:
+        cover_url = str(cover_url).strip()
+        if cover_url.startswith("//"):
+            cover_url = f"{request.scheme}:{cover_url}"
+        elif cover_url.startswith("/"):
+            cover_url = request.build_absolute_uri(cover_url)
+        cover_url = enhance_cover_url_for_pdf(cover_url)
+    else:
+        cover_url = None
+
+    return {
+        "item": home_library_item,
+        "entry": entry,
+        "shelf": home_library_shelf,
+        "created": created,
+        "entry_created": entry_created,
+        "cover_url": cover_url,
         "purchase_updated": purchase_updated,
         "read_updated": read_updated,
         "read_cleared": read_cleared,
