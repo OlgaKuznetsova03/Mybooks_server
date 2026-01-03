@@ -430,9 +430,34 @@
 }
 
 .marathon-books-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  display: flex;
   gap: 16px;
+  overflow-x: auto;
+  padding: 8px 4px 12px;
+  scrollbar-width: thin;
+  scrollbar-color: #a0aec0 #e2e8f0;
+}
+
+.marathon-books-grid::-webkit-scrollbar {
+  height: 6px;
+}
+
+.marathon-books-grid::-webkit-scrollbar-track {
+  background: #e2e8f0;
+  border-radius: 3px;
+}
+
+.marathon-books-grid::-webkit-scrollbar-thumb {
+  background: #a0aec0;
+  border-radius: 3px;
+}
+
+.marathon-books-grid::-webkit-scrollbar-thumb:hover {
+  background: #718096;
+}
+
+.marathon-books-grid > a {
+  flex: 0 0 150px;
 }
 
 .marathon-book-card {
@@ -472,6 +497,16 @@
   font-size: 0.85rem;
   font-weight: 600;
   color: #4a5a7a;
+}
+
+@media (max-width: 768px) {
+  .marathon-books-grid {
+    gap: 12px;
+  }
+
+  .marathon-books-grid > a {
+    flex-basis: 130px;
+  }
 }
 </style>
 
