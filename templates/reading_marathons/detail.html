@@ -420,6 +420,59 @@
 .marathon-entry-card {
   animation: fadeIn 0.3s ease-out;
 }
+
+.marathon-add-book {
+  display: none;
+}
+
+.marathon-add-book.expanded {
+  display: block;
+}
+
+.marathon-books-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+}
+
+.marathon-book-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 8px 20px rgba(74, 90, 122, 0.1);
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  height: 100%;
+}
+
+.marathon-book-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(74, 90, 122, 0.2);
+}
+
+.marathon-book-card__cover {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f2f4f8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.marathon-book-card__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.marathon-book-card__title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #4a5a7a;
+}
 </style>
 
 <div class="card mb-4 overflow-hidden border-0 shadow">
@@ -488,9 +541,15 @@
             <div class="marathon-actions">
               {% if participant %}
                 {% if participant.is_approved %}
-                  <a class="btn btn-light fw-semibold" href="#add-book">
+                  <button
+                    class="btn btn-light fw-semibold"
+                    type="button"
+                    data-toggle-add-book
+                    aria-expanded="false"
+                    aria-controls="add-book"
+                  >
                     <i class="bi bi-plus-lg me-2"></i>Добавить книгу
-                  </a>
+                  </button>
                 {% else %}
                   <span class="badge bg-warning text-dark py-2 px-3">
                     <i class="bi bi-clock me-1"></i>Ожидается подтверждение
@@ -530,7 +589,7 @@
 </div>
 
 {% if participant and participant.is_approved %}
-  <section id="add-book" class="mb-5">
+  <section id="add-book" class="mb-5 marathon-add-book" data-add-book-panel>
     <div class="card shadow border-0">
       <div class="card-header" style="background: linear-gradient(135deg, #62769a, #4a5a7a); color:#fff;">
         <h2 class="h5 mb-0 fw-semibold"><i class="bi bi-plus-circle me-2"></i>Добавить книгу в марафон</h2>
@@ -623,6 +682,45 @@
 <section class="mb-5">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="h3 fw-bold" style="color: #4a5a7a;">
+      <i class="bi bi-collection me-2"></i>Книги марафона
+    </h2>
+    <div class="text-muted small">
+      <i class="bi bi-book me-1"></i>Всего: {{ marathon_books|length }}
+    </div>
+  </div>
+
+  {% if marathon_books %}
+    <div class="marathon-books-grid">
+      {% for book in marathon_books %}
+        <a class="text-decoration-none" href="{% url 'book_detail' book.pk %}">
+          <div class="marathon-book-card">
+            <div class="marathon-book-card__cover">
+              {% with cover_url=book.get_cover_url %}
+                {% if cover_url %}
+                  <img src="{{ cover_url }}" alt="{{ book.title }}" loading="lazy">
+                {% else %}
+                  <span class="display-6">📚</span>
+                {% endif %}
+              {% endwith %}
+            </div>
+            <div class="marathon-book-card__title" title="{{ book.title }}">
+              {{ book.title|truncatechars:30 }}
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="marathon-shelf-empty">
+      <i class="bi bi-book"></i>
+      <span>Пока нет добавленных книг</span>
+    </div>
+  {% endif %}
+</section>
+
+<section class="mb-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="h3 fw-bold" style="color: #4a5a7a;">
       <i class="bi bi-bookshelf me-2"></i>Полки участников
     </h2>
     <div class="text-muted small">
@@ -668,9 +766,15 @@
                   </a>
                 {% endif %}
                 {% if participant and participant.pk == participant_obj.pk %}
-                  <a class="btn btn-sm btn-outline-primary" href="#add-book">
+                  <button
+                    class="btn btn-sm btn-outline-primary"
+                    type="button"
+                    data-toggle-add-book
+                    aria-expanded="false"
+                    aria-controls="add-book"
+                  >
                     <i class="bi bi-plus-lg me-1"></i>Добавить книгу
-                  </a>
+                  </button>
                 {% endif %}
               </div>
             </div>
@@ -808,6 +912,29 @@ function toggleThemes() {
     toggleText.textContent = 'Развернуть задания';
     toggleIcon.className = 'bi bi-chevron-down';
   }
+}
+
+function toggleAddBook(forceExpand = null) {
+  const panel = document.querySelector('[data-add-book-panel]');
+  if (!panel) {
+    return;
+  }
+  const shouldExpand = forceExpand === null ? !panel.classList.contains('expanded') : forceExpand;
+  panel.classList.toggle('expanded', shouldExpand);
+  document.querySelectorAll('[data-toggle-add-book]').forEach((button) => {
+    button.setAttribute('aria-expanded', shouldExpand ? 'true' : 'false');
+  });
+  if (shouldExpand) {
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+document.querySelectorAll('[data-toggle-add-book]').forEach((button) => {
+  button.addEventListener('click', () => toggleAddBook());
+});
+
+if (window.location.hash === '#add-book') {
+  toggleAddBook(true);
 }
 
 // Инициализация функциональности поиска книг

@@ -66,11 +66,20 @@ class MarathonDetailView(DetailView):
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         context = super().get_context_data(**kwargs)
         marathon: ReadingMarathon = context["marathon"]
-        participants = marathon.participants.select_related("user").order_by("joined_at")
+        participants = list(
+            marathon.participants.select_related("user").order_by("joined_at")
+        )
         participant = None
         if self.request.user.is_authenticated:
-            participant = participants.filter(user=self.request.user).first()
+            participant = next(
+                (item for item in participants if item.user_id == self.request.user.id),
+                None,
+            )
         context["participant"] = participant
+       if participant:
+            participants = [participant] + [
+                item for item in participants if item.pk != participant.pk
+            ]
         context["participants"] = participants
         if participant and participant.is_approved:
             context["entry_form"] = MarathonEntryForm(
@@ -84,6 +93,7 @@ class MarathonDetailView(DetailView):
             (participant_obj, participant_groups.get(participant_obj, []))
             for participant_obj in participants
         ]
+        context["marathon_books"] = self._build_unique_books(marathon)
         context["entry_status"] = MarathonEntry.Status
         context["completion_status"] = MarathonEntry.CompletionStatus
         return context
@@ -99,6 +109,23 @@ class MarathonDetailView(DetailView):
         for entry in entries:
             groups[entry.participant].append(entry)
         return groups
+
+    def _build_unique_books(self, marathon: ReadingMarathon) -> list:
+        unique_books = []
+        seen_book_ids = set()
+        entries = (
+            MarathonEntry.objects.filter(participant__marathon=marathon)
+            .select_related("book", "book__primary_isbn")
+            .prefetch_related("book__isbn")
+            .order_by("created_at")
+        )
+        for entry in entries:
+            book = entry.book
+            if not book or book.pk in seen_book_ids:
+                continue
+            seen_book_ids.add(book.pk)
+            unique_books.append(book)
+        return unique_books
 
 
 @login_required
