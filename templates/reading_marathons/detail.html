@@ -3,70 +3,526 @@
 {% block title %}{{ marathon.title }} — Книжный марафон{% endblock %}
 
 {% block content %}
-<div class="card mb-4 overflow-hidden">
-  <div class="row g-0 align-items-stretch" style="background-color:#62769a; color:#fff;">
+<style>
+/* Основные стили для марафона */
+.marathon-header-collapse {
+  transition: max-height 0.3s ease-out;
+  overflow: hidden;
+}
+
+.marathon-header-collapse.collapsed {
+  max-height: 150px;
+}
+
+.marathon-header-collapse.expanded {
+  max-height: 1000px;
+}
+
+.toggle-themes-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+
+.toggle-themes-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+/* Стили для полок участников */
+.marathon-shelf {
+  display: flex;
+  overflow-x: auto;
+  gap: 16px;
+  padding: 12px 0;
+  min-height: 180px;
+  scrollbar-width: thin;
+  scrollbar-color: #a0aec0 #e2e8f0;
+  position: relative;
+}
+
+.marathon-shelf::-webkit-scrollbar {
+  height: 6px;
+}
+
+.marathon-shelf::-webkit-scrollbar-track {
+  background: #e2e8f0;
+  border-radius: 3px;
+}
+
+.marathon-shelf::-webkit-scrollbar-thumb {
+  background: #a0aec0;
+  border-radius: 3px;
+}
+
+.marathon-shelf::-webkit-scrollbar-thumb:hover {
+  background: #718096;
+}
+
+/* Карточки книг - десктоп версия (на 50% больше) */
+.marathon-entry-card {
+  flex: 0 0 180px; /* Увеличили на 50% со 120px */
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+  background: white;
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+  min-height: 210px; /* Увеличили высоту */
+  display: flex;
+  flex-direction: column;
+}
+
+.marathon-entry-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(98, 118, 154, 0.15);
+}
+
+.marathon-entry-card__cover {
+  width: 90px; /* Увеличили на 50% */
+  height: 120px; /* Увеличили на 50% */
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f7fafc, #edf2f7);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.marathon-entry-card__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.marathon-entry-card__cover-placeholder {
+  font-size: 42px; /* Увеличили на 50% */
+  color: #62769a;
+  opacity: 0.8;
+}
+
+.marathon-entry-card__theme {
+  font-size: 11px;
+  color: #62769a;
+  font-weight: 600;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.marathon-entry-card__title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-grow: 1;
+}
+
+.marathon-entry-card__status {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  display: inline-block;
+  font-weight: 500;
+  text-align: center;
+  width: 100%;
+  margin-top: auto;
+}
+
+.marathon-entry-card__status--completed {
+  background: #c6f6d5;
+  color: #22543d;
+  border: 1px solid #9ae6b4;
+}
+
+.marathon-entry-card__status--reading {
+  background: #bee3f8;
+  color: #2c5282;
+  border: 1px solid #90cdf4;
+}
+
+.marathon-entry-card__status--planned {
+  background: #edf2f7;
+  color: #4a5568;
+  border: 1px solid #cbd5e0;
+}
+
+.marathon-entry-card__status--pending {
+  background: #fed7d7;
+  color: #742a2a;
+  border: 1px solid #fc8181;
+}
+
+.marathon-entry-card__progress {
+  font-size: 12px;
+  color: #4a5568;
+  font-weight: 500;
+  text-align: center;
+  margin-top: 8px;
+  padding: 4px;
+  background: #f7fafc;
+  border-radius: 6px;
+}
+
+.marathon-entry-card__actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  justify-content: center;
+}
+
+.marathon-entry-card__btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 12px;
+  padding: 0;
+}
+
+/* Стили для пустых полок */
+.marathon-shelf-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  color: #a0aec0;
+  font-style: italic;
+  border: 2px dashed #e2e8f0;
+  border-radius: 10px;
+  padding: 30px;
+  background: #fafafa;
+  width: 100%;
+}
+
+.marathon-shelf-empty i {
+  font-size: 24px;
+  margin-right: 10px;
+}
+
+/* Заголовки полок */
+.marathon-shelf-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #62769a;
+}
+
+.marathon-shelf-header__user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.marathon-shelf-header__avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #62769a, #4a5a7a);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+  box-shadow: 0 4px 8px rgba(98, 118, 154, 0.3);
+}
+
+.marathon-shelf-header__info {
+  display: flex;
+  flex-direction: column;
+}
+
+.marathon-shelf-header__name {
+  font-weight: 600;
+  font-size: 16px;
+  color: #2d3748;
+  text-decoration: none;
+}
+
+.marathon-shelf-header__name:hover {
+  color: #62769a;
+  text-decoration: underline;
+}
+
+.marathon-shelf-header__stats {
+  font-size: 12px;
+  color: #718096;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.marathon-shelf-header__stats-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #e2e8f0;
+}
+
+/* Индикатор прокрутки */
+.marathon-shelf-scroll-hint {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9));
+  padding: 20px 30px 20px 50px;
+  color: #62769a;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+/* Мобильная версия */
+@media (max-width: 768px) {
+  .marathon-entry-card {
+    flex: 0 0 140px; /* Компактнее на мобильных */
+    min-height: 180px;
+    padding: 12px;
+  }
+  
+  .marathon-entry-card__cover {
+    width: 70px;
+    height: 95px;
+  }
+  
+  .marathon-entry-card__cover-placeholder {
+    font-size: 32px;
+  }
+  
+  .marathon-entry-card__theme {
+    font-size: 10px;
+  }
+  
+  .marathon-entry-card__title {
+    font-size: 12px;
+  }
+  
+  .marathon-entry-card__status {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+  
+  .marathon-shelf-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .marathon-shelf-header__user {
+    width: 100%;
+  }
+  
+  .marathon-shelf-header__actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .marathon-shelf {
+    min-height: 160px;
+  }
+  
+  .marathon-shelf-empty {
+    min-height: 160px;
+    padding: 20px;
+    text-align: center;
+  }
+}
+
+/* Стили для тем марафона */
+.marathon-themes-list {
+  margin: 0;
+  padding: 0;
+}
+
+.marathon-theme-item {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 8px;
+  border-left: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.marathon-theme-item:last-child {
+  margin-bottom: 0;
+}
+
+.marathon-theme-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: white;
+}
+
+.marathon-theme-description {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+}
+
+/* Стили для кнопок действий */
+.marathon-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Градиентная маска для свернутого состояния */
+.collapse-gradient {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50px;
+  background: linear-gradient(to bottom, transparent, #62769a);
+  pointer-events: none;
+}
+
+/* Счетчик тем */
+.themes-count {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+/* Анимация для карточек */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.marathon-entry-card {
+  animation: fadeIn 0.3s ease-out;
+}
+</style>
+
+<div class="card mb-4 overflow-hidden border-0 shadow">
+  <div class="row g-0 align-items-stretch" style="background: linear-gradient(135deg, #62769a, #4a5a7a); color:#fff;">
     <div class="col-md-4">
       {% if marathon.cover %}
-        <img class="marathon-detail__cover w-100 h-100 object-fit-cover" src="{{ marathon.cover.url }}" alt="Обложка марафона {{ marathon.title }}">
+        <img class="marathon-detail__cover w-100 h-100 object-fit-cover" src="{{ marathon.cover.url }}" alt="Обложка марафона {{ marathon.title }}" style="min-height: 300px;">
       {% else %}
-        <div class="h-100 d-flex align-items-center justify-content-center p-5">
-          <span class="display-6">📚</span>
+        <div class="h-100 d-flex align-items-center justify-content-center p-5" style="min-height: 300px;">
+          <span class="display-1">📚</span>
         </div>
       {% endif %}
     </div>
-    <div class="col-md-8">
+    <div class="col-md-8 position-relative">
       <div class="p-4 h-100 d-flex flex-column gap-3">
         <div>
-          <h1 class="h3 mb-2">{{ marathon.title }}</h1>
-          <p class="mb-0">{{ marathon.description|default:"Создатель пока не добавил описание." }}</p>
+          <h1 class="h2 mb-3 fw-bold">{{ marathon.title }}</h1>
+          <p class="mb-0 lead" style="opacity: 0.9;">{{ marathon.description|default:"Создатель пока не добавил описание." }}</p>
         </div>
+        
         {% with themes=marathon.themes.all %}
           {% if themes %}
-            <div>
-              <h2 class="h6 text-uppercase text-white-50 mb-2">Задания марафона</h2>
-              <ol class="mb-0 ps-3 d-flex flex-column gap-2">
+            <div id="marathonThemes" class="marathon-header-collapse collapsed position-relative">
+              <h2 class="h6 text-uppercase text-white-50 mb-3">Задания марафона <span class="themes-count">{{ themes|length }}</span></h2>
+              <ol class="marathon-themes-list mb-0">
                 {% for theme in themes %}
-                  <li>
-                    <div class="fw-semibold">{{ theme.title }}</div>
+                  <li class="marathon-theme-item">
+                    <div class="marathon-theme-title">{{ forloop.counter }}. {{ theme.title }}</div>
                     {% if theme.description %}
-                      <div class="small text-white-50">{{ theme.description }}</div>
+                      <p class="marathon-theme-description small mb-0">{{ theme.description }}</p>
                     {% endif %}
                   </li>
                 {% endfor %}
               </ol>
+              <div class="collapse-gradient"></div>
             </div>
+            
+            <button type="button" class="toggle-themes-btn align-self-start" onclick="toggleThemes()">
+              <span id="toggleThemesText">Развернуть задания</span>
+              <i id="toggleThemesIcon" class="bi bi-chevron-down"></i>
+            </button>
           {% else %}
             <div class="alert alert-light text-dark mb-0">Создатель ещё не добавил задания.</div>
           {% endif %}
         {% endwith %}
-        <div class="d-flex flex-wrap gap-3 small">
-          <span><i class="bi bi-calendar-event me-1"></i>Старт: {{ marathon.start_date }}</span>
-          {% if marathon.end_date %}
-            <span><i class="bi bi-flag-checkered me-1"></i>Финиш: {{ marathon.end_date }}</span>
-          {% endif %}
-          <span><i class="bi bi-people me-1"></i>Участников: {{ participants|length }}</span>
-          <span><i class="bi bi-person-badge me-1"></i>Создатель: {{ marathon.creator }}</span>
+        
+        <div class="row mt-2 g-3">
+          <div class="col-md-6">
+            <div class="d-flex flex-column gap-2">
+              <span class="small"><i class="bi bi-calendar-event me-2"></i><strong>Старт:</strong> {{ marathon.start_date }}</span>
+              {% if marathon.end_date %}
+                <span class="small"><i class="bi bi-flag-checkered me-2"></i><strong>Финиш:</strong> {{ marathon.end_date }}</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="d-flex flex-column gap-2">
+              <span class="small"><i class="bi bi-people me-2"></i><strong>Участников:</strong> {{ participants|length }}</span>
+              <span class="small"><i class="bi bi-person-badge me-2"></i><strong>Создатель:</strong> {{ marathon.creator }}</span>
+            </div>
+          </div>
         </div>
-        <div class="mt-auto d-flex flex-wrap gap-2">
-          {% if participant %}
-            {% if participant.is_approved %}
-              <a class="btn btn-light" href="#add-book"><i class="bi bi-plus-lg me-2"></i>Добавить книгу</a>
-            {% else %}
-              <span class="badge bg-warning text-dark">Ожидается подтверждение участия</span>
-            {% endif %}
-          {% else %}
-            <a class="btn btn-outline-light" href="{% url 'reading_marathons:join' marathon.slug %}"><i class="bi bi-door-open me-2"></i>Присоединиться</a>
-          {% endif %}
-          {% if marathon.book_submission_policy == marathon.BookSubmissionPolicy.APPROVAL %}
-            <span class="badge bg-light text-dark">Книги добавляются после утверждения</span>
-          {% else %}
-            <span class="badge bg-light text-dark">Книги появляются сразу</span>
-          {% endif %}
-          {% if marathon.completion_policy == marathon.CompletionPolicy.APPROVAL %}
-            <span class="badge bg-light text-dark">Создатель проверяет выполнение этапов</span>
-          {% else %}
-            <span class="badge bg-light text-dark">Этап засчитывается автоматически после отзыва</span>
-          {% endif %}
+        
+        <div class="row mt-2 g-2">
+          <div class="col-12">
+            <div class="marathon-actions">
+              {% if participant %}
+                {% if participant.is_approved %}
+                  <a class="btn btn-light fw-semibold" href="#add-book">
+                    <i class="bi bi-plus-lg me-2"></i>Добавить книгу
+                  </a>
+                {% else %}
+                  <span class="badge bg-warning text-dark py-2 px-3">
+                    <i class="bi bi-clock me-1"></i>Ожидается подтверждение
+                  </span>
+                {% endif %}
+              {% else %}
+                <a class="btn btn-outline-light fw-semibold" href="{% url 'reading_marathons:join' marathon.slug %}">
+                  <i class="bi bi-door-open me-2"></i>Присоединиться
+                </a>
+              {% endif %}
+              
+              {% if marathon.book_submission_policy == marathon.BookSubmissionPolicy.APPROVAL %}
+                <span class="badge bg-light text-dark py-2">
+                  <i class="bi bi-shield-check me-1"></i>Книги утверждаются
+                </span>
+              {% else %}
+                <span class="badge bg-light text-dark py-2">
+                  <i class="bi bi-lightning me-1"></i>Книги сразу
+                </span>
+              {% endif %}
+              
+              {% if marathon.completion_policy == marathon.CompletionPolicy.APPROVAL %}
+                <span class="badge bg-light text-dark py-2">
+                  <i class="bi bi-eye me-1"></i>Проверка этапов
+                </span>
+              {% else %}
+                <span class="badge bg-light text-dark py-2">
+                  <i class="bi bi-robot me-1"></i>Автозачет
+                </span>
+              {% endif %}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -75,9 +531,9 @@
 
 {% if participant and participant.is_approved %}
   <section id="add-book" class="mb-5">
-    <div class="card">
-      <div class="card-header" style="background-color:#62769a; color:#fff;">
-        <h2 class="h5 mb-0">Добавить книгу в марафон</h2>
+    <div class="card shadow border-0">
+      <div class="card-header" style="background: linear-gradient(135deg, #62769a, #4a5a7a); color:#fff;">
+        <h2 class="h5 mb-0 fw-semibold"><i class="bi bi-plus-circle me-2"></i>Добавить книгу в марафон</h2>
       </div>
       <div class="card-body">
         <form action="{% url 'reading_marathons:entry_add' marathon.slug %}" method="post">
@@ -89,7 +545,7 @@
           {% endif %}
           <div class="row g-3">
             <div class="col-md-4">
-              <label class="form-label" for="{{ entry_form.theme.id_for_label }}">Задание марафона</label>
+              <label class="form-label fw-semibold" for="{{ entry_form.theme.id_for_label }}">Задание марафона</label>
               {{ entry_form.theme }}
               {% if entry_form.theme.help_text %}
                 <div class="form-text">{{ entry_form.theme.help_text }}</div>
@@ -101,14 +557,17 @@
               {% endif %}
             </div>
             <div class="col-md-4">
-              <label class="form-label" for="{{ entry_form.book.id_for_label }}">Книга для задания</label>
+              <label class="form-label fw-semibold" for="{{ entry_form.book.id_for_label }}">Книга для задания</label>
               <div class="input-group mb-2">
-                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <span class="input-group-text" style="background-color: #62769a; color: white;">
+                  <i class="bi bi-search"></i>
+                </span>
                 <input
                   type="search"
                   class="form-control"
                   data-target="#id_{{ entry_form.book.name }}"
                   placeholder="Поиск по книгам"
+                  style="border-color: #62769a;"
                 >
               </div>
               {{ entry_form.book }}
@@ -122,7 +581,7 @@
               {% endif %}
             </div>
             <div class="col-md-2">
-              <label class="form-label" for="{{ entry_form.status.id_for_label }}">Статус чтения</label>
+              <label class="form-label fw-semibold" for="{{ entry_form.status.id_for_label }}">Статус чтения</label>
               {{ entry_form.status }}
               {% if entry_form.status.help_text %}
                 <div class="form-text">{{ entry_form.status.help_text }}</div>
@@ -132,7 +591,7 @@
               {% endif %}
             </div>
             <div class="col-md-2">
-              <label class="form-label" for="{{ entry_form.progress.id_for_label }}">Прогресс, %</label>
+              <label class="form-label fw-semibold" for="{{ entry_form.progress.id_for_label }}">Прогресс, %</label>
               {{ entry_form.progress }}
               {% if entry_form.progress.help_text %}
                 <div class="form-text">{{ entry_form.progress.help_text }}</div>
@@ -142,7 +601,7 @@
               {% endif %}
             </div>
             <div class="col-12">
-              <label class="form-label" for="{{ entry_form.notes.id_for_label }}">Заметки</label>
+              <label class="form-label fw-semibold" for="{{ entry_form.notes.id_for_label }}">Заметки</label>
               {{ entry_form.notes }}
               {% if entry_form.notes.help_text %}
                 <div class="form-text">{{ entry_form.notes.help_text }}</div>
@@ -152,148 +611,251 @@
               {% endif %}
             </div>
           </div>
-          <button class="btn btn-primary mt-3" type="submit">Добавить книгу</button>
+          <button class="btn btn-primary mt-4 px-4 py-2 fw-semibold" type="submit" style="background-color: #62769a; border-color: #62769a;">
+            <i class="bi bi-plus-lg me-2"></i>Добавить книгу
+          </button>
         </form>
       </div>
     </div>
   </section>
 {% endif %}
 
-<section>
-  <h2 class="h4 mb-3">Мини-полки участников</h2>
+<section class="mb-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="h3 fw-bold" style="color: #4a5a7a;">
+      <i class="bi bi-bookshelf me-2"></i>Полки участников
+    </h2>
+    <div class="text-muted small">
+      <i class="bi bi-info-circle me-1"></i>Всего: {{ participants|length }}
+    </div>
+  </div>
+  
   <div class="row g-4">
     {% for participant_obj, entries in participant_entries %}
-      <div class="col-md-6">
-        <div class="card h-100">
-          <div class="card-header d-flex justify-content-between align-items-center" style="background-color:#62769a; color:#fff;">
-            <div>
-              <h3 class="h6 mb-0">
-                <a class="text-white text-decoration-none" href="{% url 'profile' participant_obj.user.username %}">
-                  {{ participant_obj.user.get_full_name|default:participant_obj.user.username }}
-                </a>
-              </h3>
-              {% if not participant_obj.is_approved %}
-                <small class="text-warning">Ожидает подтверждения участия</small>
-              {% endif %}
-            </div>
-            {% if marathon.creator == request.user and participant_obj.status == participant_obj.Status.PENDING %}
-              <a class="btn btn-sm btn-outline-light" href="{% url 'reading_marathons:participant_approve' participant_obj.pk %}">Одобрить</a>
-            {% endif %}
-          </div>
+      <div class="col-12">
+        <div class="card shadow border-0 h-100">
           <div class="card-body">
-              {% if entries %}
-                <div class="marathon-entry-list">
-                  {% for entry in entries %}
-                    <div class="marathon-entry">
-                      <div class="d-flex justify-content-between align-items-center">
-                        <div class="small text-uppercase text-muted">{{ entry.theme.title }}</div>
-                        {% if entry.status == entry_status.COMPLETED and entry.completion_status == completion_status.CONFIRMED %}
-                          <span class="badge bg-success"><i class="bi bi-check2 me-1"></i>Завершено</span>
-                        {% elif entry.status == entry_status.COMPLETED %}
-                          <span class="badge bg-warning text-dark">Ожидает подтверждения</span>
-                        {% elif entry.status == entry_status.READING %}
-                          <span class="badge bg-info text-dark">Читаю</span>
+            <!-- Заголовок полки с информацией о пользователе -->
+            <div class="marathon-shelf-header">
+              <div class="marathon-shelf-header__user">
+                <div class="marathon-shelf-header__avatar">
+                  {{ participant_obj.user.username|first|upper }}
+                </div>
+                <div class="marathon-shelf-header__info">
+                  <a class="marathon-shelf-header__name" href="{% url 'profile' participant_obj.user.username %}">
+                    {{ participant_obj.user.get_full_name|default:participant_obj.user.username }}
+                    {% if marathon.creator == participant_obj.user %}
+                      <span class="badge bg-warning text-dark ms-2 py-1">Создатель</span>
+                    {% endif %}
+                  </a>
+                  <div class="marathon-shelf-header__stats">
+                    <span class="marathon-shelf-header__stats-badge">
+                      <i class="bi bi-book me-1"></i>{{ entries|length }} книг
+                    </span>
+                    {% if not participant_obj.is_approved %}
+                      <span class="badge bg-warning text-dark py-1">
+                        <i class="bi bi-clock me-1"></i>На подтверждении
+                      </span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              
+              <div class="d-flex gap-2 align-items-center marathon-shelf-header__actions">
+                {% if marathon.creator == request.user and participant_obj.status == participant_obj.Status.PENDING %}
+                  <a class="btn btn-sm btn-primary" href="{% url 'reading_marathons:participant_approve' participant_obj.pk %}">
+                    <i class="bi bi-check-lg me-1"></i>Одобрить
+                  </a>
+                {% endif %}
+                {% if participant and participant.pk == participant_obj.pk %}
+                  <a class="btn btn-sm btn-outline-primary" href="#add-book">
+                    <i class="bi bi-plus-lg me-1"></i>Добавить книгу
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+            
+            <!-- Горизонтальная полка с книгами -->
+            {% if entries %}
+              <div class="marathon-shelf position-relative">
+                {% for entry in entries %}
+                  <div class="marathon-entry-card">
+                    <div class="marathon-entry-card__theme" title="{{ entry.theme.title }}">
+                      {{ entry.theme.title|truncatechars:20 }}
+                    </div>
+                    
+                    <div class="marathon-entry-card__cover">
+                      {% with cover_url=entry.book.get_cover_url %}
+                        {% if cover_url %}
+                          <img src="{{ cover_url }}" alt="{{ entry.book.title }}" loading="lazy">
                         {% else %}
-                          <span class="badge bg-light text-dark">Запланировано</span>
+                          <div class="marathon-entry-card__cover-placeholder">📚</div>
                         {% endif %}
+                      {% endwith %}
+                    </div>
+                    
+                    <div class="marathon-entry-card__title" title="{{ entry.book.title }}">
+                      {{ entry.book.title|truncatechars:40 }}
+                    </div>
+                    
+                    <!-- Статус книги -->
+                    {% if not entry.book_approved %}
+                      <div class="marathon-entry-card__status marathon-entry-card__status--pending">
+                        <i class="bi bi-clock me-1"></i>На проверке
                       </div>
-                      <div class="marathon-entry__content mt-3">
-                        <div class="marathon-entry__cover">
-                          {% with cover_url=entry.book.get_cover_url %}
-                            {% if cover_url %}
-                              <img class="marathon-entry__cover-image" src="{{ cover_url }}" alt="Обложка книги {{ entry.book.title }}">
-                            {% else %}
-                              <div class="marathon-entry__cover-placeholder" aria-hidden="true">📗</div>
-                            {% endif %}
-                          {% endwith %}
-                        </div>
-                        <div class="marathon-entry__details">
-                          <div class="d-flex align-items-start justify-content-between gap-2">
-                            <div>
-                              <div class="fw-semibold marathon-entry__title">{{ entry.book.title }}</div>
-                              <div class="marathon-entry__progress">
-                              {% if not entry.book_approved %}
-                                  Ожидает подтверждения книги.
-                                {% elif entry.status == entry_status.COMPLETED %}
-                                  Прочитано. Отзыв: {% if entry.has_review %}есть{% else %}ещё нет{% endif %}.
-                                  {% if marathon.completion_policy == marathon.CompletionPolicy.AUTO and entry.completion_status == completion_status.AWAITING_REVIEW %}
-                                    Добавьте отзыв, чтобы этап засчитался автоматически.
-                                  {% endif %}
-                                {% elif entry.status == entry_status.READING %}
-                                  Прогресс: {{ entry.progress }}%
-                                {% else %}
-                                  Запланировано к чтению
-                                {% endif %}
-                              </div>
-                            </div>
-                            {% if participant and participant.pk == participant_obj.pk %}
-                              <a class="btn btn-sm btn-outline-primary" href="{% url 'reading_marathons:entry_update' entry.pk %}">Обновить</a>
-                            {% endif %}
-                          </div>
-                        </div>
+                    {% elif entry.status == entry_status.COMPLETED and entry.completion_status == completion_status.CONFIRMED %}
+                      <div class="marathon-entry-card__status marathon-entry-card__status--completed">
+                        <i class="bi bi-check-lg me-1"></i>Завершено
                       </div>
+                    {% elif entry.status == entry_status.COMPLETED %}
+                      <div class="marathon-entry-card__status marathon-entry-card__status--pending">
+                        <i class="bi bi-hourglass me-1"></i>На проверке
+                      </div>
+                    {% elif entry.status == entry_status.READING %}
+                      <div class="marathon-entry-card__status marathon-entry-card__status--reading">
+                        <i class="bi bi-book-half me-1"></i>Читаю
+                      </div>
+                    {% else %}
+                      <div class="marathon-entry-card__status marathon-entry-card__status--planned">
+                        <i class="bi bi-calendar me-1"></i>Запланировано
+                      </div>
+                    {% endif %}
+                    
+                    <!-- Прогресс чтения -->
+                    {% if entry.status == entry_status.READING %}
+                      <div class="marathon-entry-card__progress">
+                        Прогресс: {{ entry.progress }}%
+                      </div>
+                    {% endif %}
+                    
+                    <!-- Кнопки действий -->
+                    <div class="marathon-entry-card__actions">
+                      {% if participant and participant.pk == participant_obj.pk %}
+                        <a class="btn btn-sm btn-outline-secondary marathon-entry-card__btn" 
+                           href="{% url 'reading_marathons:entry_update' entry.pk %}" 
+                           title="Обновить">
+                          <i class="bi bi-pencil"></i>
+                        </a>
+                      {% endif %}
                       {% if marathon.creator == request.user %}
-                        <div class="mt-3 d-flex flex-wrap gap-2">
-                          {% if not entry.book_approved and marathon.book_submission_policy == marathon.BookSubmissionPolicy.APPROVAL %}
-                            <a class="btn btn-sm btn-outline-success" href="{% url 'reading_marathons:entry_approve' entry.pk %}">Подтвердить книгу</a>
-                          {% endif %}
-                          {% if entry.status == entry_status.COMPLETED and entry.completion_status == completion_status.AWAITING_REVIEW %}
-                            <a class="btn btn-sm btn-success" href="{% url 'reading_marathons:entry_confirm' entry.pk %}">Зачесть этап</a>
-                          {% endif %}
-                        </div>
+                        {% if not entry.book_approved and marathon.book_submission_policy == marathon.BookSubmissionPolicy.APPROVAL %}
+                          <a class="btn btn-sm btn-outline-success marathon-entry-card__btn" 
+                             href="{% url 'reading_marathons:entry_approve' entry.pk %}" 
+                             title="Подтвердить книгу">
+                            <i class="bi bi-check-lg"></i>
+                          </a>
+                        {% endif %}
+                        {% if entry.status == entry_status.COMPLETED and entry.completion_status == completion_status.AWAITING_REVIEW %}
+                          <a class="btn btn-sm btn-outline-success marathon-entry-card__btn" 
+                             href="{% url 'reading_marathons:entry_confirm' entry.pk %}" 
+                             title="Зачесть этап">
+                            <i class="bi bi-flag"></i>
+                          </a>
+                        {% endif %}
                       {% endif %}
                     </div>
-                  {% endfor %}
-                </div>
-              {% else %}
-                <div class="alert alert-light border mb-0">Пока нет добавленных книг.</div>
-              {% endif %}
+                  </div>
+                {% endfor %}
+                
+                {% if entries|length > 4 %}
+                  <div class="marathon-shelf-scroll-hint">
+                    <i class="bi bi-chevron-right"></i> Прокрутите для просмотра
+                  </div>
+                {% endif %}
+              </div>
+            {% else %}
+              <div class="marathon-shelf-empty">
+                <i class="bi bi-book"></i>
+                <span>Пока нет добавленных книг</span>
+              </div>
+            {% endif %}
           </div>
         </div>
       </div>
     {% empty %}
       <div class="col-12">
-        <div class="alert alert-light border">Пока нет участников.</div>
+        <div class="card shadow border-0">
+          <div class="card-body text-center py-5">
+            <i class="bi bi-people display-1 text-muted mb-3"></i>
+            <h3 class="h5 text-muted mb-2">Пока нет участников</h3>
+            <p class="text-muted mb-0">Будьте первым, кто присоединится к марафону!</p>
+            {% if not participant %}
+              <a class="btn btn-primary mt-3" href="{% url 'reading_marathons:join' marathon.slug %}" style="background-color: #62769a; border-color: #62769a;">
+                <i class="bi bi-door-open me-2"></i>Присоединиться к марафону
+              </a>
+            {% endif %}
+          </div>
+        </div>
       </div>
     {% endfor %}
   </div>
 </section>
+
+<script>
+function toggleThemes() {
+  const themesContainer = document.getElementById('marathonThemes');
+  const toggleText = document.getElementById('toggleThemesText');
+  const toggleIcon = document.getElementById('toggleThemesIcon');
+  
+  if (themesContainer.classList.contains('collapsed')) {
+    themesContainer.classList.remove('collapsed');
+    themesContainer.classList.add('expanded');
+    toggleText.textContent = 'Свернуть задания';
+    toggleIcon.className = 'bi bi-chevron-up';
+  } else {
+    themesContainer.classList.remove('expanded');
+    themesContainer.classList.add('collapsed');
+    toggleText.textContent = 'Развернуть задания';
+    toggleIcon.className = 'bi bi-chevron-down';
+  }
+}
+
+// Инициализация функциональности поиска книг
+(() => {
+  const filterOptions = (input, select) => {
+    const query = input.value.trim().toLowerCase();
+    const options = Array.from(select.options);
+    options.forEach((option, index) => {
+      if (index === 0) {
+        option.hidden = false;
+        return;
+      }
+      const haystack = option.dataset.search || option.textContent;
+      const isMatch = !query || haystack.toLowerCase().includes(query);
+      option.hidden = !isMatch;
+    });
+
+    if (select.value && select.selectedOptions.length && select.selectedOptions[0].hidden) {
+      select.selectedIndex = 0;
+    }
+  };
+
+  const searchInputs = document.querySelectorAll('input[data-target]');
+  searchInputs.forEach((searchInput) => {
+    const target = searchInput.dataset.target;
+    if (!target) {
+      return;
+    }
+    const select = document.querySelector(target);
+    if (!select) {
+      return;
+    }
+    searchInput.addEventListener('input', () => filterOptions(searchInput, select));
+  });
+})();
+
+// Автоматическое скрытие индикатора прокрутки при прокрутке
+document.querySelectorAll('.marathon-shelf').forEach(shelf => {
+  shelf.addEventListener('scroll', function() {
+    const hint = this.querySelector('.marathon-shelf-scroll-hint');
+    if (hint) {
+      hint.style.opacity = Math.max(0, 1 - (this.scrollLeft / 100));
+    }
+  });
+});
+</script>
 {% endblock %}
 
 {% block extra_js %}
   {{ block.super }}
-  <script>
-    (() => {
-      const filterOptions = (input, select) => {
-        const query = input.value.trim().toLowerCase();
-        const options = Array.from(select.options);
-        options.forEach((option, index) => {
-          if (index === 0) {
-            option.hidden = false;
-            return;
-          }
-          const haystack = option.dataset.search || option.textContent;
-          const isMatch = !query || haystack.toLowerCase().includes(query);
-          option.hidden = !isMatch;
-        });
-
-        if (select.value && select.selectedOptions.length && select.selectedOptions[0].hidden) {
-          select.selectedIndex = 0;
-        }
-      };
-
-      const searchInputs = document.querySelectorAll('input[data-target]');
-      searchInputs.forEach((searchInput) => {
-        const target = searchInput.dataset.target;
-        if (!target) {
-          return;
-        }
-        const select = document.querySelector(target);
-        if (!select) {
-          return;
-        }
-        searchInput.addEventListener('input', () => filterOptions(searchInput, select));
-      });
-    })();
-  </script>
 {% endblock %}
