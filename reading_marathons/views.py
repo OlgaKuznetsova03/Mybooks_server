@@ -76,7 +76,7 @@ class MarathonDetailView(DetailView):
                 None,
             )
         context["participant"] = participant
-       if participant:
+        if participant:
             participants = [participant] + [
                 item for item in participants if item.pk != participant.pk
             ]

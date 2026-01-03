@@ -259,6 +259,25 @@ class Book(models.Model):
             else:
                 if url:
                     return url
+            cover_name = str(getattr(cover_file, "name", "") or "").strip()
+            if cover_name:
+                if cover_name.startswith(("http://", "https://", "//")):
+                    return cover_name
+                if cover_name.startswith("/"):
+                    return cover_name
+                media_url = getattr(settings, "MEDIA_URL", "/media/") or "/media/"
+                media_url = str(media_url).strip()
+                normalized_path = cover_name.lstrip("/")
+                if media_url.startswith(("http://", "https://", "//")):
+                    base = media_url if media_url.endswith("/") else f"{media_url}/"
+                    return urljoin(base, normalized_path)
+                if not media_url:
+                    media_url = "/media/"
+                if not media_url.endswith("/"):
+                    media_url = f"{media_url}/"
+                if not media_url.startswith("/"):
+                    media_url = f"/{media_url.lstrip('/')}"
+                return f"{media_url}{normalized_path}"
 
         primary = getattr(self, "primary_isbn", None)
         if primary:
