@@ -177,7 +177,7 @@
 </style>
 
 {% for shelf in shelves %}
-  {% with shelf_books=shelf.items.all normalized_name=shelf.name|lower normalized_default=default_reading_shelf_name|default:'Читаю'|lower normalized_progress=reading_progress_label|default:'Читаю сейчас'|lower normalized_home=default_home_library_shelf_name|default:'Моя домашняя библиотека'|lower normalized_read=default_read_shelf_name|default:'Прочитано'|lower normalized_want=default_want_shelf_name|default:'Хочу прочитать'|lower shelf_link="" %}
+  {% with shelf_books=shelf.items.all normalized_name=shelf.name|lower normalized_default=default_reading_shelf_name|default:'Читаю'|lower normalized_progress=reading_progress_label|default:'Читаю сейчас'|lower normalized_home=default_home_library_shelf_name|default:'Моя домашняя библиотека'|lower normalized_read=default_read_shelf_name|default:'Прочитано'|lower normalized_read_alias='Прочитал'|lower normalized_want=default_want_shelf_name|default:'Хочу прочитать'|lower shelf_link="" %}
   <section class="shelf-card">
     {% if request.user.is_authenticated and shelf.user_id == request.user.id %}
       {% if normalized_name == normalized_home %}
@@ -207,7 +207,7 @@
               <a class="btn btn-sm btn-outline-primary" href="{% url 'shelves:want_shelf_page' %}">Открыть полку</a>
             {% endif %}
             
-            {% if normalized_name == normalized_read %}
+            {% if normalized_name == normalized_read or normalized_name == normalized_read_alias %}
               <a class="btn btn-sm btn-outline-primary" href="{% url 'shelves:read_shelf_page' %}">Открыть полку</a>
             {% endif %}
           {% endif %}
