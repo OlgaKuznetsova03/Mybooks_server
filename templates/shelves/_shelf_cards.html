@@ -177,7 +177,7 @@
 </style>
 
 {% for shelf in shelves %}
-  {% with shelf_books=shelf.items.all normalized_name=shelf.name|lower normalized_default=default_reading_shelf_name|default:'Читаю'|lower normalized_progress=reading_progress_label|default:'Читаю сейчас'|lower normalized_home=default_home_library_shelf_name|default:'Моя домашняя библиотека'|lower normalized_read=default_read_shelf_name|default:'Прочитал'|lower shelf_link="" %}
+  {% with shelf_books=shelf.items.all normalized_name=shelf.name|lower normalized_default=default_reading_shelf_name|default:'Читаю'|lower normalized_progress=reading_progress_label|default:'Читаю сейчас'|lower normalized_home=default_home_library_shelf_name|default:'Моя домашняя библиотека'|lower normalized_read=default_read_shelf_name|default:'Прочитано'|lower normalized_want=default_want_shelf_name|default:'Хочу прочитать'|lower shelf_link="" %}
   <section class="shelf-card">
     {% if request.user.is_authenticated and shelf.user_id == request.user.id %}
       {% if normalized_name == normalized_home %}
@@ -199,14 +199,19 @@
         {% with shelf_books|length as shelf_count %}
           <div class="small text-muted">{{ shelf_count }} {{ shelf_count|ru_pluralize:"книга,книги,книг" }}</div>
         {% endwith %}
-      </div>
-      <div class="shelf-card__badges">
-        {% if shelf.is_default %}<span class="badge text-bg-light"><i class="bi bi-stars me-1"></i>системная</span>{% endif %}
-        {% if not shelf.is_public %}
-          <span class="badge text-bg-secondary"><i class="bi bi-lock-fill me-1"></i>приватная</span>
-        {% else %}
-          <span class="badge text-bg-success"><i class="bi bi-people-fill me-1"></i>публичная</span>
-        {% endif %}
+        
+        <!-- Кнопки для открытия полок -->
+        <div class="mt-2 d-flex flex-wrap gap-2">
+          {% if request.user.is_authenticated and shelf.user_id == request.user.id %}
+            {% if normalized_name == normalized_want %}
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'shelves:want_shelf_page' %}">Открыть полку</a>
+            {% endif %}
+            
+            {% if normalized_name == normalized_read %}
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'shelves:read_shelf_page' %}">Открыть полку</a>
+            {% endif %}
+          {% endif %}
+        </div>
       </div>
     </div>
 
@@ -261,7 +266,7 @@
                           {% with read_date=home_entry.date_read|default:home_entry.read_at|default:it.added_at %}
                             <div class="book-actions">
                               <div class="small text-muted fw-semibold">
-                                Прочитал{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}
+                                Прочитано{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}
                               </div>
                             </div>
                           {% endwith %}
@@ -269,7 +274,7 @@
                           {% with read_date=it.added_at %}
                             <div class="book-actions">
                               <div class="small text-muted fw-semibold">
-                                Прочитал{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}
+                                Прочитано{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}
                               </div>
                             </div>
                           {% endwith %}
@@ -283,7 +288,7 @@
                           {% with read_date=home_entry.date_read %}
                             <div class="book-actions">
                               <div class="small text-muted fw-semibold">
-                                Прочитал{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}
+                                Прочитано{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}
                               </div>
                             </div>
                           {% endwith %}
@@ -291,10 +296,10 @@
                           {% with read_date=status.added_at|default:it.added_at %}
                             <div class="book-actions">
                               <div class="small text-muted fw-semibold">
-                                Прочитал{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}
+                                Прочитано{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}
                               </div>
                             </div>
-                            {% endwith %}
+                          {% endwith %}
                         {% elif status and status.code == 'reading' %}
                           <div class="book-actions">
                             <div class="small text-muted fw-semibold">На полке «{{ status.label|default:default_reading_shelf_name|default:'Читаю' }}»</div>
@@ -318,7 +323,7 @@
                           {% with read_date=home_entry.date_read|default:home_entry.read_at|default:status.added_at %}
                             <div class="book-actions">
                               <div class="small text-muted fw-semibold">
-                                Прочитал{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}
+                                Прочитано{% if read_date %} {{ read_date|date:"d.m.Y" }}{% endif %}
                               </div>
                             </div>
                           {% endwith %}

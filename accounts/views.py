@@ -1976,11 +1976,10 @@ def profile(request, username=None):
             "accounts/profile_private.html",
             {"u": user_obj},
         )
-    stats_payload = _collect_profile_stats(user_obj, request.GET)
     active_tab = request.GET.get("tab", "overview")
     if active_tab == "shelves":
         active_tab = "overview"
-    if active_tab not in {"overview", "stats", "books", "reviews", "activities"}:
+    if active_tab not in {"overview", "books", "reviews", "activities"}:
         active_tab = "overview"
 
     shelf_items_prefetch = Prefetch(
@@ -2382,14 +2381,14 @@ def profile(request, username=None):
         "is_blogger": user_obj.groups.filter(name="blogger").exists(),
         "is_author": is_author,
         "is_reader": user_obj.groups.filter(name="reader").exists(),
-        "stats": stats_payload["stats"],
-        "stats_period": stats_payload["stats_period"],
         "active_tab": active_tab,
+        "show_stats": False,
         "user_shelves": user_shelves,
         "allow_shelf_management": request.user == user_obj,
         "default_reading_shelf_name": DEFAULT_READING_SHELF,
         "default_home_library_shelf_name": DEFAULT_HOME_LIBRARY_SHELF,
         "default_read_shelf_name": DEFAULT_READ_SHELF,
+        "default_read_shelf_names": [name.lower() for name in ALL_DEFAULT_READ_SHELF_NAMES],
         "default_want_shelf_name": DEFAULT_WANT_SHELF,
         "read_adj": default_read_adj,
         "reading_adj": READING_PROGRESS_LABEL or DEFAULT_READING_SHELF,

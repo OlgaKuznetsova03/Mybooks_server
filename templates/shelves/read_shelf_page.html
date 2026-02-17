@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Полка «Прочитано»{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0">{{ shelf.name }}</h1>
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'my_profile' %}">Назад в профиль</a>
+  </div>
+
+  <form method="get" class="mb-3">
+    <div class="mb-2">
+      <label class="form-label">Год</label>
+      <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-sm {% if not selected_year %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?">Все</a>
+        {% for y in years %}
+          <a class="btn btn-sm {% if selected_year == y|stringformat:'s' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?year={{ y }}{% if selected_month %}&month={{ selected_month }}{% endif %}">{{ y }}</a>
+        {% endfor %}
+      </div>
+    </div>
+    <div>
+      <label class="form-label">Месяц</label>
+      <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-sm {% if not selected_month %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?{% if selected_year %}year={{ selected_year }}{% endif %}">Все</a>
+        {% for m in months %}
+          <a class="btn btn-sm {% if selected_month == m|stringformat:'s' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?{% if selected_year %}year={{ selected_year }}&{% endif %}month={{ m }}">{{ m }}</a>
+        {% endfor %}
+      </div>
+    </div>
+  </form>
+
+  <div class="row g-3">
+    {% for it in page_obj.object_list %}
+      <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+        <div class="card h-100">
+          <img src="{{ it.book.get_cover_url }}" class="card-img-top" alt="{{ it.book.title }}" style="height:240px;object-fit:cover;">
+          <div class="card-body d-flex flex-column">
+            <div class="small fw-semibold">{{ it.book.title }}</div>
+            <div class="small text-muted mb-2">Прочитано: {{ it.added_at|date:'d.m.Y' }}</div>
+            <a href="{% url 'shelves:reading_track' it.book.pk %}" class="btn btn-sm btn-outline-secondary mt-auto">К трекеру</a>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <p class="text-muted">На полке пока нет книг.</p>
+    {% endfor %}
+  </div>
+
+  {% include 'shelves/shelf_pagination.html' %}
+</div>
+{% endblock %}

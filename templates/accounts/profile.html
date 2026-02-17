@@ -1056,12 +1056,6 @@
       </button>
     </li>
     <li class="nav-item" role="presentation">
-      <button class="nav-link{% if current_tab == 'stats' %} active{% endif %}" id="stats-tab" data-bs-toggle="tab"
-              data-bs-target="#stats" type="button" role="tab" aria-selected="{% if current_tab == 'stats' %}true{% else %}false{% endif %}">
-        <i class="bi bi-bar-chart me-1"></i>Статистика
-      </button>
-    </li>
-    <li class="nav-item" role="presentation">
       <button class="nav-link{% if current_tab == 'books' %} active{% endif %}" id="books-tab" data-bs-toggle="tab"
               data-bs-target="#books" type="button" role="tab" aria-selected="{% if current_tab == 'books' %}true{% else %}false{% endif %}">
         <i class="bi bi-book me-1"></i>Мои книги
@@ -1107,9 +1101,10 @@
         {% endif %}
       {% endcomment %}
       </div>
-      {% include "shelves/_shelf_cards.html" with shelves=user_shelves allow_manage=allow_shelf_management empty_message=allow_shelf_management|yesno:"У вас пока нет полок.,Пока нет полок.,Пока нет полок." next_url=request.get_full_path default_reading_shelf_name=default_reading_shelf_name default_home_library_shelf_name=default_home_library_shelf_name default_read_shelf_name=default_read_shelf_name reading_progress_label=reading_progress_label status_user_override=u %}
+      {% include "shelves/_shelf_cards.html" with shelves=user_shelves allow_manage=allow_shelf_management empty_message=allow_shelf_management|yesno:"У вас пока нет полок.,Пока нет полок.,Пока нет полок." next_url=request.get_full_path default_reading_shelf_name=default_reading_shelf_name default_home_library_shelf_name=default_home_library_shelf_name default_read_shelf_name=default_read_shelf_name default_want_shelf_name=default_want_shelf_name reading_progress_label=reading_progress_label status_user_override=u %}
     </div>
 
+    {% if show_stats %}
     <!-- Статистика -->
     <div class="tab-pane fade{% if current_tab == 'stats' %} show active{% endif %}" id="stats" role="tabpanel">
       <div class="card border-0 shadow-sm mb-4 stat-card" data-delay="0">
@@ -1603,6 +1598,7 @@
         </script>
       {% endif %}
     </div>
+    {% endif %} <!-- Закрывающий тег для if show_stats -->
 
     <!-- Мои книги -->
     <div class="tab-pane fade{% if current_tab == 'books' %} show active{% endif %}" id="books" role="tabpanel">
@@ -2060,7 +2056,6 @@
     </div>
 
     <!-- Обзоры -->
-    <!-- Обзоры -->
     <div class="tab-pane fade{% if current_tab == 'reviews' %} show active{% endif %}" id="reviews" role="tabpanel">
       {% if user_reviews %}
         <div class="d-flex flex-column gap-3">
@@ -2097,13 +2092,13 @@
                     {% endif %}
                   </div>
                   <div class="d-flex gap-2">
-                <a class="btn btn-outline-secondary btn-sm" href="{% url 'book_review_print' review.book.pk %}" target="_blank" rel="noopener">
-                  <i class="bi bi-file-text me-1"></i>HTML
-                </a>
-                <a class="btn btn-outline-primary btn-sm" href="{% url 'book_review_pdf' review.book.pk %}" target="_blank" rel="noopener">
-                  <i class="bi bi-file-pdf me-1"></i>PDF
-                </a>
-              </div>
+                    <a class="btn btn-outline-secondary btn-sm" href="{% url 'book_review_print' review.book.pk %}" target="_blank" rel="noopener">
+                      <i class="bi bi-file-text me-1"></i>HTML
+                    </a>
+                    <a class="btn btn-outline-primary btn-sm" href="{% url 'book_review_pdf' review.book.pk %}" target="_blank" rel="noopener">
+                      <i class="bi bi-file-pdf me-1"></i>PDF
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2114,55 +2109,9 @@
       {% endif %}
     </div>
   </div>
-  {% endwith %}
+  {% endwith %} <!-- Закрывающий тег для with current_tab -->
 
 </div><!-- /.profile-theme -->
-
-<!-- Модальное окно с деталями дня -->
-<div class="modal fade profile-day-modal" id="readingDayModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="dayModalTitle">Статистика за день</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-      </div>
-      <div class="modal-body">
-        <div class="row g-3 mb-4">
-          <div class="col-12 col-md-4">
-            <div class="stat-item">
-              <div class="stat-value" id="dayModalPages">0</div>
-              <div class="stat-label">Прочитано страниц</div>
-            </div>
-          </div>
-          <div class="col-12 col-md-4">
-            <div class="stat-item">
-              <div class="stat-value" id="dayModalBooks">0</div>
-              <div class="stat-label">Книги дня</div>
-            </div>
-          </div>
-          <div class="col-12 col-md-4">
-            <div class="stat-item">
-              <div class="stat-value" id="dayModalSessions">0</div>
-              <div class="stat-label">Записей чтения</div>
-            </div>
-          </div>
-        </div>
-        <div class="mb-3" id="dayModalAudioWrapper" hidden>
-          <span class="badge text-bg-light text-dark"><i class="bi bi-headphones me-1"></i><span id="dayModalAudio"></span></span>
-        </div>
-        <div class="mb-3">
-          <h6 class="mb-2">Прочитанные книги</h6>
-          <div class="day-books-grid" id="dayModalBooksList"></div>
-          <p class="text-muted small mb-0" id="dayModalEmptyMessage" hidden>В этот день пока нет записей чтения.</p>
-        </div>
-        <div class="d-flex justify-content-end gap-2 mt-4">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Закрыть</button>
-          <a href="#" class="btn btn-primary" id="dayModalDetailLink" target="_self">Открыть подробную статистику</a>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- Уведомление -->
 <div class="profile-notification" id="profileNotification">
@@ -2513,86 +2462,6 @@
 
     // Запуск анимаций при загрузке
     document.addEventListener('DOMContentLoaded', function() {
-      const periodFallbacks = document.querySelectorAll('.period-select-fallback');
-      periodFallbacks.forEach(el => el.classList.add('d-none'));
-
-      const periodTabs = document.querySelectorAll('.period-tab');
-      const periodSelect = document.getElementById('id_period');
-      const periodForm = document.getElementById('statsFilterForm');
-
-      periodTabs.forEach((tab) => {
-        tab.addEventListener('click', () => {
-          if (!periodSelect) {
-            return;
-          }
-          const targetPeriod = tab.dataset.period;
-          if (!targetPeriod) {
-            return;
-          }
-          const shouldSubmit = periodSelect.value !== targetPeriod;
-          periodSelect.value = targetPeriod;
-          periodTabs.forEach((btn) => {
-            const isActive = btn === tab;
-            btn.classList.toggle('active', isActive);
-            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-          });
-          if (shouldSubmit && periodForm) {
-            periodForm.submit();
-          }
-        });
-      });
-
-      document.querySelectorAll('td[data-date]').forEach((cell) => {
-        cell.addEventListener('keydown', (event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            const isoDate = cell.dataset.date;
-            showDayDetails(isoDate);
-          }
-        });
-      });
-
-      const calendarCollapseElement = document.getElementById('readingCalendarCollapse');
-      const calendarToggleButton = document.getElementById('calendarToggleButton');
-
-      if (calendarCollapseElement && calendarToggleButton && typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
-        const collapseInstance = bootstrap.Collapse.getOrCreateInstance(calendarCollapseElement, { toggle: false });
-        const labelElement = calendarToggleButton.querySelector('.calendar-toggle-label');
-        const showLabel = calendarToggleButton.dataset.showLabel || 'Показать календарь чтения';
-        const hideLabel = calendarToggleButton.dataset.hideLabel || 'Скрыть календарь чтения';
-
-        const updateButtonState = (expanded) => {
-          calendarToggleButton.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-          if (labelElement) {
-            labelElement.textContent = expanded ? hideLabel : showLabel;
-          } else {
-            calendarToggleButton.textContent = expanded ? hideLabel : showLabel;
-          }
-        };
-
-        calendarCollapseElement.addEventListener('shown.bs.collapse', () => {
-          updateButtonState(true);
-        });
-        calendarCollapseElement.addEventListener('hidden.bs.collapse', () => {
-          updateButtonState(false);
-        });
-
-        const mediaQuery = window.matchMedia('(min-width: 576px)');
-        const handleViewportChange = (event) => {
-          if (event.matches) {
-            collapseInstance.show();
-          } else {
-            collapseInstance.hide();
-          }
-        };
-
-        handleViewportChange(mediaQuery);
-        mediaQuery.addEventListener('change', handleViewportChange);
-        updateButtonState(calendarCollapseElement.classList.contains('show'));
-      } else if (calendarToggleButton && !calendarCollapseElement) {
-        calendarToggleButton.hidden = true;
-      }
-
       // Задержка для плавного появления
       setTimeout(() => {
         updateReadingProgress();
@@ -2606,10 +2475,6 @@
         });
       }, 500);
 
-      // Показать приветственное уведомление
-      setTimeout(() => {
-        showProfileNotification('Добро пожаловать в ваш профиль! 🌟 Исследуйте свою читательскую статистику.');
-      }, 1000);
     });
 
     // Эффект печатной машинки для био

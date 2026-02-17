@@ -6,6 +6,7 @@ from typing import Optional
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Count, Sum
 from django.shortcuts import get_object_or_404, redirect, render
@@ -109,6 +110,88 @@ def my_shelves(request):
 
 
 @login_required
+
+
+@login_required
+def want_shelf_page(request):
+    shelf = Shelf.objects.filter(user=request.user, name__iexact=DEFAULT_WANT_SHELF, is_managed=False).first()
+    if not shelf:
+        shelf = get_object_or_404(Shelf, user=request.user, name=DEFAULT_WANT_SHELF, is_managed=False)
+
+    sort = request.GET.get("sort", "added_desc")
+    order_by = "-added_at" if sort != "added_asc" else "added_at"
+
+    items_qs = (
+        ShelfItem.objects
+        .filter(shelf=shelf)
+        .select_related("book")
+        .prefetch_related("book__authors")
+        .order_by(order_by, "-id")
+    )
+
+    paginator = Paginator(items_qs, 10)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    return render(request, "shelves/want_shelf_page.html", {
+        "shelf": shelf,
+        "page_obj": page_obj,
+        "sort": sort,
+    })
+
+
+@login_required
+def read_shelf_page(request):
+    shelf = (
+        Shelf.objects
+        .filter(user=request.user, name__in=ALL_DEFAULT_READ_SHELF_NAMES, is_managed=False)
+        .order_by("id")
+        .first()
+    )
+    if not shelf:
+        shelf = get_object_or_404(Shelf, user=request.user, name=DEFAULT_READ_SHELF, is_managed=False)
+
+    items_qs = (
+        ShelfItem.objects
+        .filter(shelf__user=request.user, shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES)
+        .select_related("book")
+        .prefetch_related("book__authors")
+    )
+
+    years = sorted({item.added_at.year for item in items_qs if item.added_at}, reverse=True)
+    selected_year = request.GET.get("year")
+    if selected_year and selected_year.isdigit():
+        items_qs = items_qs.filter(added_at__year=int(selected_year))
+    else:
+        selected_year = ""
+
+    months = []
+    base_for_months = items_qs
+    if not selected_year:
+        base_for_months = ShelfItem.objects.filter(
+            shelf__user=request.user,
+            shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+        )
+    months = sorted({item.added_at.month for item in base_for_months if item.added_at})
+
+    selected_month = request.GET.get("month")
+    if selected_month and selected_month.isdigit():
+        items_qs = items_qs.filter(added_at__month=int(selected_month))
+    else:
+        selected_month = ""
+
+    items_qs = items_qs.order_by("-added_at", "-id")
+
+    paginator = Paginator(items_qs, 10)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    return render(request, "shelves/read_shelf_page.html", {
+        "shelf": shelf,
+        "page_obj": page_obj,
+        "years": years,
+        "months": months,
+        "selected_year": selected_year,
+        "selected_month": selected_month,
+    })
 @login_required
 def home_library(request):
     """Подробный учёт книг из полки «Моя домашняя библиотека» пользователя."""
