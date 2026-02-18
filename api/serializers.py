@@ -207,8 +207,24 @@ class ReadingMarathonSerializer(serializers.ModelSerializer):
 
 
 class MobileAuthSerializer(serializers.Serializer):
-    login = serializers.CharField(max_length=254)
+    login = serializers.CharField(max_length=254, required=False, allow_blank=True)
+    email = serializers.EmailField(required=False, allow_blank=True)
+    username = serializers.CharField(max_length=150, required=False, allow_blank=True)
     password = serializers.CharField(write_only=True, trim_whitespace=False)
+
+    def validate(self, attrs):
+        login = (
+            attrs.get("login")
+            or attrs.get("email")
+            or attrs.get("username")
+            or ""
+        ).strip()
+        if not login:
+            raise serializers.ValidationError(
+                {"login": "Передайте login, email или username."}
+            )
+        attrs["login"] = login
+        return attrs
 
 
 class MobileSignupSerializer(serializers.Serializer):

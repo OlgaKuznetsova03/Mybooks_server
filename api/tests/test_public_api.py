@@ -82,6 +82,54 @@ class MobileAuthApiTests(APITestCase):
         self.assertIn("token", payload)
         self.assertEqual(payload["user"]["email"], "reader@example.com")
 
+
+    def test_mobile_login_accepts_email_field_alias(self):
+        password = "StrongPass123!"
+        self.user_model.objects.create_user(
+            username="alias_user",
+            email="alias@example.com",
+            password=password,
+        )
+
+        response = self.client.post(
+            reverse("v1:auth-login"),
+            {"email": "alias@example.com", "password": password},
+            format="json",
+            secure=True,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json()["user"]["email"], "alias@example.com")
+
+    def test_mobile_login_accepts_username_field_alias(self):
+        password = "StrongPass123!"
+        self.user_model.objects.create_user(
+            username="nickname_user",
+            email="nick@example.com",
+            password=password,
+        )
+
+        response = self.client.post(
+            reverse("v1:auth-login"),
+            {"username": "nickname_user", "password": password},
+            format="json",
+            secure=True,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json()["user"]["username"], "nickname_user")
+
+    def test_mobile_login_requires_any_login_identifier(self):
+        response = self.client.post(
+            reverse("v1:auth-login"),
+            {"password": "StrongPass123!"},
+            format="json",
+            secure=True,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("login", response.json())
+
     def test_mobile_signup_creates_account_and_allows_website_login(self):
         password = "StrongPass123!"
         signup_response = self.client.post(
