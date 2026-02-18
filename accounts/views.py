@@ -1986,7 +1986,7 @@ def profile(request, username=None):
         "items",
         queryset=(
             ShelfItem.objects
-            .select_related("book", "home_entry")
+            .select_related("book", "home_entry", "selected_edition")
             .prefetch_related("book__authors")
             .order_by("-added_at")
         ),

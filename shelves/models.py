@@ -50,11 +50,18 @@ class ShelfItem(models.Model):
         return f"{self.book.title} в {self.shelf.name}"
 
     def get_display_cover_url(self) -> str:
-        edition = getattr(self, "selected_edition", None)
+        edition = None
+        if self.selected_edition_id:
+            try:
+                edition = getattr(self, "selected_edition", None)
+            except ISBNModel.DoesNotExist:
+                edition = None
+
         if edition:
             cover_url = edition.get_image_url()
             if cover_url:
                 return cover_url
+
         return self.book.get_cover_url()
 
 
