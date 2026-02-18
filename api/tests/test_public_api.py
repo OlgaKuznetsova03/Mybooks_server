@@ -28,6 +28,15 @@ class PublicApiTests(APITestCase):
         self.assertIn("results", payload)
         self.assertIsInstance(payload["results"], list)
 
+    def test_stats_endpoint_is_accessible(self):
+        response = self.client.get(reverse("v1:stats"), secure=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = response.json()
+        self.assertIn("books_per_month", payload)
+        self.assertIn("challenge_progress", payload)
+        self.assertIn("calendar", payload)
+
     def test_reading_clubs_list_is_accessible(self):
         response = self.client.get(
             reverse("v1:reading-clubs"), {"page_size": 1}, secure=True

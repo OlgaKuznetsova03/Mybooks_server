@@ -52,6 +52,7 @@ from shelves.services import (
     get_default_shelf_status_map,
     move_book_to_read_shelf,
     remove_book_from_want_shelf,
+    sync_reading_progress_with_selected_edition,
 )
 from games.services.read_before_buy import ReadBeforeBuyGame
 from user_ratings.services import award_for_review
@@ -1506,6 +1507,8 @@ def book_detail(request, pk):
                     shelf_item.save(update_fields=["selected_edition"])
                 if shelf.name == DEFAULT_READING_SHELF:
                     remove_book_from_want_shelf(request.user, book)
+                    if selected_edition:
+                        sync_reading_progress_with_selected_edition(request.user, book)
                     messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")
                     messages.info(
                         request,

@@ -12,6 +12,21 @@ class CurrentBook {
         progress: json['progress'] as int? ?? 0,
         coverUrl: json['cover_url'] as String? ?? '',
       );
+
+  factory CurrentBook.fromShelfItem(Map<String, dynamic> json) {
+    final book = json['book'] as Map<String, dynamic>? ?? const {};
+    final authors = (book['authors'] as List<dynamic>? ?? const [])
+        .map((entry) => (entry as Map<String, dynamic>)['name'] as String? ?? '')
+        .where((name) => name.isNotEmpty)
+        .toList();
+
+    return CurrentBook(
+      title: book['title'] as String? ?? 'Без названия',
+      author: authors.isNotEmpty ? authors.first : 'Неизвестный автор',
+      progress: (json['progress_percent'] as num?)?.round() ?? 0,
+      coverUrl: book['cover_url'] as String? ?? '',
+    );
+  }
 }
 
 class ReadingUpdate {
@@ -30,6 +45,17 @@ class ReadingUpdate {
         pagesRead: json['pages_read'] as int? ?? 0,
         coverUrl: json['cover_url'] as String? ?? '',
       );
+
+  factory ReadingUpdate.fromClub(Map<String, dynamic> json) {
+    final book = json['book'] as Map<String, dynamic>? ?? const {};
+    return ReadingUpdate(
+      userAvatar: '',
+      userName: json['title'] as String? ?? 'Книжный клуб',
+      bookTitle: book['title'] as String? ?? 'Книга не указана',
+      pagesRead: (json['approved_participant_count'] as num?)?.toInt() ?? 0,
+      coverUrl: book['cover_url'] as String? ?? '',
+    );
+  }
 }
 
 class CollaborationOffer {
@@ -58,6 +84,12 @@ class MarathonItem {
         name: json['name'] as String? ?? 'Марафон',
         participants: json['participants'] as int? ?? 0,
       );
+
+  factory MarathonItem.fromApi(Map<String, dynamic> json) => MarathonItem(
+        id: json['id'] as int? ?? 0,
+        name: json['title'] as String? ?? 'Марафон',
+        participants: (json['participant_count'] as num?)?.toInt() ?? 0,
+      );
 }
 
 class HomePayload {
@@ -85,13 +117,24 @@ class BookItem {
   final String genre;
   final String coverUrl;
 
-  factory BookItem.fromJson(Map<String, dynamic> json) => BookItem(
-        id: json['id'] as int? ?? 0,
-        title: json['title'] as String? ?? 'Без названия',
-        author: json['author'] as String? ?? 'Неизвестный автор',
-        genre: json['genre'] as String? ?? 'Прочее',
-        coverUrl: json['cover_url'] as String? ?? '',
-      );
+  factory BookItem.fromJson(Map<String, dynamic> json) {
+    final authors = (json['authors'] as List<dynamic>? ?? const [])
+        .map((entry) => (entry as Map<String, dynamic>)['name'] as String? ?? '')
+        .where((name) => name.isNotEmpty)
+        .toList();
+    final genres = (json['genres'] as List<dynamic>? ?? const [])
+        .map((entry) => (entry as Map<String, dynamic>)['name'] as String? ?? '')
+        .where((name) => name.isNotEmpty)
+        .toList();
+
+    return BookItem(
+      id: json['id'] as int? ?? 0,
+      title: json['title'] as String? ?? 'Без названия',
+      author: authors.isNotEmpty ? authors.first : 'Неизвестный автор',
+      genre: genres.isNotEmpty ? genres.first : 'Прочее',
+      coverUrl: json['cover_url'] as String? ?? '',
+    );
+  }
 }
 
 class StatsPayload {

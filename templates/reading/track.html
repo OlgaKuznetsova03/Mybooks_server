@@ -848,7 +848,7 @@
   <section class="reading-progress-backdrop mb-4">
     <div class="reading-progress-hero">
       <div class="reading-progress-hero__cover">
-        {% with cover_url=book.get_cover_url %}
+        {% with cover_url=display_cover_url|default:book.get_cover_url %}
           {% if cover_url %}
             <img src="{{ cover_url }}" class="img-fluid rounded" alt="Обложка книги {{ book.title }}" 
                  onload="this.style.opacity='1'" style="opacity:0; transition: opacity 0.5s ease">
@@ -2537,7 +2537,7 @@ function confetti(options = {}) {
       apiUrl: '{{ finish_celebration_api_url }}',
       bookTitle: '{{ book.title|escapejs }}',
       title: '{{ book.title|escapejs }}',
-      cover: '{{ book.get_cover_url|default_if_none:""|escapejs }}',
+      cover: '{{ display_cover_url|default_if_none:""|escapejs }}',
       rewardText: '+{{ finish_reward_points }} к книжному пути',
       celebrationEffect: 'golden_stars',
       celebrationPalette: ['#ffd700', '#f6e05e', '#ffe9a3', '#fff7d6', '#f4c430'],

@@ -264,6 +264,40 @@ def move_book_to_reading_shelf(user: User, book: Book) -> None:
             shelf_item.save(update_fields=["selected_edition"])
 
 
+def sync_reading_progress_with_selected_edition(user: User, book: Book) -> None:
+    """Синхронизировать данные трекера с выбранным изданием на полке «Читаю»."""
+
+    if not getattr(user, "is_authenticated", False):
+        return
+
+    reading_item = (
+        ShelfItem.objects
+        .filter(shelf__user=user, shelf__name=DEFAULT_READING_SHELF, book=book)
+        .select_related("selected_edition")
+        .first()
+    )
+    if not reading_item or not reading_item.selected_edition_id:
+        return
+
+    edition = reading_item.selected_edition
+    if not edition:
+        return
+
+    progress = (
+        BookProgress.objects
+        .filter(user=user, book=book, event__isnull=True)
+        .first()
+    )
+    if not progress:
+        return
+
+    edition_total_pages = edition.total_pages or None
+    if edition_total_pages and progress.custom_total_pages != edition_total_pages:
+        progress.custom_total_pages = edition_total_pages
+        progress.save(update_fields=["custom_total_pages", "updated_at"])
+        progress.recalc_percent(save=True)
+
+
 def move_book_to_unfinished_shelf(user: User, book: Book) -> None:
     """Ensure the book is on the user's "Недочитано" shelf."""
 

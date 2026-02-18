@@ -308,3 +308,68 @@ class HomeFeedView(APIView):
         }
 
         return Response(payload)
+
+
+class StatsView(APIView):
+    """Reading stats for the mobile client."""
+
+    def get(self, request, *args, **kwargs):
+        today = timezone.localdate()
+        month_start = today.replace(day=1)
+        year_start = today.replace(month=1, day=1)
+
+        books_per_month = [0] * 12
+        challenge_progress = 0
+        calendar = [0] * 7
+
+        if request.user.is_authenticated:
+            year_logs = ReadingLog.objects.filter(
+                progress__user=request.user,
+                log_date__year=today.year,
+            )
+
+            month_rows = (
+                year_logs.values("log_date__month")
+                .annotate(total=Sum("pages_equivalent"))
+                .order_by("log_date__month")
+            )
+            for row in month_rows:
+                month = row["log_date__month"]
+                if month:
+                    books_per_month[month - 1] = int(float(row["total"] or 0) // 300)
+
+            monthly_pages = (
+                ReadingLog.objects.filter(
+                    progress__user=request.user,
+                    log_date__gte=month_start,
+                    log_date__lte=today,
+                ).aggregate(total=Sum("pages_equivalent")).get("total")
+                or 0
+            )
+            challenge_progress = min(100, int((float(monthly_pages) / 3000) * 100))
+
+            week_start = today - timedelta(days=6)
+            week_days = {week_start + timedelta(days=offset): 0 for offset in range(7)}
+            week_rows = (
+                ReadingLog.objects.filter(
+                    progress__user=request.user,
+                    log_date__gte=week_start,
+                    log_date__lte=today,
+                )
+                .values("log_date")
+                .annotate(total=Sum("pages_equivalent"))
+            )
+            for row in week_rows:
+                day = row["log_date"]
+                week_days[day] = float(row["total"] or 0)
+
+            calendar = [1 if week_days[day] > 0 else 0 for day in sorted(week_days.keys())]
+
+        return Response(
+            {
+                "year": year_start.year,
+                "books_per_month": books_per_month,
+                "challenge_progress": challenge_progress,
+                "calendar": calendar,
+            }
+        )
