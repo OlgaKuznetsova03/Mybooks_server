@@ -1397,9 +1397,10 @@ def book_detail(request, pk):
             and request.POST.get("action") == "quick-add-shelf"
         )
         if is_quick_add_action:
-            quick_add_form = QuickAddShelfForm(request.POST, user=request.user)
+            quick_add_form = QuickAddShelfForm(request.POST, user=request.user, book=book)
             if quick_add_form.is_valid():
                 shelf = quick_add_form.cleaned_data["shelf"]
+                selected_edition = quick_add_form.cleaned_data.get("selected_edition")
                 read_at = quick_add_form.cleaned_data.get("read_at")
                 quote_text = (quick_add_form.cleaned_data.get("quote") or "").strip()
                 note_text = (quick_add_form.cleaned_data.get("note") or "").strip()
@@ -1441,6 +1442,19 @@ def book_detail(request, pk):
 
                 if shelf.name in ALL_DEFAULT_READ_SHELF_NAMES:
                     move_book_to_read_shelf(request.user, book, read_date=read_at)
+                    if selected_edition:
+                        read_item = (
+                            ShelfItem.objects
+                            .filter(
+                                shelf__user=request.user,
+                                shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+                                book=book,
+                            )
+                            .first()
+                        )
+                        if read_item and read_item.selected_edition_id != selected_edition.id:
+                            read_item.selected_edition = selected_edition
+                            read_item.save(update_fields=["selected_edition"])
                     if quote_text or note_text:
                         progress, _ = BookProgress.objects.get_or_create(
                             user=request.user,
@@ -1482,7 +1496,14 @@ def book_detail(request, pk):
                         return redirect("shelves:reading_track", book_id=book.pk)
                     return redirect("book_detail", pk=book.pk)
 
-                ShelfItem.objects.get_or_create(shelf=shelf, book=book)
+                shelf_item, created = ShelfItem.objects.get_or_create(
+                    shelf=shelf,
+                    book=book,
+                    defaults={"selected_edition": selected_edition},
+                )
+                if not created and selected_edition and shelf_item.selected_edition_id != selected_edition.id:
+                    shelf_item.selected_edition = selected_edition
+                    shelf_item.save(update_fields=["selected_edition"])
                 if shelf.name == DEFAULT_READING_SHELF:
                     remove_book_from_want_shelf(request.user, book)
                     messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")
@@ -1602,7 +1623,7 @@ def book_detail(request, pk):
             }
 
         if quick_add_form is None:
-            quick_add_form = QuickAddShelfForm(user=request.user)
+            quick_add_form = QuickAddShelfForm(user=request.user, book=book)
 
         if quick_add_form is not None:
             selected_shelf_value = quick_add_form["shelf"].value()

@@ -8,7 +8,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.timezone import localdate
-from books.models import Book, Genre
+from books.models import Book, Genre, ISBNModel
 
 class Shelf(models.Model):
     """Полка пользователя"""
@@ -32,6 +32,14 @@ class ShelfItem(models.Model):
     """Книга в полке"""
     shelf = models.ForeignKey(Shelf, on_delete=models.CASCADE, related_name="items")
     book  = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="shelf_items")
+    selected_edition = models.ForeignKey(
+        ISBNModel,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="shelf_items",
+        help_text="Издание книги, которое пользователь выбрал при добавлении на полку.",
+    )
     added_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -40,6 +48,14 @@ class ShelfItem(models.Model):
 
     def __str__(self):
         return f"{self.book.title} в {self.shelf.name}"
+
+    def get_display_cover_url(self) -> str:
+        edition = getattr(self, "selected_edition", None)
+        if edition:
+            cover_url = edition.get_image_url()
+            if cover_url:
+                return cover_url
+        return self.book.get_cover_url()
 
 
 class Event(models.Model):

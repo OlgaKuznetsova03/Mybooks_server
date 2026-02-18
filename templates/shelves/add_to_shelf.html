@@ -8,6 +8,10 @@
     <label class="form-label">{{ form.shelf.label }}</label>
     {{ form.shelf }}
   </div>
+  <div class="mb-3">
+    <label class="form-label">{{ form.selected_edition.label }}</label>
+    {{ form.selected_edition }}
+  </div>
   <button class="btn btn-primary">Добавить</button>
   <a class="btn btn-link" href="{% url 'shelves:shelf_create' %}">Создать новую полку</a>
 </form>

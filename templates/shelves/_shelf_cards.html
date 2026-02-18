@@ -235,7 +235,7 @@
                   <a class="book-cover"
                      href="{% if normalized_name == normalized_default or normalized_name == normalized_progress %}{% url 'shelves:reading_track' it.book.pk %}{% else %}{% url 'book_detail' it.book.pk %}{% endif %}"
                      title="{% if normalized_name == normalized_default or normalized_name == normalized_progress %}Открыть прогресс чтения{% else %}Открыть книгу{% endif %}">
-                    {% with cover_url=it.book.get_cover_url %}
+                    {% with cover_url=it.get_display_cover_url %}
                       {% if cover_url %}
                         <img src="{{ cover_url }}" alt="Обложка {{ it.book.title }}">
                       {% else %}

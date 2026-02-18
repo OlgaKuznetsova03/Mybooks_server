@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.utils import timezone
 
-from books.models import Book, Genre
+from books.models import Book, Genre, ISBNModel
 from .models import (
     Shelf,
     ShelfItem,
@@ -33,8 +33,14 @@ class AddToShelfForm(forms.Form):
         label="Выберите полку",
         empty_label=None
     )
+    selected_edition = forms.ModelChoiceField(
+        queryset=ISBNModel.objects.none(),
+        required=False,
+        label="Издание",
+        empty_label="Основное издание",
+    )
 
-    def __init__(self, *args, user=None, **kwargs):
+    def __init__(self, *args, user=None, book=None, **kwargs):
         super().__init__(*args, **kwargs)
         ensure_default_shelves(user)
         # показываем только пользовательские полки, которыми он управляет вручную
@@ -44,6 +50,9 @@ class AddToShelfForm(forms.Form):
             .filter(Q(is_managed=False) | Q(is_default=True))
             .order_by("-is_default", "name")
         )
+        self.fields["selected_edition"].widget.attrs.setdefault("class", "form-select")
+        if book is not None:
+            self.fields["selected_edition"].queryset = book.isbn.order_by("title", "pk")
 
 
 class QuickAddShelfForm(AddToShelfForm):
@@ -112,10 +121,11 @@ class QuickAddShelfForm(AddToShelfForm):
         ),
     )
 
-    def __init__(self, *args, user=None, **kwargs):
-        super().__init__(*args, user=user, **kwargs)
+    def __init__(self, *args, user=None, book=None, **kwargs):
+        super().__init__(*args, user=user, book=book, **kwargs)
         self.fields["shelf"].widget.attrs.setdefault("class", "form-select form-select-sm")
         self.fields["shelf"].widget.attrs.setdefault("data-role", "shelf-select")
+        self.fields["selected_edition"].widget.attrs.setdefault("class", "form-select form-select-sm")
         today = timezone.localdate()
         self.fields["purchase_date"].widget.attrs.setdefault("max", today.isoformat())
         self.fields["read_date"].widget.attrs.setdefault("max", today.isoformat())

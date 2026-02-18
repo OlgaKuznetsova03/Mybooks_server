@@ -124,7 +124,7 @@ def want_shelf_page(request):
     items_qs = (
         ShelfItem.objects
         .filter(shelf=shelf)
-        .select_related("book")
+        .select_related("book", "selected_edition")
         .prefetch_related("book__authors")
         .order_by(order_by, "-id")
     )
@@ -153,7 +153,7 @@ def read_shelf_page(request):
     items_qs = (
         ShelfItem.objects
         .filter(shelf__user=request.user, shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES)
-        .select_related("book")
+        .select_related("book", "selected_edition")
         .prefetch_related("book__authors")
     )
 
@@ -710,7 +710,7 @@ def add_book_to_shelf(request, book_id):
     """Добавить книгу в выбранную полку пользователя (форма-страница)."""
     book = get_object_or_404(Book, pk=book_id)
     if request.method == "POST":
-        form = AddToShelfForm(request.POST, user=request.user)
+        form = AddToShelfForm(request.POST, user=request.user, book=book)
         if form.is_valid():
             shelf = form.cleaned_data["shelf"]
             if shelf.user_id != request.user.id:
@@ -722,8 +722,23 @@ def add_book_to_shelf(request, book_id):
                     "Книги на эту полку можно добавлять только в рамках игровой механики.",
                 )
                 return redirect("book_detail", pk=book.pk)
+            selected_edition = form.cleaned_data.get("selected_edition")
+
             if shelf.name == DEFAULT_READ_SHELF:
                 move_book_to_read_shelf(request.user, book)
+                if selected_edition:
+                    read_item = (
+                        ShelfItem.objects
+                        .filter(
+                            shelf__user=request.user,
+                            shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+                            book=book,
+                        )
+                        .first()
+                    )
+                    if read_item and read_item.selected_edition_id != selected_edition.id:
+                        read_item.selected_edition = selected_edition
+                        read_item.save(update_fields=["selected_edition"])
                 messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")
                 return redirect("book_detail", pk=book.pk)
 
@@ -737,13 +752,20 @@ def add_book_to_shelf(request, book_id):
                     remove_book_from_want_shelf(request.user, book)
                 return redirect("book_detail", pk=book.pk)
 
-            ShelfItem.objects.get_or_create(shelf=shelf, book=book)
+            shelf_item, created = ShelfItem.objects.get_or_create(
+                shelf=shelf,
+                book=book,
+                defaults={"selected_edition": selected_edition},
+            )
+            if not created and selected_edition and shelf_item.selected_edition_id != selected_edition.id:
+                shelf_item.selected_edition = selected_edition
+                shelf_item.save(update_fields=["selected_edition"])
             if shelf.name == DEFAULT_READING_SHELF:
                 remove_book_from_want_shelf(request.user, book)
             messages.success(request, f"«{book.title}» добавлена в «{shelf.name}».")
             return redirect("book_detail", pk=book.pk)
     else:
-        form = AddToShelfForm(user=request.user)
+        form = AddToShelfForm(user=request.user, book=book)
     return render(request, "shelves/add_to_shelf.html", {"form": form, "book": book})
 
 

@@ -151,6 +151,11 @@ class ISBNModel(models.Model):
     language = models.CharField(max_length=10, blank=True, null=True)
     subjects = models.TextField(blank=True, null=True)
     image = models.URLField(blank=True, null=True)
+    
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['id'], name='unique_isbnmodel_id')
+        ]
 
     def __str__(self):
         return f"{self.title} ({self.isbn})"

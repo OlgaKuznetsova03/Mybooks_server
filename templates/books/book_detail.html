@@ -779,6 +779,16 @@
           </select>
         </div>
 
+        <div class="mb-3">
+          <label class="form-label" for="modalShelfEditionSelect">Выберите издание</label>
+          <select class="form-select" name="selected_edition" id="modalShelfEditionSelect">
+            <option value="">Основное издание</option>
+            {% for edition in quick_add_form.selected_edition.field.queryset %}
+              <option value="{{ edition.id }}">{{ edition.title|default:book.title }}{% if edition.binding %} · {{ edition.binding }}{% endif %}{% if edition.publish_date %} · {{ edition.publish_date }}{% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
+
         <!-- Дополнительные поля для полки "Прочитано" -->
         <div class="date-fields d-none" id="readShelfFields">
           <div class="mb-3">
