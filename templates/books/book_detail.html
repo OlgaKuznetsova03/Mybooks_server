@@ -531,7 +531,21 @@
                       <div class="invalid-feedback d-block small">{{ quick_add_form.shelf.errors|join:', ' }}</div>
                     {% endif %}
                   </div>
-                  <div class="col-12 col-lg-6 book-detail-shelf-form__extras{% if not quick_add_is_read_shelf_selected %} d-none{% endif %}"
+                  <div class="col-12 col-md-4">
+                    <label class="form-label small" for="{{ quick_add_form.selected_edition.id_for_label }}">{{ quick_add_form.selected_edition.label }}</label>
+                    <select class="form-select form-select-sm" name="selected_edition" id="{{ quick_add_form.selected_edition.id_for_label }}" {% if quick_add_requires_edition_choice %}required{% endif %}>
+                      <option value=""{% if not quick_add_active_edition_id %} selected{% endif %}>Основное издание</option>
+                      {% for edition in quick_add_form.selected_edition.field.queryset %}
+                        <option value="{{ edition.id }}"{% if quick_add_active_edition_id and quick_add_active_edition_id == edition.id|stringformat:"s" %} selected{% endif %}>{{ edition.title|default:book.title }}{% if edition.binding %} · {{ edition.binding }}{% endif %}{% if edition.publish_date %} · {{ edition.publish_date }}{% endif %}</option>
+                      {% endfor %}
+                    </select>
+                    {% if quick_add_form.selected_edition.errors %}
+                      <div class="invalid-feedback d-block small">{{ quick_add_form.selected_edition.errors|join:', ' }}</div>
+                    {% elif quick_add_requires_edition_choice %}
+                      <div class="form-text">Вы открыли конкретное издание. Подтвердите выбор перед добавлением на полку.</div>
+                    {% endif %}
+                  </div>
+                  <div class="col-12 col-lg-4 book-detail-shelf-form__extras{% if not quick_add_is_read_shelf_selected %} d-none{% endif %}"
                        data-role="read-fields"
                        aria-hidden="{% if quick_add_is_read_shelf_selected %}false{% else %}true{% endif %}"
                        {% if not quick_add_is_read_shelf_selected %}hidden{% endif %}>
