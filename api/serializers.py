@@ -204,6 +204,38 @@ class ReadingMarathonSerializer(serializers.ModelSerializer):
             return annotated_value
         return obj.themes.count()
 
+
+
+class MobileAuthSerializer(serializers.Serializer):
+    login = serializers.CharField(max_length=254)
+    password = serializers.CharField(write_only=True, trim_whitespace=False)
+
+
+class MobileSignupSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=150)
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, trim_whitespace=False, min_length=8)
+
+    def validate_username(self, value: str) -> str:
+        from django.contrib.auth import get_user_model
+
+        username = value.strip()
+        if not username:
+            raise serializers.ValidationError("Имя пользователя обязательно.")
+        user_model = get_user_model()
+        if user_model.objects.filter(username__iexact=username).exists():
+            raise serializers.ValidationError("Пользователь с таким именем уже существует.")
+        return username
+
+    def validate_email(self, value: str) -> str:
+        from django.contrib.auth import get_user_model
+
+        normalized = value.lower()
+        user_model = get_user_model()
+        if user_model.objects.filter(email__iexact=normalized).exists():
+            raise serializers.ValidationError("Пользователь с таким email уже зарегистрирован.")
+        return normalized
+
 class ReadingShelfItemSerializer(serializers.ModelSerializer):
     """Item from the user's reading shelf with lightweight progress info."""
 

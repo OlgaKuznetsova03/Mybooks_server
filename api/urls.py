@@ -5,6 +5,8 @@ from . import views
 app_name = "api"
 
 urlpatterns = [
+    path("auth/login/", views.MobileLoginView.as_view(), name="auth-login"),
+    path("auth/signup/", views.MobileSignupView.as_view(), name="auth-signup"),
     path("health/", views.HealthView.as_view(), name="health"),
     path("feature-map/", views.FeatureMapView.as_view(), name="feature-map"),
     path("home/", views.HomeFeedView.as_view(), name="home"),

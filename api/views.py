@@ -1,9 +1,11 @@
 from django.db.models import Count, IntegerField, OuterRef, Q, Subquery, Sum, Value
+from django.contrib.auth import authenticate, get_user_model
 from datetime import timedelta
 from django.db.models.functions import Coalesce
 from django.utils import timezone
-from rest_framework import generics, status
+from rest_framework import generics, permissions, status
 from rest_framework.response import Response
+from rest_framework.authtoken.models import Token
 from rest_framework.views import APIView
 
 from books.models import Book
@@ -16,6 +18,8 @@ from .serializers import (
     BookCreateSerializer,
     BookDetailSerializer,
     BookListSerializer,
+    MobileAuthSerializer,
+    MobileSignupSerializer,
     ReadingClubSerializer,
     ReadingShelfItemSerializer,
     ReadingMarathonSerializer,
@@ -78,6 +82,71 @@ class FeatureMapView(APIView):
                     ],
                 },
             }
+        )
+
+
+class MobileLoginView(APIView):
+    """Token login for Flutter app using the same credentials as the website."""
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+
+    def post(self, request, *args, **kwargs):
+        serializer = MobileAuthSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = authenticate(
+            request,
+            username=serializer.validated_data["login"],
+            password=serializer.validated_data["password"],
+        )
+        if not user:
+            return Response(
+                {"detail": "Неверный логин или пароль."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        token, _ = Token.objects.get_or_create(user=user)
+        return Response(
+            {
+                "token": token.key,
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                },
+            }
+        )
+
+
+class MobileSignupView(APIView):
+    """Register account from the app and return auth token for website/app reuse."""
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+
+    def post(self, request, *args, **kwargs):
+        serializer = MobileSignupSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user_model = get_user_model()
+        user = user_model.objects.create_user(
+            username=serializer.validated_data["username"],
+            email=serializer.validated_data["email"],
+            password=serializer.validated_data["password"],
+        )
+        token, _ = Token.objects.get_or_create(user=user)
+
+        return Response(
+            {
+                "token": token.key,
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                },
+            },
+            status=status.HTTP_201_CREATED,
         )
 
 
