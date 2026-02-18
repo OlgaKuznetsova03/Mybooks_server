@@ -140,6 +140,13 @@ def move_book_to_read_shelf(user: User, book: Book, *, read_date: date | None = 
         return
 
     shelf_item: ShelfItem | None = None
+    preserved_edition_id = (
+        ShelfItem.objects
+        .filter(shelf__user=user, book=book)
+        .exclude(selected_edition_id__isnull=True)
+        .values_list("selected_edition_id", flat=True)
+        .first()
+    )
 
     with transaction.atomic():
         _remove_book_from_named_shelf(user, book, DEFAULT_READING_SHELF)
@@ -152,7 +159,18 @@ def move_book_to_read_shelf(user: User, book: Book, *, read_date: date | None = 
             DEFAULT_READ_SHELF,
             aliases=DEFAULT_READ_SHELF_ALIASES,
         )
-        shelf_item, _ = ShelfItem.objects.get_or_create(shelf=read_shelf, book=book)
+        shelf_item, created = ShelfItem.objects.get_or_create(
+            shelf=read_shelf,
+            book=book,
+            defaults={"selected_edition_id": preserved_edition_id},
+        )
+        if (
+            not created
+            and preserved_edition_id
+            and shelf_item.selected_edition_id != preserved_edition_id
+        ):
+            shelf_item.selected_edition_id = preserved_edition_id
+            shelf_item.save(update_fields=["selected_edition"])
 
     if read_date and shelf_item:
         target_added_at = datetime.combine(read_date, datetime.min.time())
