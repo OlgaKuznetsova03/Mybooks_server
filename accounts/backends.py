@@ -12,14 +12,13 @@ class EmailBackend(ModelBackend):
         if username is None or password is None:
             return None
 
-        try:
-            user = UserModel.objects.get(email__iexact=username)
-        except UserModel.DoesNotExist:
-            try:
-                user = UserModel.objects.get(username__iexact=username)
-            except UserModel.DoesNotExist:
-                return None
+        candidates = list(UserModel.objects.filter(email__iexact=username).order_by("id"))
+        if not candidates:
+            candidates = list(
+                UserModel.objects.filter(username__iexact=username).order_by("id")
+            )
 
-        if user.check_password(password) and self.user_can_authenticate(user):
-            return user
+        for user in candidates:
+            if user.check_password(password) and self.user_can_authenticate(user):
+                return user
         return None
