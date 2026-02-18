@@ -236,13 +236,32 @@ def move_book_to_reading_shelf(user: User, book: Book) -> None:
     if not user.is_authenticated:
         return
 
+    preserved_edition_id = (
+        ShelfItem.objects
+        .filter(shelf__user=user, book=book)
+        .exclude(selected_edition_id__isnull=True)
+        .values_list("selected_edition_id", flat=True)
+        .first()
+    )
+
     with transaction.atomic():
         _remove_book_from_named_shelf(user, book, ALL_DEFAULT_READ_SHELF_NAMES)
         _remove_book_from_named_shelf(user, book, DEFAULT_UNFINISHED_SHELF)
         _remove_book_from_named_shelf(user, book, DEFAULT_WANT_SHELF)
 
         reading_shelf = _get_default_shelf(user, DEFAULT_READING_SHELF)
-        ShelfItem.objects.get_or_create(shelf=reading_shelf, book=book)
+        shelf_item, created = ShelfItem.objects.get_or_create(
+            shelf=reading_shelf,
+            book=book,
+            defaults={"selected_edition_id": preserved_edition_id},
+        )
+        if (
+            not created
+            and preserved_edition_id
+            and shelf_item.selected_edition_id != preserved_edition_id
+        ):
+            shelf_item.selected_edition_id = preserved_edition_id
+            shelf_item.save(update_fields=["selected_edition"])
 
 
 def move_book_to_unfinished_shelf(user: User, book: Book) -> None:
