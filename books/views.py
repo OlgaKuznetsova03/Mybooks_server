@@ -2060,6 +2060,8 @@ def book_detail(request, pk):
         "read_shelf_ids": read_shelf_ids,
         "read_shelf_ids_str": read_shelf_ids_str,
         "read_shelf_name_tokens": read_shelf_name_tokens,
+        "quick_add_active_edition_id": edition_active_id,
+        "quick_add_requires_edition_choice": len(isbn_entries) > 1,
         "edit_request_form": edit_request_form,
         "genre_shelves": genre_shelves,
         "reading_clubs_by_status": reading_clubs_by_status,
