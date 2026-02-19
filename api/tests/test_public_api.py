@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework import status
@@ -148,3 +150,46 @@ class MobileAuthApiTests(APITestCase):
         self.assertTrue(
             self.client.login(username="app@example.com", password=password)
         )
+
+    @patch("api.authentication.Token.objects.get_or_create")
+    def test_mobile_signup_falls_back_when_token_table_unavailable(self, mock_get_or_create):
+        from django.db import OperationalError
+
+        mock_get_or_create.side_effect = OperationalError("token table missing")
+
+        response = self.client.post(
+            reverse("v1:auth-signup"),
+            {
+                "username": "fallback_user",
+                "email": "fallback@example.com",
+                "password": "StrongPass123!",
+            },
+            format="json",
+            secure=True,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn("token", response.json())
+        self.assertTrue(self.user_model.objects.filter(email="fallback@example.com").exists())
+
+    @patch("api.authentication.Token.objects.get_or_create")
+    def test_mobile_login_falls_back_when_token_table_unavailable(self, mock_get_or_create):
+        from django.db import OperationalError
+
+        password = "StrongPass123!"
+        self.user_model.objects.create_user(
+            username="fallback_login_user",
+            email="fallback-login@example.com",
+            password=password,
+        )
+        mock_get_or_create.side_effect = OperationalError("token table missing")
+
+        response = self.client.post(
+            reverse("v1:auth-login"),
+            {"login": "fallback-login@example.com", "password": password},
+            format="json",
+            secure=True,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("token", response.json())

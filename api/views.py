@@ -5,7 +5,6 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
-from rest_framework.authtoken.models import Token
 from rest_framework.views import APIView
 
 from books.models import Book
@@ -13,6 +12,7 @@ from reading_clubs.models import ReadingClub
 from reading_marathons.models import MarathonParticipant, MarathonTheme, ReadingMarathon
 from shelves.models import BookProgress, ReadingLog, Shelf, ShelfItem
 
+from .authentication import issue_mobile_token
 from .pagination import StandardResultsSetPagination
 from .serializers import (
     BookCreateSerializer,
@@ -106,10 +106,10 @@ class MobileLoginView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        token, _ = Token.objects.get_or_create(user=user)
+        token = issue_mobile_token(user)
         return Response(
             {
-                "token": token.key,
+                "token": token,
                 "user": {
                     "id": user.id,
                     "username": user.username,
@@ -135,11 +135,11 @@ class MobileSignupView(APIView):
             email=serializer.validated_data["email"],
             password=serializer.validated_data["password"],
         )
-        token, _ = Token.objects.get_or_create(user=user)
+        token = issue_mobile_token(user)
 
         return Response(
             {
-                "token": token.key,
+                "token": token,
                 "user": {
                     "id": user.id,
                     "username": user.username,
