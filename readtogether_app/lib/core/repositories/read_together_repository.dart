@@ -8,20 +8,20 @@ class ReadTogetherRepository {
 
   Future<HomePayload> fetchHome() async {
     final json = await _fetchHomeData();
-    final hero = json['hero'] as Map<String, dynamic>? ?? const {};
+    final hero = _asMap(json['hero']) ?? const {};
 
     final readingItems = _parseList<CurrentBook>(
-      json['reading_items'],
+      _pickFirst(json, const ['reading_items', 'current_reading', 'reading_now']),
       (item) => CurrentBook.fromShelfItem(item),
     );
 
     final readingFeed = _parseList<ReadingUpdate>(
-      json['active_clubs'],
-      (item) => ReadingUpdate.fromClub(item),
+      _pickFirst(json, const ['active_clubs', 'reading_feed']),
+      (item) => ReadingUpdate.fromDynamic(item),
     );
 
     final marathons = _parseList<MarathonItem>(
-      json['active_marathons'],
+      _pickFirst(json, const ['active_marathons', 'marathons']),
       (item) => MarathonItem.fromApi(item),
     );
 
@@ -39,12 +39,12 @@ class ReadTogetherRepository {
             totalPages: 0,
           );
 
-    final readingMetricsJson = json['reading_metrics'];
+    final readingMetricsJson = _pickFirst(json, const ['reading_metrics', 'metrics']);
 
     return HomePayload(
       headline: _asString(hero['headline'], fallback: 'Калейдоскоп книг'),
       subtitle: _asString(hero['subtitle'], fallback: 'Ваши активности и рекомендации'),
-      greeting: _asString(hero['greeting']),
+      greeting: _asString(hero['greeting'], fallback: _asString(json['greeting'])),
       currentBook: currentBook,
       currentReading: currentReading,
       readingFeed: readingFeed,
@@ -114,6 +114,16 @@ class ReadTogetherRepository {
       readingCalendar: (json['calendar'] as List<dynamic>? ?? const []).map((e) => (e as num).toInt()).toList(),
     );
   }
+}
+
+
+Object? _pickFirst(Map<String, dynamic> source, List<String> keys) {
+  for (final key in keys) {
+    if (source.containsKey(key)) {
+      return source[key];
+    }
+  }
+  return null;
 }
 
 String _asString(Object? value, {String fallback = ''}) {

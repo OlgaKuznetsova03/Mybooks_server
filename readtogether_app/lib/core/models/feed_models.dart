@@ -22,7 +22,7 @@ class CurrentBook {
       );
 
   factory CurrentBook.fromShelfItem(Map<String, dynamic> json) {
-    final book = json['book'] as Map<String, dynamic>? ?? const {};
+    final book = _asMap(json['book']) ?? json;
     final authors = (book['authors'] as List<dynamic>? ?? const [])
         .map((entry) => entry is Map<String, dynamic> ? _asString(entry['name']) : '')
         .where((name) => name.isNotEmpty)
@@ -31,9 +31,12 @@ class CurrentBook {
     return CurrentBook(
       title: _asString(book['title'], fallback: 'Без названия'),
       author: authors.isNotEmpty ? authors.first : 'Неизвестный автор',
-      progress: _asInt(json['progress_percent']),
+      progress: _asInt(json['progress_percent'], fallback: _asInt(json['progress'])),
       coverUrl: _asString(book['cover_url']),
-      totalPages: _asInt(json['progress_total_pages'], fallback: _asInt(book['total_pages'])),
+      totalPages: _asInt(
+        json['progress_total_pages'],
+        fallback: _asInt(json['total_pages'], fallback: _asInt(book['total_pages'])),
+      ),
     );
   }
 }
@@ -64,6 +67,13 @@ class ReadingUpdate {
       pagesRead: _asInt(json['approved_participant_count']),
       coverUrl: _asString(book['cover_url']),
     );
+  }
+
+  factory ReadingUpdate.fromDynamic(Map<String, dynamic> json) {
+    if (json.containsKey('user_name') || json.containsKey('book_title')) {
+      return ReadingUpdate.fromJson(json);
+    }
+    return ReadingUpdate.fromClub(json);
   }
 }
 
@@ -100,8 +110,8 @@ class MarathonItem {
 
   factory MarathonItem.fromApi(Map<String, dynamic> json) => MarathonItem(
         id: _asInt(json['id']),
-        name: _asString(json['title'], fallback: 'Марафон'),
-        participants: _asInt(json['participant_count']),
+        name: _asString(json['title'], fallback: _asString(json['name'], fallback: 'Марафон')),
+        participants: _asInt(json['participant_count'], fallback: _asInt(json['participants'])),
         status: _asString(json['status'], fallback: 'active'),
         themeCount: _asInt(json['theme_count']),
       );
@@ -200,4 +210,14 @@ class StatsPayload {
   final List<int> booksPerMonth;
   final int challengeProgress;
   final List<int> readingCalendar;
+}
+
+Map<String, dynamic>? _asMap(Object? value) {
+  if (value is Map<String, dynamic>) {
+    return value;
+  }
+  if (value is Map) {
+    return value.map((key, val) => MapEntry('$key', val));
+  }
+  return null;
 }
