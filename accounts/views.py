@@ -13,6 +13,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from .models import PremiumPayment, BookChallenge
@@ -21,6 +22,7 @@ from django.http import JsonResponse, Http404, HttpResponse, QueryDict, HttpRequ
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.text import slugify
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
@@ -113,6 +115,24 @@ READING_CLUB_STATUS_LABELS = {
 
 
 logger = logging.getLogger(__name__)
+
+
+class SafeLoginView(auth_views.LoginView):
+    """Login view that gracefully falls back to homepage for invalid redirects."""
+
+    def get_success_url(self):
+        default_url = self.get_default_redirect_url()
+        redirect_target = self.request.POST.get(
+            self.redirect_field_name,
+            self.request.GET.get(self.redirect_field_name, ""),
+        )
+        if redirect_target and url_has_allowed_host_and_scheme(
+            url=redirect_target,
+            allowed_hosts={self.request.get_host()},
+            require_https=self.request.is_secure(),
+        ):
+            return redirect_target
+        return default_url
 
 
 def _is_mobile_app_request(request) -> bool:
