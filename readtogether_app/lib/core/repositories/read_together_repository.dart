@@ -10,14 +10,27 @@ class ReadTogetherRepository {
     final json = await _fetchHomeData();
     final hero = json['hero'] as Map<String, dynamic>? ?? const {};
 
-    final readingItems = (json['reading_items'] as List<dynamic>? ?? const [])
-        .map(_asMap)
-        .whereType<Map<String, dynamic>>()
-        .map(CurrentBook.fromShelfItem)
+    final readingItems = _parseList<CurrentBook>(
+      json['reading_items'],
+      (item) => CurrentBook.fromShelfItem(item),
+    );
+
+    final readingFeed = _parseList<ReadingUpdate>(
+      json['active_clubs'],
+      (item) => ReadingUpdate.fromClub(item),
+    );
+
+    final marathons = _parseList<MarathonItem>(
+      json['active_marathons'],
+      (item) => MarathonItem.fromApi(item),
+    );
+
+    final currentReading = readingItems
+        .where((book) => book.title.isNotEmpty || book.author.isNotEmpty)
         .toList();
 
-    final currentBook = readingItems.isNotEmpty
-        ? readingItems.first
+    final currentBook = currentReading.isNotEmpty
+        ? currentReading.first
         : const CurrentBook(
             title: 'Нет активной книги',
             author: 'Добавьте книгу в полку «Читаю»',
@@ -26,12 +39,6 @@ class ReadTogetherRepository {
             totalPages: 0,
           );
 
-    final marathons = (json['active_marathons'] as List<dynamic>? ?? const [])
-        .map(_asMap)
-        .whereType<Map<String, dynamic>>()
-        .map(MarathonItem.fromApi)
-        .toList();
-
     final readingMetricsJson = json['reading_metrics'];
 
     return HomePayload(
@@ -39,12 +46,8 @@ class ReadTogetherRepository {
       subtitle: _asString(hero['subtitle'], fallback: 'Ваши активности и рекомендации'),
       greeting: _asString(hero['greeting']),
       currentBook: currentBook,
-      currentReading: readingItems,
-      readingFeed: (json['active_clubs'] as List<dynamic>? ?? const [])
-          .map(_asMap)
-          .whereType<Map<String, dynamic>>()
-          .map(ReadingUpdate.fromClub)
-          .toList(),
+      currentReading: currentReading,
+      readingFeed: readingFeed,
       authorOffers: const [],
       bloggerOffers: const [],
       marathons: marathons,
@@ -56,8 +59,8 @@ class ReadTogetherRepository {
     try {
       return await _apiClient.getJson('/home/');
     } catch (_) {
-      final clubs = await _apiClient.getList('/reading-clubs/');
-      final marathons = await _apiClient.getList('/marathons/');
+      final clubs = await _safeGetList('/reading-clubs/');
+      final marathons = await _safeGetList('/marathons/');
 
       return {
         'hero': {
@@ -70,6 +73,14 @@ class ReadTogetherRepository {
         'reading_items': const <dynamic>[],
         'reading_metrics': null,
       };
+    }
+  }
+
+  Future<List<dynamic>> _safeGetList(String path) async {
+    try {
+      return await _apiClient.getList(path);
+    } catch (_) {
+      return const <dynamic>[];
     }
   }
 
@@ -120,4 +131,24 @@ Map<String, dynamic>? _asMap(Object? value) {
     return value.map((key, val) => MapEntry('$key', val));
   }
   return null;
+}
+
+List<T> _parseList<T>(
+  Object? value,
+  T Function(Map<String, dynamic> item) mapper,
+) {
+  final rawList = value is List ? value : const [];
+  final parsed = <T>[];
+  for (final entry in rawList) {
+    final item = _asMap(entry);
+    if (item == null) {
+      continue;
+    }
+    try {
+      parsed.add(mapper(item));
+    } catch (_) {
+      continue;
+    }
+  }
+  return parsed;
 }
