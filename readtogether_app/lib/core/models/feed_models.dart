@@ -59,7 +59,7 @@ class ReadingUpdate {
       );
 
   factory ReadingUpdate.fromClub(Map<String, dynamic> json) {
-    final book = json['book'] as Map<String, dynamic>? ?? const {};
+    final book = _asMap(json['book']) ?? const <String, dynamic>{};
     return ReadingUpdate(
       userAvatar: '',
       userName: _asString(json['title'], fallback: 'Книжный клуб'),

@@ -11,6 +11,7 @@ from books.models import Book
 from reading_clubs.models import ReadingClub
 from reading_marathons.models import MarathonParticipant, MarathonTheme, ReadingMarathon
 from shelves.models import BookProgress, ReadingLog, Shelf, ShelfItem
+from shelves.services import DEFAULT_READING_SHELF, READING_PROGRESS_LABEL, ensure_default_shelves
 
 from .authentication import issue_mobile_token
 from .pagination import StandardResultsSetPagination
@@ -288,7 +289,15 @@ class HomeFeedView(APIView):
 
         reading_items: list[ShelfItem] = []
         if request.user.is_authenticated:
-            reading_shelf = Shelf.objects.filter(user=request.user, name="Читаю").first()
+            ensure_default_shelves(request.user)
+            reading_shelf = (
+                Shelf.objects.filter(
+                    user=request.user,
+                    name__in=(DEFAULT_READING_SHELF, READING_PROGRESS_LABEL),
+                )
+                .order_by("-is_default", "id")
+                .first()
+            )
             if reading_shelf:
                 reading_items = list(
                     ShelfItem.objects.filter(shelf=reading_shelf)

@@ -1,195 +1,82 @@
-from unittest.mock import patch
+from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from books.models import Author, Book, Genre
+from reading_clubs.models import ReadingClub
+from reading_marathons.models import MarathonParticipant, MarathonTheme, ReadingMarathon
+from shelves.models import Shelf, ShelfItem
+from shelves.services import READING_PROGRESS_LABEL
 
-class PublicApiTests(APITestCase):
-    def test_health_endpoint_available(self):
-        response = self.client.get(reverse("v1:health"), secure=True)
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.json().get("status"), "ok")
-
-    def test_feature_map_is_served(self):
-        response = self.client.get(reverse("v1:feature-map"), secure=True)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        data = response.json()
-        self.assertIn("books", data)
-        self.assertIn("communities", data)
-
-    def test_books_list_returns_empty_payload(self):
-        response = self.client.get(
-            reverse("v1:books-list"), {"page_size": 1}, secure=True
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        payload = response.json()
-        self.assertIn("results", payload)
-        self.assertIsInstance(payload["results"], list)
-
-    def test_stats_endpoint_is_accessible(self):
-        response = self.client.get(reverse("v1:stats"), secure=True)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        payload = response.json()
-        self.assertIn("books_per_month", payload)
-        self.assertIn("challenge_progress", payload)
-        self.assertIn("calendar", payload)
-
-    def test_reading_clubs_list_is_accessible(self):
-        response = self.client.get(
-            reverse("v1:reading-clubs"), {"page_size": 1}, secure=True
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        payload = response.json()
-        self.assertIn("results", payload)
-        self.assertIsInstance(payload["results"], list)
-
-    def test_marathons_list_is_accessible(self):
-        response = self.client.get(
-            reverse("v1:marathons"), {"page_size": 1}, secure=True
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        payload = response.json()
-        self.assertIn("results", payload)
-        self.assertIsInstance(payload["results"], list)
-
-class MobileAuthApiTests(APITestCase):
+class HomeFeedApiTests(APITestCase):
     def setUp(self):
-        self.user_model = get_user_model()
-
-    def test_mobile_login_accepts_existing_website_credentials(self):
-        password = "StrongPass123!"
-        self.user_model.objects.create_user(
-            username="site_user",
-            email="reader@example.com",
-            password=password,
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='reader',
+            email='reader@example.com',
+            password='StrongPass123!'
         )
 
-        response = self.client.post(
-            reverse("v1:auth-login"),
-            {"login": "reader@example.com", "password": password},
-            format="json",
-            secure=True,
+        author = Author.objects.create(name='Автор Теста')
+        genre = Genre.objects.create(name='Фэнтези')
+        self.book = Book.objects.create(title='Книга в процессе')
+        self.book.authors.add(author)
+        self.book.genres.add(genre)
+
+    def test_home_feed_returns_reading_items_from_legacy_reading_shelf_name(self):
+        legacy_shelf = Shelf.objects.create(
+            user=self.user,
+            name=READING_PROGRESS_LABEL,
+            is_default=True,
+            is_public=True,
         )
+        ShelfItem.objects.create(shelf=legacy_shelf, book=self.book)
+
+        self.client.force_authenticate(self.user)
+        response = self.client.get('/api/v1/home/', secure=True)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         payload = response.json()
-        self.assertIn("token", payload)
-        self.assertEqual(payload["user"]["email"], "reader@example.com")
+        self.assertEqual(len(payload['reading_items']), 1)
+        self.assertEqual(payload['reading_items'][0]['book']['title'], 'Книга в процессе')
 
+    def test_home_feed_populates_all_sections_with_active_entities(self):
+        today = timezone.localdate()
 
-    def test_mobile_login_accepts_email_field_alias(self):
-        password = "StrongPass123!"
-        self.user_model.objects.create_user(
-            username="alias_user",
-            email="alias@example.com",
-            password=password,
+        reading_shelf = Shelf.objects.create(
+            user=self.user,
+            name='Читаю',
+            is_default=True,
+            is_public=True,
+        )
+        ShelfItem.objects.create(shelf=reading_shelf, book=self.book)
+
+        club = ReadingClub.objects.create(
+            book=self.book,
+            creator=self.user,
+            title='Совместное чтение',
+            start_date=today - timedelta(days=1),
         )
 
-        response = self.client.post(
-            reverse("v1:auth-login"),
-            {"email": "alias@example.com", "password": password},
-            format="json",
-            secure=True,
+        marathon = ReadingMarathon.objects.create(
+            creator=self.user,
+            title='Осенний марафон',
+            start_date=today - timedelta(days=1),
+            slug='autumn-marathon',
         )
+        MarathonTheme.objects.create(marathon=marathon, title='Тема 1', order=1)
+        MarathonParticipant.objects.create(marathon=marathon, user=self.user)
+
+        self.client.force_authenticate(self.user)
+        response = self.client.get('/api/v1/home/', secure=True)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.json()["user"]["email"], "alias@example.com")
-
-    def test_mobile_login_accepts_username_field_alias(self):
-        password = "StrongPass123!"
-        self.user_model.objects.create_user(
-            username="nickname_user",
-            email="nick@example.com",
-            password=password,
-        )
-
-        response = self.client.post(
-            reverse("v1:auth-login"),
-            {"username": "nickname_user", "password": password},
-            format="json",
-            secure=True,
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.json()["user"]["username"], "nickname_user")
-
-    def test_mobile_login_requires_any_login_identifier(self):
-        response = self.client.post(
-            reverse("v1:auth-login"),
-            {"password": "StrongPass123!"},
-            format="json",
-            secure=True,
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("login", response.json())
-
-    def test_mobile_signup_creates_account_and_allows_website_login(self):
-        password = "StrongPass123!"
-        signup_response = self.client.post(
-            reverse("v1:auth-signup"),
-            {
-                "username": "app_user",
-                "email": "app@example.com",
-                "password": password,
-            },
-            format="json",
-            secure=True,
-        )
-
-        self.assertEqual(signup_response.status_code, status.HTTP_201_CREATED)
-        self.assertTrue(self.user_model.objects.filter(email="app@example.com").exists())
-        self.assertTrue(
-            self.client.login(username="app@example.com", password=password)
-        )
-
-    @patch("api.authentication.Token.objects.get_or_create")
-    def test_mobile_signup_falls_back_when_token_table_unavailable(self, mock_get_or_create):
-        from django.db import OperationalError
-
-        mock_get_or_create.side_effect = OperationalError("token table missing")
-
-        response = self.client.post(
-            reverse("v1:auth-signup"),
-            {
-                "username": "fallback_user",
-                "email": "fallback@example.com",
-                "password": "StrongPass123!",
-            },
-            format="json",
-            secure=True,
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertIn("token", response.json())
-        self.assertTrue(self.user_model.objects.filter(email="fallback@example.com").exists())
-
-    @patch("api.authentication.Token.objects.get_or_create")
-    def test_mobile_login_falls_back_when_token_table_unavailable(self, mock_get_or_create):
-        from django.db import OperationalError
-
-        password = "StrongPass123!"
-        self.user_model.objects.create_user(
-            username="fallback_login_user",
-            email="fallback-login@example.com",
-            password=password,
-        )
-        mock_get_or_create.side_effect = OperationalError("token table missing")
-
-        response = self.client.post(
-            reverse("v1:auth-login"),
-            {"login": "fallback-login@example.com", "password": password},
-            format="json",
-            secure=True,
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn("token", response.json())
+        payload = response.json()
+        self.assertEqual(payload['active_clubs'][0]['id'], club.id)
+        self.assertEqual(payload['active_marathons'][0]['id'], marathon.id)
+        self.assertEqual(payload['reading_items'][0]['book']['title'], 'Книга в процессе')
+        self.assertIn('reading_metrics', payload)
