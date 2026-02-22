@@ -42,7 +42,16 @@ class BookListSerializer(serializers.ModelSerializer):
         ]
 
     def get_cover_url(self, obj: Book) -> str:
-        return obj.get_cover_url()
+        cover_url = obj.get_cover_url()
+        request = self.context.get("request")
+
+        if not cover_url or not request:
+            return cover_url
+
+        if cover_url.startswith(("http://", "https://", "//")):
+            return cover_url
+
+        return request.build_absolute_uri(cover_url)
 
     def get_total_pages(self, obj: Book):
         return obj.get_total_pages()
