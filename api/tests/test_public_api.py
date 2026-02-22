@@ -94,3 +94,37 @@ class ApiUrlsCompatibilityTests(APITestCase):
             with self.subTest(endpoint=endpoint):
                 response = self.client.get(endpoint, secure=True)
                 self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class InvalidMobileTokenFallbackTests(APITestCase):
+    def setUp(self):
+        author = Author.objects.create(name='Проверка токена')
+        genre = Genre.objects.create(name='Роман')
+        book = Book.objects.create(title='Книга из каталога')
+        book.authors.add(author)
+        book.genres.add(genre)
+
+    def test_get_books_works_with_invalid_token_header(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Token invalid-token')
+
+        response = self.client.get('/api/v1/books/', secure=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = response.json()
+        self.assertEqual(payload['count'], 1)
+
+    def test_post_books_still_rejects_invalid_token_header(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Token invalid-token')
+
+        response = self.client.post(
+            '/api/v1/books/',
+            {
+                'title': 'Новая книга',
+                'author_names': ['Автор'],
+                'genre_names': ['Жанр'],
+            },
+            format='json',
+            secure=True,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

@@ -26,6 +26,14 @@ def issue_mobile_token(user) -> str:
 class MobileTokenAuthentication(TokenAuthentication):
     """Supports DRF Token model and a signed fallback token for degraded DB states."""
 
+    def authenticate(self, request):
+        try:
+            return super().authenticate(request)
+        except exceptions.AuthenticationFailed:
+            if request.method in ("GET", "HEAD", "OPTIONS"):
+                return None
+            raise
+
     def authenticate_credentials(self, key):
         try:
             return super().authenticate_credentials(key)
