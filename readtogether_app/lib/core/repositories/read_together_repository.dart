@@ -11,17 +11,20 @@ class ReadTogetherRepository {
     final hero = _asMap(json['hero']) ?? const {};
 
     final readingItems = _parseList<CurrentBook>(
-      _pickFirst(json, const ['reading_items', 'current_reading', 'reading_now']),
+      _pickFirstPopulated(json, const ['reading_items', 'current_reading', 'reading_now']),
       (item) => CurrentBook.fromShelfItem(item),
     );
 
     final readingFeed = _parseList<ReadingUpdate>(
-      _pickFirst(json, const ['active_clubs', 'reading_feed']),
+      _pickFirstPopulated(
+        json,
+        const ['reading_updates', 'reading_feed', 'active_clubs'],
+      ),
       (item) => ReadingUpdate.fromDynamic(item),
     );
 
     final marathons = _parseList<MarathonItem>(
-      _pickFirst(json, const ['active_marathons', 'marathons']),
+      _pickFirstPopulated(json, const ['active_marathons', 'marathons']),
       (item) => MarathonItem.fromApi(item),
     );
 
@@ -39,7 +42,10 @@ class ReadTogetherRepository {
             totalPages: 0,
           );
 
-    final readingMetricsJson = _pickFirst(json, const ['reading_metrics', 'metrics']);
+    final readingMetricsJson = _pickFirstPopulated(
+      json,
+      const ['reading_metrics', 'metrics'],
+    );
 
     return HomePayload(
       headline: _asString(hero['headline'], fallback: 'Калейдоскоп книг'),
@@ -117,13 +123,32 @@ class ReadTogetherRepository {
 }
 
 
-Object? _pickFirst(Map<String, dynamic> source, List<String> keys) {
+Object? _pickFirstPopulated(Map<String, dynamic> source, List<String> keys) {
+  Object? fallback;
+
   for (final key in keys) {
-    if (source.containsKey(key)) {
-      return source[key];
+    if (!source.containsKey(key)) {
+      continue;
+    }
+
+    final value = source[key];
+    fallback ??= value;
+
+    if (value is List && value.isNotEmpty) {
+      return value;
+    }
+    if (value is Map && value.isNotEmpty) {
+      return value;
+    }
+    if (value is String && value.trim().isNotEmpty) {
+      return value;
+    }
+    if (value != null && value is! List && value is! Map) {
+      return value;
     }
   }
-  return null;
+
+  return fallback;
 }
 
 String _asString(Object? value, {String fallback = ''}) {
