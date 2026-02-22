@@ -80,3 +80,17 @@ class HomeFeedApiTests(APITestCase):
         self.assertEqual(payload['active_marathons'][0]['id'], marathon.id)
         self.assertEqual(payload['reading_items'][0]['book']['title'], 'Книга в процессе')
         self.assertIn('reading_metrics', payload)
+
+class ApiUrlsCompatibilityTests(APITestCase):
+    def test_mobile_endpoints_work_without_trailing_slash(self):
+        endpoints = [
+            '/api/v1/home',
+            '/api/v1/books',
+            '/api/v1/reading-clubs',
+            '/api/v1/marathons',
+        ]
+
+        for endpoint in endpoints:
+            with self.subTest(endpoint=endpoint):
+                response = self.client.get(endpoint, secure=True)
+                self.assertEqual(response.status_code, status.HTTP_200_OK)
