@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from books.models import Author, Book, Genre
+from shelves.models import ReadingLog
 from reading_clubs.models import ReadingClub
 from reading_marathons.models import ReadingMarathon
 from shelves.models import ShelfItem
@@ -270,6 +271,8 @@ class ReadingShelfItemSerializer(serializers.ModelSerializer):
     progress_current_page = serializers.IntegerField(allow_null=True)
     progress_total_pages = serializers.IntegerField(allow_null=True)
     progress_updated_at = serializers.DateTimeField(allow_null=True)
+    progress_id = serializers.IntegerField(allow_null=True)
+    tracker_url = serializers.CharField(allow_null=True)
 
     class Meta:
         model = ShelfItem
@@ -282,4 +285,48 @@ class ReadingShelfItemSerializer(serializers.ModelSerializer):
             "progress_current_page",
             "progress_total_pages",
             "progress_updated_at",
+            "progress_id",
+            "tracker_url",
         ]
+
+
+class ReadingUpdateSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source="progress.user.username", read_only=True)
+    user_avatar = serializers.SerializerMethodField()
+    book_title = serializers.CharField(source="progress.book.title", read_only=True)
+    cover_url = serializers.SerializerMethodField()
+    pages_read = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ReadingLog
+        fields = [
+            "id",
+            "log_date",
+            "user_name",
+            "user_avatar",
+            "book_title",
+            "cover_url",
+            "pages_read",
+        ]
+
+    def _build_absolute_url(self, url: str | None) -> str:
+        if not url:
+            return ""
+
+        request = self.context.get("request")
+        if not request or url.startswith(("http://", "https://", "//")):
+            return url
+
+        return request.build_absolute_uri(url)
+
+    def get_user_avatar(self, obj: ReadingLog) -> str:
+        avatar = getattr(getattr(obj.progress.user, "profile", None), "avatar", None)
+        if not avatar:
+            return ""
+        return self._build_absolute_url(avatar.url)
+
+    def get_cover_url(self, obj: ReadingLog) -> str:
+        return self._build_absolute_url(obj.progress.book.get_cover_url())
+
+    def get_pages_read(self, obj: ReadingLog) -> int:
+        return int(float(obj.pages_equivalent or 0))

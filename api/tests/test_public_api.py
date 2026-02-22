@@ -8,7 +8,10 @@ from rest_framework.test import APITestCase
 from books.models import Author, Book, Genre
 from reading_clubs.models import ReadingClub
 from reading_marathons.models import MarathonParticipant, MarathonTheme, ReadingMarathon
-from shelves.models import Shelf, ShelfItem
+from decimal import Decimal
+
+from accounts.models import Profile
+from shelves.models import BookProgress, ReadingLog, Shelf, ShelfItem
 from shelves.services import READING_PROGRESS_LABEL
 
 
@@ -43,6 +46,7 @@ class HomeFeedApiTests(APITestCase):
         payload = response.json()
         self.assertEqual(len(payload['reading_items']), 1)
         self.assertEqual(payload['reading_items'][0]['book']['title'], 'Книга в процессе')
+        self.assertIn('tracker_url', payload['reading_items'][0])
 
     def test_home_feed_populates_all_sections_with_active_entities(self):
         today = timezone.localdate()
@@ -54,6 +58,12 @@ class HomeFeedApiTests(APITestCase):
             is_public=True,
         )
         ShelfItem.objects.create(shelf=reading_shelf, book=self.book)
+        progress = BookProgress.objects.create(
+            user=self.user,
+            book=self.book,
+            percent=Decimal('37.5'),
+            current_page=120,
+        )
 
         club = ReadingClub.objects.create(
             book=self.book,
@@ -71,6 +81,13 @@ class HomeFeedApiTests(APITestCase):
         MarathonTheme.objects.create(marathon=marathon, title='Тема 1', order=1)
         MarathonParticipant.objects.create(marathon=marathon, user=self.user)
 
+        Profile.objects.get_or_create(user=self.user)
+        ReadingLog.objects.create(
+            progress=progress,
+            pages_equivalent=Decimal('22'),
+            log_date=today,
+        )
+
         self.client.force_authenticate(self.user)
         response = self.client.get('/api/v1/home/', secure=True)
 
@@ -79,6 +96,10 @@ class HomeFeedApiTests(APITestCase):
         self.assertEqual(payload['active_clubs'][0]['id'], club.id)
         self.assertEqual(payload['active_marathons'][0]['id'], marathon.id)
         self.assertEqual(payload['reading_items'][0]['book']['title'], 'Книга в процессе')
+        self.assertEqual(payload['reading_items'][0]['progress_id'], progress.id)
+        self.assertEqual(payload['reading_items'][0]['tracker_url'], f'/tracker/{progress.id}/')
+        self.assertEqual(len(payload['reading_updates']), 1)
+        self.assertEqual(payload['reading_updates'][0]['book_title'], 'Книга в процессе')
         self.assertIn('reading_metrics', payload)
 
 class ApiUrlsCompatibilityTests(APITestCase):

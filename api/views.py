@@ -22,8 +22,9 @@ from .serializers import (
     MobileAuthSerializer,
     MobileSignupSerializer,
     ReadingClubSerializer,
-    ReadingShelfItemSerializer,
     ReadingMarathonSerializer,
+    ReadingShelfItemSerializer,
+    ReadingUpdateSerializer,
 )
 
 
@@ -327,6 +328,8 @@ class HomeFeedView(APIView):
                     item.progress_total_pages = None
                     item.progress_current_page = None
                     item.progress_updated_at = None
+                    item.progress_id = None
+                    item.tracker_url = None
 
                     if not progress:
                         continue
@@ -337,6 +340,14 @@ class HomeFeedView(APIView):
                     item.progress_total_pages = progress.get_effective_total_pages()
                     item.progress_current_page = progress.current_page
                     item.progress_updated_at = progress.updated_at
+                    item.progress_id = progress.id
+                    item.tracker_url = f"/tracker/{progress.id}/"
+
+        recent_updates = (
+            ReadingLog.objects.select_related("progress__user", "progress__book", "progress__user__profile")
+            .filter(progress__event__isnull=True)
+            .order_by("-log_date", "-id")[:10]
+        )
 
         reading_metrics = None
         greeting = None
@@ -382,6 +393,11 @@ class HomeFeedView(APIView):
             "active_clubs": ReadingClubSerializer(active_clubs, many=True).data,
             "active_marathons": ReadingMarathonSerializer(active_marathons, many=True).data,
             "reading_items": ReadingShelfItemSerializer(reading_items, many=True).data,
+            "reading_updates": ReadingUpdateSerializer(
+                recent_updates,
+                many=True,
+                context={"request": request},
+            ).data,
             "reading_metrics": reading_metrics,
         }
 
