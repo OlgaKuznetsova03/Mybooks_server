@@ -255,6 +255,21 @@ class HomeFeedView(APIView):
                 club.approved_participant_count = annotated_participants
             active_clubs.append(club)
 
+        if not active_clubs:
+            upcoming_clubs_qs = (
+                ReadingClub.objects.select_related("book", "book__primary_isbn", "creator")
+                .with_message_count()
+                .prefetch_related("participants", "book__authors", "book__genres", "book__isbn")
+                .filter(start_date__gt=today)
+                .order_by("start_date", "title")[:8]
+            )
+            for club in upcoming_clubs_qs:
+                club.set_prefetched_message_count(club.message_count)
+                annotated_participants = club.__dict__.get("approved_participant_count")
+                if annotated_participants is not None:
+                    club.approved_participant_count = annotated_participants
+                active_clubs.append(club)
+
         approved_participants = (
             MarathonParticipant.objects.filter(
                 marathon=OuterRef("pk"), status=MarathonParticipant.Status.APPROVED
@@ -287,6 +302,24 @@ class HomeFeedView(APIView):
             .order_by("start_date", "title", "id")
             [:8]
         )
+
+        if not active_marathons:
+            active_marathons = (
+                ReadingMarathon.objects.prefetch_related("themes")
+                .annotate(
+                    participant_count=Coalesce(
+                        Subquery(approved_participants, output_field=IntegerField()), Value(0)
+                    )
+                )
+                .annotate(
+                    theme_count=Coalesce(
+                        Subquery(theme_counts, output_field=IntegerField()), Value(0)
+                    )
+                )
+                .filter(start_date__gt=today)
+                .order_by("start_date", "title", "id")
+                [:8]
+            )
 
         reading_items: list[ShelfItem] = []
         if request.user.is_authenticated:

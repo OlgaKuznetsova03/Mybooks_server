@@ -102,6 +102,31 @@ class HomeFeedApiTests(APITestCase):
         self.assertEqual(payload['reading_updates'][0]['book_title'], 'Книга в процессе')
         self.assertIn('reading_metrics', payload)
 
+    def test_home_feed_falls_back_to_upcoming_entities_when_no_active(self):
+        today = timezone.localdate()
+
+        upcoming_club = ReadingClub.objects.create(
+            book=self.book,
+            creator=self.user,
+            title='Скоро стартуем',
+            start_date=today + timedelta(days=2),
+        )
+
+        upcoming_marathon = ReadingMarathon.objects.create(
+            creator=self.user,
+            title='Скоро марафон',
+            start_date=today + timedelta(days=3),
+            slug='soon-marathon',
+        )
+
+        self.client.force_authenticate(self.user)
+        response = self.client.get('/api/v1/home/', secure=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = response.json()
+        self.assertEqual(payload['active_clubs'][0]['id'], upcoming_club.id)
+        self.assertEqual(payload['active_marathons'][0]['id'], upcoming_marathon.id)
+
 class ApiUrlsCompatibilityTests(APITestCase):
     def test_mobile_endpoints_work_without_trailing_slash(self):
         endpoints = [

@@ -164,6 +164,39 @@
     transform: translateY(0);
   }
 
+  .daily-reading-card {
+    background: linear-gradient(145deg, rgba(194, 150, 129, 0.08), rgba(255, 255, 255, 0.95));
+    border: 1px solid rgba(194, 150, 129, 0.2);
+  }
+
+  .daily-reading-chart {
+    min-height: 220px;
+  }
+
+  .daily-reading-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .daily-reading-summary__item {
+    border-radius: 0.85rem;
+    padding: 0.75rem 0.9rem;
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(194, 150, 129, 0.2);
+  }
+
+  .daily-reading-summary__value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .daily-reading-summary__label {
+    font-size: 0.82rem;
+    color: var(--bs-secondary-color);
+  }
+
   .calendar-day__stats {
     margin-top: auto;
     padding-top: 0.25rem;
@@ -334,6 +367,7 @@
     .book-challenge-month-card { min-height: 130px; }
     .book-challenge-month-covers img,
     .book-challenge-month-extra { width: 30px; height: 46px; }
+    .daily-reading-summary { grid-template-columns: 1fr; }
   }
 </style>
 {% endblock %}
@@ -833,33 +867,45 @@
         </div>
       </div>
     </div>
-    <div class="col-12 col-lg-6 col-xl-3">
-      <div class="card border-0 shadow-sm h-100 stat-card">
+    <div class="col-12 col-xl-6">
+      <div class="card border-0 shadow-sm h-100 stat-card daily-reading-card">
         <div class="card-body">
-          <h3 class="h6 mb-2">Прочитано страниц</h3>
-          <p class="display-6 mb-0 animated-number" data-target="{{ stats.pages_total|default_if_none:0|floatformat:0 }}">0</p>
-          {% if stats.pages_average %}
-            <p class="text-muted mb-0">В среднем <span class="animated-number" data-target="{{ stats.pages_average|default_if_none:0|floatformat:0 }}">0</span> стр./день</p>
+          <h3 class="h6 mb-3">Чтение по дням</h3>
+          {% if stats.reading_calendar.day_payloads %}
+            <div class="ratio ratio-16x9 chart-container daily-reading-chart">
+              <canvas id="dailyReadingChart"></canvas>
+            </div>
           {% else %}
-            <p class="text-muted mb-0">Нет данных о страницах в выбранный период.</p>
+            <p class="text-muted mb-3">Нет данных о чтении по дням за выбранный период.</p>
           {% endif %}
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-lg-6 col-xl-3">
-      <div class="card border-0 shadow-sm h-100 stat-card">
-        <div class="card-body">
-          <h3 class="h6 mb-2">Аудиокниги</h3>
-          {% if stats.audio_tracked_display %}
-            <p class="mb-1">Учтено прослушивания: <strong>{{ stats.audio_tracked_display }}</strong></p>
-          {% endif %}
-          {% if stats.audio_total_display or stats.audio_adjusted_display %}
-            <p class="text-muted mb-0">
-              {% if stats.audio_total_display %}Длительность книг: {{ stats.audio_total_display }}{% endif %}
-              {% if stats.audio_adjusted_display %}<br>С учётом скорости: {{ stats.audio_adjusted_display }}{% endif %}
-            </p>
-          {% else %}
-            <p class="text-muted mb-0">Нет аудиостатистики за выбранный период.</p>
+
+          <div class="daily-reading-summary mt-3">
+            <div class="daily-reading-summary__item">
+              <div class="daily-reading-summary__value animated-number" data-target="{{ stats.pages_total|default_if_none:0|floatformat:0 }}">0</div>
+              <div class="daily-reading-summary__label">Прочитано страниц</div>
+            </div>
+            <div class="daily-reading-summary__item">
+              <div class="daily-reading-summary__value">
+                {% if stats.pages_average %}
+                  <span class="animated-number" data-target="{{ stats.pages_average|default_if_none:0|floatformat:0 }}">0</span>
+                {% else %}
+                  0
+                {% endif %}
+              </div>
+              <div class="daily-reading-summary__label">Среднее стр./день</div>
+            </div>
+            <div class="daily-reading-summary__item">
+              <div class="daily-reading-summary__value">{{ stats.audio_total_display|default:"—" }}</div>
+              <div class="daily-reading-summary__label">Аудио длительность</div>
+            </div>
+            <div class="daily-reading-summary__item">
+              <div class="daily-reading-summary__value">{{ stats.audio_adjusted_display|default:"—" }}</div>
+              <div class="daily-reading-summary__label">Аудио с учётом скорости</div>
+            </div>
+          </div>
+
+          {% if not stats.audio_total_display and not stats.audio_adjusted_display and not stats.audio_tracked_display %}
+            <p class="text-muted mt-3 mb-0">Нет аудиостатистики за выбранный период.</p>
           {% endif %}
         </div>
       </div>
@@ -867,7 +913,7 @@
   </div>
 
 
-  {% if stats.genre_labels or stats.format_labels or book_challenge.month_values %}
+  {% if stats.genre_labels or stats.format_labels or book_challenge.month_values or stats.reading_calendar.day_payloads %}
     {{ book_challenge.month_labels|json_script:"book-challenge-month-labels" }}
     {{ book_challenge.month_values|json_script:"book-challenge-month-values" }}
     {{ book_challenge.monthly_goal|default_if_none:0|json_script:"book-challenge-month-goal" }}
@@ -972,6 +1018,68 @@
             options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
           });
           formatCanvas.parentElement.classList.add('visible');
+        }
+
+        const dailyChartCanvas = document.getElementById('dailyReadingChart');
+        const dailyPayloadEl = document.getElementById('profile-calendar-day-data');
+        if (dailyChartCanvas && dailyPayloadEl) {
+          const payload = JSON.parse(dailyPayloadEl.textContent || '{}');
+          const sortedDates = Object.keys(payload).sort();
+          const labels = sortedDates.map((isoDate) => {
+            const date = new Date(`${isoDate}T00:00:00`);
+            return Number.isNaN(date.getTime())
+              ? isoDate
+              : date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+          });
+          const values = sortedDates.map((isoDate) => Number(payload[isoDate]?.pages_total || 0));
+          const average = values.length
+            ? values.reduce((sum, value) => sum + value, 0) / values.length
+            : 0;
+
+          new Chart(dailyChartCanvas.getContext('2d'), {
+            type: 'line',
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: 'Страниц в день',
+                  data: values,
+                  borderColor: '#9e8185',
+                  backgroundColor: 'rgba(158, 129, 133, 0.18)',
+                  fill: true,
+                  tension: 0.35,
+                  pointRadius: 2,
+                  pointHoverRadius: 4,
+                },
+                {
+                  label: 'Среднее за период',
+                  data: values.map(() => average),
+                  borderColor: '#92ada4',
+                  borderDash: [6, 6],
+                  pointRadius: 0,
+                  fill: false,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: 'bottom',
+                },
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    precision: 0,
+                  },
+                },
+              },
+            },
+          });
+          dailyChartCanvas.parentElement.classList.add('visible');
         }
       })();
     </script>
