@@ -175,14 +175,45 @@ int _asInt(Object? value, {int fallback = 0}) {
   return fallback;
 }
 
+double _asDouble(Object? value, {double fallback = 0}) {
+  if (value is double) {
+    return value;
+  }
+  if (value is num) {
+    return value.toDouble();
+  }
+  if (value is String) {
+    return double.tryParse(value) ?? fallback;
+  }
+  return fallback;
+}
+
 class BookItem {
-  const BookItem({required this.id, required this.title, required this.author, required this.genre, required this.coverUrl});
+  const BookItem({
+    required this.id,
+    required this.title,
+    required this.author,
+    required this.genre,
+    required this.coverUrl,
+    required this.averageRating,
+    required this.totalPages,
+    required this.synopsis,
+    required this.language,
+    required this.authors,
+    required this.genres,
+  });
 
   final int id;
   final String title;
   final String author;
   final String genre;
   final String coverUrl;
+  final double averageRating;
+  final int totalPages;
+  final String synopsis;
+  final String language;
+  final List<String> authors;
+  final List<String> genres;
 
   factory BookItem.fromJson(Map<String, dynamic> json) {
     final authors = (json['authors'] as List<dynamic>? ?? const [])
@@ -200,6 +231,44 @@ class BookItem {
       author: authors.isNotEmpty ? authors.first : 'Неизвестный автор',
       genre: genres.isNotEmpty ? genres.first : 'Прочее',
       coverUrl: json['cover_url'] as String? ?? '',
+      averageRating: _asDouble(json['average_rating']),
+      totalPages: _asInt(json['total_pages']),
+      synopsis: _asString(json['synopsis']),
+      language: _asString(json['language']),
+      authors: authors,
+      genres: genres,
+    );
+  }
+}
+
+class BookIsbn {
+  const BookIsbn({required this.id, required this.isbn, required this.isbn13});
+
+  final int id;
+  final String isbn;
+  final String isbn13;
+
+  factory BookIsbn.fromJson(Map<String, dynamic> json) => BookIsbn(
+        id: _asInt(json['id']),
+        isbn: _asString(json['isbn']),
+        isbn13: _asString(json['isbn13']),
+      );
+}
+
+class BookDetailItem {
+  const BookDetailItem({required this.book, required this.isbn});
+
+  final BookItem book;
+  final List<BookIsbn> isbn;
+
+  factory BookDetailItem.fromJson(Map<String, dynamic> json) {
+    final isbnRaw = json['isbn'] as List<dynamic>? ?? const [];
+    return BookDetailItem(
+      book: BookItem.fromJson(json),
+      isbn: isbnRaw
+          .map((entry) => entry is Map<String, dynamic> ? BookIsbn.fromJson(entry) : null)
+          .whereType<BookIsbn>()
+          .toList(),
     );
   }
 }

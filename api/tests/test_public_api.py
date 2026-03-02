@@ -5,7 +5,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from books.models import Author, Book, Genre
+from books.models import Author, Book, Genre, ISBNModel
 from reading_clubs.models import ReadingClub
 from reading_marathons.models import MarathonParticipant, MarathonTheme, ReadingMarathon
 from decimal import Decimal
@@ -174,3 +174,35 @@ class InvalidMobileTokenFallbackTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+class BookListSearchTests(APITestCase):
+    def setUp(self):
+        self.author = Author.objects.create(name='Найденный Автор')
+        self.genre = Genre.objects.create(name='Детектив')
+
+        self.book = Book.objects.create(title='Тайна старого маяка')
+        self.book.authors.add(self.author)
+        self.book.genres.add(self.genre)
+
+    def test_books_search_supports_q_param(self):
+        response = self.client.get('/api/v1/books/?q=маяка', secure=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = response.json()
+        self.assertEqual(payload['count'], 1)
+        self.assertEqual(payload['results'][0]['id'], self.book.id)
+
+    def test_books_search_supports_isbn_value(self):
+        isbn = ISBNModel.objects.create(
+            isbn='1234567890',
+            isbn13='9781234567897',
+            title=self.book.title,
+        )
+        self.book.isbn.add(isbn)
+
+        response = self.client.get('/api/v1/books/?q=9781234567897', secure=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = response.json()
+        self.assertEqual(payload['count'], 1)
+        self.assertEqual(payload['results'][0]['id'], self.book.id)

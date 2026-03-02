@@ -92,9 +92,14 @@ class ReadTogetherRepository {
 
   Future<List<BookItem>> fetchBooks({String query = ''}) async {
     final encodedQuery = Uri.encodeQueryComponent(query.trim());
-    final path = encodedQuery.isEmpty ? '/books/' : '/books/?search=$encodedQuery';
+    final path = encodedQuery.isEmpty ? '/books/' : '/books/?q=$encodedQuery';
     final data = await _apiClient.getList(path);
     return data.map((e) => BookItem.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<BookDetailItem> fetchBookDetail(int bookId) async {
+    final data = await _apiClient.getJson('/books/$bookId/');
+    return BookDetailItem.fromJson(data);
   }
 
   Future<void> addBook({required String title, required String author, required String genre}) {

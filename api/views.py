@@ -182,6 +182,8 @@ class BookListView(generics.ListCreateAPIView):
                     | Q(synopsis__icontains=cleaned)
                     | Q(authors__name__icontains=cleaned)
                     | Q(genres__name__icontains=cleaned)
+                    | Q(isbn__isbn__icontains=cleaned)
+                    | Q(isbn__isbn13__icontains=cleaned)
                 ).distinct()
 
         return queryset
