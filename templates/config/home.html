@@ -128,8 +128,8 @@
     cursor: pointer;
     position: relative;
     overflow: hidden;
-    opacity: 0;
-    transform: translateY(30px);
+    opacity: 1;
+    transform: translateY(0);
     color: inherit;
     text-decoration: none;
     white-space: normal !important;
@@ -148,10 +148,37 @@
     outline-offset: 4px;
   }
 
-  .hero-highlight__card:nth-child(1) { animation: fadeInUp 0.6s ease-out 0.5s forwards; }
-  .hero-highlight__card:nth-child(2) { animation: fadeInUp 0.6s ease-out 0.7s forwards; }
-  .hero-highlight__card:nth-child(3) { animation: fadeInUp 0.6s ease-out 0.9s forwards; }
-  .hero-highlight__card:nth-child(4) { animation: fadeInUp 0.6s ease-out 1.1s forwards; }
+  .hero-highlight__card.animate-in {
+    opacity: 0;
+    transform: translateY(24px);
+    animation: fadeInUp 0.6s ease-out var(--card-delay, 0s) forwards;
+  }
+
+  .tracker-updates-row {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 1rem;
+    overflow-x: auto;
+    padding-bottom: 0.4rem;
+    scroll-snap-type: x proximity;
+    direction: rtl;
+  }
+
+  .tracker-updates-row .hero-highlight__card {
+    flex: 0 0 min(280px, calc(100vw - 3rem));
+    min-height: 100%;
+    scroll-snap-align: start;
+    direction: ltr;
+  }
+
+  .tracker-updates-row::-webkit-scrollbar {
+    height: 0.5rem;
+  }
+
+  .tracker-updates-row::-webkit-scrollbar-thumb {
+    background: rgba(171, 120, 67, 0.45);
+    border-radius: 999px;
+  }
 
   .hero-highlight__card::before {
     content: '';
@@ -777,7 +804,7 @@
 
         <div class="hero-highlight">
           {% for it in reading_items %}
-            <article class="hero-highlight__card h-100 d-flex flex-column">
+            <article class="hero-highlight__card animate-in h-100 d-flex flex-column" style="--card-delay: {{ forloop.counter0|add:1 }}00ms;">
               <div class="d-flex align-items-center gap-3 mb-3">
                 <div class="reading-progress-cover">
                   {% with cover_url=it.book.get_cover_url %}
@@ -851,14 +878,14 @@
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
           <div>
             <p class="text-muted mb-1">Последние обновления в трекере</p>
-            <h2 class="h4 mb-0">10 пользователей, которые недавно добавили прогресс</h2>
+            <h2 class="h4 mb-0">Пользователи недавно добавили прогресс</h2>
           </div>
         </div>
 
-        <div class="hero-highlight">
+        <div class="hero-highlight tracker-updates-row">
           {% for update in latest_tracker_updates %}
             {% with display_name=update.user.get_full_name|default:update.user.username cover_url=update.book.get_cover_url %}
-              <article class="hero-highlight__card h-100 d-flex flex-column">
+              <article class="hero-highlight__card animate-in h-100 d-flex flex-column" style="--card-delay: {{ forloop.counter0|add:1 }}00ms;">
                 <div class="d-flex align-items-center gap-2 mb-3">
                   <a href="{% url 'profile' update.user.username %}" class="text-decoration-none d-flex align-items-center gap-2">
                     {% if update.user.profile.avatar %}
