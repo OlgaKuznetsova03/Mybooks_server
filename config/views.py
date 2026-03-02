@@ -3,7 +3,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any
 
-from django.db.models import Count, IntegerField, Max, OuterRef, Q, Subquery, Value
+from django.db.models import Count, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
 from django.shortcuts import render
 from django.utils import timezone
@@ -112,39 +112,11 @@ def home(request):
                 item.progress_current_page = progress.current_page
                 item.progress_updated_at = progress.updated_at
 
-        latest_user_updates = (
+        latest_tracker_updates = list(
             BookProgress.objects.filter(event__isnull=True)
-            .values("user_id")
-            .annotate(
-                latest_updated_at=Max("updated_at"),
-                latest_progress_id=Subquery(
-                    BookProgress.objects.filter(
-                        event__isnull=True,
-                        user_id=OuterRef("user_id"),
-                    )
-                    .order_by("-updated_at", "-id")
-                    .values("id")[:1]
-                ),
-            )
-            .order_by("-latest_updated_at")[:10]
+            .select_related("user", "user__profile", "book", "book__primary_isbn")
+            .order_by("-updated_at", "-id")[:10]
         )
-
-        latest_progress_ids = [
-            row["latest_progress_id"]
-            for row in latest_user_updates
-            if row.get("latest_progress_id")
-        ]
-        if latest_progress_ids:
-            updates_map = {
-                progress.id: progress
-                for progress in BookProgress.objects.filter(id__in=latest_progress_ids)
-                .select_related("user", "user__profile", "book", "book__primary_isbn")
-            }
-            latest_tracker_updates = [
-                updates_map[progress_id]
-                for progress_id in latest_progress_ids
-                if progress_id in updates_map
-            ]
 
 
     context = {
