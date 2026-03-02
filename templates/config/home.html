@@ -845,6 +845,71 @@
         </div>
       </div>
     {% endif %}
+    
+    {% if latest_tracker_updates %}
+      <div class="mt-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div>
+            <p class="text-muted mb-1">Последние обновления в трекере</p>
+            <h2 class="h4 mb-0">10 пользователей, которые недавно добавили прогресс</h2>
+          </div>
+        </div>
+
+        <div class="hero-highlight">
+          {% for update in latest_tracker_updates %}
+            {% with display_name=update.user.get_full_name|default:update.user.username cover_url=update.book.get_cover_url %}
+              <article class="hero-highlight__card h-100 d-flex flex-column">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <a href="{% url 'profile' update.user.username %}" class="text-decoration-none d-flex align-items-center gap-2">
+                    {% if update.user.profile.avatar %}
+                      <img src="{{ update.user.profile.avatar.url }}" alt="Аватар {{ display_name }}" class="rounded-circle" width="42" height="42" style="object-fit: cover;">
+                    {% else %}
+                      <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white" style="width: 42px; height: 42px; background: #c08d57; font-size: 0.8rem;">{{ update.user.username|slice:":1"|upper }}</span>
+                    {% endif %}
+                    <span class="fw-semibold text-dark">{{ update.user.username }}</span>
+                  </a>
+                </div>
+
+                <div class="d-flex align-items-center gap-3 mb-3">
+                  <a href="{% url 'book_detail' update.book.id %}" class="reading-progress-cover">
+                    {% if cover_url %}
+                      <img src="{{ cover_url }}" alt="Обложка {{ update.book.title }}" loading="lazy" />
+                    {% else %}
+                      <img src="{% static 'books/cover-placeholder-2x3.png' %}" alt="Нет обложки" />
+                    {% endif %}
+                  </a>
+                  <div class="flex-grow-1">
+                    <a href="{% url 'book_detail' update.book.id %}" class="text-decoration-none text-dark">
+                      <h3 class="h6 fw-semibold mb-1">{{ update.book.title }}</h3>
+                    </a>
+                    <div class="small text-muted">{{ update.updated_at|date:"d.m.Y H:i" }}</div>
+                  </div>
+                </div>
+
+                <div class="mt-auto">
+                  <div class="progress" style="height: 10px;">
+                    <div
+                      class="progress-bar bg-primary"
+                      style="width: {{ update.percent|floatformat:'0' }}%"
+                      role="progressbar"
+                      aria-valuenow="{{ update.percent|floatformat:'0' }}"
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                    ></div>
+                  </div>
+                  <div class="small text-muted d-flex justify-content-between mt-2">
+                    <span>Добавил(а): {{ update.percent|floatformat:"0" }}%</span>
+                    {% if update.current_page %}
+                      <span>{{ update.current_page }} стр.</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </article>
+            {% endwith %}
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
   {% else %}
     <div
       class="hero-highlight"
