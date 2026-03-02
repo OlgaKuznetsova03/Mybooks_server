@@ -36,6 +36,43 @@
   color: white;
 }
 
+.toggle-description-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+
+.toggle-description-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.marathon-description {
+  position: relative;
+}
+
+.marathon-description.collapsed {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.marathon-description.collapsed::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 1.2em;
+  background: linear-gradient(to bottom, rgba(74, 90, 122, 0), rgba(74, 90, 122, 0.95));
+}
+
 /* Стили для полок участников */
 .marathon-shelf {
   display: flex;
@@ -525,7 +562,11 @@
       <div class="p-4 h-100 d-flex flex-column gap-3">
         <div>
           <h1 class="h2 mb-3 fw-bold">{{ marathon.title }}</h1>
-          <p class="mb-0 lead" style="opacity: 0.9;">{{ marathon.description|default:"Создатель пока не добавил описание." }}</p>
+          <p id="marathonDescription" class="mb-0 lead marathon-description collapsed" style="opacity: 0.9;">{{ marathon.description|default:"Создатель пока не добавил описание." }}</p>
+          <button id="toggleDescriptionBtn" type="button" class="toggle-description-btn mt-2 d-none" onclick="toggleDescription()">
+            <span id="toggleDescriptionText">Развернуть описание</span>
+            <i id="toggleDescriptionIcon" class="bi bi-chevron-down"></i>
+          </button>
         </div>
         
         {% with themes=marathon.themes.all %}
@@ -949,6 +990,21 @@ function toggleThemes() {
   }
 }
 
+function toggleDescription() {
+  const description = document.getElementById('marathonDescription');
+  const toggleText = document.getElementById('toggleDescriptionText');
+  const toggleIcon = document.getElementById('toggleDescriptionIcon');
+
+  if (!description || !toggleText || !toggleIcon) {
+    return;
+  }
+
+  const isCollapsed = description.classList.contains('collapsed');
+  description.classList.toggle('collapsed', !isCollapsed);
+  toggleText.textContent = isCollapsed ? 'Свернуть описание' : 'Развернуть описание';
+  toggleIcon.className = isCollapsed ? 'bi bi-chevron-up' : 'bi bi-chevron-down';
+}
+
 function toggleAddBook(forceExpand = null) {
   const panel = document.querySelector('[data-add-book-panel]');
   if (!panel) {
@@ -971,6 +1027,27 @@ document.querySelectorAll('[data-toggle-add-book]').forEach((button) => {
 if (window.location.hash === '#add-book') {
   toggleAddBook(true);
 }
+
+(() => {
+  const description = document.getElementById('marathonDescription');
+  const toggleBtn = document.getElementById('toggleDescriptionBtn');
+  if (!description || !toggleBtn) {
+    return;
+  }
+
+  const lineHeight = parseFloat(getComputedStyle(description).lineHeight);
+  if (!lineHeight) {
+    toggleBtn.classList.remove('d-none');
+    return;
+  }
+
+  const threeLinesHeight = lineHeight * 3;
+  if (description.scrollHeight > threeLinesHeight + 2) {
+    toggleBtn.classList.remove('d-none');
+  } else {
+    description.classList.remove('collapsed');
+  }
+})();
 
 // Инициализация функциональности поиска книг
 (() => {

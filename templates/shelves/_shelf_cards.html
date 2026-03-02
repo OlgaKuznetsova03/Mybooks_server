@@ -260,7 +260,7 @@
 
                   {% with status=default_status_map|dict_get:it.book.pk %}
                     {# 1) Полка «Прочитано»: показать дату добавления на эту полку #}
-                    {% if normalized_name == normalized_read %}
+                    {% if normalized_name == normalized_read or normalized_name == normalized_read_alias %}
                       {% with home_entry=it.home_entry %}
                         {% if home_entry %}
                           {% with read_date=home_entry.date_read|default:home_entry.read_at|default:it.added_at %}
@@ -317,7 +317,7 @@
                       {% endwith %}
 
                     {# 3) Другие полки: если книга уже прочитана — показать дату из статуса.read #}
-                    {% elif allow_manage and normalized_name != normalized_default and normalized_name != normalized_progress %}
+                    {% elif allow_manage and normalized_name != normalized_default and normalized_name != normalized_progress and normalized_name != normalized_read_alias %}
                       {% if status and status.code == 'read' %}
                         {% with home_entry=it.home_entry %}
                           {% with read_date=home_entry.date_read|default:home_entry.read_at|default:status.added_at %}
