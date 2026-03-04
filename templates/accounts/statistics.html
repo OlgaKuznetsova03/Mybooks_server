@@ -357,8 +357,21 @@
     .reading-calendar thead th{ font-size:.65rem; }
     .reading-calendar__cell{ min-height:110px; gap:.35rem; }
     .reading-calendar__header{ font-size:.75rem; }
-    .reading-calendar__books{ gap:.25rem; }
+    .reading-calendar__books{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;
+      gap:0;
+      overflow:hidden;
+      max-height:56px;
+    }
     .reading-calendar__book-cover,.reading-calendar__book-placeholder{ width:32px; height:48px; }
+    .reading-calendar__book-cover + .reading-calendar__book-cover,
+    .reading-calendar__book-cover + .reading-calendar__book-placeholder,
+    .reading-calendar__book-placeholder + .reading-calendar__book-cover,
+    .reading-calendar__book-placeholder + .reading-calendar__book-placeholder{
+      margin-top:-43px;
+    }
     .calendar-day__stats{ font-size:.6rem; gap:.1rem; }
     .calendar-day__meta-item{ gap:.2rem; padding:.1rem .35rem; }
     .calendar-day__meta-item i{ font-size:.65rem; }
