@@ -8,6 +8,7 @@ from django.db.models.functions import Coalesce
 from django.shortcuts import render
 from django.utils import timezone
 
+from collaborations.models import AuthorOffer, BloggerRequest
 from reading_clubs.models import ReadingClub
 from reading_marathons.models import (
     MarathonParticipant,
@@ -71,6 +72,8 @@ def home(request):
 
     reading_items: list[ShelfItem] = []
     latest_tracker_updates: list[BookProgress] = []
+    latest_author_offers: list[AuthorOffer] = []
+    latest_blogger_requests: list[BloggerRequest] = []
     if request.user.is_authenticated:
         reading_shelf = Shelf.objects.filter(user=request.user, name="Читаю").first()
         if reading_shelf:
@@ -118,12 +121,26 @@ def home(request):
             .order_by("-updated_at", "-id")[:10]
         )
 
+        latest_author_offers = list(
+            AuthorOffer.objects.filter(is_active=True)
+            .select_related("author", "author__profile", "book", "book__primary_isbn")
+            .order_by("-created_at", "-id")[:4]
+        )
+
+        latest_blogger_requests = list(
+            BloggerRequest.objects.filter(is_active=True)
+            .select_related("blogger", "blogger__profile")
+            .order_by("-created_at", "-id")[:4]
+        )
+
 
     context = {
         "active_clubs": active_clubs,
         "active_marathons": active_marathons,
         "reading_items": reading_items,
         "latest_tracker_updates": latest_tracker_updates,
+        "latest_author_offers": latest_author_offers,
+        "latest_blogger_requests": latest_blogger_requests,
     }
     return render(request, "config/home.html", context)
 
