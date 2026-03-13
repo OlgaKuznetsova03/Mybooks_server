@@ -165,7 +165,7 @@ def home(request):
         )
 
 
-    for item in latest_tracker_updates:␊
+    for item in latest_tracker_updates:
         if not hasattr(item, "reaction_summary"):
             item.reaction_summary = []
         if not hasattr(item, "user_reaction_emojis"):
