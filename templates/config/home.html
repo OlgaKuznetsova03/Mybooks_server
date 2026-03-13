@@ -1576,14 +1576,15 @@
     if (!target) return;
 
     const toggle = target.closest('[data-reaction-toggle]');
-    const pickerButton = target.closest('[data-reaction-picker] .tracker-reaction-btn');
+    const pickerButton = target.closest('.tracker-reaction-btn');
+    const isInPicker = pickerButton && pickerButton.closest('[data-reaction-picker]');
 
     if (toggle) {
       handleReactionToggleClick(event);
       return;
     }
 
-    if (pickerButton) {
+    if (isInPicker) {
       handleReactionClick(event);
       return;
     }
