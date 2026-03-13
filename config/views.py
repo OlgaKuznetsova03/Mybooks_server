@@ -210,11 +210,17 @@ def toggle_tracker_reaction(request, progress_id: int):
         .annotate(count=Count("id"))
         .order_by("emoji")
     )
+    own_emojis = list(
+        BookProgressReaction.objects.filter(progress=progress, user=request.user)
+        .values_list("emoji", flat=True)
+        .order_by("emoji")
+    )
     return JsonResponse({
         "ok": True,
         "active": created,
         "emoji": emoji,
         "reactions": summary,
+        "user_emojis": own_emojis,
     })
 
 

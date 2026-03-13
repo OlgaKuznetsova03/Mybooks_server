@@ -1477,9 +1477,10 @@
     return '';
   }
 
-  function renderReactionSummary(widget, reactions, activeEmoji) {
+  function renderReactionSummary(widget, reactions, activeEmojis) {
     const list = widget.querySelector('[data-reaction-list]');
     if (!list) return;
+    const activeSet = new Set(Array.isArray(activeEmojis) ? activeEmojis : []);
     list.innerHTML = '';
     reactions.forEach(item => {
       const btn = document.createElement('button');
@@ -1487,7 +1488,7 @@
       btn.className = 'tracker-reaction-btn';
       btn.dataset.emoji = item.emoji;
       btn.innerHTML = `${item.emoji} <span data-count>${item.count}</span>`;
-      if (item.emoji === activeEmoji) {
+      if (activeSet.has(item.emoji)) {
         btn.classList.add('is-active');
       }
       list.appendChild(btn);
@@ -1535,16 +1536,13 @@
       const payload = await response.json();
       if (!payload.ok) return;
 
+      const userEmojis = Array.isArray(payload.user_emojis) ? payload.user_emojis : [];
       const quickButtons = widget.querySelectorAll('[data-reaction-picker] .tracker-reaction-btn');
       quickButtons.forEach(btn => {
-        if (btn.dataset.emoji === emoji && payload.active) {
-          btn.classList.add('is-active');
-        } else if (btn.dataset.emoji === emoji && !payload.active) {
-          btn.classList.remove('is-active');
-        }
+        btn.classList.toggle('is-active', userEmojis.includes(btn.dataset.emoji));
       });
 
-      renderReactionSummary(widget, payload.reactions || [], payload.active ? emoji : null);
+      renderReactionSummary(widget, payload.reactions || [], userEmojis);
     } catch (error) {
       console.error('Reaction update failed', error);
     }
