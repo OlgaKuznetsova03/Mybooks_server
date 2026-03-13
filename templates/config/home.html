@@ -236,6 +236,16 @@
     padding: 0.2rem 0.5rem;
     font-size: 0.9rem;
     line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .tracker-reaction-icon {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+    flex-shrink: 0;
   }
 
   .tracker-reaction-btn.is-active {
@@ -1005,24 +1015,23 @@
                       <div class="tracker-reactions__list" data-reaction-list>
                         {% for item in update.reaction_summary %}
                           <button type="button" class="tracker-reaction-btn{% if item.emoji in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="{{ item.emoji }}">
-                            {{ item.emoji }} <span data-count>{{ item.count }}</span>
+                            <img class="tracker-reaction-icon" src="/media/reactions/{{ item.emoji|urlencode }}.png" alt="{{ item.emoji }}" loading="lazy">
+                            <span data-count>{{ item.count }}</span>
                           </button>
                         {% endfor %}
                       </div>
-                      <button type="button" class="tracker-reactions__toggle" data-reaction-toggle aria-expanded="false" aria-label="Открыть список реакций">😊</button>
+                      <button type="button" class="tracker-reactions__toggle" data-reaction-toggle aria-expanded="false" aria-label="Открыть список реакций">+</button>
                     </div>
                     <div class="tracker-reactions__list mt-2 tracker-reactions__picker" data-reaction-picker hidden>
-                      <button type="button" class="tracker-reaction-btn{% if '👍' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="👍">👍</button>
-                      <button type="button" class="tracker-reaction-btn{% if '❤️' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="❤️">❤️</button>
-                      <button type="button" class="tracker-reaction-btn{% if '🔥' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="🔥">🔥</button>
-                      <button type="button" class="tracker-reaction-btn{% if '👏' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="👏">👏</button>
-                      <button type="button" class="tracker-reaction-btn{% if '😍' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😍">😍</button>
-                      <button type="button" class="tracker-reaction-btn{% if '😮' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😮">😮</button>
-                      <button type="button" class="tracker-reaction-btn{% if '😂' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😂">😂</button>
-                      <button type="button" class="tracker-reaction-btn{% if '😢' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😢">😢</button>
+                      <button type="button" class="tracker-reaction-btn{% if '👍' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="👍"><img class="tracker-reaction-icon" src="/media/reactions/%F0%9F%91%8D.png" alt="👍" loading="lazy"></button>
+                      <button type="button" class="tracker-reaction-btn{% if '❤️' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="❤️"><img class="tracker-reaction-icon" src="/media/reactions/%E2%9D%A4%EF%B8%8F.png" alt="❤️" loading="lazy"></button>
+                      <button type="button" class="tracker-reaction-btn{% if '🔥' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="🔥"><img class="tracker-reaction-icon" src="/media/reactions/%F0%9F%94%A5.png" alt="🔥" loading="lazy"></button>
+                      <button type="button" class="tracker-reaction-btn{% if '👏' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="👏"><img class="tracker-reaction-icon" src="/media/reactions/%F0%9F%91%8F.png" alt="👏" loading="lazy"></button>
+                      <button type="button" class="tracker-reaction-btn{% if '😍' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😍"><img class="tracker-reaction-icon" src="/media/reactions/%F0%9F%98%8D.png" alt="😍" loading="lazy"></button>
+                      <button type="button" class="tracker-reaction-btn{% if '😮' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😮"><img class="tracker-reaction-icon" src="/media/reactions/%F0%9F%98%AE.png" alt="😮" loading="lazy"></button>
+                      <button type="button" class="tracker-reaction-btn{% if '😂' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😂"><img class="tracker-reaction-icon" src="/media/reactions/%F0%9F%98%82.png" alt="😂" loading="lazy"></button>
+                      <button type="button" class="tracker-reaction-btn{% if '😢' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😢"><img class="tracker-reaction-icon" src="/media/reactions/%F0%9F%98%A2.png" alt="😢" loading="lazy"></button>
                     </div>
-                    <div class="tracker-reactions__hint">Реакции анонимные</div>
-                  </div>
                 </div>
               </article>
             {% endwith %}
@@ -1489,6 +1498,16 @@
     return '';
   }
 
+  function getReactionImagePath(emoji) {
+    return `/media/reactions/${encodeURIComponent(emoji)}.png`;
+  }
+
+  function buildReactionButtonContent(emoji, count = null) {
+    const img = `<img class="tracker-reaction-icon" src="${getReactionImagePath(emoji)}" alt="${emoji}" loading="lazy">`;
+    if (count === null) return img;
+    return `${img} <span data-count>${count}</span>`;
+  }
+
   function renderReactionSummary(widget, reactions, activeEmojis) {
     const list = widget.querySelector('[data-reaction-list]');
     if (!list) return;
@@ -1499,7 +1518,7 @@
       btn.type = 'button';
       btn.className = 'tracker-reaction-btn';
       btn.dataset.emoji = item.emoji;
-      btn.innerHTML = `${item.emoji} <span data-count>${item.count}</span>`;
+      btn.innerHTML = buildReactionButtonContent(item.emoji, item.count);
       if (activeSet.has(item.emoji)) {
         btn.classList.add('is-active');
       }
