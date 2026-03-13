@@ -1495,7 +1495,8 @@
   }
 
   async function handleReactionClick(event) {
-    const button = event.target.closest('.tracker-reaction-btn');
+    const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+    const button = target ? target.closest('.tracker-reaction-btn') : null;
     if (!button) return;
     event.preventDefault();
     const widget = button.closest('[data-reaction-widget]');
@@ -1543,7 +1544,8 @@
   }
 
   function handleReactionToggleClick(event) {
-    const toggle = event.target.closest('[data-reaction-toggle]');
+    const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+    const toggle = target ? target.closest('[data-reaction-toggle]') : null;
     if (!toggle) return;
     const widget = toggle.closest('[data-reaction-widget]');
     if (!widget) return;
