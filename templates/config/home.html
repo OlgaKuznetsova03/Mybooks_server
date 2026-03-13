@@ -1372,7 +1372,19 @@
     });
   }
 
-   // Анимация клика на карточке
+   // Показ уведомления + анимация клика на карточке
+  function showFeatureMessage(title, message, triggerEvent = null) {
+    const toastMessage = document.getElementById('toastMessage');
+    const liveToast = document.getElementById('liveToast');
+
+    if (toastMessage) {
+      toastMessage.textContent = title ? `${title}: ${message}` : message;
+    }
+
+    if (liveToast && window.bootstrap && window.bootstrap.Toast) {
+      window.bootstrap.Toast.getOrCreateInstance(liveToast).show();
+    }
+
     const animationEvent = triggerEvent ?? window.event ?? null;
     if (animationEvent && animationEvent.currentTarget) {
       const target = animationEvent.currentTarget;
