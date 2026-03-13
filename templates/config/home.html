@@ -218,6 +218,13 @@
     background: rgba(171, 120, 67, 0.22);
   }
 
+  .tracker-reactions__picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+  }
+
   .tracker-reactions__picker[hidden] {
     display: none;
   }
@@ -1565,8 +1572,34 @@
 
 
   document.addEventListener('click', function(event) {
-    handleReactionToggleClick(event);
-    handleReactionClick(event);
+    const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+    if (!target) return;
+
+    const toggle = target.closest('[data-reaction-toggle]');
+    const pickerButton = target.closest('[data-reaction-picker] .tracker-reaction-btn');
+
+    if (toggle) {
+      handleReactionToggleClick(event);
+      return;
+    }
+
+    if (pickerButton) {
+      handleReactionClick(event);
+      return;
+    }
+
+    const widget = target.closest('[data-reaction-widget]');
+    if (widget) return;
+
+    document.querySelectorAll('[data-reaction-picker]:not([hidden])').forEach(picker => {
+      const parentWidget = picker.closest('[data-reaction-widget]');
+      if (!parentWidget) return;
+      const widgetToggle = parentWidget.querySelector('[data-reaction-toggle]');
+      if (widgetToggle) {
+        widgetToggle.setAttribute('aria-expanded', 'false');
+      }
+      picker.hidden = true;
+    });
   });
 </script>
 
