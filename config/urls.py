@@ -12,6 +12,7 @@ urlpatterns = [
         TemplateView.as_view(template_name='app-ads.txt', content_type='text/plain')
     ),
     path("", views.home, name="home"),
+    path("tracker-updates/<int:progress_id>/react/", views.toggle_tracker_reaction, name="toggle_tracker_reaction"),
     path("rules/", views.rules, name="rules"),
     path("admin/", admin.site.urls),
     path(

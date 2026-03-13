@@ -180,6 +180,39 @@
     border-radius: 999px;
   }
 
+
+  .tracker-reactions {
+    margin-top: 0.75rem;
+    border-top: 1px solid rgba(171, 120, 67, 0.2);
+    padding-top: 0.75rem;
+  }
+
+  .tracker-reactions__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .tracker-reaction-btn {
+    border: 1px solid rgba(171, 120, 67, 0.3);
+    background: #fff;
+    border-radius: 999px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.9rem;
+    line-height: 1;
+  }
+
+  .tracker-reaction-btn.is-active {
+    border-color: #ab7843;
+    background: rgba(171, 120, 67, 0.15);
+  }
+
+  .tracker-reactions__hint {
+    font-size: 0.75rem;
+    color: #7c6a58;
+    margin-top: 0.35rem;
+  }
+
   .hero-highlight__card::before {
     content: '';
     position: absolute;
@@ -930,6 +963,27 @@
                       <span>{{ update.current_page }} стр.</span>
                     {% endif %}
                   </div>
+
+                  <div class="tracker-reactions" data-reaction-widget data-progress-id="{{ update.id }}" data-react-url="{% url 'toggle_tracker_reaction' update.id %}">
+                    <div class="tracker-reactions__list" data-reaction-list>
+                      {% for item in update.emoji_reactions %}
+                        <button type="button" class="tracker-reaction-btn{% if item.emoji in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="{{ item.emoji }}">
+                          {{ item.emoji }} <span data-count>{{ item.count }}</span>
+                        </button>
+                      {% endfor %}
+                    </div>
+                    <div class="tracker-reactions__list mt-2">
+                      <button type="button" class="tracker-reaction-btn{% if '👍' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="👍">👍</button>
+                      <button type="button" class="tracker-reaction-btn{% if '❤️' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="❤️">❤️</button>
+                      <button type="button" class="tracker-reaction-btn{% if '🔥' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="🔥">🔥</button>
+                      <button type="button" class="tracker-reaction-btn{% if '👏' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="👏">👏</button>
+                      <button type="button" class="tracker-reaction-btn{% if '😍' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😍">😍</button>
+                      <button type="button" class="tracker-reaction-btn{% if '😮' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😮">😮</button>
+                      <button type="button" class="tracker-reaction-btn{% if '😂' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😂">😂</button>
+                      <button type="button" class="tracker-reaction-btn{% if '😢' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😢">😢</button>
+                    </div>
+                    <div class="tracker-reactions__hint">Реакции анонимные</div>
+                  </div>
                 </div>
               </article>
             {% endwith %}
@@ -1376,10 +1430,81 @@
     button.appendChild(circle);
   }
 
+
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return '';
+  }
+
+  function renderReactionSummary(widget, reactions, activeEmoji) {
+    const list = widget.querySelector('[data-reaction-list]');
+    if (!list) return;
+    list.innerHTML = '';
+    reactions.forEach(item => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'tracker-reaction-btn';
+      btn.dataset.emoji = item.emoji;
+      btn.innerHTML = `${item.emoji} <span data-count>${item.count}</span>`;
+      if (item.emoji === activeEmoji) {
+        btn.classList.add('is-active');
+      }
+      list.appendChild(btn);
+    });
+  }
+
+  async function handleReactionClick(event) {
+    const button = event.target.closest('.tracker-reaction-btn');
+    if (!button) return;
+    const widget = button.closest('[data-reaction-widget]');
+    if (!widget) return;
+
+    const reactUrl = widget.dataset.reactUrl;
+    const emoji = button.dataset.emoji;
+    if (!reactUrl || !emoji) return;
+
+    const body = new URLSearchParams();
+    body.set('emoji', emoji);
+
+    const response = await fetch(reactUrl, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken'),
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: body.toString(),
+    });
+
+    if (!response.ok) {
+      return;
+    }
+
+    const payload = await response.json();
+    if (!payload.ok) return;
+
+    const quickButtons = widget.querySelectorAll('.tracker-reactions__list.mt-2 .tracker-reaction-btn');
+    quickButtons.forEach(btn => {
+      if (btn.dataset.emoji === emoji && payload.active) {
+        btn.classList.add('is-active');
+      } else if (btn.dataset.emoji === emoji && !payload.active) {
+        btn.classList.remove('is-active');
+      }
+    });
+
+    renderReactionSummary(widget, payload.reactions || [], payload.active ? emoji : null);
+  }
+
   // Добавление ripple эффекта к кнопкам
   const buttons = document.querySelectorAll('.btn-magic');
   buttons.forEach(button => {
     button.addEventListener('click', createRipple);
+  });
+
+
+  document.addEventListener('click', function(event) {
+    handleReactionClick(event);
   });
 </script>
 

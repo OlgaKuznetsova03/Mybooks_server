@@ -5,7 +5,8 @@ from typing import Any
 
 from django.db.models import Count, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
-from django.shortcuts import render
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 
 from collaborations.models import AuthorOffer, BloggerRequest
@@ -15,7 +16,9 @@ from reading_marathons.models import (
     MarathonTheme,
     ReadingMarathon,
 )
-from shelves.models import BookProgress, Shelf, ShelfItem
+from django.views.decorators.http import require_POST
+
+from shelves.models import BookProgress, BookProgressReaction, Shelf, ShelfItem
 
 
 def home(request):
@@ -121,6 +124,34 @@ def home(request):
             .order_by("-updated_at", "-id")[:10]
         )
 
+        if latest_tracker_updates:
+            progress_ids = [item.id for item in latest_tracker_updates]
+            aggregated = (
+                BookProgressReaction.objects.filter(progress_id__in=progress_ids)
+                .values("progress_id", "emoji")
+                .annotate(total=Count("id"))
+                .order_by("emoji")
+            )
+            grouped_totals: dict[int, list[dict[str, Any]]] = {}
+            for row in aggregated:
+                grouped_totals.setdefault(row["progress_id"], []).append(
+                    {"emoji": row["emoji"], "count": row["total"]}
+                )
+
+            own_reactions = {
+                (row["progress_id"], row["emoji"])
+                for row in BookProgressReaction.objects.filter(
+                    progress_id__in=progress_ids,
+                    user=request.user,
+                ).values("progress_id", "emoji")
+            }
+
+            for item in latest_tracker_updates:
+                item.emoji_reactions = grouped_totals.get(item.id, [])
+                item.user_reaction_emojis = {
+                    emoji for progress_id, emoji in own_reactions if progress_id == item.id
+                }
+
         latest_author_offers = list(
             AuthorOffer.objects.filter(is_active=True)
             .select_related("author", "author__profile", "book", "book__primary_isbn")
@@ -134,6 +165,12 @@ def home(request):
         )
 
 
+    for item in latest_tracker_updates:
+        if not hasattr(item, "emoji_reactions"):
+            item.emoji_reactions = []
+        if not hasattr(item, "user_reaction_emojis"):
+            item.user_reaction_emojis = set()
+
     context = {
         "active_clubs": active_clubs,
         "active_marathons": active_marathons,
@@ -143,6 +180,42 @@ def home(request):
         "latest_blogger_requests": latest_blogger_requests,
     }
     return render(request, "config/home.html", context)
+
+
+ALLOWED_HOME_REACTION_EMOJIS = ["👍", "❤️", "🔥", "👏", "😍", "😮", "😂", "😢"]
+
+
+@require_POST
+def toggle_tracker_reaction(request, progress_id: int):
+    if not request.user.is_authenticated:
+        return JsonResponse({"ok": False, "error": "auth_required"}, status=401)
+
+    emoji = (request.POST.get("emoji") or "").strip()
+    if emoji not in ALLOWED_HOME_REACTION_EMOJIS:
+        return JsonResponse({"ok": False, "error": "invalid_emoji"}, status=400)
+
+    progress = get_object_or_404(BookProgress, pk=progress_id, event__isnull=True)
+
+    reaction, created = BookProgressReaction.objects.get_or_create(
+        progress=progress,
+        user=request.user,
+        emoji=emoji,
+    )
+    if not created:
+        reaction.delete()
+
+    summary = list(
+        BookProgressReaction.objects.filter(progress=progress)
+        .values("emoji")
+        .annotate(count=Count("id"))
+        .order_by("emoji")
+    )
+    return JsonResponse({
+        "ok": True,
+        "active": created,
+        "emoji": emoji,
+        "reactions": summary,
+    })
 
 
 def reading_communities_overview(request):
@@ -227,6 +300,12 @@ def reading_communities_overview(request):
         ),
     ]
 
+    for item in latest_tracker_updates:
+        if not hasattr(item, "emoji_reactions"):
+            item.emoji_reactions = []
+        if not hasattr(item, "user_reaction_emojis"):
+            item.user_reaction_emojis = set()
+
     context = {
         "club_groups": club_groups,
         "marathon_groups": marathon_groups,
@@ -260,6 +339,12 @@ def rules(request):
     """
     Отображает страницу с правилами пользования сайтом kalejdoskopknig.ru.
     """
+    for item in latest_tracker_updates:
+        if not hasattr(item, "emoji_reactions"):
+            item.emoji_reactions = []
+        if not hasattr(item, "user_reaction_emojis"):
+            item.user_reaction_emojis = set()
+
     context = {
         "page_title": "Правила пользования сайтом",
         "last_updated": "12.11.2025",

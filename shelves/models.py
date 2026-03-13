@@ -104,6 +104,7 @@ class EventParticipant(models.Model):
 
 # shelves/models.py
 class BookProgress(models.Model):
+    id = models.AutoField(primary_key=True)
     FORMAT_PAPER = "paper"
     FORMAT_EBOOK = "ebook"
     FORMAT_AUDIO = "audiobook"
@@ -723,6 +724,30 @@ class ReadingFeedComment(models.Model):
 
     def __str__(self):
         return f"Комментарий {self.user.username} к {self.entry_id}"
+
+
+class BookProgressReaction(models.Model):
+    """Анонимные emoji-реакции на обновление прогресса чтения."""
+
+    progress = models.ForeignKey(
+        BookProgress,
+        on_delete=models.CASCADE,
+        related_name="emoji_reactions",
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="book_progress_reactions",
+    )
+    emoji = models.CharField(max_length=16)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("progress", "user", "emoji")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.emoji} к {self.progress_id}"
 
 
 class HomeLibraryEntry(models.Model):
