@@ -966,7 +966,7 @@
 
                   <div class="tracker-reactions" data-reaction-widget data-progress-id="{{ update.id }}" data-react-url="{% url 'toggle_tracker_reaction' update.id %}">
                     <div class="tracker-reactions__list" data-reaction-list>
-                      {% for item in update.emoji_reactions %}
+                      {% for item in update.reaction_summary %}
                         <button type="button" class="tracker-reaction-btn{% if item.emoji in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="{{ item.emoji }}">
                           {{ item.emoji }} <span data-count>{{ item.count }}</span>
                         </button>

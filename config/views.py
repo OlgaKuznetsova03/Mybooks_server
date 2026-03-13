@@ -147,7 +147,7 @@ def home(request):
             }
 
             for item in latest_tracker_updates:
-                item.emoji_reactions = grouped_totals.get(item.id, [])
+                item.reaction_summary = grouped_totals.get(item.id, [])
                 item.user_reaction_emojis = {
                     emoji for progress_id, emoji in own_reactions if progress_id == item.id
                 }
@@ -165,9 +165,9 @@ def home(request):
         )
 
 
-    for item in latest_tracker_updates:
-        if not hasattr(item, "emoji_reactions"):
-            item.emoji_reactions = []
+    for item in latest_tracker_updates:␊
+        if not hasattr(item, "reaction_summary"):
+            item.reaction_summary = []
         if not hasattr(item, "user_reaction_emojis"):
             item.user_reaction_emojis = set()
 
