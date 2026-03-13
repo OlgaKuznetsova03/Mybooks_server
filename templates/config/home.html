@@ -193,6 +193,35 @@
     gap: 0.35rem;
   }
 
+  .tracker-reactions__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .tracker-reactions__toggle {
+    border: 1px solid rgba(171, 120, 67, 0.35);
+    background: rgba(171, 120, 67, 0.12);
+    color: #5a3f24;
+    border-radius: 999px;
+    width: 2rem;
+    height: 2rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+  }
+
+  .tracker-reactions__toggle[aria-expanded="true"] {
+    background: rgba(171, 120, 67, 0.22);
+  }
+
+  .tracker-reactions__picker[hidden] {
+    display: none;
+  }
+
   .tracker-reaction-btn {
     border: 1px solid rgba(171, 120, 67, 0.3);
     background: #fff;
@@ -965,14 +994,17 @@
                   </div>
 
                   <div class="tracker-reactions" data-reaction-widget data-progress-id="{{ update.id }}" data-react-url="{% url 'toggle_tracker_reaction' update.id %}">
-                    <div class="tracker-reactions__list" data-reaction-list>
-                      {% for item in update.reaction_summary %}
-                        <button type="button" class="tracker-reaction-btn{% if item.emoji in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="{{ item.emoji }}">
-                          {{ item.emoji }} <span data-count>{{ item.count }}</span>
-                        </button>
-                      {% endfor %}
+                    <div class="tracker-reactions__header">
+                      <div class="tracker-reactions__list" data-reaction-list>
+                        {% for item in update.reaction_summary %}
+                          <button type="button" class="tracker-reaction-btn{% if item.emoji in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="{{ item.emoji }}">
+                            {{ item.emoji }} <span data-count>{{ item.count }}</span>
+                          </button>
+                        {% endfor %}
+                      </div>
+                      <button type="button" class="tracker-reactions__toggle" data-reaction-toggle aria-expanded="false" aria-label="Открыть список реакций">😊</button>
                     </div>
-                    <div class="tracker-reactions__list mt-2">
+                    <div class="tracker-reactions__list mt-2 tracker-reactions__picker" data-reaction-picker hidden>
                       <button type="button" class="tracker-reaction-btn{% if '👍' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="👍">👍</button>
                       <button type="button" class="tracker-reaction-btn{% if '❤️' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="❤️">❤️</button>
                       <button type="button" class="tracker-reaction-btn{% if '🔥' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="🔥">🔥</button>
@@ -1453,11 +1485,19 @@
       }
       list.appendChild(btn);
     });
+
+    if (!reactions.length) {
+      const emptyHint = document.createElement('span');
+      emptyHint.className = 'small text-muted';
+      emptyHint.textContent = 'Пока без реакций';
+      list.appendChild(emptyHint);
+    }
   }
 
   async function handleReactionClick(event) {
     const button = event.target.closest('.tracker-reaction-btn');
     if (!button) return;
+    event.preventDefault();
     const widget = button.closest('[data-reaction-widget]');
     if (!widget) return;
 
@@ -1468,32 +1508,51 @@
     const body = new URLSearchParams();
     body.set('emoji', emoji);
 
-    const response = await fetch(reactUrl, {
-      method: 'POST',
-      headers: {
-        'X-CSRFToken': getCookie('csrftoken'),
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: body.toString(),
-    });
+    try {
+      const response = await fetch(reactUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+          'X-Requested-With': 'XMLHttpRequest',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: body.toString(),
+      });
 
-    if (!response.ok) {
-      return;
-    }
-
-    const payload = await response.json();
-    if (!payload.ok) return;
-
-    const quickButtons = widget.querySelectorAll('.tracker-reactions__list.mt-2 .tracker-reaction-btn');
-    quickButtons.forEach(btn => {
-      if (btn.dataset.emoji === emoji && payload.active) {
-        btn.classList.add('is-active');
-      } else if (btn.dataset.emoji === emoji && !payload.active) {
-        btn.classList.remove('is-active');
+      if (!response.ok) {
+        return;
       }
-    });
 
-    renderReactionSummary(widget, payload.reactions || [], payload.active ? emoji : null);
+      const payload = await response.json();
+      if (!payload.ok) return;
+
+      const quickButtons = widget.querySelectorAll('[data-reaction-picker] .tracker-reaction-btn');
+      quickButtons.forEach(btn => {
+        if (btn.dataset.emoji === emoji && payload.active) {
+          btn.classList.add('is-active');
+        } else if (btn.dataset.emoji === emoji && !payload.active) {
+          btn.classList.remove('is-active');
+        }
+      });
+
+      renderReactionSummary(widget, payload.reactions || [], payload.active ? emoji : null);
+    } catch (error) {
+      console.error('Reaction update failed', error);
+    }
+  }
+
+  function handleReactionToggleClick(event) {
+    const toggle = event.target.closest('[data-reaction-toggle]');
+    if (!toggle) return;
+    const widget = toggle.closest('[data-reaction-widget]');
+    if (!widget) return;
+    const picker = widget.querySelector('[data-reaction-picker]');
+    if (!picker) return;
+
+    const expanded = toggle.getAttribute('aria-expanded') === 'true';
+    toggle.setAttribute('aria-expanded', String(!expanded));
+    picker.hidden = expanded;
   }
 
   // Добавление ripple эффекта к кнопкам
@@ -1504,6 +1563,7 @@
 
 
   document.addEventListener('click', function(event) {
+    handleReactionToggleClick(event);
     handleReactionClick(event);
   });
 </script>
