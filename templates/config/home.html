@@ -1015,7 +1015,7 @@
                       <div class="tracker-reactions__list" data-reaction-list>
                         {% for item in update.reaction_summary %}
                           <button type="button" class="tracker-reaction-btn{% if item.emoji in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="{{ item.emoji }}">
-                            <img class="tracker-reaction-icon" src="{% get_media_prefix %}reactions/{{ item.emoji|urlencode }}.png" alt="{{ item.emoji }}" loading="lazy">
+                            <img class="tracker-reaction-icon" src="{% if item.emoji == '👍' %}{% get_media_prefix %}reactions/book_sticker_angel.png{% elif item.emoji == '❤️' %}{% get_media_prefix %}reactions/book_sticker_geil.png{% elif item.emoji == '🔥' %}{% get_media_prefix %}reactions/book_sticker_love_1.png{% elif item.emoji == '👏' %}{% get_media_prefix %}reactions/book_sticker_sweet.png{% elif item.emoji == '😍' %}{% get_media_prefix %}reactions/book_sticker_warm.png{% elif item.emoji == '😮' %}{% get_media_prefix %}reactions/book_stiker_fair.PNG{% elif item.emoji == '😂' %}{% get_media_prefix %}reactions/book_stiker_smile_3.PNG{% elif item.emoji == '😢' %}{% get_media_prefix %}reactions/book_stiker_love_3.PNG{% else %}{% get_media_prefix %}reactions/{{ item.emoji|urlencode }}.png{% endif %}" alt="{{ item.emoji }}" loading="lazy">
                             <span data-count>{{ item.count }}</span>
                           </button>
                         {% endfor %}
@@ -1023,14 +1023,14 @@
                       <button type="button" class="tracker-reactions__toggle" data-reaction-toggle aria-expanded="false" aria-label="Открыть список реакций">+</button>
                     </div>
                     <div class="tracker-reactions__list mt-2 tracker-reactions__picker" data-reaction-picker hidden>
-                      <button type="button" class="tracker-reaction-btn{% if '👍' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="👍"><img class="tracker-reaction-icon" src="{% get_media_prefix %}reactions/%F0%9F%91%8D.png" alt="👍" loading="lazy"></button>
-                      <button type="button" class="tracker-reaction-btn{% if '❤️' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="❤️"><img class="tracker-reaction-icon" src="{% get_media_prefix %}reactions/%E2%9D%A4%EF%B8%8F.png" alt="❤️" loading="lazy"></button>
-                      <button type="button" class="tracker-reaction-btn{% if '🔥' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="🔥"><img class="tracker-reaction-icon" src="{% get_media_prefix %}reactions/%F0%9F%94%A5.png" alt="🔥" loading="lazy"></button>
-                      <button type="button" class="tracker-reaction-btn{% if '👏' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="👏"><img class="tracker-reaction-icon" src="{% get_media_prefix %}reactions/%F0%9F%91%8F.png" alt="👏" loading="lazy"></button>
-                      <button type="button" class="tracker-reaction-btn{% if '😍' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😍"><img class="tracker-reaction-icon" src="{% get_media_prefix %}reactions/%F0%9F%98%8D.png" alt="😍" loading="lazy"></button>
-                      <button type="button" class="tracker-reaction-btn{% if '😮' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😮"><img class="tracker-reaction-icon" src="{% get_media_prefix %}reactions/%F0%9F%98%AE.png" alt="😮" loading="lazy"></button>
-                      <button type="button" class="tracker-reaction-btn{% if '😂' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😂"><img class="tracker-reaction-icon" src="{% get_media_prefix %}reactions/%F0%9F%98%82.png" alt="😂" loading="lazy"></button>
-                      <button type="button" class="tracker-reaction-btn{% if '😢' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😢"><img class="tracker-reaction-icon" src="{% get_media_prefix %}reactions/%F0%9F%98%A2.png" alt="😢" loading="lazy"></button>
+                      <button type="button" class="tracker-reaction-btn{% if '👍' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="👍"><img class="tracker-reaction-icon" src="{% get_media_prefix %}reactions/book_sticker_angel.png" alt="👍" loading="lazy"></button>
+                      <button type="button" class="tracker-reaction-btn{% if '❤️' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="❤️"><img class="tracker-reaction-icon" src="{% get_media_prefix %}reactions/book_sticker_geil.png" alt="❤️" loading="lazy"></button>
+                      <button type="button" class="tracker-reaction-btn{% if '🔥' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="🔥"><img class="tracker-reaction-icon" src="{% get_media_prefix %}reactions/book_sticker_love_1.png" alt="🔥" loading="lazy"></button>
+                      <button type="button" class="tracker-reaction-btn{% if '👏' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="👏"><img class="tracker-reaction-icon" src="{% get_media_prefix %}reactions/book_sticker_sweet.png" alt="👏" loading="lazy"></button>
+                      <button type="button" class="tracker-reaction-btn{% if '😍' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😍"><img class="tracker-reaction-icon" src="{% get_media_prefix %}reactions/book_sticker_warm.png" alt="😍" loading="lazy"></button>
+                      <button type="button" class="tracker-reaction-btn{% if '😮' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😮"><img class="tracker-reaction-icon" src="{% get_media_prefix %}reactions/book_stiker_fair.PNG" alt="😮" loading="lazy"></button>
+                      <button type="button" class="tracker-reaction-btn{% if '😂' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😂"><img class="tracker-reaction-icon" src="{% get_media_prefix %}reactions/book_stiker_smile_3.PNG" alt="😂" loading="lazy"></button>
+                      <button type="button" class="tracker-reaction-btn{% if '😢' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😢"><img class="tracker-reaction-icon" src="{% get_media_prefix %}reactions/book_stiker_love_3.PNG" alt="😢" loading="lazy"></button>
                     </div>
                 </div>
               </article>
@@ -1500,7 +1500,22 @@
 
   const reactionMediaPrefix = "{% get_media_prefix %}reactions/";
 
+  const reactionImageNames = {
+    '👍': 'book_sticker_angel.png',
+    '❤️': 'book_sticker_geil.png',
+    '🔥': 'book_sticker_love_1.png',
+    '👏': 'book_sticker_sweet.png',
+    '😍': 'book_sticker_warm.png',
+    '😮': 'book_stiker_fair.PNG',
+    '😂': 'book_stiker_smile_3.PNG',
+    '😢': 'book_stiker_love_3.PNG',
+  };
+
   function getReactionImagePath(emoji) {
+    const filename = reactionImageNames[emoji];
+    if (filename) {
+      return `${reactionMediaPrefix}${filename}`;
+    }
     return `${reactionMediaPrefix}${encodeURIComponent(emoji)}.png`;
   }
 
