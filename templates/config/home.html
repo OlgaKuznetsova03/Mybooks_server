@@ -1552,14 +1552,29 @@
     const target = event.target instanceof Element ? event.target : event.target?.parentElement;
     const toggle = target ? target.closest('[data-reaction-toggle]') : null;
     if (!toggle) return;
+    event.preventDefault();
+    event.stopPropagation();
+
     const widget = toggle.closest('[data-reaction-widget]');
     if (!widget) return;
     const picker = widget.querySelector('[data-reaction-picker]');
     if (!picker) return;
 
     const expanded = toggle.getAttribute('aria-expanded') === 'true';
-    toggle.setAttribute('aria-expanded', String(!expanded));
-    picker.hidden = expanded;
+    const nextExpanded = !expanded;
+
+    document.querySelectorAll('[data-reaction-picker]:not([hidden])').forEach(openPicker => {
+      const ownerWidget = openPicker.closest('[data-reaction-widget]');
+      if (!ownerWidget || ownerWidget === widget) return;
+      const ownerToggle = ownerWidget.querySelector('[data-reaction-toggle]');
+      if (ownerToggle) {
+        ownerToggle.setAttribute('aria-expanded', 'false');
+      }
+      openPicker.hidden = true;
+    });
+
+    toggle.setAttribute('aria-expanded', String(nextExpanded));
+    picker.hidden = !nextExpanded;
   }
 
   // Добавление ripple эффекта к кнопкам
