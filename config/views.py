@@ -32,8 +32,39 @@ HOME_REACTION_ICON_MAP = {
     "😂": "/media/reactions/book_sticker_geil.png",
     "😢": "/media/reactions/book_sticker_angel.png",
 }
+
+
+def _normalize_reaction_emoji(emoji: str) -> str:
+    return (emoji or "").strip().replace("\ufe0f", "")
+
+
+def _get_reaction_icon_url(emoji: str) -> str:
+    if not emoji:
+        return ""
+
+    direct_match = HOME_REACTION_ICON_MAP.get(emoji)
+    if direct_match:
+        return direct_match
+
+    normalized = _normalize_reaction_emoji(emoji)
+    if not normalized:
+        return ""
+
+    return HOME_REACTION_ICON_MAP.get(normalized, "")
+
+
+ALLOWED_HOME_REACTION_EMOJI_SET = {
+    _normalize_reaction_emoji(emoji) for emoji in ALLOWED_HOME_REACTION_EMOJIS
+}
+HOME_REACTION_ICON_MAP = {
+    **HOME_REACTION_ICON_MAP,
+    **{
+        _normalize_reaction_emoji(emoji): icon_url
+        for emoji, icon_url in HOME_REACTION_ICON_MAP.items()
+    },
+}
 HOME_REACTION_CHOICES = [
-    {"emoji": emoji, "icon_url": HOME_REACTION_ICON_MAP.get(emoji, "")}
+    {"emoji": emoji, "icon_url": _get_reaction_icon_url(emoji)}
     for emoji in ALLOWED_HOME_REACTION_EMOJIS
 ]
 
@@ -43,7 +74,7 @@ def _attach_reaction_icons(summary_rows: list[dict[str, Any]]) -> list[dict[str,
         {
             "emoji": row["emoji"],
             "count": row["count"],
-            "icon_url": HOME_REACTION_ICON_MAP.get(row["emoji"], ""),
+            "icon_url": _get_reaction_icon_url(row["emoji"]),
         }
         for row in summary_rows
     ]
@@ -219,8 +250,8 @@ def toggle_tracker_reaction(request, progress_id: int):
     if not request.user.is_authenticated:
         return JsonResponse({"ok": False, "error": "auth_required"}, status=401)
 
-    emoji = (request.POST.get("emoji") or "").strip()
-    if emoji not in ALLOWED_HOME_REACTION_EMOJIS:
+    emoji = _normalize_reaction_emoji(request.POST.get("emoji") or "")
+    if emoji not in ALLOWED_HOME_REACTION_EMOJI_SET:
         return JsonResponse({"ok": False, "error": "invalid_emoji"}, status=400)
 
     progress = get_object_or_404(BookProgress, pk=progress_id, event__isnull=True)
