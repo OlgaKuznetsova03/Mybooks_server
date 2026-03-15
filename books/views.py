@@ -1975,6 +1975,9 @@ def book_detail(request, pk):
         add_book_metadata("Аудиоверсия", book.audio.title)
 
     genre_shelves: list[dict[str, object]] = []
+    genre_shelf_candidates: list[tuple[Genre, list[Book]]] = []
+    related_books_for_status: dict[int, Book] = {}
+
     for genre in book.genres.all():
         related_qs = (
             _with_rating_stats(
@@ -1992,15 +1995,20 @@ def book_detail(request, pk):
         )
 
         if related_selection:
-            related_selection = _attach_default_shelf_status(
-                related_selection,
-                request.user,
-            )
+            genre_shelf_candidates.append((genre, related_selection))
+            for related in related_selection:
+                if related.pk:
+                    related_books_for_status.setdefault(related.pk, related)
 
-        related_books = [
-            _serialize_book_for_shelf(related)
-            for related in related_selection
-        ]
+    if related_books_for_status and getattr(request.user, "is_authenticated", False):
+        status_map = get_default_shelf_status_map(request.user, list(related_books_for_status))
+        for book_id, related in related_books_for_status.items():
+            status = status_map.get(book_id)
+            if status:
+                setattr(related, "default_shelf_status", status)
+
+    for genre, related_selection in genre_shelf_candidates:
+        related_books = [_serialize_book_for_shelf(related) for related in related_selection]
 
         if related_books:
             genre_shelves.append(
