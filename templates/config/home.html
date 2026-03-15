@@ -1474,6 +1474,15 @@
         }
       });
     });
+
+    // Добавление ripple эффекта к кнопкам
+    const buttons = document.querySelectorAll('.btn-magic');
+    buttons.forEach(button => {
+      button.addEventListener('click', createRipple);
+    });
+
+    // Инициализация реакций после загрузки DOM
+    initializeReactions();
   });
 
   // Параллакс эффект для героя
@@ -1519,13 +1528,30 @@
     : {};
 
   function getReactionIconUrl(emoji) {
-    return homeReactionIconMap[emoji] || '';
+    if (!emoji) return '';
+
+    if (homeReactionIconMap[emoji]) {
+      return homeReactionIconMap[emoji];
+    }
+
+    const normalized = emoji.replace(/\uFE0F/g, '');
+    if (homeReactionIconMap[normalized]) {
+      return homeReactionIconMap[normalized];
+    }
+
+    for (const [key, value] of Object.entries(homeReactionIconMap)) {
+      if (key.replace(/\uFE0F/g, '') === normalized) {
+        return value;
+      }
+    }
+
+    return '';
   }
   
   function buildReactionButtonContent(emoji, count = null) {
     const iconUrl = getReactionIconUrl(emoji);
     const icon = iconUrl
-      ? `<img class="tracker-reaction-icon" src="${iconUrl}" alt="${emoji}" loading="lazy">`
+      ? `<img class="tracker-reaction-icon" src="${(iconUrl.startsWith('http') || iconUrl.startsWith('/')) ? iconUrl : '/' + iconUrl.replace(/^\/+/, '')}" alt="${emoji}" loading="lazy" data-emoji="${emoji}">`
       : `<span class="tracker-reaction-icon tracker-reaction-icon--fallback" aria-hidden="true">${emoji}</span>`;
     if (count === null) return icon;
     return `${icon} <span data-count>${count}</span>`;
@@ -1536,12 +1562,13 @@
     if (!(target instanceof HTMLImageElement)) return;
     if (!target.classList.contains('tracker-reaction-icon')) return;
 
-    const emoji = target.alt || target.closest('.tracker-reaction-btn')?.dataset.emoji || '';
+    const emoji = target.dataset.emoji || target.alt || '👍';
     const fallback = document.createElement('span');
     fallback.className = 'tracker-reaction-icon tracker-reaction-icon--fallback';
     fallback.setAttribute('aria-hidden', 'true');
     fallback.textContent = emoji;
     target.replaceWith(fallback);
+    event.preventDefault();
   }, true);
 
   function renderReactionSummary(widget, reactions, activeEmojis) {
@@ -1549,19 +1576,19 @@
     if (!list) return;
     const activeSet = new Set(Array.isArray(activeEmojis) ? activeEmojis : []);
     list.innerHTML = '';
-    reactions.forEach(item => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'tracker-reaction-btn';
-      btn.dataset.emoji = item.emoji;
-      btn.innerHTML = buildReactionButtonContent(item.emoji, item.count);
-      if (activeSet.has(item.emoji)) {
-        btn.classList.add('is-active');
-      }
-      list.appendChild(btn);
-    });
-
-    if (!reactions.length) {
+    if (reactions && reactions.length > 0) {
+      reactions.forEach(item => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'tracker-reaction-btn';
+        btn.dataset.emoji = item.emoji;
+        btn.innerHTML = buildReactionButtonContent(item.emoji, item.count);
+        if (activeSet.has(item.emoji)) {
+          btn.classList.add('is-active');
+        }
+        list.appendChild(btn);
+      });
+    } else {
       const emptyHint = document.createElement('span');
       emptyHint.className = 'small text-muted';
       emptyHint.textContent = 'Пока без реакций';
@@ -1574,6 +1601,7 @@
     const button = target ? target.closest('.tracker-reaction-btn') : null;
     if (!button) return;
     event.preventDefault();
+    event.stopPropagation();
     const widget = button.closest('[data-reaction-widget]');
     if (!widget) return;
 
@@ -1597,7 +1625,7 @@
       });
 
       if (!response.ok) {
-        return;
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const payload = await response.json();
@@ -1644,11 +1672,25 @@
     picker.hidden = !nextExpanded;
   }
 
-  // Добавление ripple эффекта к кнопкам
-  const buttons = document.querySelectorAll('.btn-magic');
-  buttons.forEach(button => {
-    button.addEventListener('click', createRipple);
-  });
+  function initializeReactions() {
+    document.querySelectorAll('.tracker-reaction-btn').forEach(btn => {
+      const emoji = btn.dataset.emoji;
+      if (!emoji) return;
+
+      const countSpan = btn.querySelector('[data-count]');
+      const count = countSpan ? countSpan.textContent : null;
+      const originalHtml = btn.innerHTML;
+      const newContent = buildReactionButtonContent(emoji, count);
+
+      if (originalHtml !== newContent) {
+        btn.innerHTML = newContent;
+      }
+
+      if (btn.closest('[data-reaction-picker]')) {
+        btn.innerHTML = buildReactionButtonContent(emoji);
+      }
+    });
+  }
 
 
   document.addEventListener('click', function(event) {
@@ -1681,6 +1723,19 @@
       }
       picker.hidden = true;
     });
+  });
+
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      if (mutation.addedNodes.length) {
+        initializeReactions();
+      }
+    });
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
   });
 </script>
 
