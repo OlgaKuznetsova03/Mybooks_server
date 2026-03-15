@@ -306,12 +306,6 @@ def reading_communities_overview(request):
         ),
     ]
 
-    for item in latest_tracker_updates:
-        if not hasattr(item, "emoji_reactions"):
-            item.emoji_reactions = []
-        if not hasattr(item, "user_reaction_emojis"):
-            item.user_reaction_emojis = set()
-
     context = {
         "club_groups": club_groups,
         "marathon_groups": marathon_groups,
@@ -345,14 +339,8 @@ def rules(request):
     """
     Отображает страницу с правилами пользования сайтом kalejdoskopknig.ru.
     """
-    for item in latest_tracker_updates:
-        if not hasattr(item, "emoji_reactions"):
-            item.emoji_reactions = []
-        if not hasattr(item, "user_reaction_emojis"):
-            item.user_reaction_emojis = set()
-
     context = {
         "page_title": "Правила пользования сайтом",
         "last_updated": "12.11.2025",
-    }
+        }
     return render(request, "config/terms.html", context)
