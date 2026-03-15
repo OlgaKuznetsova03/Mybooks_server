@@ -249,6 +249,14 @@
     flex-shrink: 0;
   }
 
+  .tracker-reaction-icon--fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    line-height: 1;
+  }
+
   .tracker-reaction-btn.is-active {
     border-color: #ab7843;
     background: rgba(171, 120, 67, 0.15);
@@ -1016,7 +1024,11 @@
                       <div class="tracker-reactions__list" data-reaction-list>
                         {% for item in update.reaction_summary %}
                           <button type="button" class="tracker-reaction-btn{% if item.emoji in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="{{ item.emoji }}">
-                            <img class="tracker-reaction-icon" src="{{ item.icon_url }}" alt="{{ item.emoji }}" loading="lazy" />
+                            {% if item.icon_url %}
+                              <img class="tracker-reaction-icon" src="{{ item.icon_url }}" alt="{{ item.emoji }}" loading="lazy" />
+                            {% else %}
+                              <span class="tracker-reaction-icon tracker-reaction-icon--fallback" aria-hidden="true">{{ item.emoji }}</span>
+                            {% endif %}
                             <span data-count>{{ item.count }}</span>
                           </button>
                         {% endfor %}
@@ -1026,7 +1038,11 @@
                     <div class="tracker-reactions__list mt-2 tracker-reactions__picker" data-reaction-picker hidden>
                       {% for reaction in home_reaction_choices %}
                         <button type="button" class="tracker-reaction-btn{% if reaction.emoji in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="{{ reaction.emoji }}">
-                          <img class="tracker-reaction-icon" src="{{ reaction.icon_url }}" alt="{{ reaction.emoji }}" loading="lazy" />
+                          {% if reaction.icon_url %}
+                            <img class="tracker-reaction-icon" src="{{ reaction.icon_url }}" alt="{{ reaction.emoji }}" loading="lazy" />
+                          {% else %}
+                            <span class="tracker-reaction-icon tracker-reaction-icon--fallback" aria-hidden="true">{{ reaction.emoji }}</span>
+                          {% endif %}
                         </button>
                       {% endfor %}
                     </div>
@@ -1510,10 +1526,23 @@
     const iconUrl = getReactionIconUrl(emoji);
     const icon = iconUrl
       ? `<img class="tracker-reaction-icon" src="${iconUrl}" alt="${emoji}" loading="lazy">`
-      : `<span class="tracker-reaction-icon" aria-hidden="true">${emoji}</span>`;
+      : `<span class="tracker-reaction-icon tracker-reaction-icon--fallback" aria-hidden="true">${emoji}</span>`;
     if (count === null) return icon;
     return `${icon} <span data-count>${count}</span>`;
   }
+
+  document.addEventListener('error', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLImageElement)) return;
+    if (!target.classList.contains('tracker-reaction-icon')) return;
+
+    const emoji = target.alt || target.closest('.tracker-reaction-btn')?.dataset.emoji || '';
+    const fallback = document.createElement('span');
+    fallback.className = 'tracker-reaction-icon tracker-reaction-icon--fallback';
+    fallback.setAttribute('aria-hidden', 'true');
+    fallback.textContent = emoji;
+    target.replaceWith(fallback);
+  }, true);
 
   function renderReactionSummary(widget, reactions, activeEmojis) {
     const list = widget.querySelector('[data-reaction-list]');
