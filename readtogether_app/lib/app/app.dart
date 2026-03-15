@@ -1,77 +1,52 @@
 import 'package:flutter/material.dart';
 
-import '../core/auth/auth_state.dart';
-import '../core/models/auth_session.dart';
-import '../core/repositories/auth_repository.dart';
-import '../features/auth/presentation/auth_page.dart';
-import '../features/shell/main_shell_page.dart';
+import '../features/web_view/web_view_page.dart';
+import '../services/connectivity_service.dart';
 import 'theme.dart';
 
-class ReadTogetherApp extends StatefulWidget {
+class ReadTogetherApp extends StatelessWidget {
   const ReadTogetherApp({super.key});
-
-  @override
-  State<ReadTogetherApp> createState() => _ReadTogetherAppState();
-}
-
-class _ReadTogetherAppState extends State<ReadTogetherApp> {
-  final _authRepository = AuthRepository();
-  AuthSession? _session;
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _restoreSession();
-  }
-
-  Future<void> _restoreSession() async {
-    final restored = await _authRepository.restoreSession();
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _session = restored;
-      _loading = false;
-      AuthState.instance.token = restored?.token;
-    });
-  }
-
-  Future<void> _logout() async {
-    await _authRepository.logout();
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _session = null;
-      AuthState.instance.token = null;
-    });
-  }
-
-  void _onAuthenticated(AuthSession session) {
-    setState(() {
-      _session = session;
-      AuthState.instance.token = session.token;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ReadTogether',
+      title: 'Калейдоскоп книг',
       theme: appTheme,
       debugShowCheckedModeBanner: false,
-      home: _loading
-          ? const Scaffold(body: Center(child: CircularProgressIndicator()))
-          : _session == null
-              ? AuthPage(
-                  authRepository: _authRepository,
-                  onAuthenticated: _onAuthenticated,
-                )
-              : MainShellPage(
-                  session: _session!,
-                  onLogout: _logout,
-                ),
+      home: const KaleidoscopeHome(),
+    );
+  }
+}
+
+class KaleidoscopeHome extends StatefulWidget {
+  const KaleidoscopeHome({super.key});
+
+  @override
+  State<KaleidoscopeHome> createState() => _KaleidoscopeHomeState();
+}
+
+class _KaleidoscopeHomeState extends State<KaleidoscopeHome> {
+  final ConnectivityService _connectivityService = ConnectivityService();
+
+  @override
+  void initState() {
+    super.initState();
+    _connectivityService.init();
+  }
+
+  @override
+  void dispose() {
+    _connectivityService.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: _connectivityService.isOnlineNotifier,
+      builder: (context, isOnline, child) {
+        return MainWebViewPage(onlineNotifier: _connectivityService.isOnlineNotifier);
+      },
     );
   }
 }

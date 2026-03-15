@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
-import '../features/utils/file_utils.dart';
+import '../utils/file_utils.dart';
 
 class DownloadService {
   final HttpClient _httpClient = HttpClient();
