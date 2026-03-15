@@ -21,6 +21,34 @@ from django.views.decorators.http import require_POST
 from shelves.models import BookProgress, BookProgressReaction, Shelf, ShelfItem
 
 
+ALLOWED_HOME_REACTION_EMOJIS = ["👍", "❤️", "🔥", "👏", "😍", "😮", "😂", "😢"]
+HOME_REACTION_ICON_MAP = {
+    "👍": "/media/reactions/book_stiker_good.PNG",
+    "❤️": "/media/reactions/book_stiker_love_2.PNG",
+    "🔥": "/media/reactions/book_stiker_wow.PNG",
+    "👏": "/media/reactions/book_stiker_fair.PNG",
+    "😍": "/media/reactions/book_sticker_love_1.png",
+    "😮": "/media/reactions/book_stiker_smile_3.PNG",
+    "😂": "/media/reactions/book_sticker_geil.png",
+    "😢": "/media/reactions/book_sticker_angel.png",
+}
+HOME_REACTION_CHOICES = [
+    {"emoji": emoji, "icon_url": HOME_REACTION_ICON_MAP.get(emoji, "")}
+    for emoji in ALLOWED_HOME_REACTION_EMOJIS
+]
+
+
+def _attach_reaction_icons(summary_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "emoji": row["emoji"],
+            "count": row["count"],
+            "icon_url": HOME_REACTION_ICON_MAP.get(row["emoji"], ""),
+        }
+        for row in summary_rows
+    ]
+
+
 def home(request):
     today = timezone.localdate()
     clubs_qs = (
@@ -147,7 +175,9 @@ def home(request):
             }
 
             for item in latest_tracker_updates:
-                item.reaction_summary = grouped_totals.get(item.id, [])
+                item.reaction_summary = _attach_reaction_icons(
+                    grouped_totals.get(item.id, [])
+                )
                 item.user_reaction_emojis = {
                     emoji for progress_id, emoji in own_reactions if progress_id == item.id
                 }
@@ -178,11 +208,10 @@ def home(request):
         "latest_tracker_updates": latest_tracker_updates,
         "latest_author_offers": latest_author_offers,
         "latest_blogger_requests": latest_blogger_requests,
+        "home_reaction_choices": HOME_REACTION_CHOICES,
+        "home_reaction_icon_map": HOME_REACTION_ICON_MAP,
     }
     return render(request, "config/home.html", context)
-
-
-ALLOWED_HOME_REACTION_EMOJIS = ["👍", "❤️", "🔥", "👏", "😍", "😮", "😂", "😢"]
 
 
 @require_POST
@@ -204,12 +233,12 @@ def toggle_tracker_reaction(request, progress_id: int):
     if not created:
         reaction.delete()
 
-    summary = list(
+    summary = _attach_reaction_icons(list(
         BookProgressReaction.objects.filter(progress=progress)
         .values("emoji")
         .annotate(count=Count("id"))
         .order_by("emoji")
-    )
+    ))
     own_emojis = list(
         BookProgressReaction.objects.filter(progress=progress, user=request.user)
         .values_list("emoji", flat=True)

@@ -244,13 +244,9 @@
   .tracker-reaction-icon {
     width: 1.1rem;
     height: 1.1rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    display: inline-block;
+    object-fit: contain;
     flex-shrink: 0;
-    font-size: 1.05rem;
-    line-height: 1;
-    font-family: "Twemoji Mozilla", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
   }
 
   .tracker-reaction-btn.is-active {
@@ -1020,7 +1016,7 @@
                       <div class="tracker-reactions__list" data-reaction-list>
                         {% for item in update.reaction_summary %}
                           <button type="button" class="tracker-reaction-btn{% if item.emoji in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="{{ item.emoji }}">
-                            <span class="tracker-reaction-icon" aria-hidden="true">{{ item.emoji }}</span>
+                            <img class="tracker-reaction-icon" src="{{ item.icon_url }}" alt="{{ item.emoji }}" loading="lazy" />
                             <span data-count>{{ item.count }}</span>
                           </button>
                         {% endfor %}
@@ -1028,14 +1024,11 @@
                       <button type="button" class="tracker-reactions__toggle" data-reaction-toggle aria-expanded="false" aria-label="Открыть список реакций">+</button>
                     </div>
                     <div class="tracker-reactions__list mt-2 tracker-reactions__picker" data-reaction-picker hidden>
-                      <button type="button" class="tracker-reaction-btn{% if '👍' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="👍"><span class="tracker-reaction-icon" aria-hidden="true">👍</span></button>
-                      <button type="button" class="tracker-reaction-btn{% if '❤️' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="❤️"><span class="tracker-reaction-icon" aria-hidden="true">❤️</span></button>
-                      <button type="button" class="tracker-reaction-btn{% if '🔥' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="🔥"><span class="tracker-reaction-icon" aria-hidden="true">🔥</span></button>
-                      <button type="button" class="tracker-reaction-btn{% if '👏' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="👏"><span class="tracker-reaction-icon" aria-hidden="true">👏</span></button>
-                      <button type="button" class="tracker-reaction-btn{% if '😍' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😍"><span class="tracker-reaction-icon" aria-hidden="true">😍</span></button>
-                      <button type="button" class="tracker-reaction-btn{% if '😮' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😮"><span class="tracker-reaction-icon" aria-hidden="true">😮</span></button>
-                      <button type="button" class="tracker-reaction-btn{% if '😂' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😂"><span class="tracker-reaction-icon" aria-hidden="true">😂</span></button>
-                      <button type="button" class="tracker-reaction-btn{% if '😢' in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="😢"><span class="tracker-reaction-icon" aria-hidden="true">😢</span></button>
+                      {% for reaction in home_reaction_choices %}
+                        <button type="button" class="tracker-reaction-btn{% if reaction.emoji in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="{{ reaction.emoji }}">
+                          <img class="tracker-reaction-icon" src="{{ reaction.icon_url }}" alt="{{ reaction.emoji }}" loading="lazy" />
+                        </button>
+                      {% endfor %}
                     </div>
                 </div>
               </article>
@@ -1366,6 +1359,7 @@
 
 {% block extra_js %}
 {{ block.super }}
+{{ home_reaction_icon_map|json_script:"home-reaction-icon-map" }}
 <script>
   // Анимация счетчиков
   function animateCounters() {
@@ -1503,8 +1497,20 @@
     return '';
   }
 
+  const homeReactionIconMapElement = document.getElementById('home-reaction-icon-map');
+  const homeReactionIconMap = homeReactionIconMapElement
+    ? JSON.parse(homeReactionIconMapElement.textContent)
+    : {};
+
+  function getReactionIconUrl(emoji) {
+    return homeReactionIconMap[emoji] || '';
+  }
+  
   function buildReactionButtonContent(emoji, count = null) {
-    const icon = `<span class="tracker-reaction-icon" aria-hidden="true">${emoji}</span>`;
+    const iconUrl = getReactionIconUrl(emoji);
+    const icon = iconUrl
+      ? `<img class="tracker-reaction-icon" src="${iconUrl}" alt="${emoji}" loading="lazy">`
+      : `<span class="tracker-reaction-icon" aria-hidden="true">${emoji}</span>`;
     if (count === null) return icon;
     return `${icon} <span data-count>${count}</span>`;
   }
