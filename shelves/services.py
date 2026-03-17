@@ -325,7 +325,7 @@ def move_book_to_unfinished_shelf(user: User, book: Book) -> None:
 
 
 def start_book_reread(user: User, book: Book) -> BookProgress | None:
-    """Создать новый активный цикл чтения и перенести книгу в «Хочу прочитать»."""
+    """Создать новый активный цикл чтения и перенести книгу в «Читаю»."""
 
     if not getattr(user, "is_authenticated", False):
         return None
@@ -349,8 +349,8 @@ def start_book_reread(user: User, book: Book) -> BookProgress | None:
         _remove_book_from_named_shelf(user, book, DEFAULT_UNFINISHED_SHELF)
         _remove_book_from_named_shelf(user, book, ALL_DEFAULT_READ_SHELF_NAMES)
 
-        want_shelf = _get_default_shelf(user, DEFAULT_WANT_SHELF)
-        ShelfItem.objects.get_or_create(shelf=want_shelf, book=book)
+        reading_shelf = _get_default_shelf(user, DEFAULT_READING_SHELF)
+        ShelfItem.objects.get_or_create(shelf=reading_shelf, book=book)
 
         progress = BookProgress.objects.create(
             event=None,

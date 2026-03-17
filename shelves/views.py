@@ -1888,7 +1888,7 @@ def reading_mark_unfinished(request, progress_id):
 @login_required
 @require_POST
 def reread_book(request, book_id):
-    """Запустить перечитывание: новая запись трекера + перенос в «Хочу прочитать»."""
+    """Запустить перечитывание: новая запись трекера + перенос в «Читаю»."""
 
     book = get_object_or_404(Book, pk=book_id)
     progress = start_book_reread(request.user, book)
