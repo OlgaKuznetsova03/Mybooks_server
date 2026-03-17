@@ -24,6 +24,7 @@ urlpatterns = [
         views.move_book_to_reading,
         name="move_book_to_reading",
     ),
+    path("reread/<int:book_id>/", views.reread_book, name="reread_book"),
     path("add-to-event/<int:book_id>/", views.add_book_to_event, name="add_book_to_event"),
 
     # чтение

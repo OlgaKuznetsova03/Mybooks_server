@@ -36,6 +36,7 @@ from .services import (
     move_book_to_read_shelf,
     move_book_to_reading_shelf,
     move_book_to_unfinished_shelf,
+    start_book_reread,
     remove_book_from_want_shelf,
     remove_user_book_data,
     DEFAULT_WANT_SHELF,
@@ -949,6 +950,7 @@ def reading_now(request):
                 for progress in BookProgress.objects.filter(
                     user=request.user,
                     event__isnull=True,
+                    is_active=True,
                     book_id__in=book_ids,
                 )
             }
@@ -1216,8 +1218,11 @@ def reading_track(request, book_id):
     """
     book = get_object_or_404(Book, pk=book_id)
     progress, _ = BookProgress.objects.get_or_create(
-        event=None, user=request.user, book=book,
-        defaults={"percent": 0, "current_page": 0}
+        event=None,
+        user=request.user,
+        book=book,
+        is_active=True,
+        defaults={"percent": 0, "current_page": 0, "started_at": timezone.localdate()},
     )
     format_form = BookProgressFormatForm(instance=progress, book=book)
     context = _build_reading_track_context(progress, book, format_form=format_form)
@@ -1847,6 +1852,15 @@ def reading_mark_finished(request, progress_id):
     if progress.percent < Decimal("100"):
         progress.percent = Decimal("100")
         progress.save(update_fields=["percent", "updated_at"])
+    update_fields = []
+    if progress.finished_at is None:
+        progress.finished_at = timezone.localdate()
+        update_fields.append("finished_at")
+    if progress.started_at is None:
+        progress.started_at = timezone.localdate()
+        update_fields.append("started_at")
+    if update_fields:
+        progress.save(update_fields=[*update_fields, "updated_at"])
     move_book_to_read_shelf(request.user, progress.book)
     award_for_book_completion(request.user, progress.book)
     messages.success(request, "Книга отмечена как прочитанная.")
@@ -1869,6 +1883,21 @@ def reading_mark_unfinished(request, progress_id):
     move_book_to_unfinished_shelf(request.user, progress.book)
     messages.success(request, "Книга перенесена в «Недочитано».")
     return redirect("shelves:reading_track", book_id=progress.book_id)
+
+
+@login_required
+@require_POST
+def reread_book(request, book_id):
+    """Запустить перечитывание: новая запись трекера + перенос в «Хочу прочитать»."""
+
+    book = get_object_or_404(Book, pk=book_id)
+    progress = start_book_reread(request.user, book)
+    if not progress:
+        messages.error(request, "Не удалось запустить перечитывание.")
+        return redirect("book_detail", pk=book_id)
+
+    messages.success(request, f"Для «{book.title}» создан новый трекер перечитывания.")
+    return redirect("shelves:reading_track", book_id=book_id)
 
 
 @login_required

@@ -285,7 +285,7 @@ def sync_reading_progress_with_selected_edition(user: User, book: Book) -> None:
 
     progress = (
         BookProgress.objects
-        .filter(user=user, book=book, event__isnull=True)
+        .filter(user=user, book=book, event__isnull=True, is_active=True)
         .first()
     )
     if not progress:
@@ -322,6 +322,49 @@ def move_book_to_unfinished_shelf(user: User, book: Book) -> None:
             if entry.read_at is not None:
                 entry.read_at = None
                 entry.save(update_fields=["read_at"])
+
+
+def start_book_reread(user: User, book: Book) -> BookProgress | None:
+    """Создать новый активный цикл чтения и перенести книгу в «Хочу прочитать»."""
+
+    if not getattr(user, "is_authenticated", False):
+        return None
+
+    with transaction.atomic():
+        active_progresses = BookProgress.objects.filter(
+            user=user,
+            book=book,
+            event__isnull=True,
+            is_active=True,
+        )
+        for active_progress in active_progresses:
+            active_progress.is_active = False
+            if active_progress.percent >= Decimal("100") and active_progress.finished_at is None:
+                active_progress.finished_at = timezone.localdate()
+                active_progress.save(update_fields=["is_active", "finished_at", "updated_at"])
+            else:
+                active_progress.save(update_fields=["is_active", "updated_at"])
+
+        _remove_book_from_named_shelf(user, book, DEFAULT_READING_SHELF)
+        _remove_book_from_named_shelf(user, book, DEFAULT_UNFINISHED_SHELF)
+        _remove_book_from_named_shelf(user, book, ALL_DEFAULT_READ_SHELF_NAMES)
+
+        want_shelf = _get_default_shelf(user, DEFAULT_WANT_SHELF)
+        ShelfItem.objects.get_or_create(shelf=want_shelf, book=book)
+
+        progress = BookProgress.objects.create(
+            event=None,
+            user=user,
+            book=book,
+            is_active=True,
+            started_at=timezone.localdate(),
+            finished_at=None,
+            percent=Decimal("0"),
+            current_page=0,
+            reading_notes="",
+        )
+
+    return progress
 
 
 def get_default_shelf_status_map(

@@ -118,6 +118,20 @@ class BookProgress(models.Model):
                                null=True, blank=True)
     user   = models.ForeignKey(User, on_delete=models.CASCADE)
     book   = models.ForeignKey(Book, on_delete=models.CASCADE)
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Активный трекер для текущего цикла чтения книги",
+    )
+    started_at = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Дата старта текущего цикла чтения",
+    )
+    finished_at = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Дата завершения текущего цикла чтения",
+    )
     percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     current_page = models.PositiveIntegerField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -155,9 +169,11 @@ class BookProgress(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['event', 'user', 'book'], name='uniq_progress_per_event'),
-            models.UniqueConstraint(fields=['user', 'book'],
-                                    condition=models.Q(event__isnull=True),
-                                    name='uniq_progress_no_event'),
+            models.UniqueConstraint(
+                fields=['user', 'book'],
+                condition=models.Q(event__isnull=True, is_active=True),
+                name='uniq_active_progress_no_event',
+            ),
         ]
 
     def get_effective_total_pages(self):

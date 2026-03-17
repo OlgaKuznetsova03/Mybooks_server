@@ -36,6 +36,10 @@
           <div class="card-body d-flex flex-column">
             <div class="small fw-semibold">{{ it.book.title }}</div>
             <div class="small text-muted mb-2">Прочитано: {{ it.added_at|date:'d.m.Y' }}</div>
+            <form method="post" action="{% url 'shelves:reread_book' it.book.pk %}" class="mb-2">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-primary w-100">Перечитать</button>
+            </form>
             <a href="{% url 'shelves:reading_track' it.book.pk %}" class="btn btn-sm btn-outline-secondary mt-auto">К трекеру</a>
           </div>
         </div>
