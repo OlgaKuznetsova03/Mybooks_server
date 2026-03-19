@@ -295,16 +295,20 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
 
   Future<void> _handleFinishCelebration(Map<String, dynamic> payload) async {
     final apiUrl = payload['api_url'] ?? payload['apiUrl'] ?? payload['api'];
+    final apiUri = apiUrl is String ? Uri.tryParse(apiUrl) : null;
     final points = payload['points'] ?? payload['reward'] ?? payload['coins'];
     final fallbackReward = _buildRewardText(points, fallback: payload['rewardText'] as String?);
     final fallbackTitle = (payload['title'] ?? payload['bookTitle'])?.toString();
-    final fallbackCover = (payload['cover'] ?? payload['cover_url'] ?? payload['coverUrl'])?.toString();
+    final fallbackCover = _resolveCelebrationUrl(
+      payload['cover'] ?? payload['cover_url'] ?? payload['coverUrl'] ?? payload['image'],
+      baseUri: apiUri,
+    );
 
     FinishCelebrationData? celebrationData;
 
-    if (apiUrl is String && apiUrl.trim().isNotEmpty) {
+    if (apiUri != null) {
       final data = await _loadCelebrationFromApi(
-        apiUrl,
+        apiUri,
         fallbackTitle: fallbackTitle,
         fallbackCover: fallbackCover,
         fallbackRewardText: fallbackReward,
@@ -322,14 +326,13 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
       );
     }
 
-    // ВЫЗОВ СТАРОЙ АНИМАЦИИ
     if (celebrationData != null && mounted) {
       setState(() => _celebrationData = celebrationData);
     }
   }
 
   Future<FinishCelebrationData?> _loadCelebrationFromApi(
-    String apiUrl, {
+    Uri apiUri, {
     String? fallbackTitle,
     String? fallbackCover,
     String? fallbackRewardText,
@@ -338,12 +341,7 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     _celebrationLoading = true;
 
     try {
-      final uri = Uri.tryParse(apiUrl);
-      if (uri == null) {
-        return null;
-      }
-
-      final request = await _httpClient.getUrl(uri);
+      final request = await _httpClient.getUrl(apiUri);
       final response = await request.close();
       if (response.statusCode != HttpStatus.ok) {
         return null;
@@ -353,9 +351,16 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
       final decoded = jsonDecode(raw);
       if (decoded is! Map) return null;
 
-      final title = decoded['title']?.toString() ?? fallbackTitle;
-      final rewardText = decoded['reward']?.toString() ?? fallbackRewardText;
-      final cover = decoded['cover']?.toString() ?? fallbackCover;
+      final title = decoded['title']?.toString() ?? decoded['name']?.toString() ?? fallbackTitle;
+      final rewardText = _buildRewardText(
+        decoded['points'] ?? decoded['reward'] ?? decoded['coins'],
+        fallback: decoded['rewardText']?.toString() ?? fallbackRewardText,
+      );
+      final cover = _resolveCelebrationUrl(
+        decoded['cover'] ?? decoded['cover_url'] ?? decoded['coverUrl'] ?? decoded['image'],
+        baseUri: apiUri,
+      ) ??
+          fallbackCover;
 
       if (title != null && rewardText != null) {
         return FinishCelebrationData(title: title, rewardText: rewardText, coverUrl: cover);
@@ -366,6 +371,32 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     } finally {
       _celebrationLoading = false;
     }
+  }
+
+  String? _resolveCelebrationUrl(dynamic rawUrl, {Uri? baseUri}) {
+    final value = rawUrl?.toString().trim();
+    if (value == null || value.isEmpty) {
+      return null;
+    }
+
+    if (value.startsWith('//')) {
+      final scheme = baseUri?.scheme.isNotEmpty == true
+          ? baseUri!.scheme
+          : _webViewManager.siteOrigin.scheme;
+      return '$scheme:$value';
+    }
+
+    final uri = Uri.tryParse(value);
+    if (uri == null) {
+      return null;
+    }
+
+    if (uri.hasScheme && uri.host.isNotEmpty) {
+      return uri.toString();
+    }
+
+    final resolvedBase = baseUri ?? _webViewManager.siteOrigin;
+    return resolvedBase.resolveUri(uri).toString();
   }
 
   String? _buildRewardText(dynamic reward, {String? fallback}) {
