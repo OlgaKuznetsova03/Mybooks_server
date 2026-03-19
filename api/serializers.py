@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from books.models import Author, Book, Genre
+from books.utils import normalize_url_path
 from shelves.models import ReadingLog
 from reading_clubs.models import ReadingClub
 from reading_marathons.models import ReadingMarathon
@@ -46,13 +47,13 @@ class BookListSerializer(serializers.ModelSerializer):
         cover_url = obj.get_cover_url()
         request = self.context.get("request")
 
-        if not cover_url or not request:
-            return cover_url
+        if not cover_url:
+            return cover_url␊
 
-        if cover_url.startswith(("http://", "https://", "//")):
-            return cover_url
+        if request and not cover_url.startswith(("http://", "https://", "//")):
+            cover_url = request.build_absolute_uri(cover_url)
 
-        return request.build_absolute_uri(cover_url)
+        return normalize_url_path(cover_url) or ""
 
     def get_total_pages(self, obj: Book):
         return obj.get_total_pages()
@@ -314,10 +315,11 @@ class ReadingUpdateSerializer(serializers.ModelSerializer):
             return ""
 
         request = self.context.get("request")
-        if not request or url.startswith(("http://", "https://", "//")):
-            return url
+        absolute_url = url
+        if request and not url.startswith(("http://", "https://", "//")):
+            absolute_url = request.build_absolute_uri(url)
 
-        return request.build_absolute_uri(url)
+        return normalize_url_path(absolute_url) or ""
 
     def get_user_avatar(self, obj: ReadingLog) -> str:
         avatar = getattr(getattr(obj.progress.user, "profile", None), "avatar", None)

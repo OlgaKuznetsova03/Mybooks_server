@@ -19,6 +19,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET, require_POST
 from books.models import Book, Genre, Rating
 from books.forms import RatingCommentForm
+from books.utils import normalize_url_path
 from .models import (
     Shelf,
     ShelfItem,
@@ -1911,6 +1912,7 @@ def reading_finish_celebration_api(request, progress_id):
     cover_url = book.get_cover_url() or ""
     if cover_url.startswith("/"):
         cover_url = request.build_absolute_uri(cover_url)
+    cover_url = normalize_url_path(cover_url) or ""
 
     content_type = ContentType.objects.get_for_model(book.__class__)
     event = (
