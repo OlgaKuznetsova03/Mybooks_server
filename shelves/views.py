@@ -19,7 +19,6 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET, require_POST
 from books.models import Book, Genre, Rating
 from books.forms import RatingCommentForm
-from books.utils import normalize_url_path
 from .models import (
     Shelf,
     ShelfItem,
@@ -993,6 +992,27 @@ def _format_duration(duration):
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
 
+def _get_progress_display_cover_url(progress) -> str:
+    """Вернуть обложку выбранного пользователем издания для активного трекера."""
+
+    reading_item = (
+        ShelfItem.objects
+        .filter(
+            shelf__user=progress.user,
+            shelf__name=DEFAULT_READING_SHELF,
+            book=progress.book,
+        )
+        .select_related("selected_edition", "book")
+        .first()
+    )
+    if reading_item:
+        cover_url = reading_item.get_display_cover_url()
+        if cover_url:
+            return cover_url
+
+    return progress.book.get_cover_url()
+
+
 def _build_reading_track_context(
     progress,
     book,
@@ -1167,6 +1187,7 @@ def _build_reading_track_context(
         (entry, note_edit_forms[entry.pk])
         for entry in note_entries
     ]
+    display_cover_url = _get_progress_display_cover_url(progress)
     finish_celebration_api_url = None
     if progress.percent and progress.percent >= Decimal("100"):
         finish_celebration_api_url = reverse(
@@ -1174,6 +1195,7 @@ def _build_reading_track_context(
         )
     return {
         "book": book,
+        "display_cover_url": display_cover_url,
         "progress": progress,
         "total_pages": total_pages,
         "calculated_percent": calculated_percent,
@@ -1909,10 +1931,9 @@ def reading_finish_celebration_api(request, progress_id):
     progress = get_object_or_404(BookProgress, pk=progress_id, user=request.user)
     book = progress.book
 
-    cover_url = book.get_cover_url() or ""
+    cover_url = _get_progress_display_cover_url(progress) or ""
     if cover_url.startswith("/"):
         cover_url = request.build_absolute_uri(cover_url)
-    cover_url = normalize_url_path(cover_url) or ""
 
     content_type = ContentType.objects.get_for_model(book.__class__)
     event = (

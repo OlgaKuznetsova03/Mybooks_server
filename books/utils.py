@@ -6,7 +6,7 @@ import re
 import secrets
 from typing import Iterable
 from urllib.error import URLError
-from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse, urlsplit, urlunsplit
+from urllib.parse import urlparse, urlsplit, parse_qs, urlencode, urlunsplit
 from urllib.request import Request, urlopen
 
 from django.core.files.base import ContentFile
@@ -148,32 +148,6 @@ def download_cover_from_url(
 _OPEN_LIBRARY_COVER_RE = re.compile(
     r"(?P<prefix>https?://covers\.openlibrary\.org/b/[^/]+/[^?]+)-(?P<size>[smlSML])(?P<suffix>\.[a-zA-Z0-9]+)",
 )
-
-
-def normalize_url_path(url: str | None) -> str | None:
-    """Return ``url`` with unsafe path/query characters percent-encoded."""
-
-    if url is None:
-        return None
-
-    raw_url = str(url).strip()
-    if not raw_url:
-        return None
-
-    parts = urlsplit(raw_url)
-    normalized_path = quote(unquote(parts.path), safe="/%:@")
-    normalized_query = quote(unquote(parts.query), safe="=&;%:+,/@")
-    normalized_fragment = quote(unquote(parts.fragment), safe="=&;%:+,/@")
-
-    return urlunsplit(
-        (
-            parts.scheme,
-            parts.netloc,
-            normalized_path,
-            normalized_query,
-            normalized_fragment,
-        )
-    )
 
 
 def enhance_cover_url_for_pdf(url: str | None) -> str | None:
