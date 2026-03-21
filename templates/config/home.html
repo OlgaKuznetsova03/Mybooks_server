@@ -1704,15 +1704,15 @@
     if (!target) return;
 
     const toggle = target.closest('[data-reaction-toggle]');
-    const pickerButton = target.closest('.tracker-reaction-btn');
-    const isInPicker = pickerButton && pickerButton.closest('[data-reaction-picker]');
+    const reactionButton = target.closest('.tracker-reaction-btn');
+    const reactionWidget = reactionButton && reactionButton.closest('[data-reaction-widget]');
 
     if (toggle) {
       handleReactionToggleClick(event);
       return;
     }
 
-    if (isInPicker) {
+    if (reactionButton && reactionWidget) {
       handleReactionClick(event);
       return;
     }

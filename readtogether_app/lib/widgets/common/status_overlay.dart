@@ -11,17 +11,15 @@ class StatusOverlay extends StatelessWidget {
   });
 
   factory StatusOverlay.offline({
-    required bool isOffline,
     VoidCallback? onReload,
     Widget? offlineNotesPanel,
   }) {
     return StatusOverlay._(
-      icon: isOffline ? Icons.wifi_off : Icons.timer_off,
-      title: isOffline ? 'Вы оффлайн' : 'Долгая загрузка',
-      description: isOffline
-          ? 'Последняя версия приложения сохранена. Мы автоматически обновим страницу, как только интернет появится.'
-          : 'Сайт загружается дольше обычного. Проверьте соединение или попробуйте позже.',
-      actionLabel: isOffline ? 'Проверить соединение' : 'Перезагрузить',
+      icon: Icons.wifi_off,
+      title: 'Вы оффлайн',
+      description:
+          'Последняя версия приложения сохранена. Мы автоматически обновим страницу, как только интернет появится.',
+      actionLabel: 'Проверить соединение',
       onPressed: onReload,
       extraContent: offlineNotesPanel,
     );

@@ -17,12 +17,10 @@ import '../../widgets/dialogs/download_progress_dialog.dart';
 class WebViewState {
   final bool isLoading;
   final bool hasError;
-  final bool isLoadingTimedOut;
 
   const WebViewState({
     this.isLoading = false,
     this.hasError = false,
-    this.isLoadingTimedOut = false,
   });
 }
 
@@ -38,7 +36,6 @@ class WebViewManager {
   final FileService _fileService = FileService();
   final DownloadService _downloadService = DownloadService();
   final UrlLauncher _urlLauncher = UrlLauncher();
-  Timer? _loadingTimer;
   bool isOffline = false;
   bool showOfflineBanner = false;
 
@@ -110,41 +107,28 @@ class WebViewManager {
   }
 
   void _handlePageStarted(String? url) {
-    setState(loading: true, error: false, loadingTimedOut: false);
+    setState(loading: true, error: false);
     _addToHistory(url);
-    _loadingTimer?.cancel();
-    _loadingTimer = Timer(
-      const Duration(seconds: AppConstants.loadingTimeoutSeconds),
-      _handleLoadingTimeout,
-    );
   }
 
   void _handlePageFinished() {
-    _loadingTimer?.cancel();
-    setState(loading: false, error: false, loadingTimedOut: false);
+    setState(loading: false, error: false);
     _injectLinkInterceptor();
   }
 
   void _handleWebResourceError(WebResourceError error) {
-    _loadingTimer?.cancel();
     final isMainFrameError = error.isForMainFrame ?? true;
     stateNotifier.value = WebViewState(
       isLoading: false,
       hasError: isMainFrameError,
-      isLoadingTimedOut: false,
     );
   }
 
-  void _handleLoadingTimeout() {
-    setState(loading: false, loadingTimedOut: true);
-  }
-
-  void setState({bool? loading, bool? error, bool? loadingTimedOut}) {
+  void setState({bool? loading, bool? error}) {
     final current = stateNotifier.value;
     stateNotifier.value = WebViewState(
       isLoading: loading ?? current.isLoading,
       hasError: error ?? current.hasError,
-      isLoadingTimedOut: loadingTimedOut ?? current.isLoadingTimedOut,
     );
   }
 
@@ -169,7 +153,7 @@ class WebViewManager {
   Future<void> handleOfflineNavigation() async {
     if (_historyCache.isEmpty) return;
 
-    setState(loading: true, error: false, loadingTimedOut: false);
+    setState(loading: true, error: false);
 
     try {
       if (_currentHistoryIndex > 0) {
@@ -293,7 +277,7 @@ class WebViewManager {
 
   void reload() {
     controller.reload();
-    setState(loading: true, error: false, loadingTimedOut: false);
+    setState(loading: true, error: false);
   }
 
   void updateConnectivity(bool online) {
@@ -305,7 +289,6 @@ class WebViewManager {
   }
 
   void dispose() {
-    _loadingTimer?.cancel();
     stateNotifier.dispose();
     _downloadService.dispose();
   }

@@ -43,7 +43,6 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
   bool _showOfflineRecoveryOverlay = false;
   bool _wasOffline = false;
   bool _reconnectDialogVisible = false;
-  bool _loadingTimedOut = false;
   bool _shouldReloadAfterReconnect = false;
   bool _celebrationLoading = false;
   FinishCelebrationData? _celebrationData; // ДОБАВЬТЕ ЭТУ ПЕРЕМЕННУЮ
@@ -95,7 +94,6 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     final state = _webViewManager.stateNotifier.value;
     setState(() {
       _webViewError = state.hasError;
-      _loadingTimedOut = state.isLoadingTimedOut;
     });
   }
 
@@ -132,7 +130,7 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     if (offline) {
       _shouldReloadAfterReconnect = true;
     }
-    if (!offline && (_webViewError || _loadingTimedOut || _shouldReloadAfterReconnect)) {
+    if (!offline && (_webViewError || _shouldReloadAfterReconnect)) {
       _shouldReloadAfterReconnect = false;
       _startOfflineRecoveryOverlay();
       _reloadWebView();
@@ -287,7 +285,7 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
 
     final rawType = payload['type'] ?? payload['event'];
     final type = rawType is String ? rawType.toLowerCase() : rawType?.toString().toLowerCase();
-    
+
     if (type == 'book_finished' || type == 'bookfinished' || type == 'book-finished') {
       await _handleFinishCelebration(payload);
     }
@@ -469,7 +467,6 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     if (!mounted) return;
     setState(() {
       _webViewError = false;
-      _loadingTimedOut = false;
     });
     _webViewManager.reload();
   }
@@ -479,7 +476,6 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
     try {
       setState(() {
         _webViewError = false;
-        _loadingTimedOut = false;
         _showOfflineRecoveryOverlay = false;
       });
       await _webViewManager.controller.loadRequest(Uri.parse(_startUrl));
@@ -540,9 +536,8 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (state.isLoadingTimedOut || _isOfflineOverlayVisible) {
+        if (_isOfflineOverlayVisible) {
           return StatusOverlay.offline(
-            isOffline: _isOfflineOverlayVisible,
             onReload:
                 _webViewManager.isOffline || _showOfflineRecoveryOverlay ? null : _reloadWebView,
             offlineNotesPanel: _buildOfflineNotesPanel(),
@@ -709,7 +704,6 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
 
     setState(() {
       _webViewError = false;
-      _loadingTimedOut = false;
       _showOfflineRecoveryOverlay = false;
     });
 
