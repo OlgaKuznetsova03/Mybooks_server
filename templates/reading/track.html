@@ -253,18 +253,21 @@
     color: #332c0f;
   }
 
-  .reading-format-modal {
-    border: 0;
-    border-radius: 24px;
-    box-shadow: 0 24px 52px rgba(51, 44, 15, 0.18);
+  .reading-format-mobile__panel {
+    margin-top: 0.75rem;
+    padding: 1rem;
+    border: 1px solid rgba(95, 92, 59, 0.12);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
   }
 
-  .reading-format-modal__subtitle {
+  .reading-format-mobile__subtitle {
     color: #5f5c3b;
     font-size: 0.92rem;
   }
 
-  .reading-format-modal__switch {
+  .reading-format-mobile__switch {
     margin-bottom: 1rem;
     padding: 0.9rem 1rem;
     border-radius: 18px;
@@ -1137,20 +1140,123 @@
                     {% endfor %}
                   </div>
                   <div class="reading-format-mobile d-md-none">
-                    <p class="reading-format-mobile__hint mb-3">Сначала выберите формат, затем заполните его параметры во всплывающем окне.</p>
+                    <p class="reading-format-mobile__hint mb-3">Выберите формат и при необходимости разверните его форму прямо на странице.</p>
                     <div class="reading-format-mobile__buttons">
-                      <button type="button" class="reading-format-mobile__button" data-format-launcher data-format-code="{{ progress.FORMAT_PAPER }}" data-bs-toggle="modal" data-bs-target="#readingFormatPaperModal">
-                        <span>Бумажная книга</span>
-                        <span class="reading-format-mobile__status"></span>
-                      </button>
-                      <button type="button" class="reading-format-mobile__button" data-format-launcher data-format-code="{{ progress.FORMAT_EBOOK }}" data-bs-toggle="modal" data-bs-target="#readingFormatEbookModal">
-                        <span>Электронная книга</span>
-                        <span class="reading-format-mobile__status"></span>
-                      </button>
-                      <button type="button" class="reading-format-mobile__button" data-format-launcher data-format-code="{{ progress.FORMAT_AUDIO }}" data-bs-toggle="modal" data-bs-target="#readingFormatAudioModal">
-                        <span>Аудиокнига</span>
-                        <span class="reading-format-mobile__status"></span>
-                      </button>
+                      <div>
+                        <button type="button" class="reading-format-mobile__button" data-format-launcher data-format-code="{{ progress.FORMAT_PAPER }}" data-bs-toggle="collapse" data-bs-target="#readingFormatPaperPanel" aria-expanded="false" aria-controls="readingFormatPaperPanel">
+                          <span>Бумажная книга</span>
+                          <span class="reading-format-mobile__status"></span>
+                        </button>
+                        <div class="collapse{% if format_form.paper_total_pages.errors or format_form.paper_current_page.errors or format_form.custom_total_pages.errors %} show{% endif %}" id="readingFormatPaperPanel" data-format-panel data-format-code="{{ progress.FORMAT_PAPER }}"{% if format_form.paper_total_pages.errors or format_form.paper_current_page.errors or format_form.custom_total_pages.errors %} data-format-panel-error="true"{% endif %}>
+                          <div class="reading-format-mobile__panel">
+                            <p class="reading-format-mobile__subtitle mb-3">Отметьте формат и задайте параметры бумажного издания.</p>
+                            <div class="form-check form-switch reading-format-mobile__switch">
+                              <input class="form-check-input" type="checkbox" id="readingFormatPaperEnabled" data-format-proxy-checkbox data-format-code="{{ progress.FORMAT_PAPER }}">
+                              <label class="form-check-label" for="readingFormatPaperEnabled">Я читаю в бумажном формате</label>
+                            </div>
+                            <div class="mb-3">
+                              <label class="form-label" for="readingFormatPaperCustomTotal">{{ format_form.custom_total_pages.label }}</label>
+                              <input type="number" id="readingFormatPaperCustomTotal" class="form-control" min="1" value="{{ format_form.custom_total_pages.value|default_if_none:'' }}" data-sync-target="{{ format_form.custom_total_pages.id_for_label }}">
+                              <div class="form-text">Если у книги нет точного объёма в базе, укажите его здесь.</div>
+                              {% if format_form.custom_total_pages.errors %}
+                                <div class="invalid-feedback d-block">{{ format_form.custom_total_pages.errors|join:", " }}</div>
+                              {% endif %}
+                            </div>
+                            <div class="mb-3">
+                              <label class="form-label" for="readingFormatPaperTotal">{{ format_form.paper_total_pages.label }}</label>
+                              <input type="number" id="readingFormatPaperTotal" class="form-control" min="1" value="{{ format_form.paper_total_pages.value|default_if_none:'' }}" data-sync-target="{{ format_form.paper_total_pages.id_for_label }}">
+                              <div class="form-text">{{ format_form.paper_total_pages.help_text }}</div>
+                              {% if format_form.paper_total_pages.errors %}
+                                <div class="invalid-feedback d-block">{{ format_form.paper_total_pages.errors|join:", " }}</div>
+                              {% endif %}
+                            </div>
+                            <div>
+                              <label class="form-label" for="readingFormatPaperCurrent">{{ format_form.paper_current_page.label }}</label>
+                              <input type="number" id="readingFormatPaperCurrent" class="form-control" min="0" value="{{ format_form.paper_current_page.value|default_if_none:'' }}" data-sync-target="{{ format_form.paper_current_page.id_for_label }}">
+                              {% if format_form.paper_current_page.errors %}
+                                <div class="invalid-feedback d-block">{{ format_form.paper_current_page.errors|join:", " }}</div>
+                              {% endif %}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <button type="button" class="reading-format-mobile__button" data-format-launcher data-format-code="{{ progress.FORMAT_EBOOK }}" data-bs-toggle="collapse" data-bs-target="#readingFormatEbookPanel" aria-expanded="false" aria-controls="readingFormatEbookPanel">
+                          <span>Электронная книга</span>
+                          <span class="reading-format-mobile__status"></span>
+                        </button>
+                        <div class="collapse{% if format_form.ebook_total_pages.errors or format_form.ebook_current_page.errors or format_form.custom_total_pages.errors %} show{% endif %}" id="readingFormatEbookPanel" data-format-panel data-format-code="{{ progress.FORMAT_EBOOK }}"{% if format_form.ebook_total_pages.errors or format_form.ebook_current_page.errors or format_form.custom_total_pages.errors %} data-format-panel-error="true"{% endif %}>
+                          <div class="reading-format-mobile__panel">
+                            <p class="reading-format-mobile__subtitle mb-3">Отметьте формат и сохраните прогресс для электронной версии.</p>
+                            <div class="form-check form-switch reading-format-mobile__switch">
+                              <input class="form-check-input" type="checkbox" id="readingFormatEbookEnabled" data-format-proxy-checkbox data-format-code="{{ progress.FORMAT_EBOOK }}">
+                              <label class="form-check-label" for="readingFormatEbookEnabled">Я читаю в электронном формате</label>
+                            </div>
+                            <div class="mb-3">
+                              <label class="form-label" for="readingFormatEbookCustomTotal">{{ format_form.custom_total_pages.label }}</label>
+                              <input type="number" id="readingFormatEbookCustomTotal" class="form-control" min="1" value="{{ format_form.custom_total_pages.value|default_if_none:'' }}" data-sync-target="{{ format_form.custom_total_pages.id_for_label }}">
+                              <div class="form-text">Если общее число страниц нужно задать вручную.</div>
+                              {% if format_form.custom_total_pages.errors %}
+                                <div class="invalid-feedback d-block">{{ format_form.custom_total_pages.errors|join:", " }}</div>
+                              {% endif %}
+                            </div>
+                            <div class="mb-3">
+                              <label class="form-label" for="readingFormatEbookTotal">{{ format_form.ebook_total_pages.label }}</label>
+                              <input type="number" id="readingFormatEbookTotal" class="form-control" min="1" value="{{ format_form.ebook_total_pages.value|default_if_none:'' }}" data-sync-target="{{ format_form.ebook_total_pages.id_for_label }}">
+                              <div class="form-text">{{ format_form.ebook_total_pages.help_text }}</div>
+                              {% if format_form.ebook_total_pages.errors %}
+                                <div class="invalid-feedback d-block">{{ format_form.ebook_total_pages.errors|join:", " }}</div>
+                              {% endif %}
+                            </div>
+                            <div>
+                              <label class="form-label" for="readingFormatEbookCurrent">{{ format_form.ebook_current_page.label }}</label>
+                              <input type="number" id="readingFormatEbookCurrent" class="form-control" min="0" value="{{ format_form.ebook_current_page.value|default_if_none:'' }}" data-sync-target="{{ format_form.ebook_current_page.id_for_label }}">
+                              {% if format_form.ebook_current_page.errors %}
+                                <div class="invalid-feedback d-block">{{ format_form.ebook_current_page.errors|join:", " }}</div>
+                              {% endif %}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <button type="button" class="reading-format-mobile__button" data-format-launcher data-format-code="{{ progress.FORMAT_AUDIO }}" data-bs-toggle="collapse" data-bs-target="#readingFormatAudioPanel" aria-expanded="false" aria-controls="readingFormatAudioPanel">
+                          <span>Аудиокнига</span>
+                          <span class="reading-format-mobile__status"></span>
+                        </button>
+                        <div class="collapse{% if format_form.audio_length_input.errors or format_form.audio_position_input.errors or format_form.audio_playback_speed.errors %} show{% endif %}" id="readingFormatAudioPanel" data-format-panel data-format-code="{{ progress.FORMAT_AUDIO }}"{% if format_form.audio_length_input.errors or format_form.audio_position_input.errors or format_form.audio_playback_speed.errors %} data-format-panel-error="true"{% endif %}>
+                          <div class="reading-format-mobile__panel">
+                            <p class="reading-format-mobile__subtitle mb-3">Отметьте формат и укажите длительность и прогресс прослушивания.</p>
+                            <div class="form-check form-switch reading-format-mobile__switch">
+                              <input class="form-check-input" type="checkbox" id="readingFormatAudioEnabled" data-format-proxy-checkbox data-format-code="{{ progress.FORMAT_AUDIO }}">
+                              <label class="form-check-label" for="readingFormatAudioEnabled">Я слушаю аудиокнигу</label>
+                            </div>
+                            <div class="mb-3">
+                              <label class="form-label" for="readingFormatAudioLength">{{ format_form.audio_length_input.label }}</label>
+                              <input type="text" id="readingFormatAudioLength" class="form-control" placeholder="Например, 12:45:00" value="{{ format_form.audio_length_input.value|default_if_none:'' }}" data-sync-target="{{ format_form.audio_length_input.id_for_label }}">
+                              <div class="form-text">{{ format_form.audio_length_input.help_text }}</div>
+                              {% if format_form.audio_length_input.errors %}
+                                <div class="invalid-feedback d-block">{{ format_form.audio_length_input.errors|join:", " }}</div>
+                              {% endif %}
+                            </div>
+                            <div class="mb-3">
+                              <label class="form-label" for="readingFormatAudioPosition">{{ format_form.audio_position_input.label }}</label>
+                              <input type="text" id="readingFormatAudioPosition" class="form-control" placeholder="Например, 02:30:00" value="{{ format_form.audio_position_input.value|default_if_none:'' }}" data-sync-target="{{ format_form.audio_position_input.id_for_label }}">
+                              <div class="form-text">{{ format_form.audio_position_input.help_text }}</div>
+                              {% if format_form.audio_position_input.errors %}
+                                <div class="invalid-feedback d-block">{{ format_form.audio_position_input.errors|join:", " }}</div>
+                              {% endif %}
+                            </div>
+                            <div>
+                              <label class="form-label" for="readingFormatAudioSpeed">{{ format_form.audio_playback_speed.label }}</label>
+                              <input type="number" id="readingFormatAudioSpeed" class="form-control" min="0.5" max="3.0" step="0.1" value="{{ format_form.audio_playback_speed.value|default_if_none:'' }}" data-sync-target="{{ format_form.audio_playback_speed.id_for_label }}">
+                              <div class="form-text">Допустимый диапазон от 0.5× до 3×.</div>
+                              {% if format_form.audio_playback_speed.errors %}
+                                <div class="invalid-feedback d-block">{{ format_form.audio_playback_speed.errors|join:", " }}</div>
+                              {% endif %}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   {% if format_form.formats.errors %}
@@ -1188,7 +1294,7 @@
                     <div class="invalid-feedback d-block">{{ format_form.ebook_total_pages.errors|join:", " }}</div>
                   {% endif %}
                 </div>
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-4 d-none d-md-block">
                   <label class="form-label" for="{{ format_form.ebook_current_page.id_for_label }}">{{ format_form.ebook_current_page.label }}</label>
                   {{ format_form.ebook_current_page }}
                   {% if format_form.ebook_current_page.errors %}
@@ -1229,149 +1335,6 @@
                   <button type="submit" class="btn btn-outline-primary rounded-pill px-4">Сохранить формат</button>
                 </div>
                 
-                <div class="d-md-none">
-                  <div class="modal fade" id="readingFormatPaperModal" tabindex="-1" aria-labelledby="readingFormatPaperModalLabel" aria-hidden="true" data-format-modal data-format-code="{{ progress.FORMAT_PAPER }}"{% if format_form.paper_total_pages.errors or format_form.paper_current_page.errors or format_form.custom_total_pages.errors %} data-format-modal-error="true"{% endif %}>
-                    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-                      <div class="modal-content reading-format-modal">
-                        <div class="modal-header border-0 pb-0">
-                          <div>
-                            <h3 class="modal-title fs-5" id="readingFormatPaperModalLabel">Бумажная книга</h3>
-                            <p class="reading-format-modal__subtitle mb-0">Отметьте формат и задайте параметры бумажного издания.</p>
-                          </div>
-                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-                        </div>
-                        <div class="modal-body pt-3">
-                          <div class="form-check form-switch reading-format-modal__switch">
-                            <input class="form-check-input" type="checkbox" id="readingFormatPaperEnabled" data-format-proxy-checkbox data-format-code="{{ progress.FORMAT_PAPER }}">
-                            <label class="form-check-label" for="readingFormatPaperEnabled">Я читаю в бумажном формате</label>
-                          </div>
-                          <div class="mb-3">
-                            <label class="form-label" for="readingFormatPaperCustomTotal">{{ format_form.custom_total_pages.label }}</label>
-                            <input type="number" id="readingFormatPaperCustomTotal" class="form-control" min="1" value="{{ format_form.custom_total_pages.value|default_if_none:'' }}" data-sync-target="{{ format_form.custom_total_pages.id_for_label }}">
-                            <div class="form-text">Если у книги нет точного объёма в базе, укажите его здесь.</div>
-                            {% if format_form.custom_total_pages.errors %}
-                              <div class="invalid-feedback d-block">{{ format_form.custom_total_pages.errors|join:", " }}</div>
-                            {% endif %}
-                          </div>
-                          <div class="mb-3">
-                            <label class="form-label" for="readingFormatPaperTotal">{{ format_form.paper_total_pages.label }}</label>
-                            <input type="number" id="readingFormatPaperTotal" class="form-control" min="1" value="{{ format_form.paper_total_pages.value|default_if_none:'' }}" data-sync-target="{{ format_form.paper_total_pages.id_for_label }}">
-                            <div class="form-text">{{ format_form.paper_total_pages.help_text }}</div>
-                            {% if format_form.paper_total_pages.errors %}
-                              <div class="invalid-feedback d-block">{{ format_form.paper_total_pages.errors|join:", " }}</div>
-                            {% endif %}
-                          </div>
-                          <div>
-                            <label class="form-label" for="readingFormatPaperCurrent">{{ format_form.paper_current_page.label }}</label>
-                            <input type="number" id="readingFormatPaperCurrent" class="form-control" min="0" value="{{ format_form.paper_current_page.value|default_if_none:'' }}" data-sync-target="{{ format_form.paper_current_page.id_for_label }}">
-                            {% if format_form.paper_current_page.errors %}
-                              <div class="invalid-feedback d-block">{{ format_form.paper_current_page.errors|join:", " }}</div>
-                            {% endif %}
-                          </div>
-                        </div>
-                        <div class="modal-footer border-0 pt-0">
-                          <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Отмена</button>
-                          <button type="button" class="btn btn-primary rounded-pill px-4" data-format-modal-save data-bs-dismiss="modal">Готово</button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="modal fade" id="readingFormatEbookModal" tabindex="-1" aria-labelledby="readingFormatEbookModalLabel" aria-hidden="true" data-format-modal data-format-code="{{ progress.FORMAT_EBOOK }}"{% if format_form.ebook_total_pages.errors or format_form.ebook_current_page.errors or format_form.custom_total_pages.errors %} data-format-modal-error="true"{% endif %}>
-                    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-                      <div class="modal-content reading-format-modal">
-                        <div class="modal-header border-0 pb-0">
-                          <div>
-                            <h3 class="modal-title fs-5" id="readingFormatEbookModalLabel">Электронная книга</h3>
-                            <p class="reading-format-modal__subtitle mb-0">Отметьте формат и сохраните прогресс для электронной версии.</p>
-                          </div>
-                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-                        </div>
-                        <div class="modal-body pt-3">
-                          <div class="form-check form-switch reading-format-modal__switch">
-                            <input class="form-check-input" type="checkbox" id="readingFormatEbookEnabled" data-format-proxy-checkbox data-format-code="{{ progress.FORMAT_EBOOK }}">
-                            <label class="form-check-label" for="readingFormatEbookEnabled">Я читаю в электронном формате</label>
-                          </div>
-                          <div class="mb-3">
-                            <label class="form-label" for="readingFormatEbookCustomTotal">{{ format_form.custom_total_pages.label }}</label>
-                            <input type="number" id="readingFormatEbookCustomTotal" class="form-control" min="1" value="{{ format_form.custom_total_pages.value|default_if_none:'' }}" data-sync-target="{{ format_form.custom_total_pages.id_for_label }}">
-                            <div class="form-text">Если общее число страниц нужно задать вручную.</div>
-                            {% if format_form.custom_total_pages.errors %}
-                              <div class="invalid-feedback d-block">{{ format_form.custom_total_pages.errors|join:", " }}</div>
-                            {% endif %}
-                          </div>
-                          <div class="mb-3">
-                            <label class="form-label" for="readingFormatEbookTotal">{{ format_form.ebook_total_pages.label }}</label>
-                            <input type="number" id="readingFormatEbookTotal" class="form-control" min="1" value="{{ format_form.ebook_total_pages.value|default_if_none:'' }}" data-sync-target="{{ format_form.ebook_total_pages.id_for_label }}">
-                            <div class="form-text">{{ format_form.ebook_total_pages.help_text }}</div>
-                            {% if format_form.ebook_total_pages.errors %}
-                              <div class="invalid-feedback d-block">{{ format_form.ebook_total_pages.errors|join:", " }}</div>
-                            {% endif %}
-                          </div>
-                          <div>
-                            <label class="form-label" for="readingFormatEbookCurrent">{{ format_form.ebook_current_page.label }}</label>
-                            <input type="number" id="readingFormatEbookCurrent" class="form-control" min="0" value="{{ format_form.ebook_current_page.value|default_if_none:'' }}" data-sync-target="{{ format_form.ebook_current_page.id_for_label }}">
-                            {% if format_form.ebook_current_page.errors %}
-                              <div class="invalid-feedback d-block">{{ format_form.ebook_current_page.errors|join:", " }}</div>
-                            {% endif %}
-                          </div>
-                        </div>
-                        <div class="modal-footer border-0 pt-0">
-                          <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Отмена</button>
-                          <button type="button" class="btn btn-primary rounded-pill px-4" data-format-modal-save data-bs-dismiss="modal">Готово</button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="modal fade" id="readingFormatAudioModal" tabindex="-1" aria-labelledby="readingFormatAudioModalLabel" aria-hidden="true" data-format-modal data-format-code="{{ progress.FORMAT_AUDIO }}"{% if format_form.audio_length_input.errors or format_form.audio_position_input.errors or format_form.audio_playback_speed.errors %} data-format-modal-error="true"{% endif %}>
-                    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-                      <div class="modal-content reading-format-modal">
-                        <div class="modal-header border-0 pb-0">
-                          <div>
-                            <h3 class="modal-title fs-5" id="readingFormatAudioModalLabel">Аудиокнига</h3>
-                            <p class="reading-format-modal__subtitle mb-0">Отметьте формат и укажите длительность и прогресс прослушивания.</p>
-                          </div>
-                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-                        </div>
-                        <div class="modal-body pt-3">
-                          <div class="form-check form-switch reading-format-modal__switch">
-                            <input class="form-check-input" type="checkbox" id="readingFormatAudioEnabled" data-format-proxy-checkbox data-format-code="{{ progress.FORMAT_AUDIO }}">
-                            <label class="form-check-label" for="readingFormatAudioEnabled">Я слушаю аудиокнигу</label>
-                          </div>
-                          <div class="mb-3">
-                            <label class="form-label" for="readingFormatAudioLength">{{ format_form.audio_length_input.label }}</label>
-                            <input type="text" id="readingFormatAudioLength" class="form-control" placeholder="Например, 12:45:00" value="{{ format_form.audio_length_input.value|default_if_none:'' }}" data-sync-target="{{ format_form.audio_length_input.id_for_label }}">
-                            <div class="form-text">{{ format_form.audio_length_input.help_text }}</div>
-                            {% if format_form.audio_length_input.errors %}
-                              <div class="invalid-feedback d-block">{{ format_form.audio_length_input.errors|join:", " }}</div>
-                            {% endif %}
-                          </div>
-                          <div class="mb-3">
-                            <label class="form-label" for="readingFormatAudioPosition">{{ format_form.audio_position_input.label }}</label>
-                            <input type="text" id="readingFormatAudioPosition" class="form-control" placeholder="Например, 02:30:00" value="{{ format_form.audio_position_input.value|default_if_none:'' }}" data-sync-target="{{ format_form.audio_position_input.id_for_label }}">
-                            <div class="form-text">{{ format_form.audio_position_input.help_text }}</div>
-                            {% if format_form.audio_position_input.errors %}
-                              <div class="invalid-feedback d-block">{{ format_form.audio_position_input.errors|join:", " }}</div>
-                            {% endif %}
-                          </div>
-                          <div>
-                            <label class="form-label" for="readingFormatAudioSpeed">{{ format_form.audio_playback_speed.label }}</label>
-                            <input type="number" id="readingFormatAudioSpeed" class="form-control" min="0.5" max="3.0" step="0.1" value="{{ format_form.audio_playback_speed.value|default_if_none:'' }}" data-sync-target="{{ format_form.audio_playback_speed.id_for_label }}">
-                            <div class="form-text">Допустимый диапазон от 0.5× до 3×.</div>
-                            {% if format_form.audio_playback_speed.errors %}
-                              <div class="invalid-feedback d-block">{{ format_form.audio_playback_speed.errors|join:", " }}</div>
-                            {% endif %}
-                          </div>
-                        </div>
-                        <div class="modal-footer border-0 pt-0">
-                          <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Отмена</button>
-                          <button type="button" class="btn btn-primary rounded-pill px-4" data-format-modal-save data-bs-dismiss="modal">Готово</button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </form>
             </div>
           </div>
@@ -2418,8 +2381,9 @@ function initializeReadingFormatModals() {
   }
 
   const getFormatCheckbox = (code) => form.querySelector(`input[name="formats"][value="${code}"]`);
-  const syncProxyFromActual = (modalEl) => {
-    modalEl.querySelectorAll('[data-sync-target]').forEach((proxyField) => {
+
+  const syncProxyFromActual = (panelEl) => {
+    panelEl.querySelectorAll('[data-sync-target]').forEach((proxyField) => {
       const targetId = proxyField.dataset.syncTarget;
       const actualField = document.getElementById(targetId);
       if (!actualField) {
@@ -2428,15 +2392,15 @@ function initializeReadingFormatModals() {
       proxyField.value = actualField.value || '';
     });
 
-    const proxyCheckbox = modalEl.querySelector('[data-format-proxy-checkbox]');
+    const proxyCheckbox = panelEl.querySelector('[data-format-proxy-checkbox]');
     if (proxyCheckbox) {
       const actualCheckbox = getFormatCheckbox(proxyCheckbox.dataset.formatCode);
       proxyCheckbox.checked = Boolean(actualCheckbox && actualCheckbox.checked);
     }
   };
 
-  const syncActualFromProxy = (modalEl) => {
-    modalEl.querySelectorAll('[data-sync-target]').forEach((proxyField) => {
+  const syncActualFromProxy = (panelEl) => {
+    panelEl.querySelectorAll('[data-sync-target]').forEach((proxyField) => {
       const targetId = proxyField.dataset.syncTarget;
       const actualField = document.getElementById(targetId);
       if (!actualField) {
@@ -2445,7 +2409,7 @@ function initializeReadingFormatModals() {
       actualField.value = proxyField.value;
     });
 
-    const proxyCheckbox = modalEl.querySelector('[data-format-proxy-checkbox]');
+    const proxyCheckbox = panelEl.querySelector('[data-format-proxy-checkbox]');
     if (proxyCheckbox) {
       const actualCheckbox = getFormatCheckbox(proxyCheckbox.dataset.formatCode);
       if (actualCheckbox) {
@@ -2466,82 +2430,60 @@ function initializeReadingFormatModals() {
     });
   };
 
-  const cleanupModalArtifacts = () => {
-    if (document.querySelector('.modal.show')) {
-      return;
-    }
-    document.body.classList.remove('modal-open');
-    document.body.style.removeProperty('overflow');
-    document.body.style.removeProperty('padding-right');
-    document.body.style.removeProperty('touch-action');
-    document.querySelectorAll('.modal-backdrop').forEach((backdrop) => backdrop.remove());
-  };
-  
+  form.querySelectorAll('[data-format-panel]').forEach((panelEl) => {
+    syncProxyFromActual(panelEl);
+
+    panelEl.querySelectorAll('[data-sync-target], [data-format-proxy-checkbox]').forEach((field) => {
+      const eventName = field.matches('input[type="checkbox"]') ? 'change' : 'input';
+      field.addEventListener(eventName, () => {
+        syncActualFromProxy(panelEl);
+        form.querySelectorAll('[data-format-panel]').forEach((otherPanel) => {
+          if (otherPanel !== panelEl) {
+            syncProxyFromActual(otherPanel);
+          }
+        });
+        updateLauncherState();
+      });
+      if (eventName !== 'change') {
+        field.addEventListener('change', () => {
+          syncActualFromProxy(panelEl);
+          form.querySelectorAll('[data-format-panel]').forEach((otherPanel) => {
+            if (otherPanel !== panelEl) {
+              syncProxyFromActual(otherPanel);
+            }
+          });
+          updateLauncherState();
+        });
+      }
+    });
+  });
+
   form.querySelectorAll('[data-format-launcher]').forEach((launcher) => {
     launcher.addEventListener('click', () => {
       const targetSelector = launcher.getAttribute('data-bs-target');
       if (!targetSelector) {
         return;
       }
-      const modalEl = document.querySelector(targetSelector);
-      if (modalEl) {
-        syncProxyFromActual(modalEl);
+      const panelEl = document.querySelector(targetSelector);
+      if (panelEl) {
+        syncProxyFromActual(panelEl);
       }
     });
   });
 
-  form.querySelectorAll('[data-format-modal]').forEach((modalEl) => {
-    modalEl.addEventListener('show.bs.modal', () => {
-      syncProxyFromActual(modalEl);
-    });
-
-    modalEl.addEventListener('hidden.bs.modal', () => {
-      cleanupModalArtifacts();
-      const activeElement = document.activeElement;
-      if (activeElement instanceof HTMLElement) {
-        activeElement.blur();
-      }
-    });
-  });
-  
-  form.querySelectorAll('[data-format-modal-save]').forEach((button) => {
-    button.addEventListener('click', () => {
-      const modalEl = button.closest('[data-format-modal]');
-      if (!modalEl) {
-        return;
-      }
-      syncActualFromProxy(modalEl);
-      updateLauncherState();
+  form.addEventListener('submit', () => {
+    form.querySelectorAll('[data-format-panel]').forEach((panelEl) => {
+      syncActualFromProxy(panelEl);
     });
   });
 
   updateLauncherState();
 
-  const cleanupModalArtifacts = () => {
-    if (document.querySelector('.modal.show')) {
-      return;
-    }
-    document.querySelectorAll('.modal-backdrop').forEach((backdrop) => backdrop.remove());
-    document.body.classList.remove('modal-open');
-    document.body.style.removeProperty('overflow');
-    document.body.style.removeProperty('padding-right');
-  };
-
-  form.querySelectorAll('[data-format-modal]').forEach((modalEl) => {
-    modalEl.addEventListener('hidden.bs.modal', cleanupModalArtifacts);
-    modalEl.addEventListener('hide.bs.modal', () => {
-      window.setTimeout(cleanupModalArtifacts, 50);
-    });
-  });
-  
   if (window.innerWidth < 768 && window.bootstrap) {
-    const errorModal = form.querySelector('[data-format-modal-error="true"]');
-    if (errorModal) {
-      syncProxyFromActual(errorModal);
-      window.setTimeout(() => {
-        window.bootstrap.Modal.getOrCreateInstance(errorModal).show();
-      }, 250);
-    }
+    form.querySelectorAll('[data-format-panel-error="true"]').forEach((panelEl) => {
+      syncProxyFromActual(panelEl);
+      window.bootstrap.Collapse.getOrCreateInstance(panelEl, { toggle: false }).show();
+    });
   }
 }
 
