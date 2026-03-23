@@ -2517,6 +2517,23 @@ function initializeReadingFormatModals() {
 
   updateLauncherState();
 
+  const cleanupModalArtifacts = () => {
+    if (document.querySelector('.modal.show')) {
+      return;
+    }
+    document.querySelectorAll('.modal-backdrop').forEach((backdrop) => backdrop.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('padding-right');
+  };
+
+  form.querySelectorAll('[data-format-modal]').forEach((modalEl) => {
+    modalEl.addEventListener('hidden.bs.modal', cleanupModalArtifacts);
+    modalEl.addEventListener('hide.bs.modal', () => {
+      window.setTimeout(cleanupModalArtifacts, 50);
+    });
+  });
+  
   if (window.innerWidth < 768 && window.bootstrap) {
     const errorModal = form.querySelector('[data-format-modal-error="true"]');
     if (errorModal) {
