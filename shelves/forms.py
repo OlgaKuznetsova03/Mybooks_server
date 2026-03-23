@@ -355,7 +355,7 @@ class BookProgressFormatForm(forms.ModelForm):
         widget=forms.NumberInput(attrs={"class": "form-control", "min": "0"}),
     )
 
-    aper_total_pages = forms.IntegerField(
+    paper_total_pages = forms.IntegerField(
         required=False,
         min_value=1,
         label="Страниц в бумажном издании",
