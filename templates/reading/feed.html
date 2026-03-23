@@ -610,6 +610,7 @@
             {% if request.user.is_authenticated %}
               <form method="post" action="{% url 'shelves:reading_feed_review_comment' review.id %}" class="reading-feed-comment-form">
                 {% csrf_token %}
+                <input type="hidden" name="reviews_page" value="{{ reviews_page_obj.number }}">
                 <textarea name="body" rows="2" placeholder="Ваш комментарий..." maxlength="500"></textarea>
                 <button type="submit" class="reading-btn-primary">Отправить</button>
               </form>
@@ -622,6 +623,26 @@
         </article>
         {% endwith %}
       {% endfor %}
+
+      {% if reviews_page_obj.has_other_pages %}
+        <nav aria-label="Навигация по отзывам" class="mt-4">
+          <ul class="pagination justify-content-center mb-0">
+            {% if reviews_page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?reviews_page={{ reviews_page_obj.previous_page_number }}">Назад</a>
+              </li>
+            {% endif %}
+            <li class="page-item disabled">
+              <span class="page-link">Страница {{ reviews_page_obj.number }} из {{ reviews_page_obj.paginator.num_pages }}</span>
+            </li>
+            {% if reviews_page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?reviews_page={{ reviews_page_obj.next_page_number }}">Вперёд</a>
+              </li>
+            {% endif %}
+          </ul>
+        </nav>
+      {% endif %}
     {% else %}
       <div class="reading-feed-empty">
         <h3 style="color: var(--color-coffee-darker); margin-bottom: 0.5rem; font-size: 1.1rem;">

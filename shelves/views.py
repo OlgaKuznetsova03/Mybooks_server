@@ -2002,7 +2002,7 @@ def reading_feed(request):
         .prefetch_related("comments__user", "comments__user__profile", "book__isbn")
     )
     reactions = entries.exclude(reaction__isnull=True).exclude(reaction__exact="")
-    reviews = (
+    reviews_qs = (
         Rating.objects.exclude(review__isnull=True)
         .exclude(review__exact="")
         .select_related(
@@ -2012,16 +2012,18 @@ def reading_feed(request):
             "book__primary_isbn",
         )
         .prefetch_related("book__isbn", "comments__user", "comments__user__profile")
-        .order_by("-created_at")
+        .order_by("-created_at", "-id")
     )
+    reviews_page_obj = Paginator(reviews_qs, 15).get_page(request.GET.get("reviews_page"))
     return render(
         request,
         "reading/feed.html",
         {
             "reactions": reactions,
-            "reviews": reviews,
+            "reviews": reviews_page_obj.object_list,
+            "reviews_page_obj": reviews_page_obj,
             "has_reactions": reactions.exists(),
-            "has_reviews": reviews.exists(),
+            "has_reviews": reviews_page_obj.paginator.count > 0,
         },
     )
 
@@ -2160,4 +2162,8 @@ def reading_feed_review_comment(request, review_id):
         messages.success(request, "Комментарий опубликован.")
     else:
         messages.error(request, "Не удалось сохранить комментарий. Проверьте текст и попробуйте снова.")
-    return redirect(f"{reverse('shelves:reading_feed')}#review-{rating.pk}")
+    redirect_url = reverse("shelves:reading_feed")
+    reviews_page = request.POST.get("reviews_page")
+    if reviews_page and str(reviews_page).isdigit():
+        redirect_url = f"{redirect_url}?reviews_page={reviews_page}"
+    return redirect(f"{redirect_url}#review-{rating.pk}")

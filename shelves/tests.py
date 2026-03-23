@@ -2,12 +2,12 @@ from datetime import timedelta
 from decimal import Decimal
 from django.contrib.auth.models import User
 from django.template import Context
-from django.test import RequestFactory, TestCase
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.timezone import localdate
 
-from books.models import Book, ISBNModel
+from books.models import Book, ISBNModel, Rating
 from .models import (
     BookProgress,
     ReadingLog,
@@ -923,3 +923,63 @@ class HomeLibraryEntryReadDateTests(TestCase):
         self.assertIsNotNone(context_entry)
         self.assertTrue(getattr(context_entry, "is_read", False))
         self.assertEqual(context_entry.date_read, read_date)
+
+@override_settings(SECURE_SSL_REDIRECT=False)
+class ReadingFeedViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="reader", password="test-pass")
+        self.client.login(username="reader", password="test-pass")
+
+        self.isbn = ISBNModel.objects.create(
+            isbn="9780000000999",
+            isbn13="9780000000999",
+            title="Feed ISBN",
+            total_pages=320,
+        )
+        self.book = Book.objects.create(title="Feed Book", synopsis="")
+        self.book.primary_isbn = self.isbn
+        self.book.save()
+        self.book.isbn.add(self.isbn)
+
+    def _create_review(self, index):
+        author = User.objects.create_user(username=f"reviewer-{index}", password="test-pass")
+        return Rating.objects.create(
+            user=author,
+            book=self.book,
+            score=8,
+            review=f"Отзыв номер {index}",
+        )
+
+    def test_reading_feed_paginates_reviews_by_fifteen(self):
+        reviews = [self._create_review(index) for index in range(16)]
+
+        response = self.client.get(reverse("shelves:reading_feed"))
+
+        self.assertEqual(response.status_code, 200)
+        page_obj = response.context["reviews_page_obj"]
+        self.assertEqual(page_obj.paginator.per_page, 15)
+        self.assertEqual(len(response.context["reviews"]), 15)
+        self.assertContains(response, "Страница 1 из 2")
+        self.assertContains(response, f'id="review-{reviews[0].pk}"', count=0)
+
+    def test_reading_feed_review_comment_redirects_to_current_page(self):
+        reviews = [self._create_review(index) for index in range(16)]
+        review = reviews[0]
+
+        friend = User.objects.create_user(username="friend", password="secret-pass")
+        self.client.logout()
+        self.client.login(username="friend", password="secret-pass")
+
+        response = self.client.post(
+            reverse("shelves:reading_feed_review_comment", args=[review.pk]),
+            {"body": "Очень хочу прочитать!", "reviews_page": "2"},
+        )
+
+        self.assertRedirects(
+            response,
+            f"{reverse('shelves:reading_feed')}?reviews_page=2#review-{review.pk}",
+            fetch_redirect_response=False,
+        )
+        review.refresh_from_db()
+        self.assertEqual(review.comments.count(), 1)
+        self.assertEqual(review.comments.first().body, "Очень хочу прочитать!")
