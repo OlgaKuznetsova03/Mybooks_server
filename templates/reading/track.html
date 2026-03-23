@@ -2466,6 +2466,17 @@ function initializeReadingFormatModals() {
     });
   };
 
+  const cleanupModalArtifacts = () => {
+    if (document.querySelector('.modal.show')) {
+      return;
+    }
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('padding-right');
+    document.body.style.removeProperty('touch-action');
+    document.querySelectorAll('.modal-backdrop').forEach((backdrop) => backdrop.remove());
+  };
+  
   form.querySelectorAll('[data-format-launcher]').forEach((launcher) => {
     launcher.addEventListener('click', () => {
       const targetSelector = launcher.getAttribute('data-bs-target');
@@ -2479,6 +2490,20 @@ function initializeReadingFormatModals() {
     });
   });
 
+  form.querySelectorAll('[data-format-modal]').forEach((modalEl) => {
+    modalEl.addEventListener('show.bs.modal', () => {
+      syncProxyFromActual(modalEl);
+    });
+
+    modalEl.addEventListener('hidden.bs.modal', () => {
+      cleanupModalArtifacts();
+      const activeElement = document.activeElement;
+      if (activeElement instanceof HTMLElement) {
+        activeElement.blur();
+      }
+    });
+  });
+  
   form.querySelectorAll('[data-format-modal-save]').forEach((button) => {
     button.addEventListener('click', () => {
       const modalEl = button.closest('[data-format-modal]');
