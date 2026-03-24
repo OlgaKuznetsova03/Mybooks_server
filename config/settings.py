@@ -217,9 +217,11 @@ INSTALLED_APPS = [
     'reading_clubs.apps.ReadingClubsConfig',
     'reading_marathons.apps.ReadingMarathonsConfig',
     'user_ratings.apps.UserRatingsConfig',
+    "corsheaders",
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -554,3 +556,7 @@ LOGGING = {
 
 if RUNNING_TESTS:
     LOGGING['loggers']['django.db.backends']['level'] = 'ERROR'
+
+
+# Temporary development setting for VK Mini App
+CORS_ALLOW_ALL_ORIGINS = True
