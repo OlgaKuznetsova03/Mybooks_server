@@ -1156,7 +1156,7 @@
                             </div>
                             <div class="mb-3">
                               <label class="form-label" for="readingFormatPaperCustomTotal">{{ format_form.custom_total_pages.label }}</label>
-                              <input type="number" id="readingFormatPaperCustomTotal" class="form-control" min="1" value="{{ format_form.custom_total_pages.value|default_if_none:'' }}" data-sync-target="{{ format_form.custom_total_pages.id_for_label }}">
+                              <input type="number" id="readingFormatPaperCustomTotal" class="form-control" min="1" value="{{ format_form.custom_total_pages.value|default_if_none:'' }}" placeholder="{{ format_form.custom_total_pages.field.widget.attrs.placeholder|default_if_none:'' }}" data-sync-target="{{ format_form.custom_total_pages.id_for_label }}">
                               <div class="form-text">Если у книги нет точного объёма в базе, укажите его здесь.</div>
                               {% if format_form.custom_total_pages.errors %}
                                 <div class="invalid-feedback d-block">{{ format_form.custom_total_pages.errors|join:", " }}</div>
@@ -1164,7 +1164,7 @@
                             </div>
                             <div class="mb-3">
                               <label class="form-label" for="readingFormatPaperTotal">{{ format_form.paper_total_pages.label }}</label>
-                              <input type="number" id="readingFormatPaperTotal" class="form-control" min="1" value="{{ format_form.paper_total_pages.value|default_if_none:'' }}" data-sync-target="{{ format_form.paper_total_pages.id_for_label }}">
+                              <input type="number" id="readingFormatPaperTotal" class="form-control" min="1" value="{{ format_form.paper_total_pages.value|default_if_none:'' }}" placeholder="{{ format_form.paper_total_pages.field.widget.attrs.placeholder|default_if_none:'' }}" data-sync-target="{{ format_form.paper_total_pages.id_for_label }}">
                               <div class="form-text">{{ format_form.paper_total_pages.help_text }}</div>
                               {% if format_form.paper_total_pages.errors %}
                                 <div class="invalid-feedback d-block">{{ format_form.paper_total_pages.errors|join:", " }}</div>
@@ -1194,7 +1194,7 @@
                             </div>
                             <div class="mb-3">
                               <label class="form-label" for="readingFormatEbookCustomTotal">{{ format_form.custom_total_pages.label }}</label>
-                              <input type="number" id="readingFormatEbookCustomTotal" class="form-control" min="1" value="{{ format_form.custom_total_pages.value|default_if_none:'' }}" data-sync-target="{{ format_form.custom_total_pages.id_for_label }}">
+                              <input type="number" id="readingFormatEbookCustomTotal" class="form-control" min="1" value="{{ format_form.custom_total_pages.value|default_if_none:'' }}" placeholder="{{ format_form.custom_total_pages.field.widget.attrs.placeholder|default_if_none:'' }}" data-sync-target="{{ format_form.custom_total_pages.id_for_label }}">
                               <div class="form-text">Если общее число страниц нужно задать вручную.</div>
                               {% if format_form.custom_total_pages.errors %}
                                 <div class="invalid-feedback d-block">{{ format_form.custom_total_pages.errors|join:", " }}</div>
@@ -1202,7 +1202,7 @@
                             </div>
                             <div class="mb-3">
                               <label class="form-label" for="readingFormatEbookTotal">{{ format_form.ebook_total_pages.label }}</label>
-                              <input type="number" id="readingFormatEbookTotal" class="form-control" min="1" value="{{ format_form.ebook_total_pages.value|default_if_none:'' }}" data-sync-target="{{ format_form.ebook_total_pages.id_for_label }}">
+                              <input type="number" id="readingFormatEbookTotal" class="form-control" min="1" value="{{ format_form.ebook_total_pages.value|default_if_none:'' }}" placeholder="{{ format_form.ebook_total_pages.field.widget.attrs.placeholder|default_if_none:'' }}" data-sync-target="{{ format_form.ebook_total_pages.id_for_label }}">
                               <div class="form-text">{{ format_form.ebook_total_pages.help_text }}</div>
                               {% if format_form.ebook_total_pages.errors %}
                                 <div class="invalid-feedback d-block">{{ format_form.ebook_total_pages.errors|join:", " }}</div>
@@ -2390,6 +2390,9 @@ function initializeReadingFormatModals() {
         return;
       }
       proxyField.value = actualField.value || '';
+      if ('placeholder' in proxyField) {
+        proxyField.placeholder = actualField.placeholder || '';
+      }
     });
 
     const proxyCheckbox = panelEl.querySelector('[data-format-proxy-checkbox]');

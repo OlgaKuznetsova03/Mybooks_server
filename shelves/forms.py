@@ -501,10 +501,20 @@ class BookProgressFormatForm(forms.ModelForm):
             self.initial["audio_position_input"] = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
         if playback_speed:
             self.initial.setdefault("audio_playback_speed", playback_speed)
-        if not self.instance.custom_total_pages and self.book:
+        if self.book:
             total = self.book.get_total_pages()
             if total:
-                self.fields["custom_total_pages"].widget.attrs.setdefault("placeholder", str(total))
+                total_placeholder = str(total)
+                for field_name in (
+                    "custom_total_pages",
+                    "paper_total_pages",
+                    "ebook_total_pages",
+                ):
+                    if self.initial.get(field_name) in (None, ""):
+                        self.fields[field_name].widget.attrs.setdefault(
+                            "placeholder",
+                            total_placeholder,
+                        )
 
     def clean_audio_length_input(self):
         raw = self.cleaned_data.get("audio_length_input")
