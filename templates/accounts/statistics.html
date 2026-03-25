@@ -30,6 +30,7 @@
     background: linear-gradient(135deg, rgba(194, 150, 129, 0.1), rgba(194, 150, 129, 0.05));
     border-radius: 1.5rem;
     padding: 1.5rem;
+    border: 1px solid rgba(194, 150, 129, 0.2);
   }
 
   .period-tabs {
@@ -167,6 +168,12 @@
   .daily-reading-card {
     background: linear-gradient(145deg, rgba(194, 150, 129, 0.08), rgba(255, 255, 255, 0.95));
     border: 1px solid rgba(194, 150, 129, 0.2);
+  }
+
+  .daily-reading-card .period-selector {
+    background: rgba(255, 255, 255, 0.72);
+    border-radius: 1rem;
+    padding: 1rem;
   }
 
   .daily-reading-chart {
@@ -413,15 +420,7 @@
 
   <div class="card border-0 shadow-sm mb-4 stat-card book-challenge-card" id="book-challenge">
     <div class="card-body">
-      <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-        <div>
-          <p class="text-uppercase text-muted small mb-1">Личный план</p>
-          <h3 class="h5 mb-1">Книжный вызов {{ book_challenge.year }}</h3>
-          <p class="text-muted mb-0">Планируйте чтение на год и следите за прогрессом.</p>
-        </div>
-      </div>
-
-      <div class="collapse mt-4" id="bookChallengeCollapse">
+      <div class="collapse" id="bookChallengeCollapse">
         <div class="d-flex justify-content-end mb-3">
           <button
             type="button"
@@ -585,95 +584,6 @@
     </div>
   </div>
 
-  <div class="card border-0 shadow-sm mb-4 stat-card">
-    <div class="card-body period-selector">
-      {% with current_period=stats_period.period|default:'month' %}
-        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
-          <div>
-            <p class="text-uppercase text-muted small mb-1">Выбор периода</p>
-            <p class="mb-0">Настройте период статистики, чтобы увидеть нужные данные.</p>
-          </div>
-          <button
-            type="button"
-            class="btn btn-outline-primary w-100 w-md-auto"
-            id="periodFiltersToggleButton"
-            data-bs-toggle="collapse"
-            data-bs-target="#periodFiltersCollapse"
-            aria-expanded="false"
-            aria-controls="periodFiltersCollapse"
-            data-show-label="Показать выбор периода"
-            data-hide-label="Скрыть выбор периода"
-          >
-            <span class="period-toggle-label">Показать выбор периода</span>
-          </button>
-        </div>
-
-        <div id="periodFiltersCollapse" class="collapse">
-          <form method="get" class="period-form" id="statsFilterForm">
-            <input type="hidden" name="tab" value="stats">
-            <input type="hidden" id="id_period" name="period" value="{{ current_period }}">
-
-            <div class="period-tabs" role="tablist" aria-label="Выбор периода статистики">
-              <button type="button" class="period-tab{% if current_period == 'day' %} active{% endif %}" data-period="day" aria-pressed="{% if current_period == 'day' %}true{% else %}false{% endif %}">
-                <i class="bi bi-sun"></i>
-                День
-              </button>
-              <button type="button" class="period-tab{% if current_period == 'week' %} active{% endif %}" data-period="week" aria-pressed="{% if current_period == 'week' %}true{% else %}false{% endif %}">
-                <i class="bi bi-calendar-week"></i>
-                Неделя
-              </button>
-              <button type="button" class="period-tab{% if current_period == 'month' %} active{% endif %}" data-period="month" aria-pressed="{% if current_period == 'month' %}true{% else %}false{% endif %}">
-                <i class="bi bi-calendar-event"></i>
-                Месяц
-              </button>
-              <button type="button" class="period-tab{% if current_period == 'year' %} active{% endif %}" data-period="year" aria-pressed="{% if current_period == 'year' %}true{% else %}false{% endif %}">
-                <i class="bi bi-calendar3"></i>
-                Год
-              </button>
-            </div>
-
-            <div class="row g-3 align-items-end">
-              {% if stats_period.available_years %}
-                <div class="col-6 col-md-4 col-lg-3">
-                  <label class="form-label">Год</label>
-                  <select class="form-select" name="year">
-                    {% for year in stats_period.available_years %}
-                      <option value="{{ year }}"{% if year == stats_period.selected_year %} selected{% endif %}>{{ year }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-              {% endif %}
-              {% if stats_period.available_months %}
-                <div class="col-6 col-md-4 col-lg-3">
-                  <label class="form-label">Месяц</label>
-                  <select class="form-select" name="month">
-                    {% for month in stats_period.available_months %}
-                      <option value="{{ month.value }}"{% if month.value == stats_period.selected_month %} selected{% endif %}>{{ month.label }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-              {% endif %}
-            </div>
-
-            <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 mt-3">
-              <div class="text-muted">{{ stats_period.label }}</div>
-              <div class="d-flex gap-2">
-                {% if stats.reading_calendar.prev_month_url %}
-                  <a class="btn btn-outline-secondary btn-sm" href="{{ stats.reading_calendar.prev_month_url }}">Предыдущий месяц</a>
-                {% endif %}
-                {% if stats.reading_calendar.next_month_url %}
-                  <a class="btn btn-outline-secondary btn-sm" href="{{ stats.reading_calendar.next_month_url }}">Следующий месяц</a>
-                {% endif %}
-                <button type="submit" class="btn btn-primary btn-sm">Обновить</button>
-              </div>
-            </div>
-          </form>
-        </div>
-      {% endwith %}
-    </div>
-  </div>
-
-  <p class="text-muted">Период: {{ stats_period.label }} ({{ stats_period.start|date:"d.m.Y" }} — {{ stats_period.end|date:"d.m.Y" }})</p>
 
   {% with calendar=stats.reading_calendar %}
     {% if calendar %}
@@ -882,7 +792,7 @@
     </div>
     <div class="col-12 col-xl-6">
       <div class="card border-0 shadow-sm h-100 stat-card daily-reading-card">
-        <div class="card-body">
+
           <h3 class="h6 mb-3">Чтение по дням</h3>
           {% if stats.reading_calendar.day_payloads %}
             <div class="ratio ratio-16x9 chart-container daily-reading-chart">
@@ -891,6 +801,92 @@
           {% else %}
             <p class="text-muted mb-3">Нет данных о чтении по дням за выбранный период.</p>
           {% endif %}
+          
+          {% with current_period=stats_period.period|default:'month' %}
+            <div class="period-selector mb-3">
+              <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+                <div>
+                  <p class="text-uppercase text-muted small mb-1">Выбор периода</p>
+                  <p class="mb-0">Настройте период, чтобы обновить график и список книг.</p>
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-outline-primary w-100 w-md-auto"
+                  id="periodFiltersToggleButton"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#periodFiltersCollapse"
+                  aria-expanded="false"
+                  aria-controls="periodFiltersCollapse"
+                  data-show-label="Показать выбор периода"
+                  data-hide-label="Скрыть выбор периода"
+                >
+                  <span class="period-toggle-label">Показать выбор периода</span>
+                </button>
+              </div>
+
+              <div id="periodFiltersCollapse" class="collapse">
+                <form method="get" class="period-form" id="statsFilterForm">
+                  <input type="hidden" name="tab" value="stats">
+                  <input type="hidden" id="id_period" name="period" value="{{ current_period }}">
+
+                  <div class="period-tabs" role="tablist" aria-label="Выбор периода статистики">
+                    <button type="button" class="period-tab{% if current_period == 'day' %} active{% endif %}" data-period="day" aria-pressed="{% if current_period == 'day' %}true{% else %}false{% endif %}">
+                      <i class="bi bi-sun"></i>
+                      День
+                    </button>
+                    <button type="button" class="period-tab{% if current_period == 'week' %} active{% endif %}" data-period="week" aria-pressed="{% if current_period == 'week' %}true{% else %}false{% endif %}">
+                      <i class="bi bi-calendar-week"></i>
+                      Неделя
+                    </button>
+                    <button type="button" class="period-tab{% if current_period == 'month' %} active{% endif %}" data-period="month" aria-pressed="{% if current_period == 'month' %}true{% else %}false{% endif %}">
+                      <i class="bi bi-calendar-event"></i>
+                      Месяц
+                    </button>
+                    <button type="button" class="period-tab{% if current_period == 'year' %} active{% endif %}" data-period="year" aria-pressed="{% if current_period == 'year' %}true{% else %}false{% endif %}">
+                      <i class="bi bi-calendar3"></i>
+                      Год
+                    </button>
+                  </div>
+
+                  <div class="row g-3 align-items-end">
+                    {% if stats_period.available_years %}
+                      <div class="col-6 col-md-4 col-lg-3">
+                        <label class="form-label">Год</label>
+                        <select class="form-select" name="year">
+                          {% for year in stats_period.available_years %}
+                            <option value="{{ year }}"{% if year == stats_period.selected_year %} selected{% endif %}>{{ year }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    {% endif %}
+                    {% if stats_period.available_months %}
+                      <div class="col-6 col-md-4 col-lg-3">
+                        <label class="form-label">Месяц</label>
+                        <select class="form-select" name="month">
+                          {% for month in stats_period.available_months %}
+                            <option value="{{ month.value }}"{% if month.value == stats_period.selected_month %} selected{% endif %}>{{ month.label }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    {% endif %}
+                  </div>
+
+                  <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 mt-3">
+                    <div class="text-muted">{{ stats_period.label }}</div>
+                    <div class="d-flex gap-2">
+                      {% if stats.reading_calendar.prev_month_url %}
+                        <a class="btn btn-outline-secondary btn-sm" href="{{ stats.reading_calendar.prev_month_url }}">Предыдущий месяц</a>
+                      {% endif %}
+                      {% if stats.reading_calendar.next_month_url %}
+                        <a class="btn btn-outline-secondary btn-sm" href="{{ stats.reading_calendar.next_month_url }}">Следующий месяц</a>
+                      {% endif %}
+                      <button type="submit" class="btn btn-primary btn-sm">Обновить</button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          {% endwith %}
 
           <div class="daily-reading-summary mt-3">
             <div class="daily-reading-summary__item">
@@ -905,19 +901,20 @@
                   0
                 {% endif %}
               </div>
+              <div class="card-body">
               <div class="daily-reading-summary__label">Среднее стр./день</div>
+            </div>
+            <div class="daily-reading-summary__item">
+              <div class="daily-reading-summary__value animated-number" data-target="{{ stats.books_count|default_if_none:0 }}">0</div>
+              <div class="daily-reading-summary__label">Прочитано книг</div>
             </div>
             <div class="daily-reading-summary__item">
               <div class="daily-reading-summary__value">{{ stats.audio_total_display|default:"—" }}</div>
               <div class="daily-reading-summary__label">Аудио длительность</div>
             </div>
-            <div class="daily-reading-summary__item">
-              <div class="daily-reading-summary__value">{{ stats.audio_adjusted_display|default:"—" }}</div>
-              <div class="daily-reading-summary__label">Аудио с учётом скорости</div>
-            </div>
           </div>
 
-          {% if not stats.audio_total_display and not stats.audio_adjusted_display and not stats.audio_tracked_display %}
+          {% if not stats.audio_total_display and not stats.audio_tracked_display %}
             <p class="text-muted mt-3 mb-0">Нет аудиостатистики за выбранный период.</p>
           {% endif %}
         </div>
