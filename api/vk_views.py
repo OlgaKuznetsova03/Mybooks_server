@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.db.models import Sum
 from django.utils import timezone
 from rest_framework import permissions, status
@@ -5,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from shelves.models import BookProgress, ReadingLog, ShelfItem
+from shelves.services import ALL_DEFAULT_READ_SHELF_NAMES
 
 from .models import VKAccount
 from .vk_serializers import (
@@ -31,23 +34,34 @@ def _get_bookshelf_payload(user, request=None, recent_limit=5):
         .order_by("-added_at")[:recent_limit]
     )
 
-    this_month_start = timezone.localdate().replace(day=1)
+    today = timezone.localdate()
+    this_month_start = today.replace(day=1)
+    next_month_start = (this_month_start + timedelta(days=32)).replace(day=1)
+
     month_logs = ReadingLog.objects.filter(
         progress__user=user,
         log_date__gte=this_month_start,
+        log_date__lt=next_month_start,
     )
 
     month_pages = month_logs.aggregate(total=Sum("pages_equivalent"))["total"] or 0
-    month_audio_minutes = 0
-
-    field_names = {field.name for field in ReadingLog._meta.fields}
-    if "audio_minutes" in field_names:
-        month_audio_minutes = month_logs.aggregate(total=Sum("audio_minutes"))["total"] or 0
+    month_audio_seconds = month_logs.aggregate(total=Sum("audio_seconds"))["total"] or 0
+    read_books_this_month = (
+        ShelfItem.objects.filter(
+            shelf__user=user,
+            shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+            added_at__date__gte=this_month_start,
+            added_at__date__lt=next_month_start,
+        )
+        .values("book_id")
+        .distinct()
+        .count()
+    )
 
     stats = {
-        "books_this_month": month_logs.values("progress__book").distinct().count(),
+        "books_this_month": read_books_this_month,
         "pages_this_month": float(month_pages),
-        "audio_minutes_this_month": float(month_audio_minutes),
+        "audio_minutes_this_month": float(month_audio_seconds) / 60,
     }
 
     serializer_context = {"request": request} if request else {}
