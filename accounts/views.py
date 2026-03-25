@@ -955,13 +955,17 @@ def _collect_profile_stats(user: User, params):
     genre_labels = [row["genres__name"] for row in genre_stats]
     genre_values = [row["total"] for row in genre_stats]
 
-    logs_aggregate = (
+    logs_qs = (
         ReadingLog.objects.filter(
             progress__user=user,
             log_date__gte=start,
             log_date__lte=end,
         )
+        .select_related("progress")
         .order_by()
+    )
+    logs_aggregate = (
+        logs_qs
         .values("medium")
         .annotate(
             pages_total=Sum("pages_equivalent"),
@@ -969,6 +973,26 @@ def _collect_profile_stats(user: User, params):
         )
         .values("medium", "pages_total", "audio_total")
     )
+    logs_by_book: dict[int, dict[str, Decimal | int]] = {}
+    for log in logs_qs:
+        progress_id = getattr(log, "progress_id", None)
+        if not progress_id:
+            continue
+        progress = getattr(log, "progress", None)
+        if not progress or not getattr(progress, "book_id", None):
+            continue
+        book_id = progress.book_id
+        payload = logs_by_book.setdefault(
+            book_id,
+            {
+                "pages": Decimal("0"),
+                "audio_seconds": 0,
+            },
+        )
+        if log.medium != BookProgress.FORMAT_AUDIO and log.pages_equivalent:
+            payload["pages"] = payload["pages"] + log.pages_equivalent
+        if log.audio_seconds:
+            payload["audio_seconds"] = payload["audio_seconds"] + int(log.audio_seconds)
     format_totals = {
         code: Decimal("0")
         for code, _ in BookProgress.FORMAT_CHOICES
@@ -996,12 +1020,30 @@ def _collect_profile_stats(user: User, params):
 
     if logged_pages_total > 0:
         total_pages = logged_pages_total
+    if filtered_items.exists():
+        fallback_pages = Decimal("0")
+        for item in filtered_items:
+            progress = progress_map.get(item.book_id)
+            if progress and progress.is_audiobook:
+                continue
+            if item.book_id in logs_by_book:
+                continue
+            pages = 0
+            if progress:
+                pages = progress.get_effective_total_pages() or 0
+            else:
+                pages = item.book.get_total_pages() or 0
+            if pages:
+                fallback_pages += Decimal(str(pages))
+        total_pages += fallback_pages
 
-    audio_total = timedelta()
-    audio_adjusted = timedelta()
+    audio_total = timedelta(seconds=audio_tracked_seconds)
+    audio_adjusted = timedelta(seconds=audio_tracked_seconds)
     for book_id in book_ids:
         progress = progress_map.get(book_id)
         if not progress or not progress.is_audiobook or not progress.audio_length:
+            continue
+        if book_id in logs_by_book and (logs_by_book[book_id].get("audio_seconds") or 0) > 0:
             continue
         audio_total += progress.audio_length
         adjusted = progress.get_audio_adjusted_length()
@@ -1041,10 +1083,6 @@ def _collect_profile_stats(user: User, params):
     if audio_tracked_seconds > 0:
         tracked_duration = timedelta(seconds=audio_tracked_seconds)
         audio_tracked_display = _format_duration(tracked_duration)
-        if audio_total.total_seconds() == 0:
-            audio_total = tracked_duration
-        if audio_adjusted.total_seconds() == 0:
-            audio_adjusted = tracked_duration
 
     days_count = max(1, (end - start).days + 1)
     pages_average = None
