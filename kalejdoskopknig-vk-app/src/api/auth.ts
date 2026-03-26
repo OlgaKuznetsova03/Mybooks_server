@@ -7,7 +7,13 @@ const resolveApiOrigin = (): string => {
   }
 
   const host = window.location.hostname;
-  const isVkHost = host === 'vk.com' || host.endsWith('.vk.com') || host.endsWith('.vk-apps.com');
+  const isVkHost =
+    host === 'vk.com' ||
+    host.endsWith('.vk.com') ||
+    host === 'vk.ru' ||
+    host.endsWith('.vk.ru') ||
+    host.endsWith('.vk-apps.com') ||
+    host.endsWith('.vk-apps.ru');
   if (isVkHost) {
     return 'https://kalejdoskopknig.ru';
   }
