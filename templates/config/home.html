@@ -97,6 +97,7 @@
     display: grid;
     gap: 1.5rem;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    align-items: start;
   }
 
   .reading-progress-cover {
@@ -137,6 +138,12 @@
     overflow-wrap: anywhere;
     text-wrap: pretty;
     hyphens: auto;
+    height: auto;
+    min-height: 0;
+  }
+
+  .hero-highlight__card.h-100 {
+    height: auto !important;
   }
 
   .hero-highlight__card p {
@@ -166,7 +173,7 @@
 
   .tracker-updates-row .hero-highlight__card {
     flex: 0 0 min(280px, calc(100vw - 3rem));
-    min-height: 100%;
+    min-height: 0;
     scroll-snap-align: start;
     direction: ltr;
   }
@@ -825,6 +832,11 @@
     .books-grid {
       grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
       gap: 1rem;
+    }
+
+    .hero-highlight__card {
+      backdrop-filter: none;
+      background: rgba(255, 255, 255, 0.96);
     }
   }
 

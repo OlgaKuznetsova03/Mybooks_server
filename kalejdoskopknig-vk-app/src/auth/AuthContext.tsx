@@ -34,6 +34,18 @@ const normalizeErrors = (errorPayload: unknown): FieldErrors => {
     return { non_field_errors: [apiError.detail] };
   }
 
+  const rawErrors = errorPayload as Record<string, unknown>;
+  const normalized = Object.entries(rawErrors).reduce<FieldErrors>((acc, [field, value]) => {
+    if (Array.isArray(value)) {
+      acc[field] = value.map((item) => String(item));
+    }
+    return acc;
+  }, {});
+
+  if (Object.keys(normalized).length > 0) {
+    return normalized;
+  }
+
   return fallback;
 };
 

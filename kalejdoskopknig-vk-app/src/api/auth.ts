@@ -1,6 +1,27 @@
 import type { AuthResponse, AuthUser, FieldErrors, LoginPayload, RegisterPayload } from '../types/auth';
 
-const API_BASE = '/api/v1/auth';
+const resolveApiOrigin = (): string => {
+  const envOrigin = import.meta.env.VITE_API_BASE_URL?.trim();
+  if (envOrigin) {
+    return envOrigin.replace(/\/$/, '');
+  }
+
+  const host = window.location.hostname;
+  const isVkHost = host === 'vk.com' || host.endsWith('.vk.com') || host.endsWith('.vk-apps.com');
+  if (isVkHost) {
+    return 'https://kalejdoskopknig.ru';
+  }
+
+  return '';
+};
+
+const API_ORIGIN = resolveApiOrigin();
+const API_BASE = `${API_ORIGIN}/api/v1/vk-app`;
+
+const normalizeUser = (user: AuthUser): AuthUser => ({
+  ...user,
+  roles: Array.isArray(user.roles) ? user.roles : [],
+});
 
 const buildHeaders = (token?: string): HeadersInit => {
   const headers: HeadersInit = {
@@ -15,7 +36,7 @@ const buildHeaders = (token?: string): HeadersInit => {
 };
 
 const parseJson = async <T>(response: Response): Promise<T> => {
-  const payload = (await response.json()) as T | { errors?: FieldErrors; detail?: string };
+  const payload = (await response.json()) as T | FieldErrors | { detail?: string };
 
   if (!response.ok) {
     throw payload;
@@ -25,41 +46,43 @@ const parseJson = async <T>(response: Response): Promise<T> => {
 };
 
 export const registerRequest = async (payload: RegisterPayload): Promise<AuthResponse> => {
-  const response = await fetch(`${API_BASE}/register/`, {
+  const response = await fetch(`${API_BASE}/auth/register/`, {
     method: 'POST',
     headers: buildHeaders(),
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      username: payload.username,
+      email: payload.email,
+      password: payload.password1,
+      password2: payload.password2,
+      roles: payload.roles,
+    }),
   });
 
-  return parseJson<AuthResponse>(response);
+  const parsed = await parseJson<AuthResponse>(response);
+  return { ...parsed, user: normalizeUser(parsed.user) };
 };
 
 export const loginRequest = async (payload: LoginPayload): Promise<AuthResponse> => {
-  const response = await fetch(`${API_BASE}/login/`, {
+  const response = await fetch(`${API_BASE}/auth/login/`, {
     method: 'POST',
     headers: buildHeaders(),
     body: JSON.stringify(payload),
   });
 
-  return parseJson<AuthResponse>(response);
+  const parsed = await parseJson<AuthResponse>(response);
+  return { ...parsed, user: normalizeUser(parsed.user) };
 };
 
 export const meRequest = async (token: string): Promise<AuthUser> => {
-  const response = await fetch(`${API_BASE}/me/`, {
+  const response = await fetch(`${API_BASE}/profile/`, {
     method: 'GET',
     headers: buildHeaders(token),
   });
 
-  return parseJson<AuthUser>(response);
+  const payload = await parseJson<{ profile: AuthUser }>(response);
+  return normalizeUser(payload.profile);
 };
 
-export const logoutRequest = async (token: string): Promise<void> => {
-  const response = await fetch(`${API_BASE}/logout/`, {
-    method: 'POST',
-    headers: buildHeaders(token),
-  });
-
-  if (!response.ok) {
-    throw await response.json();
-  }
+export const logoutRequest = async (_token: string): Promise<void> => {
+  return Promise.resolve();
 };
