@@ -1490,16 +1490,27 @@
 
     // Инициализация реакций после загрузки DOM
     initializeReactions();
+    updateHeroParallax();
   });
 
-  // Параллакс эффект для героя
-  window.addEventListener('scroll', () => {
-    const scrolled = window.pageYOffset;
+  // Параллакс эффект для героя только на больших десктопах
+  const heroParallaxMediaQuery = window.matchMedia('(min-width: 1200px) and (pointer: fine) and (prefers-reduced-motion: no-preference)');
+
+  function updateHeroParallax() {
     const hero = document.querySelector('.hero-section');
-    if (hero) {
-      hero.style.transform = `translateY(${scrolled * 0.5}px)`;
+    if (!hero) return;
+
+    if (!heroParallaxMediaQuery.matches) {
+      hero.style.transform = '';
+      return;
     }
-  });
+
+    const scrolled = window.pageYOffset;
+    hero.style.transform = `translateY(${scrolled * 0.2}px)`;
+  }
+
+  window.addEventListener('scroll', updateHeroParallax, { passive: true });
+  heroParallaxMediaQuery.addEventListener('change', updateHeroParallax);
 
   // Анимация волны при загрузке
   function createRipple(event) {
