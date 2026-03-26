@@ -29,11 +29,12 @@ import {
 
 import {
   Icon28BookOutline,
+  Icon28CompassOutline,
   Icon28SearchOutline,
   Icon28UserCircleOutline,
 } from '@vkontakte/icons';
 
-type Story = 'home' | 'catalog' | 'profile';
+type Story = 'home' | 'library' | 'discover' | 'profile';
 
 const booksInProgress = [
   {
@@ -50,10 +51,18 @@ const booksInProgress = [
   },
 ];
 
-const recommendedBooks = [
+const shelfBooks = [
+  { title: 'Сто лет одиночества', status: 'Хочу прочитать' },
+  { title: 'Имя розы', status: 'В процессе' },
+  { title: 'Пикник на обочине', status: 'Прочитано' },
+  { title: 'Дюна', status: 'Хочу прочитать' },
+];
+
+const recommendations = [
   { title: '451° по Фаренгейту', tag: 'Антиутопия' },
   { title: 'Понедельник начинается в субботу', tag: 'Фантастика' },
   { title: 'Норвежский лес', tag: 'Современная проза' },
+  { title: 'Дом, в котором...', tag: 'Магический реализм' },
 ];
 
 export default function App() {
@@ -63,9 +72,9 @@ export default function App() {
   const filteredRecommendations = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     if (!normalized) {
-      return recommendedBooks;
+      return recommendations;
     }
-    return recommendedBooks.filter((book) =>
+    return recommendations.filter((book) =>
       book.title.toLowerCase().includes(normalized),
     );
   }, [query]);
@@ -86,8 +95,8 @@ export default function App() {
                         Добро пожаловать 👋
                       </Title>
                       <Text>
-                        Твоя домашняя страница: прогресс чтения, подборки и быстрый доступ
-                        к библиотеке.
+                        Главная страница приложения: прогресс чтения, цели недели и быстрый
+                        доступ к твоей библиотеке.
                       </Text>
                     </Div>
                   </Group>
@@ -102,9 +111,7 @@ export default function App() {
                               <Title level="3" weight="2">
                                 {book.title}
                               </Title>
-                              <Text style={{ marginTop: 4, marginBottom: 8 }}>
-                                {book.author}
-                              </Text>
+                              <Text style={{ marginTop: 4, marginBottom: 8 }}>{book.author}</Text>
                               <Progress value={book.progress} />
                               <Text style={{ marginTop: 8 }}>{book.progress}% прочитано</Text>
                             </div>
@@ -113,9 +120,37 @@ export default function App() {
                       ))}
                     </CardGrid>
                   </Group>
+
+                  <Group header={<Header size="s">Цель недели</Header>}>
+                    <SimpleCell subtitle="Прочитать 180 страниц">Осталось 74 страницы</SimpleCell>
+                  </Group>
                 </Panel>
 
-                <Panel id="catalog">
+                <Panel id="library">
+                  <PanelHeader>Моя полка</PanelHeader>
+
+                  <Group header={<Header>Текущие списки</Header>}>
+                    {shelfBooks.map((book) => (
+                      <SimpleCell
+                        key={book.title}
+                        after={<Badge mode="prominent">{book.status}</Badge>}
+                        subtitle="Нажми, чтобы открыть карточку книги"
+                      >
+                        {book.title}
+                      </SimpleCell>
+                    ))}
+                  </Group>
+
+                  <Group>
+                    <Div>
+                      <Button stretched size="l" mode="secondary">
+                        Добавить книгу на полку
+                      </Button>
+                    </Div>
+                  </Group>
+                </Panel>
+
+                <Panel id="discover">
                   <PanelHeader>Поиск и подборки</PanelHeader>
 
                   <Group>
@@ -141,7 +176,9 @@ export default function App() {
                       ))
                     ) : (
                       <Div>
-                        <Text>По вашему запросу ничего не найдено. Попробуйте другое название.</Text>
+                        <Text>
+                          По вашему запросу ничего не найдено. Попробуйте другое название.
+                        </Text>
                       </Div>
                     )}
                   </Group>
@@ -160,7 +197,7 @@ export default function App() {
                         <Title level="2" weight="2">
                           Алина
                         </Title>
-                        <Text>24 книги за этот год</Text>
+                        <Text>24 книги за 2026 год</Text>
                       </div>
                     </Div>
                   </Group>
@@ -186,9 +223,16 @@ export default function App() {
                   <Icon28BookOutline />
                 </TabbarItem>
                 <TabbarItem
+                  label="Полка"
+                  selected={activeStory === 'library'}
+                  onClick={() => setActiveStory('library')}
+                >
+                  <Icon28CompassOutline />
+                </TabbarItem>
+                <TabbarItem
                   label="Поиск"
-                  selected={activeStory === 'catalog'}
-                  onClick={() => setActiveStory('catalog')}
+                  selected={activeStory === 'discover'}
+                  onClick={() => setActiveStory('discover')}
                 >
                   <Icon28SearchOutline />
                 </TabbarItem>
@@ -197,7 +241,7 @@ export default function App() {
                   selected={activeStory === 'profile'}
                   onClick={() => setActiveStory('profile')}
                 >
-                <Icon28UserCircleOutline />
+                  <Icon28UserCircleOutline />
                 </TabbarItem>
               </Tabbar>
             </SplitCol>
@@ -206,4 +250,4 @@ export default function App() {
       </AdaptivityProvider>
     </ConfigProvider>
   );
-}</TabbarItem>
+}
