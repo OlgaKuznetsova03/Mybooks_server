@@ -1,14 +1,15 @@
 from django.urls import path
 
-from . import views, vk_app_views, vk_views
+from . import auth_views, views, vk_app_views, vk_views
 
 app_name = "api"
 
 urlpatterns = [
-    path("auth/login/", views.MobileLoginView.as_view(), name="auth-login"),
-    path("auth/login", views.MobileLoginView.as_view()),
-    path("auth/signup/", views.MobileSignupView.as_view(), name="auth-signup"),
-    path("auth/signup", views.MobileSignupView.as_view()),
+    path("auth/register/", auth_views.AuthRegisterView.as_view(), name="auth-register"),
+    path("auth/login/", auth_views.AuthLoginView.as_view(), name="auth-login"),
+    path("auth/me/", auth_views.AuthMeView.as_view(), name="auth-me"),
+    path("auth/logout/", auth_views.AuthLogoutView.as_view(), name="auth-logout"),
+    path("auth/signup/", views.MobileSignupView.as_view(), name="auth-signup-legacy"),
     path("health/", views.HealthView.as_view(), name="health"),
     path("health", views.HealthView.as_view()),
     path("feature-map/", views.FeatureMapView.as_view(), name="feature-map"),
