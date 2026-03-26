@@ -44,19 +44,48 @@ def _get_bookshelf_payload(user, request=None, recent_limit=5):
         log_date__lt=next_month_start,
     )
 
-    month_pages = month_logs.aggregate(total=Sum("pages_equivalent"))["total"] or 0
-    month_audio_seconds = month_logs.aggregate(total=Sum("audio_seconds"))["total"] or 0
-    read_books_this_month = (
-        ShelfItem.objects.filter(
-            shelf__user=user,
-            shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES,
-            added_at__date__gte=this_month_start,
-            added_at__date__lt=next_month_start,
-        )
-        .values("book_id")
-        .distinct()
-        .count()
+    month_pages = (
+        month_logs.exclude(medium=BookProgress.FORMAT_AUDIO).aggregate(total=Sum("pages_equivalent"))["total"]
+        or 0
     )
+    month_audio_seconds = month_logs.aggregate(total=Sum("audio_seconds"))["total"] or 0
+    month_read_items = ShelfItem.objects.filter(
+        shelf__user=user,
+        shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+        added_at__date__gte=this_month_start,
+        added_at__date__lt=next_month_start,
+    )
+    read_books_this_month = month_read_items.values("book_id").distinct().count()
+
+    # Keep monthly pages in VK aligned with /accounts/statistics/:
+    # for books moved to "read" this month but without explicit reading logs,
+    # add fallback pages from book/progress metadata.
+    month_logged_book_ids = set(
+        month_logs.exclude(medium=BookProgress.FORMAT_AUDIO)
+        .values_list("progress__book_id", flat=True)
+    )
+    if month_read_items.exists():
+        progress_map = {
+            progress.book_id: progress
+            for progress in BookProgress.objects.filter(
+                user=user,
+                event__isnull=True,
+                book_id__in=month_read_items.values_list("book_id", flat=True),
+            )
+        }
+        for item in month_read_items.select_related("book"):
+            if item.book_id in month_logged_book_ids:
+                continue
+            progress = progress_map.get(item.book_id)
+            if progress and progress.is_audiobook:
+                continue
+            pages = (
+                progress.get_effective_total_pages()
+                if progress
+                else item.book.get_total_pages()
+            ) or 0
+            if pages:
+                month_pages += pages
 
     stats = {
         "books_this_month": read_books_this_month,
