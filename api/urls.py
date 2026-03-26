@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views, vk_views
+from . import views, vk_app_views, vk_views
 
 app_name = "api"
 
@@ -30,4 +30,9 @@ urlpatterns = [
     path("vk/shelf/", vk_views.VKShelfView.as_view(), name="vk-shelf"),
     path("vk/public-shelf/<int:vk_user_id>/", vk_views.VKPublicShelfView.as_view(), name="vk-public-shelf"),
     path("vk/widget/<int:vk_user_id>/", vk_views.VKWidgetView.as_view(), name="vk-widget"),
+    path("vk-app/auth/login/", vk_app_views.VKAppLoginView.as_view(), name="vk-app-login"),
+    path("vk-app/auth/register/", vk_app_views.VKAppRegisterView.as_view(), name="vk-app-register"),
+    path("vk-app/profile/", vk_app_views.VKAppProfileView.as_view(), name="vk-app-profile"),
+    path("vk-app/books/", vk_app_views.VKAppBookListCreateView.as_view(), name="vk-app-books-list"),
+    path("vk-app/books/<int:pk>/", vk_app_views.VKAppBookDetailView.as_view(), name="vk-app-books-detail"),
 ]
