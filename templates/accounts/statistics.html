@@ -792,7 +792,7 @@
     </div>
     <div class="col-12 col-xl-6">
       <div class="card border-0 shadow-sm h-100 stat-card daily-reading-card">
-
+        <div class="card-body">
           <h3 class="h6 mb-3">Чтение по дням</h3>
           {% if stats.reading_calendar.day_payloads %}
             <div class="ratio ratio-16x9 chart-container daily-reading-chart">
@@ -888,6 +888,7 @@
             </div>
           {% endwith %}
 
+          {% with calendar_books_count=stats.reading_calendar.month_totals.books_count|default_if_none:0 %}
           <div class="daily-reading-summary mt-3">
             <div class="daily-reading-summary__item">
               <div class="daily-reading-summary__value animated-number" data-target="{{ stats.pages_total|default_if_none:0|floatformat:0 }}">0</div>
@@ -901,18 +902,18 @@
                   0
                 {% endif %}
               </div>
-              <div class="card-body">
               <div class="daily-reading-summary__label">Среднее стр./день</div>
             </div>
             <div class="daily-reading-summary__item">
-              <div class="daily-reading-summary__value animated-number" data-target="{{ stats.books_count|default_if_none:0 }}">0</div>
+              <div class="daily-reading-summary__value animated-number" data-target="{{ stats.books_count|default:calendar_books_count|default_if_none:0 }}">0</div>
               <div class="daily-reading-summary__label">Прочитано книг</div>
             </div>
             <div class="daily-reading-summary__item">
               <div class="daily-reading-summary__value">{{ stats.audio_total_display|default:"—" }}</div>
-              <div class="daily-reading-summary__label">Аудио длительность</div>
+              <div class="daily-reading-summary__label">Длительность аудио</div>
             </div>
           </div>
+          {% endwith %}
 
           {% if not stats.audio_total_display and not stats.audio_tracked_display %}
             <p class="text-muted mt-3 mb-0">Нет аудиостатистики за выбранный период.</p>
