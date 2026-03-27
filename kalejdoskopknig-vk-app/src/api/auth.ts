@@ -22,7 +22,8 @@ const resolveApiOrigin = (): string => {
 };
 
 const API_ORIGIN = resolveApiOrigin();
-const API_BASE = `${API_ORIGIN}/api/v1/vk-app`;
+const VK_APP_API_BASE = `${API_ORIGIN}/api/v1/vk-app`;
+const AUTH_API_BASE = `${API_ORIGIN}/api/v1/auth`;
 
 const normalizeUser = (user: AuthUser): AuthUser => ({
   ...user,
@@ -41,52 +42,127 @@ const buildHeaders = (token?: string): HeadersInit => {
   return headers;
 };
 
+const readErrorPayload = async (response: Response): Promise<FieldErrors | { detail: string }> => {
+  const responseText = await response.text();
+
+  if (!responseText) {
+    return { detail: `HTTP ${response.status}` };
+  }
+
+  try {
+    const parsed = JSON.parse(responseText) as
+      | FieldErrors
+      | { detail?: string; errors?: FieldErrors; [key: string]: unknown };
+
+    if (parsed && typeof parsed === 'object') {
+      if ('errors' in parsed && parsed.errors && typeof parsed.errors === 'object') {
+        return parsed.errors as FieldErrors;
+      }
+
+      if ('detail' in parsed && typeof parsed.detail === 'string') {
+        return { detail: parsed.detail };
+      }
+
+      return parsed as FieldErrors;
+    }
+  } catch {
+    // non-JSON response (for example HTML 404/5xx page)
+  }
+
+  return { detail: `HTTP ${response.status}` };
+};
+
 const parseJson = async <T>(response: Response): Promise<T> => {
-  const payload = (await response.json()) as T | FieldErrors | { detail?: string };
+  const payload = (await response.json()) as T | FieldErrors | { detail?: string; errors?: FieldErrors };
 
   if (!response.ok) {
+    if (payload && typeof payload === 'object' && 'errors' in payload && payload.errors) {
+      throw payload.errors;
+    }
+
     throw payload;
   }
 
   return payload as T;
 };
 
+const postWithFallback = async <T>(
+  paths: [string, ...string[]],
+  body: object,
+): Promise<T> => {
+  let lastError: unknown;
+
+  for (const path of paths) {
+    try {
+      const response = await fetch(path, {
+        method: 'POST',
+        headers: buildHeaders(),
+        body: JSON.stringify(body),
+      });
+
+      if (response.ok) {
+        return await parseJson<T>(response);
+      }
+
+      if (response.status === 404) {
+        lastError = await readErrorPayload(response);
+        continue;
+      }
+
+      throw await readErrorPayload(response);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError;
+};
+
 export const registerRequest = async (payload: RegisterPayload): Promise<AuthResponse> => {
-  const response = await fetch(`${API_BASE}/auth/register/`, {
-    method: 'POST',
-    headers: buildHeaders(),
-    body: JSON.stringify({
+  const parsed = await postWithFallback<AuthResponse>(
+    [`${VK_APP_API_BASE}/auth/register/`, `${AUTH_API_BASE}/register/`],
+    {
       username: payload.username,
       email: payload.email,
       password: payload.password1,
       password2: payload.password2,
       roles: payload.roles,
-    }),
-  });
+    },
+  );
 
-  const parsed = await parseJson<AuthResponse>(response);
   return { ...parsed, user: normalizeUser(parsed.user) };
 };
 
 export const loginRequest = async (payload: LoginPayload): Promise<AuthResponse> => {
-  const response = await fetch(`${API_BASE}/auth/login/`, {
-    method: 'POST',
-    headers: buildHeaders(),
-    body: JSON.stringify(payload),
-  });
+  const parsed = await postWithFallback<AuthResponse>(
+    [`${VK_APP_API_BASE}/auth/login/`, `${AUTH_API_BASE}/login/`],
+    payload,
+  );
 
-  const parsed = await parseJson<AuthResponse>(response);
   return { ...parsed, user: normalizeUser(parsed.user) };
 };
 
 export const meRequest = async (token: string): Promise<AuthUser> => {
-  const response = await fetch(`${API_BASE}/profile/`, {
+  const vkProfileResponse = await fetch(`${VK_APP_API_BASE}/profile/`, {
     method: 'GET',
     headers: buildHeaders(token),
   });
 
-  const payload = await parseJson<{ profile: AuthUser }>(response);
-  return normalizeUser(payload.profile);
+  if (vkProfileResponse.ok) {
+    const payload = await parseJson<{ profile: AuthUser }>(vkProfileResponse);
+    return normalizeUser(payload.profile);
+  }
+
+  if (vkProfileResponse.status !== 404) {
+    throw await readErrorPayload(vkProfileResponse);
+  }
+
+  const fallbackMeResponse = await fetch(`${AUTH_API_BASE}/me/`, {
+    method: 'GET',
+    headers: buildHeaders(token),
+  });
+  const payload = await parseJson<AuthUser>(fallbackMeResponse);
+  return normalizeUser(payload);
 };
 
 export const logoutRequest = async (_token: string): Promise<void> => {
