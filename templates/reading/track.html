@@ -125,10 +125,10 @@
   color: #221f1c;
   border: 0;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  padding: 8px 24px;
-  font-size: 1.75rem;
-  line-height: 1;
-  font-weight: 400;
+  padding: 0.52rem 1.35rem;
+  font-size: 1.15rem;
+  line-height: 1.15;
+  font-weight: 500;
 }
 
 .reading-progress-summary,
@@ -140,19 +140,19 @@
 }
 
 #book-title {
-  font-size: 2.25rem;
-  line-height: 1.1;
-  margin-bottom: 1rem !important;
+  font-size: clamp(1.9rem, 2.6vw, 2.3rem);
+  line-height: 1.15;
+  margin-bottom: 0.85rem !important;
 }
 
 .reading-progress-summary {
-  font-size: 2rem;
-  line-height: 1.18;
+  font-size: 1.1rem;
+  line-height: 1.32;
   color: #000;
 }
 
 .reading-progress-summary .small {
-  font-size: 0.95rem !important;
+  font-size: 1.02rem !important;
   line-height: 1.35;
 }
 
@@ -176,7 +176,9 @@
   background: #d8cec2;
   box-shadow: 0 2px 2px rgba(0, 0, 0, 0.12);
   border-radius: 999px !important;
-  padding: 0.2rem 1rem !important;
+  padding: 0.35rem 1rem !important;
+  font-size: 1.02rem;
+  line-height: 1.2;
 }
 
 .stat-card--avg,
@@ -558,9 +560,13 @@
   }
 
   .reading-progress-summary {
-    font-size: 1.3rem;
+    font-size: 1rem;
   }
 
+  .reading-progress-summary .small {
+    font-size: 0.9rem !important;
+  }
+  
   .reading-progress-hero__meta,
   .reading-section,
   .modern-chart-card,
