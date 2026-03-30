@@ -125,8 +125,8 @@
   color: #221f1c;
   border: 0;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  padding: 0.52rem 1.35rem;
-  font-size: 1.15rem;
+  padding: 0.31rem 0.81rem;
+  font-size: 0.69rem;
   line-height: 1.15;
   font-weight: 500;
 }
@@ -184,8 +184,8 @@
   background: #d8cec2;
   box-shadow: 0 2px 2px rgba(0, 0, 0, 0.12);
   border-radius: 999px !important;
-  padding: 0.35rem 1rem !important;
-  font-size: 1.02rem;
+  padding: 0.21rem 0.6rem !important;
+  font-size: 0.61rem;
   line-height: 1.2;
 }
 
@@ -339,6 +339,102 @@
   padding: 1rem;
   background: var(--accordion-body-bg);
 }
+
+.reading-progress-accordion__item--ebook {
+  border-radius: 16px;
+}
+
+.reading-progress-accordion__item--ebook .reading-progress-toggle {
+  font-size: 1.9rem;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.18;
+  padding: .95rem 1rem;
+}
+
+.reading-progress-accordion__item--ebook .reading-progress-accordion__body {
+  background: #e3d6c8;
+  border-top-color: #c8b8a1;
+  padding: 1rem 1rem 1.1rem;
+}
+
+.ebook-progress-form {
+  background: #fbfbfb;
+  border: 1px solid #d3d2d2;
+  border-radius: 20px;
+  padding: 1.8rem 1.4rem 1.35rem;
+  margin-bottom: 0;
+}
+
+.ebook-progress-form .form-label {
+  color: #1e1f22;
+  font-size: 1.05rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.ebook-progress-form .form-control,
+.ebook-progress-form .input-group-text {
+  min-height: 41px;
+  border-color: #1f1f1f;
+}
+
+.ebook-progress-form .form-text {
+  font-size: .96rem;
+  line-height: 1.24;
+  color: #252422;
+}
+
+.ebook-progress-quick-actions {
+  margin-top: -4.2rem;
+  padding-left: .4rem;
+}
+
+.ebook-progress-quick-actions .quick-add-btn {
+  background: #d7c9ba;
+  border-color: #d7c9ba;
+  color: #3a3228;
+  min-width: 84px;
+}
+
+.ebook-progress-quick-actions .quick-add-btn:hover {
+  background: #cabaa8;
+  border-color: #cabaa8;
+}
+
+.ebook-progress-form .btn.btn-primary {
+  min-width: 220px;
+  border-radius: 16px;
+  font-size: 2rem;
+  line-height: 1;
+  min-height: 56px;
+}
+
+.ebook-progress-form .form-check {
+  margin-top: 0;
+}
+
+@media (max-width: 991.98px) {
+  .reading-progress-accordion__item--ebook .reading-progress-toggle,
+  .ebook-progress-form .form-label,
+  .ebook-progress-form .form-text {
+    font-size: 1rem;
+  }
+
+  .ebook-progress-form .btn.btn-primary {
+    min-width: 0;
+    width: 100%;
+    min-height: 44px;
+    font-size: 1.25rem;
+  }
+
+  .ebook-progress-quick-actions {
+    margin-top: .5rem;
+    padding-left: 0;
+  }
+}
+
+.reading-subsection { padding: var(--space-md); }
 
 .reading-subsection { padding: var(--space-md); }
 
@@ -748,17 +844,17 @@
       {% for medium in media_details %}
         {% with collapse_id='reading-progress-'|add:medium.code %}
           {% if medium.current_page is not None %}
-            <div class="reading-progress-accordion__item">
+            <div class="reading-progress-accordion__item{% if medium.code == progress.FORMAT_EBOOK %} reading-progress-accordion__item--ebook{% endif %}">
               <button class="reading-progress-toggle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ collapse_id }}" aria-expanded="false" aria-controls="{{ collapse_id }}">
                 <span>{{ medium.label }} — обновление страниц</span>
                 <span class="reading-progress-toggle__icon" aria-hidden="true"></span>
               </button>
               <div class="collapse" id="{{ collapse_id }}">
                 <div class="reading-progress-accordion__body">
-                  <form method="post" action="{% url 'shelves:reading_set_page' progress.id %}" class="row g-2 align-items-end mb-3">
+                  <form method="post" action="{% url 'shelves:reading_set_page' progress.id %}" class="row g-2 align-items-end mb-3{% if medium.code == progress.FORMAT_EBOOK %} ebook-progress-form{% endif %}">
                     {% csrf_token %}
                     <input type="hidden" name="medium" value="{{ medium.code }}">
-                    <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                    <div class="col-12 col-sm-6 col-md-4 {% if medium.code == progress.FORMAT_EBOOK %}col-lg-4{% else %}col-lg-3{% endif %}">
                       <label class="form-label mb-1" for="id_page_{{ medium.code }}">Указать страницу</label>
                       <input type="number" id="id_page_{{ medium.code }}" name="page" class="form-control"
                              min="0" {% if medium.total_pages %}max="{{ medium.total_pages }}"{% elif total_pages %}max="{{ total_pages }}"{% endif %}
@@ -768,7 +864,7 @@
                       {% endif %}
                     </div>
                     {% if medium.code == progress.FORMAT_EBOOK %}
-                      <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                      <div class="col-12 col-sm-6 col-md-4 {% if medium.code == progress.FORMAT_EBOOK %}col-lg-4{% else %}col-lg-3{% endif %}">
                         <label class="form-label mb-1" for="id_percent_{{ medium.code }}">или прогресс в %</label>
                         <div class="input-group">
                           <input type="number" id="id_percent_{{ medium.code }}" name="percent" class="form-control"
@@ -778,22 +874,22 @@
                         <div class="form-text">Мы пересчитаем в страницы автоматически.</div>
                       </div>
                     {% endif %}
-                    <div class="col-12 col-md-6 col-lg-5">
+                    <div class="col-12 {% if medium.code == progress.FORMAT_EBOOK %}col-md-8 col-lg-7{% else %}col-md-6 col-lg-5{% endif %}">
                       <label class="form-label mb-1" for="id_reaction_{{ medium.code }}">Реакция на момент</label>
                       <textarea id="id_reaction_{{ medium.code }}" name="reaction" rows="2" class="form-control"
                                 placeholder="Что удивило, вдохновило или зацепило на этой странице?"></textarea>
                     </div>
-                    <div class="col-12 col-md-3 col-lg-2">
-                      <div class="form-check mt-md-4 pt-2">
+                    <div class="col-12 {% if medium.code == progress.FORMAT_EBOOK %}col-sm-6 col-md-4 col-lg-3{% else %}col-md-3 col-lg-2{% endif %}">
+                      <div class="form-check {% if medium.code == progress.FORMAT_EBOOK %}mt-md-2{% else %}mt-md-4{% endif %} pt-2">
                         <input class="form-check-input" type="checkbox" id="id_public_{{ medium.code }}" name="is_public">
                         <label class="form-check-label" for="id_public_{{ medium.code }}">Показать в ленте</label>
                       </div>
                     </div>
-                    <div class="col-12 col-sm-auto">
+                    <div class="col-12 {% if medium.code == progress.FORMAT_EBOOK %}col-sm-6 col-md-4 col-lg-3{% else %}col-sm-auto{% endif %}">
                       <button type="submit" class="btn btn-primary px-4">Сохранить</button>
                     </div>
                   </form>
-                  <div class="d-flex flex-wrap gap-2">
+                  <div class="d-flex flex-wrap gap-2{% if medium.code == progress.FORMAT_EBOOK %} ebook-progress-quick-actions{% endif %}">
                     <form method="post" action="{% url 'shelves:reading_increment' progress.id 5 %}">
                       {% csrf_token %}
                       <input type="hidden" name="medium" value="{{ medium.code }}">
