@@ -56,35 +56,46 @@
 }
 
 .reading-progress-backdrop {
-  background: linear-gradient(180deg, #faf6ef 0%, #fffdf9 42%);
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--border-color);
-  padding: var(--space-xl);
-  box-shadow: var(--shadow-md);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  display: flex;
+  justify-content: center;
 }
 
 .reading-progress-hero {
-  display: grid;
-  gap: var(--space-lg);
-  align-items: stretch;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(1172px, 100%);
+  min-height: 270px;
+  padding: 0 10px;
+  border-radius: 16px;
+  border: 1px solid #c6c6c8;
+  background: #fff;
+  box-shadow: 0 4px 4px 0 #e3d6c8;
 }
 
 .reading-progress-hero__cover {
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
-  background: var(--bg-card);
-  box-shadow: var(--shadow-sm);
-  padding: .9rem;
-  min-height: 224px;
+  border-radius: 10px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  flex: 0 0 154px;
+  height: 230px;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 .reading-cover-image {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   opacity: 0;
   transition: opacity .35s ease;
 }
@@ -95,26 +106,29 @@
 }
 
 .reading-progress-hero__meta {
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
-  background: var(--bg-card);
-  padding: var(--space-lg);
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  padding: 0 0 0 18px;
+  flex: 1 1 auto;
 }
 
 .reading-progress-pills {
   display: flex;
   flex-wrap: wrap;
-  gap: .5rem;
+  gap: 10px;
 }
 
 .reading-progress-pill {
   border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  border: 1px solid #ddcfb7;
-  padding: .3rem .8rem;
-  font-size: .82rem;
-  font-weight: 600;
+  background: #d8cec2;
+  color: #221f1c;
+  border: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  padding: 8px 24px;
+  font-size: 1.75rem;
+  line-height: 1;
+  font-weight: 400;
 }
 
 .reading-progress-summary,
@@ -125,10 +139,27 @@
   color: var(--text-muted);
 }
 
+#book-title {
+  font-size: 2.25rem;
+  line-height: 1.1;
+  margin-bottom: 1rem !important;
+}
+
+.reading-progress-summary {
+  font-size: 2rem;
+  line-height: 1.18;
+  color: #000;
+}
+
+.reading-progress-summary .small {
+  font-size: 0.95rem !important;
+  line-height: 1.35;
+}
+
 .reading-progress-meter {
-  height: 12px;
+  height: 6px;
   border-radius: 999px;
-  background: #e6dccb;
+  background: rgba(216, 206, 194, 0.8);
   overflow: hidden;
 }
 
@@ -140,12 +171,16 @@
 }
 
 .stat-card {
-  border: 1px solid var(--border-color);
+  border: 0;
   color: var(--text-main);
+  background: #d8cec2;
+  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.12);
+  border-radius: 999px !important;
+  padding: 0.2rem 1rem !important;
 }
 
-.stat-card--avg { background: var(--success-soft); }
-.stat-card--eta { background: var(--info-soft); }
+.stat-card--avg,
+.stat-card--eta { background: #d8cec2; }
 
 .reading-format-mobile__buttons {
   display: grid;
@@ -477,15 +512,14 @@
 .reading-section-list { display: block; }
 
 @media (min-width: 768px) {
-  .reading-progress-hero {
-    grid-template-columns: minmax(192px, 220px) 1fr;
-  }
-
   .mobile-accordion-section { display: none; }
 }
 
 @media (max-width: 991.98px) {
-  .reading-progress-backdrop { padding: var(--space-lg); }
+  .reading-progress-hero {
+    min-height: 240px;
+  }
+
   .modern-chart-container,
   .reading-chart-card__canvas { min-height: 220px; }
 }
@@ -497,14 +531,34 @@
   }
 
   .reading-progress-backdrop {
-    border-radius: 16px;
+    padding: 0;
+  }
+
+  .reading-progress-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    min-height: auto;
     padding: var(--space-md);
   }
 
   .reading-progress-hero__cover {
     min-height: 172px;
-    width: min(72vw, 220px);
+    width: min(72vw, 160px);
+    height: auto;
     margin-inline: auto;
+  }
+
+  #book-title {
+    font-size: 1.6rem;
+  }
+
+  .reading-progress-pill {
+    font-size: 1rem;
+    padding: 0.45rem 0.9rem;
+  }
+
+  .reading-progress-summary {
+    font-size: 1.3rem;
   }
 
   .reading-progress-hero__meta,
