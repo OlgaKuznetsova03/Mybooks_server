@@ -140,20 +140,28 @@
 }
 
 #book-title {
-  font-size: clamp(1.9rem, 2.6vw, 2.3rem);
-  line-height: 1.15;
+  color: #000;
+  font-family: Inter, sans-serif;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 900;
+  line-height: var(--Static-Body-Large-Line-Height, 24px);
+  letter-spacing: var(--Static-Body-Large-Tracking, 0.5px);
   margin-bottom: 0.85rem !important;
 }
 
 .reading-progress-summary {
-  font-size: 1.1rem;
-  line-height: 1.32;
   color: #000;
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
 }
 
 .reading-progress-summary .small {
-  font-size: 1.02rem !important;
-  line-height: 1.35;
+  font-size: 14px !important;
+  line-height: normal;
 }
 
 .reading-progress-meter {
@@ -551,7 +559,8 @@
   }
 
   #book-title {
-    font-size: 1.6rem;
+    font-size: 20px;
+    line-height: var(--Static-Body-Large-Line-Height, 24px);
   }
 
   .reading-progress-pill {
@@ -560,11 +569,11 @@
   }
 
   .reading-progress-summary {
-    font-size: 1rem;
+    font-size: 14px;
   }
 
   .reading-progress-summary .small {
-    font-size: 0.9rem !important;
+    font-size: 14px !important;
   }
   
   .reading-progress-hero__meta,
