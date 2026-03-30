@@ -11,6 +11,9 @@
   <!-- Bootstrap + Icons (CDN) -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css?v={{ STATIC_VERSION }}" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css?v={{ STATIC_VERSION }}" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
   {% if not user.profile.has_active_premium %}
     <script src="https://yandex.ru/ads/system/context.js" async></script>
   {% endif %}
@@ -104,99 +107,99 @@
   </style>
   {% endblock %}
 
-  <!-- Глобальная тема кнопок «как в шапке» -->
+  <!-- Шапка в стиле Figma: шрифты, цвета и кнопки -->
   <style>
     :root{
-      /* оттенки «жанровых» чипов */
-      --rt-chip-text: #111;     /* почти чёрный текст для контраста */
-      --rt-chip-bg:   #f1dfcc;  /* основной фон */
-      --rt-chip-bg-h: #ead2bd;  /* hover */
-      --rt-chip-bg-a: #e3c6ad;  /* active */
-      --rt-chip-br:   #d7b89a;  /* тонкая рамка */
-      --rt-focus:     201,135,91; /* фокусная подсветка */
+      --rt-font-base: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      --rt-font-brand: "Manrope", "Inter", "Segoe UI", system-ui, sans-serif;
+      --rt-header-bg: #f5ecdf;
+      --rt-header-border: #e4d1bd;
+      --rt-header-link: #3e2f22;
+      --rt-header-link-hover: #2d2015;
+      --rt-header-btn-bg: #ead3bd;
+      --rt-header-btn-hover: #e1c3a6;
+      --rt-header-btn-active: #d8b18e;
+      --rt-header-btn-border: #c8966c;
+      --rt-header-btn-text: #2f1f12;
+      --rt-header-ring: 200, 150, 110;
     }
+
     [data-bs-theme="dark"]{
-      /* в тёмной теме чуть темнее фон, но стиль тот же */
-      --rt-chip-text:#111;
-      --rt-chip-bg:#e8d7c5;
-      --rt-chip-bg-h:#e0cbb6;
-      --rt-chip-bg-a:#d9bea6;
-      --rt-chip-br:#caa985;
+      --rt-header-bg: #1b2624;
+      --rt-header-border: rgba(248, 215, 148, .25);
+      --rt-header-link: #f3d8ad;
+      --rt-header-link-hover: #ffe8c0;
+      --rt-header-btn-bg: #f8d794;
+      --rt-header-btn-hover: #ebc67d;
+      --rt-header-btn-active: #d7ae67;
+      --rt-header-btn-border: #c3924c;
+      --rt-header-btn-text: #1a1711;
+      --rt-header-ring: 248, 215, 148;
     }
 
-    /* База для всех .btn: превращаем в бежевые «пилюли» */
-    .btn{
-      --bs-btn-font-weight: 600;
-      --bs-btn-padding-y: .475rem;
-      --bs-btn-padding-x: .9rem;
+    body,
+    .form-control,
+    .btn,
+    .nav-link { font-family: var(--rt-font-base); }
+
+    .navbar-brand {
+      font-family: var(--rt-font-brand);
+      letter-spacing: .01em;
+      font-weight: 800 !important;
+      color: var(--rt-header-link);
+    }
+
+    .navbar.bg-body {
+      background: var(--rt-header-bg) !important;
+      border-color: var(--rt-header-border) !important;
+      box-shadow: 0 8px 20px rgba(28, 21, 14, .06);
+    }
+
+    .navbar .nav-link {
+      color: var(--rt-header-link);
+      font-weight: 600;
+      border-radius: 999px;
+      padding: .4rem .75rem;
+    }
+
+    .navbar .nav-link:hover,
+    .navbar .nav-link:focus-visible {
+      color: var(--rt-header-link-hover);
+      background: rgba(201, 135, 91, .12);
+    }
+
+    .rt-header-btn,
+    .rt-header-btn.btn,
+    .offcanvas .rt-header-btn {
+      --bs-btn-font-weight: 700;
+      --bs-btn-padding-y: .46rem;
+      --bs-btn-padding-x: .95rem;
       --bs-btn-border-radius: 999px;
-
-      --bs-btn-color: var(--rt-chip-text);
-      --bs-btn-bg: var(--rt-chip-bg);
-      --bs-btn-border-color: var(--rt-chip-br);
-
-      --bs-btn-hover-color: var(--rt-chip-text);
-      --bs-btn-hover-bg: var(--rt-chip-bg-h);
-      --bs-btn-hover-border-color: var(--rt-chip-br);
-
-      --bs-btn-active-color: var(--rt-chip-text);
-      --bs-btn-active-bg: var(--rt-chip-bg-a);
-      --bs-btn-active-border-color: var(--rt-chip-br);
-
-      --bs-btn-disabled-color: rgba(0,0,0,.55);
-      --bs-btn-disabled-bg: #f5e8da;
-      --bs-btn-disabled-border-color: #ead8c7;
-
-      --bs-btn-focus-shadow-rgb: var(--rt-focus);
+      --bs-btn-color: var(--rt-header-btn-text);
+      --bs-btn-bg: var(--rt-header-btn-bg);
+      --bs-btn-border-color: var(--rt-header-btn-border);
+      --bs-btn-hover-color: var(--rt-header-btn-text);
+      --bs-btn-hover-bg: var(--rt-header-btn-hover);
+      --bs-btn-hover-border-color: var(--rt-header-btn-border);
+      --bs-btn-active-color: var(--rt-header-btn-text);
+      --bs-btn-active-bg: var(--rt-header-btn-active);
+      --bs-btn-active-border-color: var(--rt-header-btn-border);
+      --bs-btn-focus-shadow-rgb: var(--rt-header-ring);
       box-shadow: none;
     }
-    .btn:focus{ box-shadow: 0 0 0 .2rem rgba(var(--rt-focus), .25); }
 
-    /* Любые цветовые вариации Bootstrap выглядят одинаково как «чипы» */
-    .btn-primary,
-    .btn-secondary,
-    .btn-success,
-    .btn-danger,
-    .btn-warning,
-    .btn-info,
-    .btn-light,
-    .btn-dark,
-    .btn-outline-primary,
-    .btn-outline-secondary,
-    .btn-outline-success,
-    .btn-outline-danger,
-    .btn-outline-warning,
-    .btn-outline-info,
-    .btn-outline-light,
-    .btn-outline-dark{
-      --bs-btn-color: var(--rt-chip-text);
-      --bs-btn-bg: var(--rt-chip-bg);
-      --bs-btn-border-color: var(--rt-chip-br);
-      --bs-btn-hover-color: var(--rt-chip-text);
-      --bs-btn-hover-bg: var(--rt-chip-bg-h);
-      --bs-btn-hover-border-color: var(--rt-chip-br);
-      --bs-btn-active-color: var(--rt-chip-text);
-      --bs-btn-active-bg: var(--rt-chip-bg-a);
-      --bs-btn-active-border-color: var(--rt-chip-br);
+    .rt-header-btn:focus-visible {
+      box-shadow: 0 0 0 .2rem rgba(var(--rt-header-ring), .28);
     }
 
-    /* Кнопки-ссылки */
-    .btn-link{
-      color: var(--rt-chip-text) !important;
-      text-decoration: none;
-      background: var(--rt-chip-bg);
-      border: 1px solid var(--rt-chip-br);
-      border-radius: 999px;
-      padding: .45rem .85rem;
-      font-weight: 600;
+    .rt-header-btn--ghost {
+      --bs-btn-bg: transparent;
+      --bs-btn-hover-bg: rgba(201, 135, 91, .14);
+      --bs-btn-active-bg: rgba(201, 135, 91, .2);
     }
-    .btn-link:hover{ background: var(--rt-chip-bg-h); color: var(--rt-chip-text) !important; }
 
-    /* Компактная версия */
-    .btn-sm{
-      --bs-btn-padding-y: .35rem;
-      --bs-btn-padding-x: .65rem;
-    }
+    .offcanvas { background: var(--bs-body-bg); color: var(--bs-body-color); }
+    .offcanvas .nav-link { font-size: 1rem; }
   </style>
 
   <!-- Брендовые стили проекта -->
@@ -214,7 +217,7 @@
   <div class="container align-items-center">
 
     <!-- Гамбургер (всегда виден) -->
-    <button class="btn btn-outline-secondary me-2"
+    <button class="btn rt-header-btn rt-header-btn--ghost me-2"
             type="button"
             data-bs-toggle="offcanvas"
             data-bs-target="#mainOffcanvas"
@@ -246,12 +249,12 @@
     <!-- Поиск (десктоп) -->
     <form class="d-none d-lg-flex me-3" method="get" action="{% url 'book_list' %}">
       <input class="form-control me-2" name="q" value="{{ q|default:'' }}" placeholder="Название, автор, жанр">
-      <button class="btn" type="submit"><i class="bi bi-search"></i></button>
+      <button class="btn rt-header-btn rt-header-btn--ghost" type="submit"><i class="bi bi-search"></i></button>
     </form>
 
       {% with notifications=collaboration_notifications %}
       <a
-        class="btn btn-outline-secondary me-2 position-relative"
+        class="btn rt-header-btn rt-header-btn--ghost me-2 position-relative"
         href="{% url 'collaborations:collaboration_notifications' %}"
         aria-label="Уведомления сотрудничества"
       >
@@ -268,13 +271,13 @@
     <!-- Аккаунт (десктоп) -->
     <div class="d-none d-lg-flex align-items-center">
       {% if request.user.is_authenticated %}
-        <a class="btn btn-outline-secondary me-2" href="{% url 'profile' request.user.username %}">
+        <a class="btn rt-header-btn me-2" href="{% url 'profile' request.user.username %}">
           <i class="bi bi-person-circle me-1"></i>{{ request.user.username }}
         </a>
-        <a class="btn btn-outline-danger" href="{% url 'logout' %}">Выйти</a>
+        <a class="btn rt-header-btn" href="{% url 'logout' %}">Выйти</a>
       {% else %}
-        <a class="btn btn-outline-primary me-2" href="{% url 'login' %}">Войти</a>
-        <a class="btn" href="{% url 'signup' %}">Регистрация</a>
+        <a class="btn rt-header-btn me-2" href="{% url 'login' %}">Войти</a>
+        <a class="btn rt-header-btn" href="{% url 'signup' %}">Регистрация</a>
       {% endif %}
     </div>
   </div>
@@ -285,7 +288,7 @@
   <div class="offcanvas-header">
     <form class="d-flex" method="get" action="{% url 'book_list' %}">
       <input class="form-control me-2" name="q" value="{{ q|default:'' }}" placeholder="Название, автор, жанр">
-      <button class="btn" type="submit"><i class="bi bi-search"></i></button>
+      <button class="btn rt-header-btn rt-header-btn--ghost" type="submit"><i class="bi bi-search"></i></button>
     </form>
     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Закрыть"></button>
   </div>
@@ -293,7 +296,7 @@
 
     {% if request.user.is_authenticated %}
       <a
-        class="btn btn-outline-secondary d-flex align-items-center justify-content-center gap-2"
+        class="btn rt-header-btn d-flex align-items-center justify-content-center gap-2"
         href="{% url 'profile' request.user.username %}"
       >
         <i class="bi bi-person-circle"></i>
@@ -302,7 +305,7 @@
     {% endif %}
 
     <a
-      class="offcanvas-title btn btn-primary d-flex align-items-center justify-content-center gap-2"
+      class="offcanvas-title btn rt-header-btn d-flex align-items-center justify-content-center gap-2"
       id="mainOffcanvasLabel"
       href="{% url 'book_create' %}"
     >
@@ -394,16 +397,16 @@
     <!-- Аккаунт -->
     <div class="d-grid gap-2">
       {% if request.user.is_authenticated %}
-        <a class="btn btn-outline-danger d-flex align-items-center justify-content-center gap-2" href="{% url 'logout' %}">
+        <a class="btn rt-header-btn d-flex align-items-center justify-content-center gap-2" href="{% url 'logout' %}">
           <i class="bi bi-box-arrow-right"></i>
           <span>Выйти</span>
         </a>
       {% else %}
-        <a class="btn btn-outline-primary d-flex align-items-center justify-content-center gap-2" href="{% url 'login' %}">
+        <a class="btn rt-header-btn d-flex align-items-center justify-content-center gap-2" href="{% url 'login' %}">
           <i class="bi bi-box-arrow-in-right"></i>
           <span>Войти</span>
         </a>
-        <a class="btn d-flex align-items-center justify-content-center gap-2" href="{% url 'signup' %}">
+        <a class="btn rt-header-btn d-flex align-items-center justify-content-center gap-2" href="{% url 'signup' %}">
           <i class="bi bi-pencil-square"></i>
           <span>Регистрация</span>
         </a>
@@ -412,11 +415,6 @@
   </div>
 </div>
 
-<!-- Небольшая подстройка цветов Offcanvas -->
-<style>
-  .offcanvas { background: var(--bs-body-bg); color: var(--bs-body-color); }
-  .offcanvas .nav-link { font-size: 1rem; }
-</style>
 
 <!-- Надёжный переход по ссылкам из offcanvas -->
 <script>
