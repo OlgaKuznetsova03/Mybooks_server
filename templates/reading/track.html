@@ -159,6 +159,19 @@
   line-height: normal;
 }
 
+.reading-progress-summary__headline {
+  display: inline-flex;
+  align-items: baseline;
+  gap: .4rem;
+  margin-bottom: .35rem;
+}
+
+.reading-progress-summary__percent {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
 .reading-progress-summary .small {
   font-size: 14px !important;
   line-height: normal;
@@ -351,7 +364,7 @@
 }
 
 .reading-progress-accordion__item--ebook .reading-progress-toggle {
-  font-size: 20px;
+  font-size: 16px;
   font-style: italic;
   font-weight: 500;
   line-height: 1.18;
@@ -419,8 +432,6 @@
     justify-content: center;
   }
 }
-
-.reading-subsection { padding: var(--space-md); }
 
 .reading-subsection { padding: var(--space-md); }
 
@@ -778,11 +789,9 @@
         </div>
         
         <div class="reading-progress-summary mb-3">
-          <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="reading-progress-summary__headline">
             <span class="fw-semibold">Прогресс:</span>
-            <span class="fs-3 fw-bold animated-number" id="progress-percent">
-              {{ progress.percent|floatformat:-2 }}%
-            </span>
+            <span class="reading-progress-summary__percent animated-number" id="progress-percent">{{ progress.percent|floatformat:-2 }}%</span>
           </div>
           
           {% for medium in media_details %}
@@ -793,6 +802,9 @@
                 {% if medium.total_pages %}из {{ medium.total_pages }}{% endif %}
               {% elif medium.audio_position %}
                 прослушано {{ medium.audio_position }} · скорость {{ medium.audio_speed }}×
+              {% endif %}
+              {% if medium.equivalent_pages is not None %}
+                · эквивалент <strong>{{ medium.equivalent_pages|floatformat:-2 }}</strong> стр.
               {% endif %}
             </div>
           {% endfor %}
@@ -850,6 +862,16 @@
                                  min="0" {% if medium.total_pages %}max="{{ medium.total_pages }}"{% elif total_pages %}max="{{ total_pages }}"{% endif %}
                                  value="{{ medium.current_page|default:0 }}">
                           <span class="text-muted">из {{ medium.total_pages|default:total_pages }}</span>
+                        </div>
+                      </div>
+                      
+                      <div class="mb-3">
+                        <label class="form-label fw-semibold" for="id_percent_{{ medium.code }}">Или укажите процент:</label>
+                        <div class="d-flex gap-2 align-items-center flex-wrap">
+                          <input type="number" id="id_percent_{{ medium.code }}" name="percent" class="form-control" style="width: 120px"
+                                 min="0" max="100" step="0.1"
+                                 value="{% if medium.total_pages and medium.current_page is not None %}{% widthratio medium.current_page medium.total_pages 100 %}{% else %}{{ progress.percent|floatformat:-2 }}{% endif %}">
+                          <span class="text-muted">%</span>
                         </div>
                       </div>
                     
@@ -1206,10 +1228,6 @@
       {% endwith %}
     </div>
   </section>
-
-  <!-- Остальные секции остаются без изменений в структуре, но с добавленными классами анимации -->
-  <!-- Для экономии места оставлю остальные секции как есть, они уже имеют классы анимации -->
-  
 
   <section class="reading-section">
     <div class="reading-section__header">
@@ -1569,8 +1587,6 @@
       <p class="text-muted mb-0">Пока нет записей о прочитанных страницах.</p>
     {% endif %}
   </section>
-  <!-- Остальные секции (герои, цитаты, заметки) остаются без изменений -->
-  <!-- Для экономии места я их опущу, но они должны быть в вашем оригинальном файле -->
   <section class="reading-section">
     <div class="reading-section__header">
       <h2 class="reading-section__title">Герои книги</h2>
