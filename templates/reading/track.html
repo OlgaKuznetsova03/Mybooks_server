@@ -977,78 +977,85 @@
       {% for medium in media_details %}
         {% with collapse_id='reading-progress-'|add:medium.code %}
           {% if medium.code == progress.FORMAT_EBOOK or medium.code == progress.FORMAT_PAPER %}
-            <div class="reading-progress-accordion__item{% if medium.code == progress.FORMAT_EBOOK or medium.code == progress.FORMAT_PAPER %} reading-progress-accordion__item--ebook{% endif %}">
-              <button class="reading-progress-toggle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ collapse_id }}" aria-expanded="false" aria-controls="{{ collapse_id }}">
-                <span>{{ medium.label }} — обновление страниц</span>
-                <span class="reading-progress-toggle__icon" aria-hidden="true"></span>
-              </button>
-              <div class="collapse" id="{{ collapse_id }}">
-                <div class="reading-progress-accordion__body">
-                  <form method="post" action="{% url 'shelves:reading_set_page' progress.id %}" class="ebook-progress-form">
+          <div class="reading-progress-accordion__item{% if medium.code == progress.FORMAT_EBOOK or medium.code == progress.FORMAT_PAPER %} reading-progress-accordion__item--ebook{% endif %}">
+            <button class="reading-progress-toggle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ collapse_id }}" aria-expanded="false" aria-controls="{{ collapse_id }}">
+              <span>{{ medium.label }} — обновление страниц</span>
+              <span class="reading-progress-toggle__icon" aria-hidden="true"></span>
+            </button>
+            <div class="collapse" id="{{ collapse_id }}">
+              <div class="reading-progress-accordion__body">
+                <!-- ОСНОВНАЯ ФОРМА для сохранения страницы/процента -->
+                <form method="post" action="{% url 'shelves:reading_set_page' progress.id %}" class="ebook-progress-form" id="main-form-{{ medium.code }}">
+                  {% csrf_token %}
+                  <input type="hidden" name="medium" value="{{ medium.code }}">
+
+                  <!-- ВСЕ В ОДНОЙ СТРОКЕ НА ДЕСКТОПЕ -->
+                  <div class="form-inline-row">
+                    <!-- Поле Укажите страницу -->
+                    <div class="form-field">
+                      <label class="form-label fw-semibold" for="id_page_{{ medium.code }}">Укажите страницу:</label>
+                      <div class="d-flex gap-2 align-items-center">
+                        <input type="number" id="id_page_{{ medium.code }}" name="page" class="form-control" style="width: 100px"
+                               min="0" {% if medium.total_pages %}max="{{ medium.total_pages }}"{% elif total_pages %}max="{{ total_pages }}"{% endif %}
+                               value="{{ medium.current_page|default:0 }}">
+                        <span class="text-muted">из {{ medium.total_pages|default:total_pages }}</span>
+                      </div>
+                    </div>
+
+                    <!-- Поле Или укажите процент -->
+                    <div class="form-field">
+                      <label class="form-label fw-semibold" for="id_percent_{{ medium.code }}">Или укажите процент:</label>
+                      <div class="d-flex gap-2 align-items-center">
+                        <input type="number" id="id_percent_{{ medium.code }}" name="percent" class="form-control" style="width: 100px"
+                               min="0" max="100" step="0.1"
+                               value="{% if medium.total_pages and medium.current_page is not None %}{% widthratio medium.current_page medium.total_pages 100 %}{% else %}{{ progress.percent|floatformat:-2 }}{% endif %}">
+                        <span class="text-muted">%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label" for="id_reaction_{{ medium.code }}">Реакция на момент:</label>
+                    <textarea id="id_reaction_{{ medium.code }}" name="reaction" rows="2" class="form-control"
+                    placeholder="Что удивило, вдохновило или зацепило?"></textarea>
+                  </div>
+
+                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="is_public" id="id_public_{{ medium.code }}">
+                      <label class="form-check-label" for="id_public_{{ medium.code }}">Добавить в ленту</label>
+                    </div>
+                    <button type="submit" class="btn btn-dark px-4 rounded-pill">Сохранить</button>
+                  </div>
+                </form>
+
+                <!-- КНОПКИ БЫСТРОГО ДОБАВЛЕНИЯ - ВНЕ основной формы -->
+                <div class="quick-actions-row mt-3">
+                  <form method="post" action="{% url 'shelves:reading_increment' progress.id 5 %}" style="display: inline;" 
+                        onsubmit="return prepareQuickIncrement(this, '{{ medium.code }}', 5);">
                     {% csrf_token %}
                     <input type="hidden" name="medium" value="{{ medium.code }}">
-
-                    <!-- ВСЕ В ОДНОЙ СТРОКЕ НА ДЕСКТОПЕ -->
-                    <div class="form-inline-row">
-                      <!-- Поле Укажите страницу -->
-                      <div class="form-field">
-                        <label class="form-label fw-semibold" for="id_page_{{ medium.code }}">Укажите страницу:</label>
-                        <div class="d-flex gap-2 align-items-center">
-                          <input type="number" id="id_page_{{ medium.code }}" name="page" class="form-control" style="width: 100px"
-                                 min="0" {% if medium.total_pages %}max="{{ medium.total_pages }}"{% elif total_pages %}max="{{ total_pages }}"{% endif %}
-                                 value="{{ medium.current_page|default:0 }}">
-                          <span class="text-muted">из {{ medium.total_pages|default:total_pages }}</span>
-                        </div>
-                      </div>
-
-                      <!-- Кнопки +5, +10, +25 - теперь они рядом с полем ввода -->
-                      <div class="quick-actions-row">
-                        <form method="post" action="{% url 'shelves:reading_increment' progress.id 5 %}" style="display: inline;">
-                          {% csrf_token %}
-                          <input type="hidden" name="medium" value="{{ medium.code }}">
-                          <button type="submit" class="quick-add-btn">+5</button>
-                        </form>
-                        <form method="post" action="{% url 'shelves:reading_increment' progress.id 10 %}" style="display: inline;">
-                          {% csrf_token %}
-                          <input type="hidden" name="medium" value="{{ medium.code }}">
-                          <button type="submit" class="quick-add-btn">+10</button>
-                        </form>
-                        <form method="post" action="{% url 'shelves:reading_increment' progress.id 25 %}" style="display: inline;">
-                          {% csrf_token %}
-                          <input type="hidden" name="medium" value="{{ medium.code }}">
-                          <button type="submit" class="quick-add-btn">+25</button>
-                        </form>
-                      </div>
-
-                      <!-- Поле Или укажите процент -->
-                      <div class="form-field">
-                        <label class="form-label fw-semibold" for="id_percent_{{ medium.code }}">Или укажите процент:</label>
-                        <div class="d-flex gap-2 align-items-center">
-                          <input type="number" id="id_percent_{{ medium.code }}" name="percent" class="form-control" style="width: 100px"
-                                 min="0" max="100" step="0.1"
-                                 value="{% if medium.total_pages and medium.current_page is not None %}{% widthratio medium.current_page medium.total_pages 100 %}{% else %}{{ progress.percent|floatformat:-2 }}{% endif %}">
-                          <span class="text-muted">%</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="mb-3">
-                      <label class="form-label" for="id_reaction_{{ medium.code }}">Реакция на момент:</label>
-                      <textarea id="id_reaction_{{ medium.code }}" name="reaction" rows="2" class="form-control"
-                                placeholder="Что удивило, вдохновило или зацепило?"></textarea>
-                    </div>
-
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                      <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="is_public" id="id_public_{{ medium.code }}">
-                        <label class="form-check-label" for="id_public_{{ medium.code }}">Добавить в ленту</label>
-                      </div>
-                      <button type="submit" class="btn btn-dark px-4 rounded-pill">Сохранить</button>
-                    </div>
+                    <input type="hidden" name="page" id="quick_page_{{ medium.code }}">
+                    <button type="submit" class="quick-add-btn">+5</button>
+                  </form>
+                  <form method="post" action="{% url 'shelves:reading_increment' progress.id 10 %}" style="display: inline;"
+                        onsubmit="return prepareQuickIncrement(this, '{{ medium.code }}', 10);">
+                    {% csrf_token %}
+                    <input type="hidden" name="medium" value="{{ medium.code }}">
+                    <input type="hidden" name="page" id="quick_page_{{ medium.code }}_10">
+                    <button type="submit" class="quick-add-btn">+10</button>
+                  </form>
+                  <form method="post" action="{% url 'shelves:reading_increment' progress.id 25 %}" style="display: inline;"
+                        onsubmit="return prepareQuickIncrement(this, '{{ medium.code }}', 25);">
+                    {% csrf_token %}
+                    <input type="hidden" name="medium" value="{{ medium.code }}">
+                    <input type="hidden" name="page" id="quick_page_{{ medium.code }}_25">
+                    <button type="submit" class="quick-add-btn">+25</button>
                   </form>
                 </div>
               </div>
-              </div>
+            </div>
+          </div>
           {% elif medium.code == progress.FORMAT_AUDIO %}
             <div class="reading-progress-accordion__item">
               <button class="reading-progress-toggle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ collapse_id }}" aria-expanded="false" aria-controls="{{ collapse_id }}">
