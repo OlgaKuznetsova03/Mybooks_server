@@ -381,8 +381,24 @@
   border-color: #D4C9B8;
 }
 
-.ebook-progress-form .btn.btn-dark {
+.ebook-progress-form .btn-dark,
+.paper-progress-form .btn-dark,
+.audio-figma-card .btn-dark {
+  background: var(--accent);
+  border-color: var(--accent);
   border-radius: 999px;
+  padding: 0.62rem 1.38rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.ebook-progress-form .btn-dark:hover,
+.paper-progress-form .btn-dark:hover,
+.audio-figma-card .btn-dark:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .quick-actions-row {
@@ -660,26 +676,6 @@
   margin-top: 4px;
 }
 
-.btn-audio-save {
-  background: #6f42c1;
-  border: 1px solid #6f42c1;
-  border-radius: 40px;
-  padding: 12px 28px;
-  font-weight: 600;
-  color: white;
-  transition: 0.2s;
-  font-size: 0.9rem;
-  letter-spacing: 0.3px;
-  min-width: 230px;
-}
-
-.btn-audio-save:hover {
-  background: #5f35a7;
-  border-color: #5f35a7;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
 .audio-save-row {
   display: flex;
   justify-content: flex-end;
@@ -770,7 +766,7 @@
     justify-content: stretch;
   }
   
-  .btn-audio-save {
+  .audio-save-row .btn-dark {
     width: 100%;
     min-width: 0;
   }
@@ -1120,10 +1116,10 @@
                         </div>
                         </div>
                       <div class="audio-save-row">
-                        <button type="submit" class="btn-audio-save">Сохранить</button>
+                        <button type="submit" class="btn btn-dark rounded-pill px-4">Сохранить</button>
                       </div>
                     </form>
-                    <div class="quick-actions-row">
+                    <div class="quick-actions-row mt-3">
                       <form method="post" action="{% url 'shelves:reading_increment' progress.id 5 %}" style="display: inline;">
                         {% csrf_token %}
                         <input type="hidden" name="medium" value="{{ medium.code }}">
