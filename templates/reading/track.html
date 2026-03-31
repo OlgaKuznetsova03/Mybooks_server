@@ -661,8 +661,8 @@
 }
 
 .btn-audio-save {
-  background: #2C2C2C;
-  border: none;
+  background: #6f42c1;
+  border: 1px solid #6f42c1;
   border-radius: 40px;
   padding: 12px 28px;
   font-weight: 600;
@@ -670,13 +670,20 @@
   transition: 0.2s;
   font-size: 0.9rem;
   letter-spacing: 0.3px;
-  width: 100%;
+  min-width: 230px;
 }
 
 .btn-audio-save:hover {
-  background: #1f1f1f;
+  background: #5f35a7;
+  border-color: #5f35a7;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.audio-save-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
 }
 
 .reading-section-table,
@@ -759,8 +766,13 @@
     gap: 16px;
   }
 
+  .audio-save-row {
+    justify-content: stretch;
+  }
+  
   .btn-audio-save {
     width: 100%;
+    min-width: 0;
   }
 
   .stat-card {
@@ -1106,9 +1118,9 @@
                           <input type="text" id="id_duration_{{ medium.code }}" name="duration" class="form-control" placeholder="00:30:00" value="">
                           <div class="form-text-hint">Мы пересчитаем в стр. автоматически</div>
                         </div>
-                        <div class="audio-field-group">
-                          <button type="submit" class="btn-audio-save">Сохранить</button>
                         </div>
+                      <div class="audio-save-row">
+                        <button type="submit" class="btn-audio-save">Сохранить</button>
                       </div>
                     </form>
                     <div class="quick-actions-row">
