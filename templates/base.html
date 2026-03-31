@@ -344,6 +344,12 @@
       background: rgba(108, 65, 33, 0.1) !important;
       color: #6C4121 !important;
     }
+
+    .rt-header-btn--ghost .bi-search,
+    .rt-header-btn--ghost .bi-bell,
+    .rt-header-btn--ghost .bi-bell-fill {
+      color: #000 !important;
+    }
     
     /* Кнопки в offcanvas меню */
     .offcanvas .btn {
@@ -414,6 +420,25 @@
       .rt-header-btn--ghost {
         height: 48px;
       }
+
+      .navbar > .container {
+        flex-wrap: nowrap;
+      }
+
+      .navbar-brand {
+        margin-right: .25rem !important;
+        min-width: 0;
+        flex: 1 1 auto;
+        overflow: hidden;
+      }
+
+      .navbar-brand span {
+        display: block;
+        font-size: 1.08rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
     }
   </style>
 
@@ -432,7 +457,7 @@
   <div class="container align-items-center">
 
     <!-- Гамбургер (всегда виден) -->
-    <button class="btn rt-header-btn rt-header-btn--ghost me-2"
+    <button class="btn rt-header-btn rt-header-btn--ghost me-1 me-lg-2"
             type="button"
             data-bs-toggle="offcanvas"
             data-bs-target="#mainOffcanvas"
@@ -442,11 +467,11 @@
     </button>
 
     <!-- Бренд -->
-    <a class="navbar-brand fw-bold me-3 d-flex align-items-center" href="/">
+    <a class="navbar-brand fw-bold me-1 me-lg-3 d-flex align-items-center" href="/">
       <img
         src="{% static 'img/logo_1.png' %}"
         alt="Логотип Калейдоскоп Книг"
-        class="me-2"
+        class="me-1 me-lg-2"
         width="36"
         height="36"
       >
@@ -469,7 +494,7 @@
 
       {% with notifications=collaboration_notifications %}
       <a
-        class="btn rt-header-btn rt-header-btn--ghost me-2 position-relative"
+        class="btn rt-header-btn rt-header-btn--ghost me-1 me-lg-2 position-relative"
         href="{% url 'collaborations:collaboration_notifications' %}"
         aria-label="Уведомления сотрудничества"
       >
