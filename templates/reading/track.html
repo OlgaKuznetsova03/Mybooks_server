@@ -419,6 +419,37 @@
   border-radius: 999px;
 }
 
+.reading-progress-accordion__item .reading-progress-accordion__body {
+  background: #E3D6C8;
+  padding: 16px;
+}
+
+.paper-progress-form .form-control,
+.paper-progress-form .form-select {
+  border-radius: 12px;
+  border: 1px solid #C4B5A0;
+  background: #fff;
+}
+
+.paper-progress-form .form-control:focus {
+  border-color: #8B6B42;
+  box-shadow: 0 0 0 3px rgba(139, 107, 66, 0.1);
+}
+
+.paper-progress-form .quick-add-btn {
+  transition: all 0.2s ease;
+}
+
+.paper-progress-form .quick-add-btn:hover {
+  background: #f0e8dc;
+  border-color: #8B6B42;
+  transform: translateY(-1px);
+}
+
+.reading-progress-accordion__body {
+  transition: background 0.2s ease;
+}
+
 @media (max-width: 991.98px) {
   .reading-progress-accordion__item--ebook .reading-progress-toggle {
     font-size: 1rem;
@@ -908,49 +939,54 @@
                       </form>
                     </div>
                   {% else %}
-                    <form method="post" action="{% url 'shelves:reading_set_page' progress.id %}" class="row g-2 align-items-end mb-3">
+                    <div class="paper-progress-form">
+                      <form method="post" action="{% url 'shelves:reading_set_page' progress.id %}">
                       {% csrf_token %}
                       <input type="hidden" name="medium" value="{{ medium.code }}">
-                      <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                        <label class="form-label mb-1" for="id_page_{{ medium.code }}">Указать страницу</label>
-                        <input type="number" id="id_page_{{ medium.code }}" name="page" class="form-control"
-                               min="0" {% if medium.total_pages %}max="{{ medium.total_pages }}"{% elif total_pages %}max="{{ total_pages }}"{% endif %}
-                               value="{{ medium.current_page|default:0 }}">
-                        {% if medium.total_pages %}
-                          <div class="form-text">Всего в этом формате: {{ medium.total_pages }}</div>
-                        {% endif %}
-                      </div>
-                      <div class="col-12 col-md-6 col-lg-5">
-                        <label class="form-label mb-1" for="id_reaction_{{ medium.code }}">Реакция на момент</label>
-                        <textarea id="id_reaction_{{ medium.code }}" name="reaction" rows="2" class="form-control"
-                                  placeholder="Что удивило, вдохновило или зацепило на этой странице?"></textarea>
-                      </div>
-                      <div class="col-12 col-md-3 col-lg-2">
-                        <div class="form-check mt-md-4 pt-2">
-                          <input class="form-check-input" type="checkbox" id="id_public_{{ medium.code }}" name="is_public">
-                          <label class="form-check-label" for="id_public_{{ medium.code }}">Показать в ленте</label>
+                      
+                      <div class="mb-4">
+                        <label class="form-label fw-semibold mb-2" for="id_page_{{ medium.code }}">Укажите страницу:</label>
+                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                          <input type="number" id="id_page_{{ medium.code }}" name="page" class="form-control" style="width: 100px;"
+                                 min="0" {% if medium.total_pages %}max="{{ medium.total_pages }}"{% elif total_pages %}max="{{ total_pages }}"{% endif %}
+                                 value="{{ medium.current_page|default:0 }}">
+                          <span class="text-muted">из {{ medium.total_pages|default:total_pages }}</span>
                         </div>
                       </div>
-                      <div class="col-12 col-sm-auto">
-                        <button type="submit" class="btn btn-primary px-4">Сохранить</button>
+                      
+                      <div class="mb-4">
+                        <label class="form-label fw-semibold mb-2" for="id_reaction_{{ medium.code }}">Реакция на момент:</label>
+                        <textarea id="id_reaction_{{ medium.code }}" name="reaction" rows="2" class="form-control"
+                                  placeholder="Что удивило, вдохновило или зацепило?"></textarea>
+                      </div>
+                      <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" name="is_public" id="id_public_{{ medium.code }}">
+                          <label class="form-check-label" for="id_public_{{ medium.code }}">Добавить в ленту</label>
+                        </div>
+                      <button type="submit" class="btn btn-dark px-5 py-2" style="border-radius: 40px; background: #2C2C2C;">Сохранить</button>
                       </div>
                     </form>
-                  <div class="d-flex flex-wrap gap-2">
-                      <form method="post" action="{% url 'shelves:reading_increment' progress.id 5 %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="medium" value="{{ medium.code }}">
-                        <button type="submit" class="btn btn-outline-secondary rounded-pill quick-add-btn">+5 стр.</button>
-                      </form>
-                      <form method="post" action="{% url 'shelves:reading_increment' progress.id 10 %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="medium" value="{{ medium.code }}">
-                        <button type="submit" class="btn btn-outline-secondary rounded-pill quick-add-btn">+10 стр.</button>
-                      </form>
-                      <form method="post" action="{% url 'shelves:reading_increment' progress.id 25 %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="medium" value="{{ medium.code }}">
-                        <button type="submit" class="btn btn-outline-secondary rounded-pill quick-add-btn">+25 стр.</button>
-                      </form>
+                  
+                  <div class="mb-2 mt-4">
+                      <div class="quick-actions-row">
+                        <form method="post" action="{% url 'shelves:reading_increment' progress.id 5 %}" style="display: inline;">
+                          {% csrf_token %}
+                          <input type="hidden" name="medium" value="{{ medium.code }}">
+                          <button type="submit" class="quick-add-btn">+5</button>
+                        </form>
+                        <form method="post" action="{% url 'shelves:reading_increment' progress.id 10 %}" style="display: inline;">
+                          {% csrf_token %}
+                          <input type="hidden" name="medium" value="{{ medium.code }}">
+                          <button type="submit" class="quick-add-btn">+10</button>
+                        </form>
+                        <form method="post" action="{% url 'shelves:reading_increment' progress.id 25 %}" style="display: inline;">
+                          {% csrf_token %}
+                          <input type="hidden" name="medium" value="{{ medium.code }}">
+                          <button type="submit" class="quick-add-btn">+25</button>
+                        </form>
+                      </div>
+                    </div>
                     </div>
                   {% endif %}
                 </div>
