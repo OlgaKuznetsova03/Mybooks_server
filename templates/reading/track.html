@@ -15,14 +15,11 @@
   --accent: #8B6B42;
   --accent-hover: #6e5433;
   --accent-soft: #ebe2d3;
-  --success-soft: #dbe8df;
-  --info-soft: #e3ecef;
   --accordion-border: #d8cbb7;
   --accordion-header-bg: #f5ecdf;
   --accordion-header-bg-open: #eee2d0;
   --accordion-body-bg: #fffaf2;
 
-  --radius-xl: 24px;
   --radius-lg: 18px;
   --radius-md: 14px;
   --radius-sm: 10px;
@@ -30,8 +27,6 @@
   --shadow-sm: 0 4px 12px rgba(47, 42, 34, 0.06);
   --shadow-md: 0 10px 26px rgba(47, 42, 34, 0.08);
 
-  --space-xs: 0.35rem;
-  --space-sm: 0.65rem;
   --space-md: 1rem;
   --space-lg: 1.35rem;
   --space-xl: 1.8rem;
@@ -40,12 +35,6 @@
   --color-ebook: #d8a089;
   --color-audio: #9d846f;
   --color-default: #8ca89d;
-  --color-paper-light: rgba(140, 168, 157, 0.15);
-  --color-ebook-light: rgba(216, 160, 137, 0.16);
-  --color-audio-light: rgba(157, 132, 111, 0.16);
-  --gradient-paper: linear-gradient(135deg, #8ca89d, #aec6bc);
-  --gradient-ebook: linear-gradient(135deg, #d8a089, #e6bea9);
-  --gradient-audio: linear-gradient(135deg, #9d846f, #baa792);
 }
 
 .reading-progress-page {
@@ -253,7 +242,6 @@
 }
 
 .reading-section,
-.reading-chart-card,
 .modern-chart-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -333,7 +321,7 @@
 }
 
 .reading-progress-toggle__icon::before {
-  content: "⌄";
+  content: "▼";
   font-size: 1rem;
   line-height: 1;
   transition: transform .2s ease;
@@ -365,8 +353,7 @@
 
 .reading-progress-accordion__item--ebook .reading-progress-toggle {
   font-size: 16px;
-  font-style: italic;
-  font-weight: 500;
+  font-weight: 700;
   line-height: 1.18;
   padding: .95rem 1rem;
 }
@@ -378,7 +365,7 @@
 }
 
 .ebook-progress-form {
-  background: #FBF8F2;
+  background: #FFFFFF;
   border-radius: 20px;
   padding: 20px;
   margin-bottom: 16px;
@@ -394,10 +381,14 @@
   border-color: #D4C9B8;
 }
 
+.ebook-progress-form .btn.btn-dark {
+  border-radius: 999px;
+}
+
 .quick-actions-row {
   display: flex;
   gap: 12px;
-  margin-top: 12px;
+  margin-top: 4px;
   flex-wrap: wrap;
 }
 
@@ -408,20 +399,13 @@
   padding: 8px 20px;
   font-weight: 500;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .quick-add-btn:hover {
   background: #F0E8DC;
   border-color: #8B6B42;
-}
-
-.ebook-progress-form .btn.btn-dark {
-  border-radius: 999px;
-}
-
-.reading-progress-accordion__item .reading-progress-accordion__body {
-  background: #E3D6C8;
-  padding: 16px;
+  transform: translateY(-1px);
 }
 
 .paper-progress-form .form-control,
@@ -436,35 +420,9 @@
   box-shadow: 0 0 0 3px rgba(139, 107, 66, 0.1);
 }
 
-.paper-progress-form .quick-add-btn {
-  transition: all 0.2s ease;
+.reading-subsection {
+  padding: var(--space-md);
 }
-
-.paper-progress-form .quick-add-btn:hover {
-  background: #f0e8dc;
-  border-color: #8B6B42;
-  transform: translateY(-1px);
-}
-
-.reading-progress-accordion__body {
-  transition: background 0.2s ease;
-}
-
-@media (max-width: 991.98px) {
-  .reading-progress-accordion__item--ebook .reading-progress-toggle {
-    font-size: 1rem;
-  }
-
-  .ebook-progress-form .form-label {
-    font-size: 1rem;
-  }
-
-  .quick-actions-row {
-    justify-content: center;
-  }
-}
-
-.reading-subsection { padding: var(--space-md); }
 
 .reading-section .btn-primary,
 .reading-section .btn-success,
@@ -519,10 +477,18 @@
   border-bottom: 0;
 }
 
-.reading-section table tbody tr:nth-child(even) { background: #fcf8f1; }
+.reading-section table tbody tr:nth-child(even) {
+  background: #fcf8f1;
+}
+
 .reading-section table td,
-.reading-section table th { border-color: var(--border-color) !important; }
-.character-name-col { width: 200px; }
+.reading-section table th {
+  border-color: var(--border-color) !important;
+}
+
+.character-name-col {
+  width: 200px;
+}
 
 .modern-chart-card {
   position: relative;
@@ -576,7 +542,6 @@
   border-radius: 50%;
 }
 
-
 .modern-legend-color--paper { background: var(--color-paper); }
 .modern-legend-color--ebook { background: var(--color-ebook); }
 .modern-legend-color--audio { background: var(--color-audio); }
@@ -588,13 +553,8 @@
   color: var(--text-muted);
 }
 
-.modern-chart-container,
-.reading-chart-card__canvas {
+.modern-chart-container {
   min-height: 250px;
-}
-
-.reading-chart-card__canvas {
-  padding: .8rem;
 }
 
 .reading-progress-page .table-responsive {
@@ -608,7 +568,10 @@
   gap: .75rem;
 }
 
-.reading-finished-button__form { flex: 1 1 220px; }
+.reading-finished-button__form {
+  flex: 1 1 220px;
+}
+
 .reading-finished-button__primary,
 .reading-finished-button__secondary {
   border-radius: 999px;
@@ -622,7 +585,10 @@
   gap: .5rem;
 }
 
-.mobile-action-buttons { margin-top: .75rem; }
+.mobile-action-buttons {
+  margin-top: .75rem;
+}
+
 .mobile-action-button {
   flex: 1;
   min-width: 132px;
@@ -632,21 +598,96 @@
   padding: .7rem;
 }
 
-.quick-add-btn {
-  background: #fff9ef;
-  border-color: var(--accordion-border);
+/* Аудиокнига */
+.audio-figma-card {
+  background: #FFFFFF;
+  border-radius: 20px;
+  border: 1px solid #E3D6C8;
+  box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
+  padding: 20px;
+  transition: all 0.2s;
 }
 
-.quick-add-btn:hover {
-  background: var(--accent-soft);
-  border-color: var(--accent);
+.audio-figma-header {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #2f2a22;
+  margin-bottom: 1rem;
+  letter-spacing: -0.2px;
+}
+
+.audio-figma-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-end;
+  margin-bottom: 20px;
+}
+
+.audio-field-group {
+  flex: 1;
+  min-width: 160px;
+}
+
+.audio-field-group label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #4a3b2c;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.audio-field-group input,
+.audio-field-group .form-control {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #E3D6C8;
+  background: #FFF;
+  font-size: 0.95rem;
+  transition: 0.2s;
+}
+
+.audio-field-group input:focus {
+  border-color: #8B6B42;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(139, 107, 66, 0.1);
+}
+
+.form-text-hint {
+  font-size: 0.7rem;
+  color: #8f826e;
+  margin-top: 4px;
+}
+
+.btn-audio-save {
+  background: #2C2C2C;
+  border: none;
+  border-radius: 40px;
+  padding: 12px 28px;
+  font-weight: 600;
+  color: white;
+  transition: 0.2s;
+  font-size: 0.9rem;
+  letter-spacing: 0.3px;
+  width: 100%;
+}
+
+.btn-audio-save:hover {
+  background: #1f1f1f;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .reading-section-table,
-.reading-section-list { display: block; }
+.reading-section-list {
+  display: block;
+}
 
 @media (min-width: 768px) {
-  .mobile-accordion-section { display: none; }
+  .mobile-accordion-section {
+    display: none;
+  }
 }
 
 @media (max-width: 991.98px) {
@@ -654,8 +695,21 @@
     min-height: 240px;
   }
 
-  .modern-chart-container,
-  .reading-chart-card__canvas { min-height: 220px; }
+  .reading-progress-accordion__item--ebook .reading-progress-toggle {
+    font-size: 1rem;
+  }
+
+  .ebook-progress-form .form-label {
+    font-size: 1rem;
+  }
+
+  .quick-actions-row {
+    justify-content: center;
+  }
+
+  .modern-chart-container {
+    min-height: 220px;
+  }
 }
 
 @media (max-width: 767.98px) {
@@ -699,7 +753,16 @@
   .reading-progress-summary .small {
     font-size: 14px !important;
   }
-  
+
+  .audio-figma-row {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .btn-audio-save {
+    width: 100%;
+  }
+
   .stat-card {
     flex: 1;
     text-align: center;
@@ -711,11 +774,12 @@
     font-size: 16px;
     display: block;
   }
-  
+
   .reading-progress-hero__meta,
   .reading-section,
-  .modern-chart-card,
-  .reading-chart-card { border-radius: 14px; }
+  .modern-chart-card {
+    border-radius: 14px;
+  }
 
   .reading-section {
     padding: var(--space-md);
@@ -728,9 +792,13 @@
   }
 
   .reading-section-table,
-  .reading-section-list { display: none; }
+  .reading-section-list {
+    display: none;
+  }
 
-  .mobile-accordion-section { margin-bottom: .75rem; }
+  .mobile-accordion-section {
+    margin-bottom: .75rem;
+  }
 
   .mobile-accordion-header {
     width: 100%;
@@ -750,7 +818,9 @@
     transform: rotate(180deg);
   }
 
-  .mobile-accordion-content { padding: .85rem 0; }
+  .mobile-accordion-content {
+    padding: .85rem 0;
+  }
 
   .character-card {
     background: var(--bg-card);
@@ -775,7 +845,9 @@
     transition: transform .2s ease;
   }
 
-  .character-name.expanded::after { transform: rotate(90deg); }
+  .character-name.expanded::after {
+    transform: rotate(90deg);
+  }
 
   .character-description {
     max-height: 0;
@@ -791,6 +863,69 @@
     margin-top: .4rem;
   }
 }
+/* Все поля в одну строку на десктопе */
+@media (min-width: 768px) {
+  .ebook-progress-form .form-inline-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+  }
+  
+  .ebook-progress-form .form-field {
+    flex: 1;
+    min-width: 160px;
+  }
+  
+  .ebook-progress-form .quick-actions-row {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    align-items: center;
+  }
+  
+  .ebook-progress-form .quick-actions-row form {
+    margin: 0;
+  }
+}
+
+/* На мобилках поля в столбик, но все на белом фоне */
+@media (max-width: 767.98px) {
+  .ebook-progress-form .form-inline-row {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .ebook-progress-form .quick-actions-row {
+    justify-content: flex-start;
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+  
+  .ebook-progress-form .form-field {
+    width: 100%;
+  }
+}
+
+/* Базовые стили для формы (белый фон) */
+.ebook-progress-form {
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.ebook-progress-form .quick-actions-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 </style>
 {% endblock %}
 
@@ -883,92 +1018,23 @@
                 <div class="reading-progress-accordion__body">
                   {% if medium.code == progress.FORMAT_EBOOK %}
                     <form method="post" action="{% url 'shelves:reading_set_page' progress.id %}" class="ebook-progress-form">
-                      {% csrf_token %}
-                      <input type="hidden" name="medium" value="{{ medium.code }}">
+                    {% csrf_token %}
+                    <input type="hidden" name="medium" value="{{ medium.code }}">
 
-                      <div class="mb-3">
+                    <!-- ВСЕ В ОДНОЙ СТРОКЕ НА ДЕСКТОПЕ -->
+                    <div class="form-inline-row">
+                      <!-- Поле Укажите страницу -->
+                      <div class="form-field">
                         <label class="form-label fw-semibold" for="id_page_{{ medium.code }}">Укажите страницу:</label>
-                        <div class="d-flex gap-2 align-items-center flex-wrap">
-                          <input type="number" id="id_page_{{ medium.code }}" name="page" class="form-control" style="width: 120px"
+                        <div class="d-flex gap-2 align-items-center">
+                          <input type="number" id="id_page_{{ medium.code }}" name="page" class="form-control" style="width: 100px"
                                  min="0" {% if medium.total_pages %}max="{{ medium.total_pages }}"{% elif total_pages %}max="{{ total_pages }}"{% endif %}
                                  value="{{ medium.current_page|default:0 }}">
                           <span class="text-muted">из {{ medium.total_pages|default:total_pages }}</span>
                         </div>
-                      </div>
-                      
-                      <div class="mb-3">
-                        <label class="form-label fw-semibold" for="id_percent_{{ medium.code }}">Или укажите процент:</label>
-                        <div class="d-flex gap-2 align-items-center flex-wrap">
-                          <input type="number" id="id_percent_{{ medium.code }}" name="percent" class="form-control" style="width: 120px"
-                                 min="0" max="100" step="0.1"
-                                 value="{% if medium.total_pages and medium.current_page is not None %}{% widthratio medium.current_page medium.total_pages 100 %}{% else %}{{ progress.percent|floatformat:-2 }}{% endif %}">
-                          <span class="text-muted">%</span>
-                        </div>
-                      </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label" for="id_reaction_{{ medium.code }}">Реакция на момент:</label>
-                        <textarea id="id_reaction_{{ medium.code }}" name="reaction" rows="2" class="form-control"
-                                  placeholder="Что удивило, вдохновило или зацепило?"></textarea>
                       </div>
 
-                      <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                        <div class="form-check">
-                          <input class="form-check-input" type="checkbox" name="is_public" id="id_public_{{ medium.code }}">
-                          <label class="form-check-label" for="id_public_{{ medium.code }}">Добавить в ленту</label>
-                        </div>
-                        <button type="submit" class="btn btn-dark px-4 rounded-pill">Сохранить</button>
-                      </div>
-                    </form>
-                    
-                    <div class="quick-actions-row">
-                      <form method="post" action="{% url 'shelves:reading_increment' progress.id 5 %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="medium" value="{{ medium.code }}">
-                        <button type="submit" class="quick-add-btn">+5</button>
-                      </form>
-                      <form method="post" action="{% url 'shelves:reading_increment' progress.id 10 %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="medium" value="{{ medium.code }}">
-                        <button type="submit" class="quick-add-btn">+10</button>
-                      </form>
-                      <form method="post" action="{% url 'shelves:reading_increment' progress.id 25 %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="medium" value="{{ medium.code }}">
-                        <button type="submit" class="quick-add-btn">+25</button>
-                      </form>
-                    </div>
-                  {% else %}
-                    <div class="paper-progress-form">
-                      <form method="post" action="{% url 'shelves:reading_set_page' progress.id %}">
-                      {% csrf_token %}
-                      <input type="hidden" name="medium" value="{{ medium.code }}">
-                      
-                      <div class="mb-4">
-                        <label class="form-label fw-semibold mb-2" for="id_page_{{ medium.code }}">Укажите страницу:</label>
-                        <div class="d-flex align-items-center gap-3 flex-wrap">
-                          <input type="number" id="id_page_{{ medium.code }}" name="page" class="form-control" style="width: 100px;"
-                                 min="0" {% if medium.total_pages %}max="{{ medium.total_pages }}"{% elif total_pages %}max="{{ total_pages }}"{% endif %}
-                                 value="{{ medium.current_page|default:0 }}">
-                          <span class="text-muted">из {{ medium.total_pages|default:total_pages }}</span>
-                        </div>
-                      </div>
-                      
-                      <div class="mb-4">
-                        <label class="form-label fw-semibold mb-2" for="id_reaction_{{ medium.code }}">Реакция на момент:</label>
-                        <textarea id="id_reaction_{{ medium.code }}" name="reaction" rows="2" class="form-control"
-                                  placeholder="Что удивило, вдохновило или зацепило?"></textarea>
-                      </div>
-                      <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                        <div class="form-check">
-                          <input class="form-check-input" type="checkbox" name="is_public" id="id_public_{{ medium.code }}">
-                          <label class="form-check-label" for="id_public_{{ medium.code }}">Добавить в ленту</label>
-                        </div>
-                      <button type="submit" class="btn btn-dark px-5 py-2" style="border-radius: 40px; background: #2C2C2C;">Сохранить</button>
-                      </div>
-                    </form>
-                  
-                  <div class="mb-2 mt-4">
+                      <!-- Кнопки +5, +10, +25 - теперь они рядом с полем ввода -->
                       <div class="quick-actions-row">
                         <form method="post" action="{% url 'shelves:reading_increment' progress.id 5 %}" style="display: inline;">
                           {% csrf_token %}
@@ -986,8 +1052,33 @@
                           <button type="submit" class="quick-add-btn">+25</button>
                         </form>
                       </div>
+
+                      <!-- Поле Или укажите процент -->
+                      <div class="form-field">
+                        <label class="form-label fw-semibold" for="id_percent_{{ medium.code }}">Или укажите процент:</label>
+                        <div class="d-flex gap-2 align-items-center">
+                          <input type="number" id="id_percent_{{ medium.code }}" name="percent" class="form-control" style="width: 100px"
+                                 min="0" max="100" step="0.1"
+                                 value="{% if medium.total_pages and medium.current_page is not None %}{% widthratio medium.current_page medium.total_pages 100 %}{% else %}{{ progress.percent|floatformat:-2 }}{% endif %}">
+                          <span class="text-muted">%</span>
+                        </div>
+                      </div>
                     </div>
+
+                    <div class="mb-3">
+                      <label class="form-label" for="id_reaction_{{ medium.code }}">Реакция на момент:</label>
+                      <textarea id="id_reaction_{{ medium.code }}" name="reaction" rows="2" class="form-control"
+                                placeholder="Что удивило, вдохновило или зацепило?"></textarea>
                     </div>
+
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="is_public" id="id_public_{{ medium.code }}">
+                        <label class="form-check-label" for="id_public_{{ medium.code }}">Добавить в ленту</label>
+                      </div>
+                      <button type="submit" class="btn btn-dark px-4 rounded-pill">Сохранить</button>
+                    </div>
+                  </form>
                   {% endif %}
                 </div>
               </div>
@@ -1000,22 +1091,45 @@
               </button>
               <div class="collapse" id="{{ collapse_id }}">
                 <div class="reading-progress-accordion__body">
-                  <form method="post" action="{% url 'shelves:reading_increment' progress.id 0 %}" class="row g-3 align-items-end">
-                    {% csrf_token %}
-                    <input type="hidden" name="medium" value="{{ medium.code }}">
-                    <div class="col-12 col-md-4">
-                      <label class="form-label mb-1" for="id_minutes">Прослушано минут</label>
-                      <input type="number" class="form-control" id="id_minutes" name="minutes" min="0" step="1" placeholder="Например, 15">
+                  <div class="audio-figma-card">
+                    <div class="audio-figma-header">Аудиокнига - обновление прогресса</div>
+                    <form method="post" action="{% url 'shelves:reading_increment' progress.id 0 %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="medium" value="{{ medium.code }}">
+                      <div class="audio-figma-row">
+                        <div class="audio-field-group">
+                          <label for="id_minutes_{{ medium.code }}">Прослушано минут:</label>
+                          <input type="number" id="id_minutes_{{ medium.code }}" name="minutes" class="form-control" min="0" step="1" placeholder="Например, 15" value="">
+                          <div class="form-text-hint">Мы прибавим и пересчитаем</div>
+                        </div>
+                        <div class="audio-field-group">
+                          <label for="id_duration_{{ medium.code }}">Текущее время (ЧЧ:ММ:СС):</label>
+                          <input type="text" id="id_duration_{{ medium.code }}" name="duration" class="form-control" placeholder="00:30:00" value="">
+                          <div class="form-text-hint">Мы пересчитаем в стр. автоматически</div>
+                        </div>
+                        <div class="audio-field-group">
+                          <button type="submit" class="btn-audio-save">Сохранить</button>
+                        </div>
+                      </div>
+                    </form>
+                    <div class="quick-actions-row">
+                      <form method="post" action="{% url 'shelves:reading_increment' progress.id 5 %}" style="display: inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="medium" value="{{ medium.code }}">
+                        <button type="submit" class="quick-add-btn">+5 мин</button>
+                      </form>
+                      <form method="post" action="{% url 'shelves:reading_increment' progress.id 10 %}" style="display: inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="medium" value="{{ medium.code }}">
+                        <button type="submit" class="quick-add-btn">+10 мин</button>
+                      </form>
+                      <form method="post" action="{% url 'shelves:reading_increment' progress.id 25 %}" style="display: inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="medium" value="{{ medium.code }}">
+                        <button type="submit" class="quick-add-btn">+25 мин</button>
+                      </form>
                     </div>
-                    <div class="col-12 col-md-4">
-                      <label class="form-label mb-1" for="id_duration">или время (ЧЧ:ММ:СС)</label>
-                      <input type="text" class="form-control" id="id_duration" name="duration" placeholder="00:30:00">
-                      <div class="form-text">Мы пересчитаем в длительность автоматически.</div>
-                    </div>
-                    <div class="col-12 col-md-4">
-                      <button type="submit" class="btn btn-outline-secondary w-100 rounded-pill">Добавить прослушанное</button>
-                    </div>
-                  </form>
+                  </div>
                 </div>
               </div>
             </div>
