@@ -733,12 +733,17 @@
   }
 
   .reading-progress-hero__cover {
-    min-height: 172px;
     width: min(72vw, 160px);
+    aspect-ratio: 154 / 230;
+    min-height: 0;
     height: auto;
     margin-inline: auto;
   }
 
+  .reading-cover-image {
+    object-fit: contain;
+  }
+  
   #book-title {
     font-size: 20px;
     line-height: var(--Static-Body-Large-Line-Height, 24px);
@@ -1777,7 +1782,7 @@
                     <label class="form-label small">Описание</label>
                     {{ form.description }}
                   </div>
-                  <button type="submit" class="btn btn-primary btn-sm w-100">Сохранить</button>
+                  <button type="submit" class="btn btn-primary rounded-pill w-100">Сохранить</button>
                 </form>
               </div>
             </div>
@@ -1802,7 +1807,7 @@
             <label class="form-label small">Описание</label>
             {{ character_form.description }}
           </div>
-          <button type="submit" class="btn btn-outline-primary btn-sm w-100">Сохранить</button>
+          <button type="submit" class="btn btn-outline-primary rounded-pill w-100">Сохранить</button>
         </form>
       </div>
     </div>
@@ -1974,7 +1979,7 @@
                     <label class="form-label small">Комментарий</label>
                     {{ form.comment }}
                   </div>
-                  <button type="submit" class="btn btn-primary btn-sm w-100">Сохранить</button>
+                  <button type="submit" class="btn btn-primary rounded-pill w-100">Сохранить</button>
                 </form>
               </div>
             </div>
@@ -2003,7 +2008,7 @@
             <label class="form-label small">Комментарий</label>
             {{ quote_form.comment }}
           </div>
-          <button type="submit" class="btn btn-outline-primary btn-sm w-100">Сохранить</button>
+          <button type="submit" class="btn btn-outline-primary rounded-pill w-100">Сохранить</button>
         </form>
       </div>
     </div>
