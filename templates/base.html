@@ -112,29 +112,29 @@
     :root{
       --rt-font-base: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
       --rt-font-brand: "Manrope", "Inter", "Segoe UI", system-ui, sans-serif;
-      --rt-header-bg: #f5ecdf;
-      --rt-header-border: #e4d1bd;
+      --rt-header-bg: #e3d6c8;  /* Изменено на #d9b597 */
+      --rt-header-border: #c8a07c;  /* Немного темнее для контраста */
       --rt-header-link: #3e2f22;
       --rt-header-link-hover: #2d2015;
-      --rt-header-btn-bg: #ead3bd;
-      --rt-header-btn-hover: #e1c3a6;
-      --rt-header-btn-active: #d8b18e;
-      --rt-header-btn-border: #c8966c;
+      --rt-header-btn-bg: #c8966c;  /* Немного темнее для кнопок */
+      --rt-header-btn-hover: #b87a4a;
+      --rt-header-btn-active: #a56838;
+      --rt-header-btn-border: #a56838;
       --rt-header-btn-text: #2f1f12;
       --rt-header-ring: 200, 150, 110;
     }
 
     [data-bs-theme="dark"]{
-      --rt-header-bg: #1b2624;
-      --rt-header-border: rgba(248, 215, 148, .25);
+      --rt-header-bg: #8b5a3a;  /* Более темный оттенок для темной темы */
+      --rt-header-border: rgba(217, 181, 151, .35);
       --rt-header-link: #f3d8ad;
       --rt-header-link-hover: #ffe8c0;
-      --rt-header-btn-bg: #f8d794;
-      --rt-header-btn-hover: #ebc67d;
-      --rt-header-btn-active: #d7ae67;
-      --rt-header-btn-border: #c3924c;
+      --rt-header-btn-bg: #c8966c;
+      --rt-header-btn-hover: #b87a4a;
+      --rt-header-btn-active: #a56838;
+      --rt-header-btn-border: #8b5a3a;
       --rt-header-btn-text: #1a1711;
-      --rt-header-ring: 248, 215, 148;
+      --rt-header-ring: 217, 181, 151;
     }
 
     body,
@@ -202,6 +202,221 @@
     .offcanvas .nav-link { font-size: 1rem; }
   </style>
 
+    <!-- Стили для всех кнопок сайта (по макету Figma) -->
+  <style>
+    /* Основные стили для всех кнопок Bootstrap */
+    .btn {
+      display: flex;
+      width: auto;
+      min-width: 112px;
+      height: 57px;
+      padding: 16px 6px;
+      justify-content: center;
+      align-items: center;
+      gap: 18px;
+      border-radius: 15px;
+      border: 1px solid #E3D6C8;
+      background: #6C4121;
+      color: white !important;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      line-height: 1;
+    }
+    
+    /* Стили для наведения */
+    .btn:hover {
+      background: #5a371c;
+      border-color: #d4c4b2;
+      color: white !important;
+      transform: translateY(-1px);
+      text-decoration: none;
+    }
+    
+    /* Стили для активного/нажатого состояния */
+    .btn:active {
+      background: #4e2f18;
+      border-color: #c8b59e;
+      transform: translateY(0);
+    }
+    
+    /* Стили для фокуса */
+    .btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(108, 65, 33, 0.3);
+    }
+    
+    /* Стили для кнопок-ссылок */
+    a.btn {
+      background-color: #6C4121;
+      color: white !important;
+      text-decoration: none;
+    }
+    
+    a.btn:hover {
+      background-color: #5a371c;
+      color: white !important;
+    }
+    
+    /* Стили для маленьких кнопок (если нужно переопределить размер) */
+    .btn-sm {
+      min-width: auto;
+      height: auto;
+      padding: 8px 12px;
+      gap: 8px;
+    }
+    
+    /* Стили для больших кнопок */
+    .btn-lg {
+      min-width: 140px;
+      height: 68px;
+      padding: 20px 12px;
+      gap: 24px;
+      font-size: 1.1rem;
+    }
+    
+    /* Стили для выключенных кнопок */
+    .btn:disabled,
+    .btn.disabled {
+      background: #9c7a5c;
+      border-color: #e3d6c8;
+      color: #f0f0f0 !important;
+      opacity: 0.65;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    /* Стили для outline кнопок - переопределяем под дизайн */
+    .btn-outline-primary,
+    .btn-outline-secondary,
+    .btn-outline-success,
+    .btn-outline-danger,
+    .btn-outline-warning,
+    .btn-outline-info,
+    .btn-outline-light,
+    .btn-outline-dark {
+      background: transparent;
+      color: #6C4121 !important;
+      border: 1px solid #6C4121;
+    }
+    
+    .btn-outline-primary:hover,
+    .btn-outline-secondary:hover,
+    .btn-outline-success:hover,
+    .btn-outline-danger:hover,
+    .btn-outline-warning:hover,
+    .btn-outline-info:hover,
+    .btn-outline-light:hover,
+    .btn-outline-dark:hover {
+      background: #6C4121;
+      color: white !important;
+      border-color: #E3D6C8;
+    }
+    
+    /* Специальные стили для кнопок в шапке и offcanvas */
+    .rt-header-btn {
+      background: #6C4121 !important;
+      color: white !important;
+      border: 1px solid #E3D6C8 !important;
+      border-radius: 15px;
+      height: 57px;
+      padding: 16px 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    .rt-header-btn:hover {
+      background: #5a371c !important;
+      color: white !important;
+    }
+    
+    .rt-header-btn--ghost {
+      background: transparent !important;
+      color: #3e2f22 !important;
+      border: 1px solid #E3D6C8 !important;
+      min-width: auto;
+      height: 57px;
+    }
+    
+    .rt-header-btn--ghost:hover {
+      background: rgba(108, 65, 33, 0.1) !important;
+      color: #6C4121 !important;
+    }
+    
+    /* Кнопки в offcanvas меню */
+    .offcanvas .btn {
+      background: #6C4121;
+      color: white;
+      border: 1px solid #E3D6C8;
+      border-radius: 15px;
+      width: 100%;
+    }
+    
+    .offcanvas .btn:hover {
+      background: #5a371c;
+    }
+    
+    /* Кнопки закрытия модальных окон и offcanvas */
+    .btn-close {
+      background-color: transparent !important;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border-radius: 8px;
+    }
+    
+    .btn-close:hover {
+      background-color: rgba(108, 65, 33, 0.1) !important;
+    }
+    
+    /* Стили для кнопок в формах */
+    button[type="submit"],
+    input[type="submit"] {
+      background: #6C4121;
+      color: white !important;
+      border: 1px solid #E3D6C8;
+      border-radius: 15px;
+      height: 57px;
+      padding: 16px 6px;
+    }
+    
+    button[type="submit"]:hover,
+    input[type="submit"]:hover {
+      background: #5a371c;
+      color: white !important;
+    }
+    
+    /* Кнопки в карточках и других элементах */
+    .card .btn,
+    .modal .btn {
+      min-width: auto;
+    }
+    
+    /* Адаптация для мобильных устройств */
+    @media (max-width: 768px) {
+      .btn {
+        min-width: 80px;
+        height: 48px;
+        padding: 12px 6px;
+        gap: 12px;
+        font-size: 14px;
+      }
+      
+      .rt-header-btn,
+      button[type="submit"],
+      input[type="submit"] {
+        height: 48px;
+        padding: 12px 6px;
+      }
+      
+      .rt-header-btn--ghost {
+        height: 48px;
+      }
+    }
+  </style>
+
   <!-- Брендовые стили проекта -->
   <link href="{% static 'books/styles.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
 
@@ -242,7 +457,7 @@
     <ul class="navbar-nav me-auto d-none d-lg-flex">
       <li class="nav-item"><a class="nav-link" href="{% url 'book_list' %}">Книги</a></li>
       <li class="nav-item"><a class="nav-link" href="{% url 'shelves:reading_feed' %}">Лента</a></li>
-      <li class="nav-item"><a class="nav-link" href="{% url 'shelves:reading_now' %}">Читаю сейчас</a></li>
+      <li class="nav-item"><a class="nav-link" href="{% url 'shelves:reading_now' %}">Читаю</a></li>
       <li class="nav-item"><a class="nav-link" href="{% url 'premium_overview' %}">Премиум</a></li>
     </ul>
 
