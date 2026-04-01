@@ -1007,7 +1007,7 @@
                       <label class="form-label fw-semibold" for="id_percent_{{ medium.code }}">Или укажите процент:</label>
                       <div class="d-flex gap-2 align-items-center">
                         <input type="number" id="id_percent_{{ medium.code }}" name="percent" class="form-control" style="width: 100px"
-                               min="0" max="100" step="0.1"
+                                min="0" max="100" step="0.01"
                                value="{% if medium.total_pages and medium.current_page is not None %}{% widthratio medium.current_page medium.total_pages 100 %}{% else %}{{ progress.percent|floatformat:-2 }}{% endif %}">
                         <span class="text-muted">%</span>
                       </div>
@@ -2657,6 +2657,43 @@ document.addEventListener('DOMContentLoaded', function() {
         this.style.transform = 'scale(1)';
       }, 150);
     });
+  });
+
+
+// Синхронизация полей страницы и процента в форме обновления прогресса.
+  document.querySelectorAll('form.ebook-progress-form').forEach(form => {
+    const pageInput = form.querySelector('input[name="page"]');
+    const percentInput = form.querySelector('input[name="percent"]');
+    if (!pageInput || !percentInput) return;
+
+    const getTotalPages = () => {
+      const maxValue = Number(pageInput.getAttribute('max'));
+      return Number.isFinite(maxValue) && maxValue > 0 ? maxValue : null;
+    };
+
+    const setPercentFromPage = () => {
+      const totalPages = getTotalPages();
+      const pageValue = Number(pageInput.value);
+      if (!totalPages || Number.isNaN(pageValue)) {
+        percentInput.value = '';
+        return;
+      }
+      const normalizedPage = Math.min(Math.max(pageValue, 0), totalPages);
+      const percentValue = (normalizedPage / totalPages) * 100;
+      percentInput.value = percentValue.toFixed(2);
+    };
+
+    const setPageFromPercent = () => {
+      const totalPages = getTotalPages();
+      const percentValue = Number(percentInput.value);
+      if (!totalPages || Number.isNaN(percentValue)) return;
+      const normalizedPercent = Math.min(Math.max(percentValue, 0), 100);
+      const pageValue = Math.round((normalizedPercent / 100) * totalPages);
+      pageInput.value = String(pageValue);
+    };
+
+    pageInput.addEventListener('input', setPercentFromPage);
+    percentInput.addEventListener('input', setPageFromPercent);
   });
 
   // Динамическое обновление прогресс-бара при вводе данных
