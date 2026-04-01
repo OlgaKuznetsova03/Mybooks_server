@@ -1174,7 +1174,14 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ summary_data.periods|json_script:"homeLibraryPeriodsData" }}
+{{ period_options|json_script:"homeLibraryPeriodOptionsData" }}
+{{ summary_data.defaultPeriod|json_script:"homeLibraryDefaultPeriodData" }}
 <script>
+const homeLibraryPeriods = JSON.parse(document.getElementById('homeLibraryPeriodsData').textContent);
+const homeLibraryPeriodOptions = JSON.parse(document.getElementById('homeLibraryPeriodOptionsData').textContent);
+const homeLibraryDefaultPeriod = JSON.parse(document.getElementById('homeLibraryDefaultPeriodData').textContent);
+
 // Данные для модалок
 const libraryData = {
   genres: {
@@ -1410,6 +1417,98 @@ window.showAllBooks = function() {
     requestAnimationFrame(updateNumber);
   }
 
+  function updatePeriodProgress(boughtCount, readCount) {
+    const fillLeft = document.querySelector('[data-role="fill-left"]');
+    const fillRight = document.querySelector('[data-role="fill-right"]');
+    const label = document.querySelector('[data-role="period-progress-label"]');
+    if (!fillLeft || !fillRight || !label) return;
+
+    const total = boughtCount + readCount;
+    if (total <= 0) {
+      fillLeft.style.width = '0%';
+      fillRight.style.width = '0%';
+      label.textContent = '0% / 0%';
+      return;
+    }
+
+    const boughtPercent = (boughtCount / total) * 100;
+    const readPercent = 100 - boughtPercent;
+    fillLeft.style.width = `${boughtPercent}%`;
+    fillRight.style.width = `${readPercent}%`;
+    label.textContent = `${Math.round(boughtPercent)}% / ${Math.round(readPercent)}%`;
+  }
+
+  function getPeriodStats(periodType, periodValue) {
+    const periodsByType = (homeLibraryPeriods && homeLibraryPeriods[periodType]) || {};
+    return periodsByType[periodValue] || { bought_count: 0, read_count: 0 };
+  }
+
+  function populatePeriodValues(periodType, selectedValue) {
+    const valueSelect = document.querySelector('[data-role="period-value"]');
+    if (!valueSelect) return '';
+
+    const options = (homeLibraryPeriodOptions && homeLibraryPeriodOptions[periodType]) || [];
+    valueSelect.innerHTML = '';
+
+    if (!options.length) {
+      valueSelect.innerHTML = '<option value="" selected>Нет данных</option>';
+      return '';
+    }
+
+    const fallbackValue = options[0].value;
+    const activeValue = options.some(option => option.value === selectedValue) ? selectedValue : fallbackValue;
+    options.forEach(option => {
+      const optionEl = document.createElement('option');
+      optionEl.value = option.value;
+      optionEl.textContent = option.label;
+      optionEl.selected = option.value === activeValue;
+      valueSelect.appendChild(optionEl);
+    });
+    return activeValue;
+  }
+
+  function renderPeriodStats(periodType, periodValue, animate = true) {
+    const boughtNumber = document.querySelector('[data-role="period-bought-count"]');
+    const readNumber = document.querySelector('[data-role="period-read-count"]');
+    if (!boughtNumber || !readNumber) return;
+
+    const stats = getPeriodStats(periodType, periodValue);
+    const boughtCount = parseInt(stats.bought_count, 10) || 0;
+    const readCount = parseInt(stats.read_count, 10) || 0;
+    boughtNumber.dataset.target = String(boughtCount);
+    readNumber.dataset.target = String(readCount);
+
+    if (animate) {
+      animateNumber(boughtNumber, boughtCount, 700);
+      animateNumber(readNumber, readCount, 700);
+    } else {
+      boughtNumber.textContent = boughtCount.toLocaleString();
+      readNumber.textContent = readCount.toLocaleString();
+    }
+
+    updatePeriodProgress(boughtCount, readCount);
+  }
+
+  function initializePeriodControls() {
+    const typeSelect = document.querySelector('[data-role="period-type"]');
+    const valueSelect = document.querySelector('[data-role="period-value"]');
+    if (!typeSelect || !valueSelect) return;
+
+    const initialType = typeSelect.value || homeLibraryDefaultPeriod.type || 'year';
+    let currentValue = populatePeriodValues(initialType, homeLibraryDefaultPeriod.value || valueSelect.value);
+    renderPeriodStats(initialType, currentValue, false);
+
+    typeSelect.addEventListener('change', () => {
+      const periodType = typeSelect.value;
+      currentValue = populatePeriodValues(periodType, '');
+      renderPeriodStats(periodType, currentValue, true);
+    });
+
+    valueSelect.addEventListener('change', () => {
+      renderPeriodStats(typeSelect.value, valueSelect.value, true);
+    });
+  }
+
   // Запуск всех анимаций после загрузки
   function initializeAnimations() {
     document.querySelectorAll('.stat-value[data-target]').forEach(stat => {
@@ -1422,25 +1521,6 @@ window.showAllBooks = function() {
     });
 
     setTimeout(() => {
-      const boughtCount = parseInt("{{ default_period_stats.bought_count }}") || 0;
-      const readCount = parseInt("{{ default_period_stats.read_count }}") || 0;
-      const total = boughtCount + readCount;
-      
-      if (total > 0) {
-        const boughtPercent = (boughtCount / total) * 100;
-        const readPercent = 100 - boughtPercent;
-        
-        const fillLeft = document.querySelector('[data-role="fill-left"]');
-        const fillRight = document.querySelector('[data-role="fill-right"]');
-        const label = document.querySelector('[data-role="period-progress-label"]');
-        
-        if (fillLeft && fillRight && label) {
-          fillLeft.style.width = boughtPercent + '%';
-          fillRight.style.width = readPercent + '%';
-          label.textContent = Math.round(boughtPercent) + '% / ' + Math.round(readPercent) + '%';
-        }
-      }
-      
       const boughtNumber = document.querySelector('[data-role="period-bought-count"]');
       const readNumber = document.querySelector('[data-role="period-read-count"]');
       
@@ -1541,6 +1621,7 @@ window.showAllBooks = function() {
 
   // Инициализация при загрузке
   document.addEventListener('DOMContentLoaded', function() {
+    initializePeriodControls();
     initializeAnimations();
     initializeSearch();
     initializeFilters();

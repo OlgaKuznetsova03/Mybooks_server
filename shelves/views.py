@@ -504,13 +504,21 @@ def home_library(request):
     year_period_data = defaultdict(_period_bucket)
     month_period_data = defaultdict(_period_bucket)
 
-    for entry in all_entries_list:
+    for entry in active_entries_list:
         book_data = _entry_book_data(entry)
         if not book_data:
             continue
 
-        if entry.acquired_at:
-            acquired = entry.acquired_at
+        acquired = entry.acquired_at
+        if acquired is None and entry.shelf_item and entry.shelf_item.added_at:
+            added_at = entry.shelf_item.added_at
+            acquired = (
+                timezone.localtime(added_at).date()
+                if timezone.is_aware(added_at)
+                else added_at.date()
+            )
+
+        if acquired:
             year_key = str(acquired.year)
             month_key = f"{acquired.year:04d}-{acquired.month:02d}"
             year_bucket = year_period_data[year_key]
