@@ -2493,6 +2493,10 @@ function initializeReadingFormatModals() {
 
 
   form.addEventListener('submit', () => {
+      if (window.innerWidth >= 768) {
+      return;
+    }
+
     form.querySelectorAll('[data-format-panel]').forEach((panelEl) => {
       syncActualFromProxy(panelEl);
     });
