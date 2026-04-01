@@ -589,10 +589,10 @@ class BookProgressFormatForm(forms.ModelForm):
         audio_position = self.cleaned_data.get("audio_position_input")
         speed = cleaned.get("audio_playback_speed")
         if BookProgress.FORMAT_AUDIO in formats:
-            if not audio_length:
-                raise ValidationError("Укажите длительность аудиокниги")
             if audio_position and audio_length and audio_position > audio_length:
                 self.add_error("audio_position_input", "Прогресс не может превышать длительность")
+            if audio_position and not audio_length:
+                self.add_error("audio_length_input", "Укажите длительность, если задан прогресс аудио")
             if speed is None:
                 cleaned["audio_playback_speed"] = Decimal("1.0")
         else:
