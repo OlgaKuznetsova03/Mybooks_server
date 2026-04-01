@@ -2466,16 +2466,31 @@ function initializeReadingFormatModals() {
 
   form.querySelectorAll('[data-format-launcher]').forEach((launcher) => {
     launcher.addEventListener('click', () => {
+      const formatCode = launcher.dataset.formatCode;
+      const actualCheckbox = getFormatCheckbox(formatCode);
+      if (actualCheckbox) {
+        actualCheckbox.checked = !actualCheckbox.checked;
+      }
+
       const targetSelector = launcher.getAttribute('data-bs-target');
       if (!targetSelector) {
+        updateLauncherState();
         return;
       }
+
       const panelEl = document.querySelector(targetSelector);
       if (panelEl) {
-        syncProxyFromActual(panelEl);
+        const proxyCheckbox = panelEl.querySelector('[data-format-proxy-checkbox]');
+        if (proxyCheckbox && actualCheckbox) {
+          proxyCheckbox.checked = actualCheckbox.checked;
+        }
+        syncActualFromProxy(panelEl);
       }
+
+      updateLauncherState();
     });
   });
+
 
   form.addEventListener('submit', () => {
     form.querySelectorAll('[data-format-panel]').forEach((panelEl) => {
