@@ -209,29 +209,6 @@
       border-color: rgba(218,163,143,.35);
       color:#fffdf6;
     }
-    .books-page .genre-shelf-card__header .btn-outline-primary,
-    .books-page .genre-shelf-card__header .btn-primary{
-      background: #9b7d61 !important;
-      border-color: #9b7d61 !important;
-      color: #fff !important;
-    }
-
-    /* Hover/Focus/Active — на тон темнее */
-    .books-page .genre-shelf-card__header .btn-outline-primary:hover,
-    .books-page .genre-shelf-card__header .btn-outline-primary:focus,
-    .books-page .genre-shelf-card__header .btn-outline-primary:active,
-    .books-page .genre-shelf-card__header .btn-primary:hover,
-    .books-page .genre-shelf-card__header .btn-primary:focus,
-    .books-page .genre-shelf-card__header .btn-primary:active{
-      background: #85694f !important;
-      border-color: #85694f !important;
-      color: #fff !important;
-    }
-
-    /* Фокус-ринги, чтобы не было синего свечения Bootstrap */
-    .books-page .genre-shelf-card__header .btn:focus{
-      box-shadow: 0 0 0 .2rem rgba(155,125,97,.35) !important;
-    }
     .line-clamp-1, .line-clamp-2, .line-clamp-3{
       display: -webkit-box;
       -webkit-box-orient: vertical;
@@ -242,54 +219,6 @@
     .line-clamp-1{ -webkit-line-clamp: 1; }
     .line-clamp-2{ -webkit-line-clamp: 2; }
     .line-clamp-3{ -webkit-line-clamp: 3; }
-
-    :root{
-      --rt-btn-bg: #9b7d61;
-      --rt-btn-bg-hover: #85694f;
-    }
-
-    /* Кнопка «Хочу прочитать» внутри карточек-полок */
-    .books-page .genre-shelf-card__book .btn-outline-primary,
-    .books-page .book-item__actions .btn-outline-primary {
-      background: var(--rt-btn-bg) !important;
-      border-color: var(--rt-btn-bg) !important;
-      color: #fff !important;
-      transition: all 0.3s ease;
-    }
-
-    /* Ховеры/фокусы/активные */
-    .books-page .genre-shelf-card__book .btn-outline-primary:hover,
-    .books-page .genre-shelf-card__book .btn-outline-primary:focus,
-    .books-page .genre-shelf-card__book .btn-outline-primary:active,
-    .books-page .book-item__actions .btn-outline-primary:hover,
-    .books-page .book-item__actions .btn-outline-primary:focus,
-    .books-page .book-item__actions .btn-outline-primary:active {
-      background: var(--rt-btn-bg-hover) !important;
-      border-color: var(--rt-btn-bg-hover) !important;
-      color: #fff !important;
-      transform: translateY(-2px);
-    }
-
-    /* Убрать синий фокус Bootstrap, дать мягкий коричневый */
-    .books-page .genre-shelf-card__book .btn-outline-primary:focus,
-    .books-page .book-item__actions .btn-outline-primary:focus {
-      box-shadow: 0 0 0 .2rem rgba(155,125,97,.35) !important;
-    }
-
-    /* На всякий случай для .btn-primary в этих же местах */
-    .books-page .genre-shelf-card__book .btn-primary,
-    .books-page .book-item__actions .btn-primary {
-      background: var(--rt-btn-bg) !important;
-      border-color: var(--rt-btn-bg) !important;
-      color: #fff !important;
-    }
-    .books-page .genre-shelf-card__book .btn-primary:hover,
-    .books-page .genre-shelf-card__book .btn-primary:focus,
-    .books-page .book-item__actions .btn-primary:hover,
-    .books-page .book-item__actions .btn-primary:focus {
-      background: var(--rt-btn-bg-hover) !important;
-      border-color: var(--rt-btn-bg-hover) !important;
-    }
 
     .books-page .book-item__content {
       display: flex;
@@ -722,7 +651,7 @@
                                 {% csrf_token %}
                                 <input type="hidden" name="action" value="quick-add-shelf">
                                 <input type="hidden" name="shelf" value="{{ want_shelf_id }}">
-                                <button class="btn btn-outline-primary btn-sm position-relative z-1" type="submit">
+                                <button class="btn btn-outline-primary btn-sm w-100" type="submit">
                                   <i class="bi bi-bookmark-plus me-1"></i>Хочу прочитать
                                 </button>
                               </form>
