@@ -6,7 +6,7 @@
     .genre-shelf-card{
       --cover-w: 80px;                 /* ширина обложки */
       --cover-h: 120px;                /* высота обложки */
-      --gap: 16px;                      /* внутренние отступы/зазоры */
+      --gap: 8px;                       /* внутренние отступы/зазоры */                    /* внутренние отступы/зазоры */
       --card-w: 170px;                 /* ширина единичной карточки книги */
       --row-title: 2;                   /* строки для названия (line-clamp) */
       --row-authors: 1;                 /* строки для авторов */
@@ -143,7 +143,12 @@
     .genre-shelf-card__actions{
       align-self: stretch;
       margin-top: auto;
-      padding-top: .9rem;
+      padding-top: .45rem;
+    }
+
+    .genre-shelf-card__actions .btn{
+      padding-top: .25rem;
+      padding-bottom: .25rem;
     }
 
     /* Мелкие улучшения */
