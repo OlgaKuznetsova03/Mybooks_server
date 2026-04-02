@@ -488,6 +488,12 @@
     .books-page--grid .book-item__meta{
       color:#000;
     }
+    
+    .btn-compact {
+      padding-top: 0.1rem !important;
+      padding-bottom: 0.1rem !important;
+      font-size: 0.7rem !important;
+    }
 
   </style>
 {% endblock %}
@@ -660,7 +666,7 @@
                                 {% csrf_token %}
                                 <input type="hidden" name="action" value="quick-add-shelf">
                                 <input type="hidden" name="shelf" value="{{ want_shelf_id }}">
-                                <button class="btn btn-outline-primary btn-sm w-100" type="submit">
+                                <button class="btn btn-outline-primary btn-sm btn-compact w-100" type="submit">
                                   <i class="bi bi-bookmark-plus me-1"></i>Хочу прочитать
                                 </button>
                               </form>

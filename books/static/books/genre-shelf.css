@@ -1,7 +1,7 @@
 .genre-shelf-collection {
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
+  gap: 0.875rem;
 }
 
 .genre-shelf-card {
