@@ -402,16 +402,16 @@ body.books-page{
 .book-item__content{
   position:relative;
   z-index:1;
-  padding:1.05rem 1rem 1.15rem;
+  padding:.8rem .85rem .85rem;
   border-radius:1rem;
-  background:#e3c9a4;
+  background:#fff;
   border:1px solid rgba(0,0,0,.04);
   box-shadow:0 10px 28px rgba(33,37,41,.12);
   display:flex;
   flex-direction:column;
-  gap:.65rem;
-  min-height:180px;
-  color:#2b1a0f;
+  gap:.5rem;
+  min-height:130px;
+  color:#1f1f1f;
 }
 
 .book-item__content::before{
