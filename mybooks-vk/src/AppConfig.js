@@ -38,8 +38,9 @@ export const AppConfig = () => {
 
   // theme sync (VK + system fallback)
   useEffect(() => {
-    const media = window.matchMedia('(prefers-color-scheme: dark)');
-    setIsDarkTheme(media.matches);
+    const supportsMatchMedia = typeof window.matchMedia === 'function';
+    const media = supportsMatchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+    setIsDarkTheme(Boolean(media?.matches));
 
     const onMediaThemeChange = (event) => {
       setIsDarkTheme(event.matches);
@@ -56,11 +57,23 @@ export const AppConfig = () => {
       }
     };
 
-    media.addEventListener('change', onMediaThemeChange);
+    if (media) {
+      if (typeof media.addEventListener === 'function') {
+        media.addEventListener('change', onMediaThemeChange);
+      } else if (typeof media.addListener === 'function') {
+        media.addListener(onMediaThemeChange);
+      }
+    }
     bridge.subscribe(onVkConfigUpdate);
 
     return () => {
-      media.removeEventListener('change', onMediaThemeChange);
+      if (media) {
+        if (typeof media.removeEventListener === 'function') {
+          media.removeEventListener('change', onMediaThemeChange);
+        } else if (typeof media.removeListener === 'function') {
+          media.removeListener(onMediaThemeChange);
+        }
+      }
       bridge.unsubscribe(onVkConfigUpdate);
     };
   }, []);
@@ -174,10 +187,6 @@ export const AppConfig = () => {
     return appState;
   }, [isOffline, shelfError, appState]);
 
-  if (appState === STATES.LOADING || vkLoading || shelfLoading) {
-    return <div style={{ padding: 20 }}>Loading...</div>;
-  }
-
   const pageStyle = useMemo(
     () => ({
       padding: 20,
@@ -196,7 +205,6 @@ export const AppConfig = () => {
     [isDarkTheme],
   );
 
-  // ⏳ Loading
   if (appState === STATES.LOADING || vkLoading || shelfLoading) {
     return <div style={pageStyle}>Loading...</div>;
   }
