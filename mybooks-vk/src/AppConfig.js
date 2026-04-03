@@ -22,23 +22,49 @@ export const AppConfig = () => {
   const [authMode, setAuthMode] = useState('login');
   const [errorMessage, setErrorMessage] = useState('');
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [isDarkTheme, setIsDarkTheme] = useState(false);
 
-  // ✅ VK user + loading
   const { vkUser, error: vkError, loading: vkLoading } = useVkUser();
 
-  // ✅ Shelf data
   const {
     data: shelfData,
     loading: shelfLoading,
     error: shelfError,
   } = useShelf(appState === STATES.SHELF);
 
-  // VK init
   useEffect(() => {
     bridge.send('VKWebAppInit').catch(() => null);
   }, []);
 
-  // online/offline
+  // theme sync (VK + system fallback)
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    setIsDarkTheme(media.matches);
+
+    const onMediaThemeChange = (event) => {
+      setIsDarkTheme(event.matches);
+    };
+
+    const onVkConfigUpdate = ({ detail }) => {
+      const scheme = detail?.data?.scheme || '';
+      if (typeof scheme === 'string' && scheme.includes('dark')) {
+        setIsDarkTheme(true);
+        return;
+      }
+      if (typeof scheme === 'string' && scheme.length) {
+        setIsDarkTheme(false);
+      }
+    };
+
+    media.addEventListener('change', onMediaThemeChange);
+    bridge.subscribe(onVkConfigUpdate);
+
+    return () => {
+      media.removeEventListener('change', onMediaThemeChange);
+      bridge.unsubscribe(onVkConfigUpdate);
+    };
+  }, []);
+
   useEffect(() => {
     const onOnline = () => setIsOffline(false);
     const onOffline = () => setIsOffline(true);
@@ -52,7 +78,6 @@ export const AppConfig = () => {
     };
   }, []);
 
-  // 🚀 Главная инициализация
   useEffect(() => {
     if (vkLoading) return;
 
@@ -100,9 +125,9 @@ export const AppConfig = () => {
     bootstrap();
   }, [vkUser, vkError, vkLoading]);
 
-  // 🔐 LOGIN
   async function onLogin(form) {
     setErrorMessage('');
+
     try {
       const response = await login(form);
       setToken(response.token);
@@ -126,9 +151,9 @@ export const AppConfig = () => {
     }
   }
 
-  // 🆕 SIGNUP
   async function onSignup(form) {
     setErrorMessage('');
+
     try {
       const response = await signup(form);
       setToken(response.token);
@@ -143,22 +168,43 @@ export const AppConfig = () => {
     }
   }
 
-  // 📊 Status line
   const statusLine = useMemo(() => {
     if (isOffline) return 'No internet';
     if (shelfError) return shelfError.message;
     return appState;
   }, [isOffline, shelfError, appState]);
 
-  // ⏳ Loading
   if (appState === STATES.LOADING || vkLoading || shelfLoading) {
     return <div style={{ padding: 20 }}>Loading...</div>;
+  }
+
+  const pageStyle = useMemo(
+    () => ({
+      padding: 20,
+      minHeight: '100vh',
+      background: isDarkTheme ? '#0f1014' : '#f3f4f8',
+      color: isDarkTheme ? '#e5e7eb' : '#111827',
+      boxSizing: 'border-box',
+    }),
+    [isDarkTheme],
+  );
+
+  const errorStyle = useMemo(
+    () => ({
+      color: isDarkTheme ? '#fca5a5' : 'red',
+    }),
+    [isDarkTheme],
+  );
+
+  // ⏳ Loading
+  if (appState === STATES.LOADING || vkLoading || shelfLoading) {
+    return <div style={pageStyle}>Loading...</div>;
   }
 
   // ❌ Error
   if (appState === STATES.ERROR) {
     return (
-      <div style={{ padding: 20 }}>
+      <div style={pageStyle}>
         Error: {errorMessage || 'Unknown error'}
       </div>
     );
@@ -167,20 +213,22 @@ export const AppConfig = () => {
   // 🔐 Auth screen
   if (appState === STATES.AUTH) {
     return (
-      <div style={{ padding: 20 }}>
+      <div style={pageStyle}>
         <p>{statusLine}</p>
 
         {errorMessage && (
-          <p style={{ color: 'red' }}>{errorMessage}</p>
+          <p style={errorStyle}>{errorMessage}</p>
         )}
 
         {authMode === 'login' ? (
           <AuthForm
+            isDarkTheme={isDarkTheme}
             onSubmit={onLogin}
             onGoSignup={() => setAuthMode('signup')}
           />
         ) : (
           <SignupForm
+            isDarkTheme={isDarkTheme}
             onSubmit={onSignup}
             onGoLogin={() => setAuthMode('login')}
           />
@@ -192,13 +240,14 @@ export const AppConfig = () => {
   // 📚 Shelf
   if (appState === STATES.SHELF) {
     return (
-      <div style={{ padding: 20 }}>
+      <div style={pageStyle}>
         <p>{statusLine}</p>
 
         {shelfData ? (
           <ShelfView
             data={shelfData}
             vkUser={vkUser}
+            isDarkTheme={isDarkTheme}
             onLogout={() => {
               clearToken();
               setAppState(STATES.AUTH);
@@ -211,5 +260,5 @@ export const AppConfig = () => {
     );
   }
 
-  return <div style={{ padding: 20 }}>Unknown state</div>;
+  return <div style={pageStyle}>Unknown state</div>;
 };

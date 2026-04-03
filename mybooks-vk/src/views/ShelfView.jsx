@@ -1,10 +1,10 @@
 import React from 'react';
 
-const styles = {
+const getStyles = (isDarkTheme) => ({
   page: {
     minHeight: '100vh',
-    background: '#f3f4f8',
-    color: '#1f2937',
+    background: isDarkTheme ? '#0f1014' : '#f3f4f8',
+    color: isDarkTheme ? '#e5e7eb' : '#1f2937',
     padding: '12px 12px 24px',
     boxSizing: 'border-box',
     fontFamily: 'Arial, sans-serif',
@@ -14,7 +14,7 @@ const styles = {
     margin: '0 auto',
   },
   headerCard: {
-    background: '#ffffff',
+    background: isDarkTheme ? '#171920' : '#ffffff',
     borderRadius: '16px',
     padding: '14px',
     boxShadow: '0 4px 14px rgba(15, 23, 42, 0.06)',
@@ -42,20 +42,20 @@ const styles = {
     margin: 0,
     fontSize: '22px',
     fontWeight: 800,
-    color: '#111827',
+    color: isDarkTheme ? '#f3f4f6' : '#111827',
     lineHeight: 1.15,
   },
   subtitle: {
     margin: '4px 0 0',
     fontSize: '13px',
-    color: '#6b7280',
+    color: isDarkTheme ? '#9ca3af' : '#6b7280',
     lineHeight: 1.35,
   },
   logoutButton: {
     border: 'none',
     borderRadius: '10px',
     padding: '9px 14px',
-    background: '#111827',
+    background: isDarkTheme ? '#8b5cf6' : '#111827',
     color: '#ffffff',
     fontSize: '13px',
     fontWeight: 700,
@@ -68,7 +68,7 @@ const styles = {
     alignItems: 'center',
     gap: '10px',
     padding: '10px 12px',
-    background: '#f8fafc',
+    background: isDarkTheme ? '#10131a' : '#f8fafc',
     borderRadius: '12px',
   },
   avatar: {
@@ -76,7 +76,7 @@ const styles = {
     height: '42px',
     borderRadius: '50%',
     objectFit: 'cover',
-    background: '#e5e7eb',
+    background: isDarkTheme ? '#303442' : '#e5e7eb',
     display: 'block',
     flexShrink: 0,
   },
@@ -97,13 +97,13 @@ const styles = {
     margin: 0,
     fontSize: '15px',
     fontWeight: 700,
-    color: '#111827',
+    color: isDarkTheme ? '#f3f4f6' : '#111827',
     lineHeight: 1.2,
   },
   profileMeta: {
     margin: '3px 0 0',
     fontSize: '12px',
-    color: '#6b7280',
+    color: isDarkTheme ? '#9ca3af' : '#6b7280',
     lineHeight: 1.3,
   },
   section: {
@@ -113,7 +113,7 @@ const styles = {
     margin: '0 0 10px',
     fontSize: '18px',
     fontWeight: 800,
-    color: '#111827',
+    color: isDarkTheme ? '#f3f4f6' : '#111827',
   },
   booksGrid: {
     display: 'grid',
@@ -121,7 +121,7 @@ const styles = {
     gap: '10px',
   },
   bookCard: {
-    background: '#ffffff',
+    background: isDarkTheme ? '#171920' : '#ffffff',
     borderRadius: '14px',
     padding: '8px',
     boxShadow: '0 4px 14px rgba(15, 23, 42, 0.06)',
@@ -143,7 +143,7 @@ const styles = {
     fontSize: '10px',
     fontWeight: 700,
     color: '#fff',
-    background: '#111827',
+    background: isDarkTheme ? '#8b5cf6' : '#111827',
     lineHeight: 1,
   },
   badgeReading: {
@@ -162,7 +162,7 @@ const styles = {
     fontSize: '10px',
     fontWeight: 800,
     color: '#ffffff',
-    background: 'rgba(17, 24, 39, 0.9)',
+    background: isDarkTheme ? 'rgba(15, 23, 42, 0.9)' : 'rgba(17, 24, 39, 0.9)',
     lineHeight: 1,
     boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
   },
@@ -171,15 +171,15 @@ const styles = {
     aspectRatio: '2 / 3',
     borderRadius: '10px',
     objectFit: 'cover',
-    background: '#e5e7eb',
+    background: isDarkTheme ? '#303442' : '#e5e7eb',
     display: 'block',
   },
   bookCoverFallback: {
     width: '100%',
     aspectRatio: '2 / 3',
     borderRadius: '10px',
-    background: 'linear-gradient(135deg, #f3f4f6, #e0e7ff)',
-    color: '#374151',
+    background: isDarkTheme ? 'linear-gradient(135deg, #1f2430, #2b3242)' : 'linear-gradient(135deg, #f3f4f6, #e0e7ff)',
+    color: isDarkTheme ? '#d1d5db' : '#374151',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -194,7 +194,7 @@ const styles = {
     margin: 0,
     fontSize: '13px',
     fontWeight: 700,
-    color: '#111827',
+    color: isDarkTheme ? '#f3f4f6' : '#111827',
     lineHeight: 1.25,
     display: '-webkit-box',
     WebkitLineClamp: 3,
@@ -205,7 +205,7 @@ const styles = {
   bookAuthors: {
     margin: 0,
     fontSize: '11px',
-    color: '#6b7280',
+    color: isDarkTheme ? '#9ca3af' : '#6b7280',
     lineHeight: 1.3,
     display: '-webkit-box',
     WebkitLineClamp: 2,
@@ -214,11 +214,11 @@ const styles = {
     minHeight: '28px',
   },
   emptyCard: {
-    background: '#ffffff',
+    background: isDarkTheme ? '#171920' : '#ffffff',
     borderRadius: '16px',
     padding: '14px',
     boxShadow: '0 4px 14px rgba(15, 23, 42, 0.06)',
-    color: '#6b7280',
+    color: isDarkTheme ? '#9ca3af' : '#6b7280',
     fontSize: '14px',
   },
   statsGrid: {
@@ -227,7 +227,7 @@ const styles = {
     gap: '10px',
   },
   statCard: {
-    background: '#ffffff',
+    background: isDarkTheme ? '#171920' : '#ffffff',
     borderRadius: '14px',
     padding: '12px',
     boxShadow: '0 4px 14px rgba(15, 23, 42, 0.06)',
@@ -237,7 +237,7 @@ const styles = {
     fontSize: '10px',
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
-    color: '#6b7280',
+    color: isDarkTheme ? '#9ca3af' : '#6b7280',
     fontWeight: 700,
     lineHeight: 1.3,
   },
@@ -245,10 +245,10 @@ const styles = {
     margin: '8px 0 0',
     fontSize: '20px',
     fontWeight: 800,
-    color: '#111827',
+    color: isDarkTheme ? '#f3f4f6' : '#111827',
     lineHeight: 1.1,
   },
-};
+});
 
 function getInitials(vkUser, data) {
   const source =
@@ -264,7 +264,7 @@ function getInitials(vkUser, data) {
     .join('');
 }
 
-function renderCover(coverUrl, title) {
+function renderCover(coverUrl, title, styles) {
   if (coverUrl) {
     return <img src={coverUrl} alt={title} style={styles.bookCover} />;
   }
@@ -305,7 +305,7 @@ function formatPagesValue(value) {
   return Math.round(parsed);
 }
 
-function StatCard({ label, value }) {
+function StatCard({ label, value, styles }) {
   return (
     <div style={styles.statCard}>
       <p style={styles.statLabel}>{label}</p>
@@ -314,7 +314,8 @@ function StatCard({ label, value }) {
   );
 }
 
-export const ShelfView = ({ data, vkUser, onLogout }) => {
+export const ShelfView = ({ data, vkUser, onLogout, isDarkTheme = false }) => {
+  const styles = getStyles(isDarkTheme);
   const profile = data?.profile || {};
   const currentBook = data?.current_book || null;
   const recentBooks = Array.isArray(data?.recent_books) ? data.recent_books : [];
@@ -430,7 +431,7 @@ export const ShelfView = ({ data, vkUser, onLogout }) => {
                         </div>
                       ) : null}
 
-                      {renderCover(book.cover_url, book.title)}
+                      {renderCover(book.cover_url, book.title, styles)}
                     </div>
 
                     <div>
@@ -459,14 +460,17 @@ export const ShelfView = ({ data, vkUser, onLogout }) => {
             <StatCard
               label="Прочитано книг"
               value={booksCount}
+              styles={styles}
             />
             <StatCard
               label="Прочитано страниц"
               value={formatPagesValue(pagesCount)}
+              styles={styles}
             />
             <StatCard
               label="Прослушано в аудио"
               value={audioValue}
+              styles={styles}
             />
           </div>
         </section>
