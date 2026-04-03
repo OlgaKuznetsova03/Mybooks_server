@@ -361,21 +361,33 @@ def _perform_book_lookup(
     if not any([normalized_title, normalized_author, isbn]):
         raise BookLookupQueryError("Укажите название, автора или ISBN.")
 
-    qs = Book.objects.all().prefetch_related("authors", "isbn", "isbn__authors")
+    cache_key = (
+        "books:lookup:"
+        f"{normalized_title.casefold()}:{normalized_author.casefold()}:{isbn}:"
+        f"{int(force_external)}:{max(0, int(local_limit))}:{max(1, int(external_limit))}"
+    )
+    cached_payload = cache.get(cache_key)
+    if cached_payload is not None:
+        return cached_payload
+
+    qs = Book.objects.all().prefetch_related(
+        Prefetch("authors", queryset=Author.objects.only("id", "name").order_by("name")),
+        Prefetch("isbn", queryset=ISBNModel.objects.only("id", "isbn", "isbn13")),
+    )
 
     filters: list[Q] = []
     if normalized_title:
         title_filter = Q()
-        for variant in _yo_equivalent_variants(normalized_title):
-            title_filter |= Q(title__icontains=variant) | Q(isbn__title__icontains=variant)
+        for variant in _yo_equivalent_variants(normalized_title)[:3]:
+            title_filter |= Q(title__icontains=variant)
         filters.append(title_filter)
     if normalized_author:
         author_filter = Q()
-        for variant in _yo_equivalent_variants(normalized_author):
-            author_filter |= Q(authors__name__icontains=variant) | Q(isbn__authors__name__icontains=variant)
+        for variant in _yo_equivalent_variants(normalized_author)[:3]:
+            author_filter |= Q(authors__name__icontains=variant)
         filters.append(author_filter)
     if isbn:
-        filters.append(Q(isbn__isbn__iexact=isbn) | Q(isbn__isbn13__iexact=isbn))
+        filters.append(Q(isbn__isbn=isbn) | Q(isbn__isbn13=isbn))
 
     if filters:
         combined_filter = filters[0]
@@ -385,11 +397,11 @@ def _perform_book_lookup(
 
     local_results = []
     for book in qs.distinct()[: max(1, local_limit)]:
-        isbn_values = list(book.isbn.values("isbn", "isbn13"))
         isbn_candidates: list[str] = []
-        for entry in isbn_values:
-            primary = normalize_isbn(entry.get("isbn")) if entry.get("isbn") else ""
-            secondary = normalize_isbn(entry.get("isbn13")) if entry.get("isbn13") else ""
+        isbn_entries = list(book.isbn.all())
+        for entry in isbn_entries:
+            primary = normalize_isbn(entry.isbn) if entry.isbn else ""
+            secondary = normalize_isbn(entry.isbn13) if entry.isbn13 else ""
             isbn_candidates.extend([primary, secondary])
         seen_isbns: list[str] = []
         for candidate in isbn_candidates:
@@ -400,11 +412,11 @@ def _perform_book_lookup(
                 "id": book.pk,
                 "title": book.title,
                 "authors": list(
-                    book.authors.order_by("name").values_list("name", flat=True)
+                    book.authors.values_list("name", flat=True)
                 ),
                 "isbn_list": seen_isbns,
                 "detail_url": reverse("book_detail", args=[book.pk]),
-                "edition_count": len(isbn_values),
+                "edition_count": len(isbn_entries),
             }
         )
 
@@ -429,7 +441,7 @@ def _perform_book_lookup(
             else:
                 for item in search_results:
                     external_results.append(_serialize_external_item(item))
-    return {
+    payload = {
         "query": {
             "title": normalized_title,
             "author": normalized_author,
@@ -441,6 +453,8 @@ def _perform_book_lookup(
         "external_error": external_error,
         "force_external": force_external,
     }
+    cache.set(cache_key, payload, 600)
+    return payload
 
 
 @login_required
@@ -659,27 +673,28 @@ def book_list(request):
         total_books = leader_books.count()
         qs = annotated_books
         if q:
-        # Используем icontains с вариантами вместо iregex
-            search_variants = _yo_equivalent_variants(q)
-            search_filter = Q()
-            for variant in search_variants:
-                search_filter |= (
-                    Q(title__icontains=variant)
-                    | Q(isbn__title__icontains=variant)
-                    | Q(authors__name__icontains=variant)
-                    | Q(isbn__authors__name__icontains=variant)
-                    | Q(genres__name__icontains=variant)
+            search_variants = _yo_equivalent_variants(q)[:3]
+            search_ids_cache_key = f"books:book_list:search_ids:v2:{q.casefold()}"
+            matched_ids = cache.get(search_ids_cache_key)
+
+            if matched_ids is None:
+                search_filter = Q()
+                for variant in search_variants:
+                    search_filter |= (
+                        Q(title__icontains=variant)
+                        | Q(authors__name__icontains=variant)
+                    )
+
+                isbn_query = normalize_isbn(q)
+                if isbn_query and len(isbn_query) in (10, 13):
+                    search_filter |= Q(isbn__isbn=isbn_query) | Q(isbn__isbn13=isbn_query)
+
+                matched_ids = list(
+                    Book.objects.filter(search_filter).values_list("id", flat=True).distinct()[:1000]
                 )
+                cache.set(search_ids_cache_key, matched_ids, 300)
 
-            isbn_query = normalize_isbn(q)
-            if isbn_query:
-                search_filter |= Q(isbn__isbn__icontains=isbn_query) | Q(
-                    isbn__isbn13__icontains=isbn_query
-                )
-
-            qs = qs.filter(search_filter).distinct()
-
-        qs = qs.order_by(*sort_definitions[active_sort]["order"])
+            qs = qs.filter(id__in=matched_ids)
 
         paginator = Paginator(qs, 14)
         page = request.GET.get("page")

@@ -252,6 +252,16 @@ class Book(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["title"], name="book_title_idx"),
+            models.Index(fields=["created_at"], name="book_created_at_idx"),
+            models.Index(
+                fields=["title", "created_at"],
+                name="book_title_created_idx",
+            ),
+        ]
+
     def get_cover_url(self) -> str:
         """Вернуть подходящий URL обложки книги с учётом источника."""
 
