@@ -702,22 +702,6 @@
   }
 
   /* Интерактивные кнопки */
-  .home-page .btn {
-    min-width: 112px;
-    height: 40px;
-    padding: 11px 14px;
-    border-radius: 15px;
-    border: 1px solid #58785f !important;
-    background: #58785f !important;
-    color: #ffffff !important;
-  }
-
-  .home-page .btn:hover {
-    background: #45614b !important;
-    border-color: #45614b !important;
-    color: #ffffff !important;
-  }
-
   .home-page .btn-sm,
   .home-page .btn-lg {
     min-width: 112px;
@@ -983,10 +967,10 @@
 
               <!-- Фиксированная высота для кнопок -->
               <div class="d-flex flex-wrap gap-2 mt-auto pt-2" style="min-height: 40px;">
-                <a class="btn btn-dark btn-sm" href="{% url 'shelves:reading_track' it.book.id %}">
+                <a class="btn btn-sm" href="{% url 'shelves:reading_track' it.book.id %}">
                   <i class="bi bi-graph-up-arrow me-1"></i>К трекеру
                 </a>
-                <a class="btn btn-outline-dark btn-sm" href="{% url 'book_detail' it.book.id %}">Подробнее</a>
+                <a class="btn btn-sm" href="{% url 'book_detail' it.book.id %}">Подробнее</a>
               </div>
             </article>
           {% endfor %}
@@ -1139,7 +1123,7 @@
                 </div>
 
                 <div class="d-flex gap-2 mt-auto">
-                  <a class="btn btn-dark btn-sm" href="{% url 'collaborations:offer_detail' offer.pk %}">Смотреть предложение</a>
+                  <a class="btn btn-sm" href="{% url 'collaborations:offer_detail' offer.pk %}">Смотреть предложение</a>
                 </div>
               </article>
             {% endwith %}
@@ -1166,7 +1150,7 @@
               </div>
 
               <div class="d-flex gap-2 mt-auto">
-                <a class="btn btn-outline-dark btn-sm" href="{% url 'collaborations:blogger_request_detail' request_item.pk %}">Открыть заявку</a>
+                <a class="btn btn-sm" href="{% url 'collaborations:blogger_request_detail' request_item.pk %}">Открыть заявку</a>
               </div>
             </article>
           {% endfor %}
