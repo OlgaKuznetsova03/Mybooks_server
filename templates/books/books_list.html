@@ -838,11 +838,14 @@
       const searchInput = searchForm?.querySelector('input[name="q"]');
       const video = scannerModal?.querySelector('[data-isbn-video]');
       const status = scannerModal?.querySelector('[data-isbn-scan-status]');
-      const canScan = Boolean(window.BarcodeDetector && navigator.mediaDevices?.getUserMedia);
+      const hasCameraAccessApi = Boolean(navigator.mediaDevices?.getUserMedia);
+      const hasNativeBarcodeDetector = Boolean(window.BarcodeDetector);
       let stream = null;
       let detector = null;
+      let zxingReader = null;
       let isActive = false;
       let rafId = null;
+      let zxingLoadPromise = null;
 
       const setStatus = (text, isError = false) => {
         if (!status) return;
@@ -856,6 +859,10 @@
         if (rafId) {
           cancelAnimationFrame(rafId);
           rafId = null;
+        }
+        if (zxingReader?.reset) {
+          zxingReader.reset();
+          zxingReader = null;
         }
         if (video) {
           video.pause();
@@ -892,27 +899,82 @@
         rafId = requestAnimationFrame(scanLoop);
       };
 
+      const loadZxingReader = async () => {
+        if (window.ZXing?.BrowserMultiFormatReader) {
+          return window.ZXing;
+        }
+        if (zxingLoadPromise) {
+          return zxingLoadPromise;
+        }
+
+        zxingLoadPromise = new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js';
+          script.async = true;
+          script.onload = () => {
+            if (window.ZXing?.BrowserMultiFormatReader) {
+              resolve(window.ZXing);
+            } else {
+              reject(new Error('ZXing loaded without BrowserMultiFormatReader'));
+            }
+          };
+          script.onerror = () => reject(new Error('Failed to load ZXing script'));
+          document.head.appendChild(script);
+        });
+
+        return zxingLoadPromise;
+      };
+
+      const startScanWithZxing = async () => {
+        await loadZxingReader();
+        if (!window.ZXing?.BrowserMultiFormatReader) {
+          throw new Error('ZXing is unavailable');
+        }
+
+        zxingReader = new window.ZXing.BrowserMultiFormatReader();
+        await zxingReader.decodeFromVideoDevice(
+          null,
+          video,
+          (result, error) => {
+            if (!isActive) return;
+            if (result?.getText) {
+              applyDetectedValue(result.getText());
+              return;
+            }
+
+            if (error && !(error instanceof window.ZXing.NotFoundException)) {
+              setStatus('Камера активна, но штрих-код пока не распознан. Наведите камеру ближе.', true);
+            }
+          },
+        );
+      };
+
       const startScan = async () => {
         if (!scannerModal || !video) return;
-        if (!canScan) {
-          setStatus('Сканирование недоступно: откройте сайт в современном браузере с доступом к камере.', true);
+        if (!hasCameraAccessApi) {
+          setStatus('Сканирование недоступно: браузер не поддерживает доступ к камере.', true);
           return;
         }
         setStatus('Наведите камеру на штрих-код (EAN/ISBN)…');
         try {
-          detector = detector || new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
-          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
-          video.srcObject = stream;
-          await video.play();
           isActive = true;
-          scanLoop();
+          if (hasNativeBarcodeDetector) {
+            detector = detector || new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+            video.srcObject = stream;
+            await video.play();
+            scanLoop();
+            return;
+          }
+
+          await startScanWithZxing();
         } catch (_) {
           stopScan();
           setStatus('Не удалось получить доступ к камере. Проверьте разрешения браузера.', true);
         }
       };
 
-      if (!canScan && scanTrigger) {
+      if (!hasCameraAccessApi && scanTrigger) {
         scanTrigger.disabled = true;
         scanTrigger.title = 'Сканирование недоступно в этом браузере';
       }
@@ -920,7 +982,7 @@
       scannerModal?.addEventListener('shown.bs.modal', startScan);
       scannerModal?.addEventListener('hidden.bs.modal', stopScan);
     })();
-
+    
     // Анимация счетчика книг - БЫСТРАЯ
     function animateBookCount() {
       const countElement = document.querySelector('.book-count-animated');
