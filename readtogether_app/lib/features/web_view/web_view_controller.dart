@@ -100,7 +100,10 @@ class WebViewManager {
       final android = controller.platform as AndroidWebViewController;
       android
         ..setMediaPlaybackRequiresUserGesture(false)
-        ..setOnShowFileSelector(_fileService.onShowFileSelector);
+        ..setOnShowFileSelector(_fileService.onShowFileSelector)
+        ..setOnPlatformPermissionRequest((request) {
+          request.grant();
+        });
     }
 
     this.controller = controller;
@@ -266,7 +269,6 @@ class WebViewManager {
       return parsed
           .replace(
             path: normalisedPath,
-            queryParameters: const {},
             fragment: null,
           )
           .toString();

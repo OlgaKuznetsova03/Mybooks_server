@@ -260,7 +260,6 @@ class _MainWebViewPageState extends State<MainWebViewPage> {
       return parsed
           .replace(
             path: normalisedPath,
-            queryParameters: const {},
             fragment: null,
           )
           .toString();
