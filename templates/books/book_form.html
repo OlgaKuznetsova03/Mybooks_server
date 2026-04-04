@@ -63,7 +63,7 @@
           <div id="book-lookup" class="mb-4 rt-highlight rt-pulse-once" data-lookup-url="{% url 'book_lookup' %}">
             <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
               <h2 class="h5 mb-0">Поиск книги</h2>
-              <span class="text-muted small">Сначала ищем на сайте, затем при необходимости через ISBNdb.</span>
+              <span class="text-muted small">Поиск выполняется одновременно на сайте и в ISBNdb.</span>
             </div>
             <div class="row g-3 align-items-end">
               <div class="col-md-4">
@@ -101,11 +101,6 @@
               <div class="mb-3" data-role="local-section" hidden>
                 <h3 class="h6">Результаты на сайте</h3>
                 <div class="vstack gap-3" data-role="local-results"></div>
-              </div>
-
-              <div id="book-lookup-external-suggestion" class="alert alert-warning d-flex justify-content-between align-items-center" hidden>
-                <span>Не нашли нужное издание? Попробуйте поискать через ISBNdb.</span>
-                <button type="button" class="btn btn-sm btn-outline-primary" id="book-lookup-load-external">Искать в ISBNdb</button>
               </div>
 
               <div class="mb-3" data-role="external-section" hidden>
@@ -282,8 +277,6 @@
       const localResults = resultsRoot?.querySelector('[data-role="local-results"]');
       const externalSection = resultsRoot?.querySelector('[data-role="external-section"]');
       const externalResults = resultsRoot?.querySelector('[data-role="external-results"]');
-      const externalButton = document.getElementById('book-lookup-load-external');
-      const externalSuggestion = document.getElementById('book-lookup-external-suggestion');
       const coverPreview = document.getElementById('book-lookup-cover-preview');
       const coverPreviewImage = coverPreview?.querySelector('[data-role="preview-image"]');
 
@@ -423,7 +416,6 @@
         if (localSection) localSection.hidden = true;
         if (externalSection) externalSection.hidden = true;
         if (resultsRoot) resultsRoot.hidden = true;
-        if (externalSuggestion) externalSuggestion.hidden = true;
         showCoverPreview('');
       }
 
@@ -686,7 +678,7 @@
         });
       }
 
-      async function performSearch(options = { forceExternal: false }) {
+      async function performSearch() {
         if (!lookupUrl) return;
         const params = new URLSearchParams();
         const title = titleInput?.value.trim();
@@ -696,7 +688,6 @@
         if (title) params.set('title', title);
         if (author) params.set('author', author);
         if (isbn) params.set('isbn', isbn);
-        if (options.forceExternal) params.set('force_external', '1');
 
         clearResults();
         setLoading(true);
@@ -716,21 +707,13 @@
           const data = await response.json();
           if (resultsRoot) resultsRoot.hidden = false;
           renderLocal(data.local_results || []);
-
-          if (externalSuggestion) externalSuggestion.hidden = !!options.forceExternal;
-
-          if (options.forceExternal || data.external_error || (data.external_results && data.external_results.length)) {
-            if (externalSuggestion) externalSuggestion.hidden = true;
-            renderExternal(data.external_results || [], data.external_error);
-          } else if (!data.local_results?.length) {
-            if (externalSuggestion) externalSuggestion.hidden = false;
-          }
+          renderExternal(data.external_results || [], data.external_error);
 
           if (feedback && data.local_results?.length) {
             feedback.textContent = 'Эти книги уже есть на сайте. Убедитесь, что вы добавляете другое издание или книгу.';
             feedback.classList.remove('text-muted');
           } else if (feedback) {
-            feedback.textContent = 'Мы не нашли книгу на сайте. Можете добавить её вручную или воспользоваться данными из ISBNdb.';
+            feedback.textContent = 'Мы не нашли книгу на сайте. Проверьте результаты ISBNdb ниже или добавьте данные вручную.';
             feedback.classList.remove('text-muted');
           }
         } catch (err) {
@@ -744,8 +727,7 @@
         }
       }
 
-      submitButton?.addEventListener('click', () => performSearch({ forceExternal: false }));
-      externalButton?.addEventListener('click', () => performSearch({ forceExternal: true }));
+      submitButton?.addEventListener('click', performSearch);
 
       const prefillNode = document.getElementById('book-prefill-data');
       if (prefillNode) {
@@ -760,7 +742,6 @@
             renderExternal([payload.external_result], null);
             if (resultsRoot) {
               resultsRoot.hidden = false;
-              if (externalSuggestion) externalSuggestion.hidden = true;
             }
             applyExternalResult(payload.external_result);
           }

@@ -422,17 +422,6 @@
       {% elif view_mode != 'grid' %}
         <a class="btn btn-outline-light" href="?view=grid"><i class="bi bi-grid-3x3-gap me-2"></i>Смотреть все книги</a>
       {% endif %}
-      {% if view_mode == 'grid' and q %}
-        {% if isbndb_lookup_active %}
-          <a class="btn btn-outline-light" href="{{ isbndb_reset_url }}">
-            <i class="bi bi-x-circle me-2"></i>Скрыть предложения ISBNdb
-          </a>
-        {% else %}
-          <a class="btn btn-outline-light" href="{{ isbndb_lookup_url }}">
-            <i class="bi bi-search me-2"></i>Найти другие книги в ISBNdb
-          </a>
-        {% endif %}
-      {% endif %}
     </div>
   </div>
 

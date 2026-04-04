@@ -423,24 +423,23 @@ def _perform_book_lookup(
     external_results = []
     external_error = None
     can_use_isbndb = bool(getattr(isbndb_client, "api_key", ""))
-    if force_external or not local_results:
-        if not can_use_isbndb:
-            external_error = ISBNDB_MISSING_KEY_ERROR
+    if not can_use_isbndb:
+        external_error = ISBNDB_MISSING_KEY_ERROR
+    else:
+        try:
+            search_results = isbndb_client.search(
+                title=normalized_title or None,
+                author=normalized_author or None,
+                isbn=isbn or None,
+                limit=max(1, external_limit),
+            )
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.exception("ISBNdb lookup failed: %s", exc)
+            search_results = []
+            external_error = "Не удалось получить данные от ISBNdb. Попробуйте позже."
         else:
-            try:
-                search_results = isbndb_client.search(
-                    title=normalized_title or None,
-                    author=normalized_author or None,
-                    isbn=isbn or None,
-                    limit=max(1, external_limit),
-                )
-            except Exception as exc:  # pragma: no cover - defensive logging
-                logger.exception("ISBNdb lookup failed: %s", exc)
-                search_results = []
-                external_error = "Не удалось получить данные от ISBNdb. Попробуйте позже."
-            else:
-                for item in search_results:
-                    external_results.append(_serialize_external_item(item))
+            for item in search_results:
+                external_results.append(_serialize_external_item(item))
     payload = {
         "query": {
             "title": normalized_title,
@@ -664,9 +663,6 @@ def book_list(request):
     external_suggestions: list[dict[str, object]] = []
     external_error = None
     show_external_results = False
-    isbndb_lookup_active = (request.GET.get("external") or "").lower() == "isbndb"
-    isbndb_lookup_url = None
-    isbndb_reset_url = None
     discovery_shelves: list[dict[str, object]] = []
 
     if view_mode == "grid":
@@ -706,23 +702,6 @@ def book_list(request):
                 request.user,
             )
 
-        if q:
-            lookup_params = request.GET.copy()
-            lookup_params._mutable = True
-            lookup_params.pop("page", None)
-            lookup_params["view"] = "grid"
-            lookup_params["external"] = "isbndb"
-            isbndb_lookup_url = f"?{lookup_params.urlencode()}"
-
-            reset_params = request.GET.copy()
-            reset_params._mutable = True
-            reset_params.pop("page", None)
-            reset_params.pop("external", None)
-            reset_params["view"] = "grid"
-            isbndb_reset_url = (
-                f"?{reset_params.urlencode()}" if reset_params else request.path
-            )
-
         preserved_query = request.GET.copy()
         preserved_query._mutable = True
         preserved_query.pop("page", None)
@@ -743,11 +722,7 @@ def book_list(request):
         if q and page_obj:
             isbn_candidate = normalize_isbn(q)
             has_valid_isbn = len(isbn_candidate) in (10, 13)
-            should_fetch_external = (
-                page_obj.paginator.count == 0
-                or isbndb_lookup_active
-                or has_valid_isbn
-            )
+            should_fetch_external = True
 
             if should_fetch_external:
                 normalized_query = q.casefold()
@@ -1039,13 +1014,10 @@ def book_list(request):
             "page_obj": page_obj,
             "q": q,
             "active_sort": active_sort,
-            "sort_options": sort_options,
+             "sort_options": sort_options,
             "external_suggestions": external_suggestions,
             "external_error": external_error,
             "show_external_results": show_external_results,
-            "isbndb_lookup_active": isbndb_lookup_active,
-            "isbndb_lookup_url": isbndb_lookup_url,
-            "isbndb_reset_url": isbndb_reset_url,
             "total_books": total_books,
             "view_mode": view_mode,
             "discovery_shelves": discovery_shelves,
