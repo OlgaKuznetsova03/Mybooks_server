@@ -453,6 +453,18 @@
         <i class="bi bi-x-lg"></i>
       </button>
     {% endif %}
+    
+    <button
+      class="btn btn-outline-primary bg-white border-0"
+      type="button"
+      data-isbn-scan-trigger
+      data-bs-toggle="modal"
+      data-bs-target="#isbnScannerModal"
+      aria-label="Сканировать штрих-код"
+      title="Сканировать ISBN"
+    >
+      <i class="bi bi-upc-scan"></i>
+    </button>
 
     <button class="btn btn-primary" type="submit">Найти</button>
   </div>
@@ -461,6 +473,22 @@
     Можно искать по фамилии автора, названию или по ISBN.
   </div>
 </form>
+
+<div class="modal fade" id="isbnScannerModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title fs-5">Сканирование штрих-кода книги</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-muted mb-2">Наведите камеру на штрих-код книги — ISBN подставится в поиск автоматически.</p>
+        <video class="w-100 rounded bg-dark" autoplay playsinline muted data-isbn-video></video>
+        <p class="small mt-2 mb-0" data-isbn-scan-status>Запрашиваем доступ к камере…</p>
+      </div>
+    </div>
+  </div>
+</div>
 
 </section>
 
@@ -802,6 +830,96 @@
       const input = form.querySelector('input[name="q"]');
       if (input) { input.value = ''; form.submit(); }
     });
+    
+    (() => {
+      const scannerModal = document.getElementById('isbnScannerModal');
+      const scanTrigger = document.querySelector('[data-isbn-scan-trigger]');
+      const searchForm = document.querySelector('.books-hero__search');
+      const searchInput = searchForm?.querySelector('input[name="q"]');
+      const video = scannerModal?.querySelector('[data-isbn-video]');
+      const status = scannerModal?.querySelector('[data-isbn-scan-status]');
+      const canScan = Boolean(window.BarcodeDetector && navigator.mediaDevices?.getUserMedia);
+      let stream = null;
+      let detector = null;
+      let isActive = false;
+      let rafId = null;
+
+      const setStatus = (text, isError = false) => {
+        if (!status) return;
+        status.textContent = text;
+        status.classList.toggle('text-danger', isError);
+        status.classList.toggle('text-muted', !isError);
+      };
+
+      const stopScan = () => {
+        isActive = false;
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+        if (video) {
+          video.pause();
+          video.srcObject = null;
+        }
+        if (stream) {
+          stream.getTracks().forEach((track) => track.stop());
+          stream = null;
+        }
+      };
+
+      const applyDetectedValue = (rawValue) => {
+        const isbn = (rawValue || '').replace(/[^0-9Xx]/g, '').toUpperCase();
+        if (!isbn || !searchInput || !searchForm) return;
+        searchInput.value = isbn;
+        stopScan();
+        const modalInstance = bootstrap.Modal.getInstance(scannerModal);
+        modalInstance?.hide();
+        searchForm.submit();
+      };
+
+      const scanLoop = async () => {
+        if (!isActive || !video || !detector) return;
+        try {
+          const barcodes = await detector.detect(video);
+          const match = barcodes.find((item) => item.rawValue);
+          if (match) {
+            applyDetectedValue(match.rawValue);
+            return;
+          }
+        } catch (_) {
+          setStatus('Не удалось распознать код. Подвиньте книгу ближе к камере.', true);
+        }
+        rafId = requestAnimationFrame(scanLoop);
+      };
+
+      const startScan = async () => {
+        if (!scannerModal || !video) return;
+        if (!canScan) {
+          setStatus('Сканирование недоступно: откройте сайт в современном браузере с доступом к камере.', true);
+          return;
+        }
+        setStatus('Наведите камеру на штрих-код (EAN/ISBN)…');
+        try {
+          detector = detector || new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+          video.srcObject = stream;
+          await video.play();
+          isActive = true;
+          scanLoop();
+        } catch (_) {
+          stopScan();
+          setStatus('Не удалось получить доступ к камере. Проверьте разрешения браузера.', true);
+        }
+      };
+
+      if (!canScan && scanTrigger) {
+        scanTrigger.disabled = true;
+        scanTrigger.title = 'Сканирование недоступно в этом браузере';
+      }
+
+      scannerModal?.addEventListener('shown.bs.modal', startScan);
+      scannerModal?.addEventListener('hidden.bs.modal', stopScan);
+    })();
 
     // Анимация счетчика книг - БЫСТРАЯ
     function animateBookCount() {

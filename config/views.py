@@ -22,15 +22,16 @@ from shelves.models import BookProgress, BookProgressReaction, Shelf, ShelfItem
 
 
 ALLOWED_HOME_REACTION_EMOJIS = ["👍", "❤️", "🔥", "👏", "😍", "😮", "😂", "😢"]
+TWEMOJI_CDN_BASE = "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg"
 HOME_REACTION_ICON_MAP = {
-    "👍": "/media/reactions/book_stiker_good.PNG",
-    "❤️": "/media/reactions/book_stiker_love_2.PNG",
-    "🔥": "/media/reactions/book_stiker_wow.PNG",
-    "👏": "/media/reactions/book_stiker_fair.PNG",
-    "😍": "/media/reactions/book_sticker_love_1.png",
-    "😮": "/media/reactions/book_stiker_smile_3.PNG",
-    "😂": "/media/reactions/book_sticker_geil.png",
-    "😢": "/media/reactions/book_sticker_angel.png",
+    "👍": f"{TWEMOJI_CDN_BASE}/1f44d.svg",
+    "❤️": f"{TWEMOJI_CDN_BASE}/2764.svg",
+    "🔥": f"{TWEMOJI_CDN_BASE}/1f525.svg",
+    "👏": f"{TWEMOJI_CDN_BASE}/1f44f.svg",
+    "😍": f"{TWEMOJI_CDN_BASE}/1f60d.svg",
+    "😮": f"{TWEMOJI_CDN_BASE}/1f62e.svg",
+    "😂": f"{TWEMOJI_CDN_BASE}/1f602.svg",
+    "😢": f"{TWEMOJI_CDN_BASE}/1f622.svg",
 }
 
 

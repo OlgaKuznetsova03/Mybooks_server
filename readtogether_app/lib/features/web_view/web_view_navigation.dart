@@ -61,7 +61,7 @@ class WebViewNavigation {
   Future<bool> _handleOfflineBack() async {
     try {
       _isOfflineBackNavigation = true;
-      webViewManager.setState(loading: true, error: false, loadingTimedOut: false);
+      webViewManager.setState(loading: true, error: false);
 
       if (webViewManager.hasOfflineHistory) {
         await webViewManager.handleOfflineNavigation().timeout(
@@ -83,7 +83,7 @@ class WebViewNavigation {
       return false;
     } finally {
       _isOfflineBackNavigation = false;
-      webViewManager.setState(loading: false, error: false, loadingTimedOut: false);
+      webViewManager.setState(loading: false, error: false);
     }
   }
 
@@ -98,7 +98,7 @@ class WebViewNavigation {
     }
 
     webViewManager.showOfflineBanner = true;
-    webViewManager.setState(loading: false, error: false, loadingTimedOut: false);
+    webViewManager.setState(loading: false, error: false);
   }
 
   bool _isStandardWebScheme(String scheme) {
