@@ -222,8 +222,6 @@ export const AppConfig = () => {
   if (appState === STATES.AUTH) {
     return (
       <div style={pageStyle}>
-        <p>{statusLine}</p>
-
         {errorMessage && (
           <p style={errorStyle}>{errorMessage}</p>
         )}
@@ -249,8 +247,6 @@ export const AppConfig = () => {
   if (appState === STATES.SHELF) {
     return (
       <div style={pageStyle}>
-        <p>{statusLine}</p>
-
         {shelfData ? (
           <ShelfView
             data={shelfData}

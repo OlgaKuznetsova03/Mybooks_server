@@ -1025,6 +1025,7 @@ def _build_reading_track_context(
     progress,
     book,
     *,
+    show_finish_celebration=False,
     character_form=None,
     format_form=None,
     character_forms=None,
@@ -1197,7 +1198,11 @@ def _build_reading_track_context(
     ]
     display_cover_url = _get_progress_display_cover_url(progress)
     finish_celebration_api_url = None
-    if progress.percent and progress.percent >= Decimal("100"):
+    if (
+        show_finish_celebration
+        and progress.percent
+        and progress.percent >= Decimal("100")
+    ):
         finish_celebration_api_url = reverse(
             "shelves:reading_finish_celebration_api", args=[progress.pk]
         )
@@ -1256,7 +1261,14 @@ def reading_track(request, book_id):
         defaults={"percent": 0, "current_page": 0, "started_at": timezone.localdate()},
     )
     format_form = BookProgressFormatForm(instance=progress, book=book)
-    context = _build_reading_track_context(progress, book, format_form=format_form)
+    celebration_progress_id = request.session.pop("finish_celebration_progress_id", None)
+    show_finish_celebration = celebration_progress_id == progress.pk
+    context = _build_reading_track_context(
+        progress,
+        book,
+        format_form=format_form,
+        show_finish_celebration=show_finish_celebration,
+    )
     return render(request, "reading/track.html", context)
 
 
@@ -1894,6 +1906,7 @@ def reading_mark_finished(request, progress_id):
         progress.save(update_fields=[*update_fields, "updated_at"])
     move_book_to_read_shelf(request.user, progress.book)
     award_for_book_completion(request.user, progress.book)
+    request.session["finish_celebration_progress_id"] = progress.pk
     messages.success(request, "Книга отмечена как прочитанная.")
     review_link = reverse("book_detail", args=[progress.book_id]) + "#write-review"
     messages.info(

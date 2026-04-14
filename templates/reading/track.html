@@ -202,32 +202,6 @@
   font-size: 18px;
 }
 
-.reading-time-left {
-  width: 100%;
-  max-width: 460px;
-}
-
-.reading-time-left__label {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 13px;
-  color: #5d4a37;
-}
-
-.reading-time-left__input {
-  max-width: 170px;
-  margin-bottom: 8px;
-}
-
-.reading-time-left__result {
-  font-size: 13px;
-  color: #4A3B2C;
-}
-
-.reading-time-left__result strong {
-  color: #8B6B42;
-}
-
 .reading-format-mobile__buttons {
   display: grid;
   gap: .7rem;
@@ -989,28 +963,6 @@
               <strong class="animated-number">{{ estimated_days_remaining }}</strong> дн.
             </div>
           {% endif %}
-          {% for medium in media_details %}
-            {% if medium.code == progress.FORMAT_PAPER or medium.code == progress.FORMAT_EBOOK %}
-              {% if medium.total_pages and medium.current_page is not None %}
-                {% with remaining_pages=medium.total_pages|add:-medium.current_page %}
-                  <div class="stat-card reading-time-left" data-time-left-card data-medium-label="{{ medium.label }}" data-remaining-pages="{{ remaining_pages }}">
-                    <span class="reading-time-left__label">{{ medium.label }}: сколько стр. за 15 минут?</span>
-                    <input
-                      type="number"
-                      min="0.1"
-                      step="0.1"
-                      class="form-control reading-time-left__input"
-                      data-time-left-input
-                      placeholder="Например, 8"
-                    >
-                    <div class="reading-time-left__result" data-time-left-result>
-                      Осталось: <strong>укажите скорость чтения</strong>
-                    </div>
-                  </div>
-                {% endwith %}
-              {% endif %}
-            {% endif %}
-          {% endfor %}
         </div>
       </div>
     </div>
@@ -2794,43 +2746,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }, 1000);
   {% endif %}
-  
-  const timeLeftCards = document.querySelectorAll('[data-time-left-card]');
-  const formatTimeLeftValue = (minutesRaw) => {
-    const roundedMinutes = Math.max(1, Math.round(minutesRaw));
-    const days = Math.floor(roundedMinutes / 1440);
-    const hours = Math.floor((roundedMinutes % 1440) / 60);
-    const minutes = roundedMinutes % 60;
-    const chunks = [];
-    if (days) chunks.push(`${days} д.`);
-    if (hours) chunks.push(`${hours} ч.`);
-    if (minutes || !chunks.length) chunks.push(`${minutes} мин.`);
-    return chunks.join(' ');
-  };
-
-  timeLeftCards.forEach((card) => {
-    const input = card.querySelector('[data-time-left-input]');
-    const result = card.querySelector('[data-time-left-result]');
-    const remainingPages = Number.parseFloat(card.dataset.remainingPages || '0');
-    const mediumLabel = card.dataset.mediumLabel || 'Книга';
-
-    if (!input || !result || !(remainingPages > 0)) {
-      return;
-    }
-
-    const updateTimeLeft = () => {
-      const pagesPer15Min = Number.parseFloat(input.value);
-      if (!(pagesPer15Min > 0)) {
-        result.innerHTML = 'Осталось: <strong>укажите скорость чтения</strong>';
-        return;
-      }
-
-      const minutesLeft = (remainingPages / pagesPer15Min) * 15;
-      result.innerHTML = `До конца (${mediumLabel}) примерно: <strong>${formatTimeLeftValue(minutesLeft)}</strong>`;
-    };
-
-    input.addEventListener('input', updateTimeLeft);
-  });
 });
 
 // Функция для конфетти (если библиотека подключена)
