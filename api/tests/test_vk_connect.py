@@ -1,0 +1,65 @@
+from django.contrib.auth import get_user_model
+from django.test import TestCase
+from rest_framework import status
+from rest_framework.test import APIClient
+
+from api.models import VKAccount
+
+
+class VKConnectViewTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username="user1",
+            email="user1@example.com",
+            password="StrongPass123!",
+        )
+        self.other_user = user_model.objects.create_user(
+            username="user2",
+            email="user2@example.com",
+            password="StrongPass123!",
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(self.user)
+        self.url = "/api/v1/vk/connect/"
+
+    def test_connect_relinks_vk_id_from_other_user(self):
+        VKAccount.objects.create(user=self.other_user, vk_user_id=123456)
+
+        response = self.client.post(self.url, {"vk_user_id": 123456}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(VKAccount.objects.filter(vk_user_id=123456, user=self.user).count(), 1)
+        self.assertFalse(VKAccount.objects.filter(user=self.other_user).exists())
+
+    def test_connect_updates_existing_user_vk_account(self):
+        VKAccount.objects.create(user=self.user, vk_user_id=555111)
+
+        response = self.client.post(
+            self.url,
+            {
+                "vk_user_id": 555222,
+                "first_name": "Ivan",
+                "last_name": "Petrov",
+                "photo_100": "https://example.com/photo.jpg",
+                "screen_name": "ivanpetrov",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        account = VKAccount.objects.get(user=self.user)
+        self.assertEqual(account.vk_user_id, 555222)
+        self.assertEqual(account.first_name, "Ivan")
+        self.assertEqual(account.screen_name, "ivanpetrov")
+
+    def test_connect_replaces_current_user_old_vk_link_when_relinking(self):
+        VKAccount.objects.create(user=self.user, vk_user_id=111111)
+        VKAccount.objects.create(user=self.other_user, vk_user_id=222222)
+
+        response = self.client.post(self.url, {"vk_user_id": 222222}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(VKAccount.objects.filter(user=self.user).count(), 1)
+        self.assertEqual(VKAccount.objects.get(user=self.user).vk_user_id, 222222)
+        self.assertFalse(VKAccount.objects.filter(vk_user_id=111111).exists())

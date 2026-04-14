@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.db import IntegrityError, transaction
 from django.db.models import Sum
 from django.utils import timezone
 from rest_framework import permissions, status
@@ -122,13 +123,6 @@ class VKConnectView(APIView):
         serializer.is_valid(raise_exception=True)
 
         vk_user_id = serializer.validated_data["vk_user_id"]
-        existing = VKAccount.objects.filter(vk_user_id=vk_user_id).exclude(user=request.user).first()
-        if existing:
-            return Response(
-                {"detail": "Этот VK аккаунт уже привязан к другому пользователю."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         defaults = {
             "vk_user_id": vk_user_id,
             "first_name": serializer.validated_data.get("first_name", ""),
@@ -136,7 +130,39 @@ class VKConnectView(APIView):
             "photo_100": serializer.validated_data.get("photo_100", ""),
             "screen_name": serializer.validated_data.get("screen_name", ""),
         }
-        VKAccount.objects.update_or_create(user=request.user, defaults=defaults)
+
+        try:
+            with transaction.atomic():
+                current_account = (
+                    VKAccount.objects.select_for_update()
+                    .filter(user=request.user)
+                    .first()
+                )
+                existing_vk_account = (
+                    VKAccount.objects.select_for_update()
+                    .filter(vk_user_id=vk_user_id)
+                    .first()
+                )
+
+                if existing_vk_account:
+                    if current_account and current_account.pk != existing_vk_account.pk:
+                        current_account.delete()
+
+                    existing_vk_account.user = request.user
+                    for field, value in defaults.items():
+                        setattr(existing_vk_account, field, value)
+                    existing_vk_account.save()
+                elif current_account:
+                    for field, value in defaults.items():
+                        setattr(current_account, field, value)
+                    current_account.save()
+                else:
+                    VKAccount.objects.create(user=request.user, **defaults)
+        except IntegrityError:
+            return Response(
+                {"detail": "Этот VK аккаунт уже привязан к другому пользователю."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response({"linked": True})
 
 
