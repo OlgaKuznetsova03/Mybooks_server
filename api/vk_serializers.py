@@ -7,7 +7,10 @@ from .models import VKAccount
 
 
 class VKConnectSerializer(serializers.Serializer):
-    vk_user_id = serializers.IntegerField()
+    vk_user_id = serializers.IntegerField(
+        min_value=1,
+        max_value=9223372036854775807,
+    )
     first_name = serializers.CharField(max_length=255, required=False, allow_blank=True)
     last_name = serializers.CharField(max_length=255, required=False, allow_blank=True)
     photo_100 = serializers.URLField(required=False, allow_blank=True)
