@@ -1,4 +1,4 @@
-import { getToken } from '../utils/storage';
+import { getToken, getVKId, clearToken, clearVKId } from '../utils/storage';
 
 const PROD_API_ORIGIN = 'https://kalejdoskopknig.ru';
 
@@ -33,6 +33,7 @@ function buildUrl(path) {
 
 export async function request(path, options = {}) {
   const token = getToken();
+  const vkId = getVKId();
   const headers = {
     'Content-Type': 'application/json',
     ...(options.headers || {}),
@@ -40,6 +41,10 @@ export async function request(path, options = {}) {
 
   if (token) {
     headers.Authorization = `Token ${token}`;
+  }
+
+  if (vkId) {
+    headers['X-VK-User-Id'] = vkId;
   }
 
   let response;
@@ -57,6 +62,11 @@ export async function request(path, options = {}) {
   const payload = isJson ? await response.json() : null;
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      clearToken();
+      clearVKId();
+    }
+
     const firstErrorFromMap = (errors) => {
       if (!errors || typeof errors !== 'object') return null;
       for (const value of Object.values(errors)) {

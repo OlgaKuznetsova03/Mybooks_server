@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import bridge from '@vkontakte/vk-bridge';
 
+import { request } from '../api/client';
+import { clearToken, clearVKId, getVKId, setToken, setVKId } from '../utils/storage';
+
 const DEV_FALLBACK_ENABLED =
   import.meta.env.DEV && import.meta.env.VITE_VK_DEV_FALLBACK === '1';
 
@@ -22,55 +25,94 @@ function getDevUser() {
   };
 }
 
+function normalizeErrorMessage(err) {
+  const message = String(err?.message || err || '');
+  return message.trim();
+}
+
 export function useVkUser() {
   const [vkUser, setVkUser] = useState(null);
-  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [needsLinking, setNeedsLinking] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
 
-    async function loadUser() {
+    async function initVK() {
       try {
-        const timeout = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('VK timeout')), 1500)
-        );
+        await bridge.send('VKWebAppInit');
 
-        const user = await Promise.race([
-          bridge.send('VKWebAppGetUserInfo'),
-          timeout,
-        ]);
-
-        if (isMounted) {
-          setVkUser(user);
-          setError(null);
-          setLoading(false);
+        let launchParams;
+        try {
+          launchParams = await bridge.send('VKWebAppGetLaunchParams');
+        } catch (_) {
+          launchParams = null;
         }
-      } catch (e) {
+
+        const bridgeUser = await bridge.send('VKWebAppGetUserInfo');
+        const currentVKId = String(
+          launchParams?.vk_user_id || bridgeUser?.id || '',
+        ).trim();
+
+        if (!currentVKId) {
+          throw new Error('Не удалось определить VK ID пользователя.');
+        }
+
+        const savedVKId = getVKId();
+        if (savedVKId && savedVKId !== currentVKId) {
+          clearToken();
+          clearVKId();
+        }
+
+        const response = await request('/api/v1/vk/login/', {
+          method: 'POST',
+          body: JSON.stringify({ vk_user_id: Number(currentVKId) }),
+        });
+
         if (!isMounted) return;
 
-        // Используем fallback в dev только при явном флаге,
-        // чтобы не привязывать всех к одному и тому же vk_user_id.
-        if (DEV_FALLBACK_ENABLED) {
-          console.log('VK fallback user used (VITE_VK_DEV_FALLBACK=1)');
+        setToken(response.token);
+        setVKId(currentVKId);
+        setVkUser(response.user || bridgeUser);
+        setNeedsLinking(false);
+        setError(null);
+      } catch (err) {
+        if (!isMounted) return;
 
-          setVkUser(getDevUser());
-          setError(null);
-        } else {
-          setError(e);
+        const message = normalizeErrorMessage(err);
+
+        if (message.includes('vk_not_linked')) {
+          setNeedsLinking(true);
+          setError('VK аккаунт не привязан');
           setVkUser(null);
+          return;
         }
 
-        setLoading(false);
+        if (DEV_FALLBACK_ENABLED) {
+          const fallback = getDevUser();
+          setVkUser(fallback);
+          setNeedsLinking(false);
+          setError(null);
+          return;
+        }
+
+        setError(message || 'VK auth error');
+        setNeedsLinking(false);
+        setVkUser(null);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
 
-    loadUser();
+    initVK();
 
     return () => {
       isMounted = false;
     };
   }, []);
 
-  return { vkUser, error, loading };
+  return { user: vkUser, vkUser, loading, error, needsLinking };
 }

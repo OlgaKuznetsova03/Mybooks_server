@@ -1,85 +1,47 @@
-import { useState, useEffect } from 'react';
-import bridge from '@vkontakte/vk-bridge';
-import { SplitLayout, SplitCol, ScreenSpinner } from '@vkontakte/vkui';
+import { useVkUser } from './hooks/useVkUser';
+import { useShelf } from './hooks/useShelf';
+import { ShelfView } from './views/ShelfView';
 
-import { ShelfView } from './components/ShelfView';
+function App() {
+  const { user, loading, error, needsLinking } = useVkUser();
+  const {
+    data: shelfData,
+    loading: shelfLoading,
+    error: shelfError,
+  } = useShelf(Boolean(user) && !needsLinking);
 
-export const App = () => {
-  const [fetchedUser, setUser] = useState(null);
-  const [popout, setPopout] = useState(<ScreenSpinner />);
+if (loading || shelfLoading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        Загрузка...
+      </div>
+    );
+  }
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const user = await bridge.send('VKWebAppGetUserInfo');
-        setUser(user);
-      } catch (error) {
-        console.error('Ошибка получения пользователя VK:', error);
-      } finally {
-        setPopout(null);
-      }
-    }
+  if (error || shelfError) {
+    return (
+      <div style={{ padding: 20 }}>
+        <h3>Ошибка</h3>
+        <p>{error || shelfError?.message}</p>
+        <button onClick={() => window.location.reload()}>Повторить</button>
+      </div>
+    );
+  }
 
-    fetchData();
-  }, []);
+  if (needsLinking) {
+    return (
+      <div style={{ padding: 20 }}>
+        <h3>Требуется привязка VK аккаунта</h3>
+        <p>Пожалуйста, войдите с email и паролем для привязки VK аккаунта.</p>
+      </div>
+    );
+  }
 
-  const mockData = {
-    profile: {
-      username: 'Живу_в_библиотеке',
-    },
-    current_book: {
-      id: 1,
-      title: 'Проклятие Желтого императора',
-      authors: ['Хунь Юнь'],
-      cover_url: '',
-      progress_percent: 38,
-    },
-    recent_books: [
-      {
-        id: 2,
-        title: 'Газовый убийца. История маньяка Джона Кристи',
-        authors: ['Кейт Саммерскейл'],
-        cover_url: '',
-      },
-      {
-        id: 3,
-        title: 'Человек государев',
-        authors: ['Александр Горбов', 'Мила Бачурова'],
-        cover_url: '',
-      },
-      {
-        id: 4,
-        title: 'Часы смерти',
-        authors: ['Джон Диксон Карр'],
-        cover_url: '',
-      },
-      {
-        id: 5,
-        title: 'Продавец секретов',
-        authors: ['Ли Чжонван'],
-        cover_url: '',
-      },
-    ],
-    stats: {
-      books_this_month: 5,
-      pages_this_month: 2928,
-      audio_minutes_this_month: 1049,
-    },
-  };
+  if (user && shelfData) {
+    return <ShelfView data={shelfData} vkUser={user} />;
+  }
 
-  const handleLogout = () => {
-    console.log('Выход');
-  };
+  return null;
+}
 
-  return (
-    <SplitLayout popout={popout}>
-      <SplitCol>
-        <ShelfView
-          data={mockData}
-          vkUser={fetchedUser}
-          onLogout={handleLogout}
-        />
-      </SplitCol>
-    </SplitLayout>
-  );
-};
+  export default App;

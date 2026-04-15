@@ -7,7 +7,7 @@ import { AuthForm } from './components/AuthForm';
 import { SignupForm } from './components/SignupForm';
 import { useShelf } from './hooks/useShelf';
 import { useVkUser } from './hooks/useVkUser';
-import { clearToken, getToken, setToken } from './utils/storage';
+import { clearToken, clearVKId, getToken, setToken, setVKId } from './utils/storage';
 import { ShelfView } from './views/ShelfView';
 
 const STATES = {
@@ -24,7 +24,12 @@ export const AppConfig = () => {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
 
-  const { vkUser, error: vkError, loading: vkLoading } = useVkUser();
+  const {
+    vkUser,
+    error: vkError,
+    loading: vkLoading,
+    needsLinking,
+  } = useVkUser();
 
   const {
     data: shelfData,
@@ -94,8 +99,14 @@ export const AppConfig = () => {
   useEffect(() => {
     if (vkLoading) return;
 
+    if (needsLinking) {
+      setErrorMessage('VK аккаунт не привязан. Войдите с email и паролем.');
+      setAppState(STATES.AUTH);
+      return;
+    }
+
     if (vkError) {
-      setErrorMessage('VK unavailable');
+      setErrorMessage(vkError?.message || String(vkError || 'VK unavailable'));
       setAppState(STATES.ERROR);
       return;
     }
@@ -130,13 +141,14 @@ export const AppConfig = () => {
         setAppState(STATES.SHELF);
       } catch (e) {
         clearToken();
+        clearVKId();
         setErrorMessage(e.message || 'Auth error');
         setAppState(STATES.AUTH);
       }
     }
 
     bootstrap();
-  }, [vkUser, vkError, vkLoading]);
+  }, [vkUser, vkError, vkLoading, needsLinking]);
 
   async function onLogin(form) {
     setErrorMessage('');
@@ -157,6 +169,7 @@ export const AppConfig = () => {
         });
       }
 
+      setVKId(vkUser.id);
       setAppState(STATES.SHELF);
     } catch (e) {
       setErrorMessage(e.message || 'Auth error');
@@ -180,12 +193,6 @@ export const AppConfig = () => {
       setAppState(STATES.AUTH);
     }
   }
-
-  const statusLine = useMemo(() => {
-    if (isOffline) return 'No internet';
-    if (shelfError) return shelfError.message;
-    return appState;
-  }, [isOffline, shelfError, appState]);
 
   const pageStyle = useMemo(
     () => ({
@@ -254,6 +261,7 @@ export const AppConfig = () => {
             isDarkTheme={isDarkTheme}
             onLogout={() => {
               clearToken();
+              clearVKId();
               setAppState(STATES.AUTH);
             }}
           />
