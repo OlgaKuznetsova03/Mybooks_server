@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.conf import settings
 from django.contrib.auth import login, logout
 from django.core.exceptions import ObjectDoesNotExist
+from django.db import DatabaseError
 from rest_framework import permissions, status
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
@@ -87,16 +88,27 @@ class AuthLoginView(APIView):
         email = str(request.data.get("email", "")).strip()
         password = request.data.get("password", "")
 
-        form = EmailAuthenticationForm(
-            request=request,
-            data={"username": email, "password": password},
-        )
-        if not form.is_valid():
-            return Response({"success": False, "errors": _normalize_form_errors(form)}, status=400)
+        try:
+            form = EmailAuthenticationForm(
+                request=request,
+                data={"username": email, "password": password},
+            )
+            if not form.is_valid():
+                return Response({"success": False, "errors": _normalize_form_errors(form)}, status=400)
+            user = form.get_user()
+            token = issue_mobile_token(user, rotate=True)
+        except DatabaseError:
+            return Response(
+                {"success": False, "detail": "Сервис авторизации временно недоступен. Попробуйте позже."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
 
-        user = form.get_user()
-        login(request, user)
-        token = issue_mobile_token(user, rotate=True)
+        try:
+            login(request, user)
+        except DatabaseError:
+            # Session persistence can fail in degraded DB conditions.
+            # API clients rely on the token, so keep login successful.
+            pass
 
         return Response(
             {
