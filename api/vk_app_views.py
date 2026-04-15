@@ -1,4 +1,5 @@
 from django.contrib.auth import authenticate, get_user_model
+from django.db import DatabaseError
 from django.db.models import Q
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
@@ -31,10 +32,16 @@ class VKAppLoginView(APIView):
         password = serializer.validated_data["password"]
 
         user_model = get_user_model()
-        candidate = user_model.objects.filter(email__iexact=email).first()
         user = None
-        if candidate:
-            user = authenticate(request, username=candidate.username, password=password)
+        try:
+            candidate = user_model.objects.filter(email__iexact=email).first()
+            if candidate:
+                user = authenticate(request, username=candidate.username, password=password)
+        except DatabaseError:
+            return Response(
+                {"detail": "Сервис авторизации временно недоступен. Попробуйте позже."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
         if not user:
             return Response(
                 {"detail": "Неверный email или пароль."},

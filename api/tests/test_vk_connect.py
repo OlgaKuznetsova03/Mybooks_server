@@ -1,7 +1,9 @@
 from django.contrib.auth import get_user_model
+from django.db import DatabaseError
 from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
+from unittest.mock import patch
 
 from api.models import VKAccount
 
@@ -88,3 +90,41 @@ class VKLoginViewTests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.json()["error"], "vk_user_id out of range")
+
+    def test_login_succeeds_even_if_last_login_update_fails(self):
+        user_model = get_user_model()
+        user = user_model.objects.create_user(
+            username="vklogin",
+            email="vklogin@example.com",
+            password="StrongPass123!",
+        )
+        VKAccount.objects.create(user=user, vk_user_id=7654321)
+
+        with patch.object(user_model, "save", side_effect=DatabaseError):
+            response = self.client.post(
+                self.url,
+                {"vk_user_id": 7654321},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("token", response.json())
+
+
+class VKAppLoginViewTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.url = "/api/v1/vk-app/auth/login/"
+
+    def test_login_returns_503_when_user_lookup_fails(self):
+        with patch("api.vk_app_views.get_user_model") as mocked_get_user_model:
+            user_model = mocked_get_user_model.return_value
+            user_model.objects.filter.side_effect = DatabaseError
+
+            response = self.client.post(
+                self.url,
+                {"email": "broken@example.com", "password": "StrongPass123!"},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)

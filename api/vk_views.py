@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.db import DataError, IntegrityError, transaction
+from django.db import DataError, DatabaseError, IntegrityError, transaction
 from django.db.models import Sum
 from django.utils import timezone
 from rest_framework import permissions, status
@@ -75,8 +75,13 @@ class VKLoginView(APIView):
             )
 
         token = issue_mobile_token(user)
-        user.last_login = timezone.now()
-        user.save(update_fields=["last_login"])
+        try:
+            user.last_login = timezone.now()
+            user.save(update_fields=["last_login"])
+        except DatabaseError:
+            # Token has already been issued (or fallback token generated), so
+            # keep VK login successful even if auditing timestamp update fails.
+            pass
 
         return Response(
             {
