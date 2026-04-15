@@ -374,10 +374,7 @@ export const ShelfView = ({ data, vkUser, onLogout, isDarkTheme = false }) => {
             <div style={styles.titleWrap}>
               <div style={styles.logo}>📚</div>
               <div>
-                <h1 style={styles.title}>Моя книжная полка</h1>
-                <p style={styles.subtitle}>
-                  Текущие книги, недавние прочтения и личная статистика
-                </p>
+                <h3 style={styles.title}>Я читаю</h3>
               </div>
             </div>
 

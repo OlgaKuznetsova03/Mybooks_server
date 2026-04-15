@@ -1,13 +1,26 @@
 import { useEffect, useState } from 'react';
 import bridge from '@vkontakte/vk-bridge';
 
-const DEV_USER = {
-  id: 999999,
-  first_name: 'Local',
-  last_name: 'Dev',
-  photo_100: '',
-  screen_name: '',
-};
+const DEV_FALLBACK_ENABLED =
+  import.meta.env.DEV && import.meta.env.VITE_VK_DEV_FALLBACK === '1';
+
+function getDevUser() {
+  const storageKey = 'mybooks_vk_dev_user_id';
+  const saved = window.localStorage.getItem(storageKey);
+  const devId = saved || `${Date.now()}`;
+
+  if (!saved) {
+    window.localStorage.setItem(storageKey, devId);
+  }
+
+  return {
+    id: Number(devId),
+    first_name: 'Local',
+    last_name: 'Dev',
+    photo_100: '',
+    screen_name: '',
+  };
+}
 
 export function useVkUser() {
   const [vkUser, setVkUser] = useState(null);
@@ -36,11 +49,12 @@ export function useVkUser() {
       } catch (e) {
         if (!isMounted) return;
 
-        // 💥 ВАЖНО: fallback всегда в dev
-        if (import.meta.env.DEV) {
-          console.log('VK fallback user used');
+        // Используем fallback в dev только при явном флаге,
+        // чтобы не привязывать всех к одному и тому же vk_user_id.
+        if (DEV_FALLBACK_ENABLED) {
+          console.log('VK fallback user used (VITE_VK_DEV_FALLBACK=1)');
 
-          setVkUser(DEV_USER);
+          setVkUser(getDevUser());
           setError(null);
         } else {
           setError(e);

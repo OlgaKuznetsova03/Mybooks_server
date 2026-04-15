@@ -22,7 +22,21 @@ export async function request(path, options = {}) {
   const payload = isJson ? await response.json() : null;
 
   if (!response.ok) {
-    const message = payload?.detail || 'Request failed';
+    const firstErrorFromMap = (errors) => {
+      if (!errors || typeof errors !== 'object') return null;
+      for (const value of Object.values(errors)) {
+        if (Array.isArray(value) && value.length) {
+          return String(value[0]);
+        }
+      }
+      return null;
+    };
+
+    const message =
+      payload?.detail ||
+      firstErrorFromMap(payload?.errors) ||
+      payload?.error ||
+      'Request failed';
     throw new Error(message);
   }
 
