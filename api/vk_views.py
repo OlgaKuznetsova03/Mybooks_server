@@ -11,12 +11,68 @@ from shelves.models import BookProgress, ReadingLog, ShelfItem
 from shelves.services import ALL_DEFAULT_READ_SHELF_NAMES
 
 from .models import VKAccount
+from .authentication import issue_mobile_token
 from .vk_serializers import (
     VKAccountSerializer,
     VKBookSerializer,
     VKConnectSerializer,
     VKUserSerializer,
 )
+
+
+class VKLoginView(APIView):
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+
+    def post(self, request, *args, **kwargs):
+        vk_user_id = request.data.get("vk_user_id")
+
+        if not vk_user_id:
+            return Response(
+                {"error": "vk_user_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            vk_user_id = int(vk_user_id)
+        except (TypeError, ValueError):
+            return Response(
+                {"error": "vk_user_id must be an integer"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        vk_account = (
+            VKAccount.objects.select_related("user")
+            .filter(vk_user_id=vk_user_id)
+            .first()
+        )
+        if not vk_account:
+            return Response(
+                {
+                    "error": "vk_not_linked",
+                    "message": "VK аккаунт не привязан. Сначала войдите с email/паролем.",
+                },
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        user = vk_account.user
+        if not user.is_active:
+            return Response(
+                {"error": "user_inactive"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        token = issue_mobile_token(user)
+        user.last_login = timezone.now()
+        user.save(update_fields=["last_login"])
+
+        return Response(
+            {
+                "token": token,
+                "user": VKUserSerializer(user).data,
+                "vk_account": VKAccountSerializer(vk_account).data,
+            }
+        )
 
 
 def _get_bookshelf_payload(user, request=None, recent_limit=5):

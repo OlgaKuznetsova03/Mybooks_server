@@ -41,7 +41,7 @@ class VKAppLoginView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        token = issue_mobile_token(user)
+        token = issue_mobile_token(user, rotate=True)
         return Response(
             {
                 "token": token,

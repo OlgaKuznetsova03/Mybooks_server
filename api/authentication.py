@@ -12,11 +12,15 @@ _MOBILE_TOKEN_SALT = "mobile-auth-fallback"
 _MOBILE_TOKEN_MAX_AGE_SECONDS = 60 * 60 * 24 * 30
 
 
-def issue_mobile_token(user) -> str:
+def issue_mobile_token(user, *, rotate: bool = False) -> str:
     """Return DB token when available, otherwise signed fallback token."""
 
     try:
-        token, _ = Token.objects.get_or_create(user=user)
+        if rotate:
+            Token.objects.filter(user=user).delete()
+            token = Token.objects.create(user=user)
+        else:
+            token, _ = Token.objects.get_or_create(user=user)
         return token.key
     except DatabaseError:
         payload = {"uid": user.pk}

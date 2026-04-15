@@ -88,7 +88,7 @@ class AuthLoginView(APIView):
 
         user = form.get_user()
         login(request, user)
-        token = issue_mobile_token(user)
+        token = issue_mobile_token(user, rotate=True)
 
         return Response(
             {

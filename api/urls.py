@@ -26,6 +26,7 @@ urlpatterns = [
     path("reading-clubs", views.ReadingClubListView.as_view()),
     path("marathons/", views.ReadingMarathonListView.as_view(), name="marathons"),
     path("marathons", views.ReadingMarathonListView.as_view()),
+    path("vk/login/", vk_views.VKLoginView.as_view(), name="vk-login"),
     path("vk/connect/", vk_views.VKConnectView.as_view(), name="vk-connect"),
     path("vk/me/", vk_views.VKMeView.as_view(), name="vk-me"),
     path("vk/shelf/", vk_views.VKShelfView.as_view(), name="vk-shelf"),
