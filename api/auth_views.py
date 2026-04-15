@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django.conf import settings
 from django.contrib.auth import login, logout
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import permissions, status
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
@@ -13,7 +14,11 @@ from .authentication import issue_mobile_token
 
 
 def _user_payload(user) -> dict[str, object]:
-    profile = getattr(user, "profile", None)
+    try:
+        profile = user.profile
+    except ObjectDoesNotExist:
+        profile = None
+
     avatar = None
     if profile and getattr(profile, "avatar", None):
         try:
