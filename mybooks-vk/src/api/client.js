@@ -1,6 +1,35 @@
 import { getToken } from '../utils/storage';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+const PROD_API_ORIGIN = 'https://kalejdoskopknig.ru';
+
+function normalizeBaseUrl(value) {
+  return String(value || '').trim().replace(/\/+$/, '');
+}
+
+function resolveApiBaseUrl() {
+  const envBaseUrl = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL);
+  if (envBaseUrl) {
+    return envBaseUrl;
+  }
+
+  const host = window.location.hostname;
+  const isLocalhost = host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0';
+  if (isLocalhost) {
+    return 'http://127.0.0.1:8000';
+  }
+
+  return PROD_API_ORIGIN;
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
+
+function buildUrl(path) {
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+
+  return `${API_BASE_URL}${path}`;
+}
 
 export async function request(path, options = {}) {
   const token = getToken();
@@ -13,12 +42,18 @@ export async function request(path, options = {}) {
     headers.Authorization = `Token ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-  });
+  let response;
+  try {
+    response = await fetch(buildUrl(path), {
+      ...options,
+      headers,
+    });
+  } catch (error) {
+    throw new Error('Network error: unable to reach API');
+  }
 
-  const isJson = response.headers.get('content-type')?.includes('application/json');
+  const contentType = response.headers.get('content-type') || '';
+  const isJson = contentType.includes('application/json');
   const payload = isJson ? await response.json() : null;
 
   if (!response.ok) {
@@ -36,7 +71,8 @@ export async function request(path, options = {}) {
       payload?.detail ||
       firstErrorFromMap(payload?.errors) ||
       payload?.error ||
-      'Request failed';
+      `Request failed (${response.status})`;
+
     throw new Error(message);
   }
 

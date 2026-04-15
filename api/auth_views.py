@@ -16,7 +16,10 @@ def _user_payload(user) -> dict[str, object]:
     profile = getattr(user, "profile", None)
     avatar = None
     if profile and getattr(profile, "avatar", None):
-        avatar = profile.avatar.url
+        try:
+            avatar = profile.avatar.url
+        except Exception:
+            avatar = None
 
     return {
         "id": user.id,
