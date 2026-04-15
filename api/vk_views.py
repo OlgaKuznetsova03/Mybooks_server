@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.db import IntegrityError, transaction
+from django.db import DataError, IntegrityError, transaction
 from django.db.models import Sum
 from django.utils import timezone
 from rest_framework import permissions, status
@@ -41,11 +41,23 @@ class VKLoginView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        vk_account = (
-            VKAccount.objects.select_related("user")
-            .filter(vk_user_id=vk_user_id)
-            .first()
-        )
+        if vk_user_id < 1 or vk_user_id > 9223372036854775807:
+            return Response(
+                {"error": "vk_user_id out of range"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            vk_account = (
+                VKAccount.objects.select_related("user")
+                .filter(vk_user_id=vk_user_id)
+                .first()
+            )
+        except DataError:
+            return Response(
+                {"error": "vk_user_id out of range"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         if not vk_account:
             return Response(
                 {

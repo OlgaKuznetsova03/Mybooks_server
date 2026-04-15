@@ -63,3 +63,28 @@ class VKConnectViewTests(TestCase):
         self.assertEqual(VKAccount.objects.filter(user=self.user).count(), 1)
         self.assertEqual(VKAccount.objects.get(user=self.user).vk_user_id, 222222)
         self.assertFalse(VKAccount.objects.filter(vk_user_id=111111).exists())
+
+class VKLoginViewTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.url = "/api/v1/vk/login/"
+
+    def test_login_rejects_vk_user_id_outside_bigint_range(self):
+        response = self.client.post(
+            self.url,
+            {"vk_user_id": "9223372036854775808"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json()["error"], "vk_user_id out of range")
+
+    def test_login_rejects_non_positive_vk_user_id(self):
+        response = self.client.post(
+            self.url,
+            {"vk_user_id": 0},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json()["error"], "vk_user_id out of range")
