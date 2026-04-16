@@ -26,6 +26,12 @@ const getStyles = (isDarkTheme) => ({
     justifyContent: 'space-between',
     gap: '12px',
   },
+  topActions: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
   titleWrap: {
     display: 'flex',
     alignItems: 'flex-start',
@@ -57,6 +63,17 @@ const getStyles = (isDarkTheme) => ({
     padding: '9px 14px',
     background: isDarkTheme ? '#8b5cf6' : '#111827',
     color: '#ffffff',
+    fontSize: '13px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    flexShrink: 0,
+  },
+  refreshButton: {
+    border: 'none',
+    borderRadius: '10px',
+    padding: '9px 14px',
+    background: isDarkTheme ? '#1f2937' : '#e5e7eb',
+    color: isDarkTheme ? '#d1d5db' : '#111827',
     fontSize: '13px',
     fontWeight: 700,
     cursor: 'pointer',
@@ -105,6 +122,12 @@ const getStyles = (isDarkTheme) => ({
     fontSize: '12px',
     color: isDarkTheme ? '#9ca3af' : '#6b7280',
     lineHeight: 1.3,
+  },
+  updateHint: {
+    margin: '4px 0 0',
+    fontSize: '11px',
+    color: isDarkTheme ? '#9ca3af' : '#6b7280',
+    lineHeight: 1.2,
   },
   section: {
     marginTop: '18px',
@@ -322,7 +345,25 @@ function StatCard({ label, value, styles }) {
   );
 }
 
-export const ShelfView = ({ data, vkUser, onLogout, isDarkTheme = false }) => {
+function formatLastUpdated(lastUpdatedAt) {
+  if (!lastUpdatedAt) return 'Ещё не обновлялось';
+
+  const date = new Date(lastUpdatedAt);
+  return `Обновлено: ${date.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  })}`;
+}
+
+export const ShelfView = ({
+  data,
+  vkUser,
+  onLogout,
+  onRefresh,
+  isRefreshing = false,
+  lastUpdatedAt,
+  isDarkTheme = false,
+}) => {
   const styles = getStyles(isDarkTheme);
   const profile = data?.profile || {};
   const currentBook = data?.current_book || null;
@@ -378,9 +419,19 @@ export const ShelfView = ({ data, vkUser, onLogout, isDarkTheme = false }) => {
               </div>
             </div>
 
-            <button style={styles.logoutButton} onClick={onLogout}>
-              Выйти
-            </button>
+            <div style={styles.topActions}>
+              <button
+                style={styles.refreshButton}
+                onClick={onRefresh}
+                disabled={isRefreshing}
+              >
+                {isRefreshing ? 'Обновляем…' : 'Обновить'}
+              </button>
+
+              <button style={styles.logoutButton} onClick={onLogout}>
+                Выйти
+              </button>
+            </div>
           </div>
 
           <div style={styles.profileCard}>
@@ -399,6 +450,7 @@ export const ShelfView = ({ data, vkUser, onLogout, isDarkTheme = false }) => {
             <div>
               <p style={styles.profileName}>{displayName}</p>
               <p style={styles.profileMeta}>Аккаунт: {accountName}</p>
+              <p style={styles.updateHint}>{formatLastUpdated(lastUpdatedAt)}</p>
             </div>
           </div>
         </div>

@@ -34,7 +34,10 @@ export const AppConfig = () => {
   const {
     data: shelfData,
     loading: shelfLoading,
+    refreshing: shelfRefreshing,
     error: shelfError,
+    lastLoadedAt,
+    refresh: refreshShelf,
   } = useShelf(appState === STATES.SHELF);
 
   useEffect(() => {
@@ -99,13 +102,15 @@ export const AppConfig = () => {
   useEffect(() => {
     if (vkLoading) return;
 
-    if (needsLinking) {
+    const token = getToken();
+
+    if (!token && needsLinking) {
       setErrorMessage('VK аккаунт не привязан. Войдите с email и паролем.');
       setAppState(STATES.AUTH);
       return;
     }
 
-    if (vkError) {
+    if (!token && vkError) {
       setErrorMessage(vkError?.message || String(vkError || 'VK unavailable'));
       setAppState(STATES.ERROR);
       return;
@@ -118,8 +123,6 @@ export const AppConfig = () => {
     }
 
     async function bootstrap() {
-      const token = getToken();
-
       if (!token) {
         setAppState(STATES.AUTH);
         return;
@@ -261,6 +264,9 @@ export const AppConfig = () => {
             data={shelfData}
             vkUser={vkUser}
             isDarkTheme={isDarkTheme}
+            isRefreshing={shelfRefreshing}
+            onRefresh={() => refreshShelf().catch(() => null)}
+            lastUpdatedAt={lastLoadedAt}
             onLogout={() => {
               clearToken();
               clearVKId();
