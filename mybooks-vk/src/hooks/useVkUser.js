@@ -85,7 +85,7 @@ export function useVkUser() {
         if (message.includes('vk_not_linked')) {
           setNeedsLinking(true);
           setError('VK аккаунт не привязан');
-          setVkUser(null);
+          setVkUser(bridgeUser || null);
           return;
         }
 

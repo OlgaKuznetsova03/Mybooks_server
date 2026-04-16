@@ -128,7 +128,7 @@ export const AppConfig = () => {
       try {
         const me = await getMe();
 
-        if (!me.linked) {
+        if (!me.linked && vkUser?.id) {
           await connectVK({
             vk_user_id: vkUser.id,
             first_name: vkUser.first_name || '',
@@ -159,7 +159,7 @@ export const AppConfig = () => {
 
       const me = await getMe();
 
-      if (!me.linked) {
+      if (!me.linked && vkUser?.id) {
         await connectVK({
           vk_user_id: vkUser.id,
           first_name: vkUser.first_name || '',
@@ -169,7 +169,9 @@ export const AppConfig = () => {
         });
       }
 
-      setVKId(vkUser.id);
+      if (vkUser?.id) {
+        setVKId(vkUser.id);
+      }
       setAppState(STATES.SHELF);
     } catch (e) {
       setErrorMessage(e.message || 'Auth error');
