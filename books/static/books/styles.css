@@ -260,17 +260,22 @@ body.books-page{␊
   align-items:center;
   gap:0.35rem;
   border-radius:999px !important;
-  background-color:transparent;
-  color:var(--bs-body-color);
-  padding:0.35rem 0.85rem;
-  
-  transition:background-color .12s ease,color .12s ease,box-shadow .12s ease;
-}
-.books-sort .nav-link:hover{background-color:rgba(var(--bs-primary-rgb),.08);color:var(--bs-primary);}
-.books-sort .nav-link.active{
-  background-color:rgba(var(--bs-primary-rgb),.15);
+  border:1px solid rgba(var(--bs-primary-rgb),.35);
+  background-color:var(--bs-body-bg);
   color:var(--bs-primary);
-  box-shadow:0 0 0 0.2rem rgba(var(--bs-primary-rgb),.15);
+  padding:0.35rem 0.85rem;
+  transition:background-color .12s ease,color .12s ease,border-color .12s ease,box-shadow .12s ease;
+}
+.books-sort .nav-link:hover{
+  background-color:rgba(var(--bs-primary-rgb),.08);
+  border-color:var(--bs-primary);
+  color:var(--bs-primary);
+}
+.books-sort .nav-link.active{
+  background-color:var(--bs-primary);
+  border-color:var(--bs-primary);
+  color:#fff;
+  box-shadow:0 0 0 0.2rem rgba(var(--bs-primary-rgb),.2);
 }
 .books-empty-state{
   border-radius:1.25rem;
