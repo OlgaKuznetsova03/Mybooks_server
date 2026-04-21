@@ -39,33 +39,6 @@
       color: rgba(0, 0, 0, .78); 
     }
 
-    /* Кнопка "Найти" (btn-primary в инпут-группе) */
-    .books-page .books-hero .btn-primary{
-      background:#58785f !important;
-      border-color:#58785f !important;
-      color:#fff !important;
-    }
-    .books-page .books-hero .btn-primary:hover,
-    .books-page .books-hero .btn-primary:focus{
-      background:#45614b !important;
-      border-color:#45614b !important;
-      color:#fff !important;
-    }
-
-    /* Левая кнопка(и) «Добавить книгу»/«Смотреть все книги» */
-    .books-page .books-hero .btn-light,
-    .books-page .books-hero .btn-outline-light{
-      background:#58785f !important;
-      border-color:#58785f !important;
-      color:#fff !important;
-    }
-
-    .books-page .books-hero .btn-light:hover,
-    .books-page .books-hero .btn-outline-light:hover{
-      background:#45614b !important;
-      border-color:#45614b !important;
-      color:#fff !important;
-    }
 
     /* Небольшой твик поля поиска, чтобы вписалось в фон */
     .books-page .books-hero__search .input-group-text{
@@ -411,16 +384,16 @@
     </div>
     <div class="books-hero__actions">
       {% if request.user.is_authenticated %}
-        <a class="btn btn-light text-primary-emphasis" href="{% url 'book_create' %}">
+        <a class="btn btn-primary" href="{% url 'book_create' %}">
           <i class="bi bi-plus-lg me-2"></i>Добавить книгу
         </a>
       {% endif %}
       {% if view_mode == 'grid' and not q %}
-        <a class="btn btn-outline-light" href="{% url 'book_list' %}">
+        <a class="btn btn-outline-primary" href="{% url 'book_list' %}">
           <i class="bi bi-journals me-2"></i>Вернуться к подборкам
         </a>
       {% elif view_mode != 'grid' %}
-        <a class="btn btn-outline-light" href="?view=grid"><i class="bi bi-grid-3x3-gap me-2"></i>Смотреть все книги</a>
+        <a class="btn btn-outline-primary" href="?view=grid"><i class="bi bi-grid-3x3-gap me-2"></i>Смотреть все книги</a>
       {% endif %}
     </div>
   </div>

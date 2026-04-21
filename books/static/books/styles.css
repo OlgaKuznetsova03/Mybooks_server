@@ -266,10 +266,10 @@ body.books-page{␊
   
   transition:background-color .12s ease,color .12s ease,box-shadow .12s ease;
 }
-.books-sort .nav-link:hover{background-color:rgba(var(--bs-primary-rgb),.08);color:var(--journey-olive);}
+.books-sort .nav-link:hover{background-color:rgba(var(--bs-primary-rgb),.08);color:var(--bs-primary);}
 .books-sort .nav-link.active{
   background-color:rgba(var(--bs-primary-rgb),.15);
-  color:var(--journey-olive);
+  color:var(--bs-primary);
   box-shadow:0 0 0 0.2rem rgba(var(--bs-primary-rgb),.15);
 }
 .books-empty-state{
