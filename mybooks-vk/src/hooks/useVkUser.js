@@ -2,7 +2,14 @@ import { useEffect, useState } from 'react';
 import bridge from '@vkontakte/vk-bridge';
 
 import { request } from '../api/client';
-import { clearToken, clearVKId, getVKId, setToken, setVKId } from '../utils/storage';
+import {
+  clearToken,
+  clearVKId,
+  getToken,
+  getVKId,
+  setToken,
+  setVKId,
+} from '../utils/storage';
 
 const DEV_FALLBACK_ENABLED =
   import.meta.env.DEV && import.meta.env.VITE_VK_DEV_FALLBACK === '1';
@@ -40,6 +47,8 @@ export function useVkUser() {
     let isMounted = true;
 
     async function initVK() {
+      let bridgeUser = null;
+
       try {
         await bridge.send('VKWebAppInit');
 
@@ -50,7 +59,7 @@ export function useVkUser() {
           launchParams = null;
         }
 
-        const bridgeUser = await bridge.send('VKWebAppGetUserInfo');
+        bridgeUser = await bridge.send('VKWebAppGetUserInfo');
         const currentVKId = String(
           launchParams?.vk_user_id || bridgeUser?.id || '',
         ).trim();
@@ -65,6 +74,16 @@ export function useVkUser() {
           clearVKId();
         }
 
+        const savedToken = getToken();
+        if (savedToken && (!savedVKId || savedVKId === currentVKId)) {
+          if (!isMounted) return;
+
+          setVkUser(bridgeUser);
+          setNeedsLinking(false);
+          setError(null);
+          return;
+        }
+
         const response = await request('/api/v1/vk/login/', {
           method: 'POST',
           body: JSON.stringify({ vk_user_id: Number(currentVKId) }),
@@ -72,8 +91,8 @@ export function useVkUser() {
 
         if (!isMounted) return;
 
-        setToken(response.token);
-        setVKId(currentVKId);
+        await setToken(response.token);
+        await setVKId(currentVKId);
         setVkUser(response.user || bridgeUser);
         setNeedsLinking(false);
         setError(null);

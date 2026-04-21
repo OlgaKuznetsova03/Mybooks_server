@@ -1,3 +1,5 @@
+import logging
+import traceback
 from datetime import timedelta
 
 from django.db import DataError, DatabaseError, IntegrityError, transaction
@@ -19,77 +21,91 @@ from .vk_serializers import (
     VKUserSerializer,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class VKLoginView(APIView):
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
 
     def post(self, request, *args, **kwargs):
-        vk_user_id = request.data.get("vk_user_id")
-
-        if not vk_user_id:
-            return Response(
-                {"error": "vk_user_id is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         try:
-            vk_user_id = int(vk_user_id)
-        except (TypeError, ValueError):
-            return Response(
-                {"error": "vk_user_id must be an integer"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            print("=== VK LOGIN REQUEST ===")
+            print("Request data:", request.data)
+            
+            vk_user_id = request.data.get("vk_user_id")
+            vk_access_token = request.data.get("vk_access_token", "")
 
-        if vk_user_id < 1 or vk_user_id > 9223372036854775807:
-            return Response(
-                {"error": "vk_user_id out of range"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            if not vk_user_id:
+                return Response(
+                    {"error": "vk_user_id is required"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        try:
-            vk_account = (
-                VKAccount.objects.select_related("user")
-                .filter(vk_user_id=vk_user_id)
-                .first()
-            )
-        except DataError:
-            return Response(
-                {"error": "vk_user_id out of range"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if not vk_account:
+            try:
+                vk_user_id = int(vk_user_id)
+            except (TypeError, ValueError):
+                return Response(
+                    {"error": "vk_user_id must be an integer"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if vk_user_id < 1 or vk_user_id > 9223372036854775807:
+                return Response(
+                    {"error": "vk_user_id out of range"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            try:
+                vk_account = (
+                    VKAccount.objects.select_related("user")
+                    .filter(vk_user_id=vk_user_id)
+                    .first()
+                )
+            except DataError:
+                return Response(
+                    {"error": "vk_user_id out of range"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+                
+            if not vk_account:
+                return Response(
+                    {
+                        "error": "vk_not_linked",
+                        "message": "VK аккаунт не привязан. Сначала войдите с email/паролем.",
+                    },
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+
+            user = vk_account.user
+            if not user.is_active:
+                return Response(
+                    {"error": "user_inactive"},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            token = issue_mobile_token(user)
+            try:
+                user.last_login = timezone.now()
+                user.save(update_fields=["last_login"])
+            except DatabaseError:
+                pass
+
             return Response(
                 {
-                    "error": "vk_not_linked",
-                    "message": "VK аккаунт не привязан. Сначала войдите с email/паролем.",
-                },
-                status=status.HTTP_401_UNAUTHORIZED,
+                    "token": token,
+                    "user": VKUserSerializer(user).data,
+                    "vk_account": VKAccountSerializer(vk_account).data,
+                }
             )
-
-        user = vk_account.user
-        if not user.is_active:
+        except Exception as e:
+            print("=== VK LOGIN ERROR ===")
+            traceback.print_exc()
+            logger.exception("VKLoginView error")
             return Response(
-                {"error": "user_inactive"},
-                status=status.HTTP_403_FORBIDDEN,
+                {"error": str(e), "trace": traceback.format_exc()},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-
-        token = issue_mobile_token(user)
-        try:
-            user.last_login = timezone.now()
-            user.save(update_fields=["last_login"])
-        except DatabaseError:
-            # Token has already been issued (or fallback token generated), so
-            # keep VK login successful even if auditing timestamp update fails.
-            pass
-
-        return Response(
-            {
-                "token": token,
-                "user": VKUserSerializer(user).data,
-                "vk_account": VKAccountSerializer(vk_account).data,
-            }
-        )
 
 
 def _get_bookshelf_payload(user, request=None, recent_limit=5):
@@ -131,9 +147,6 @@ def _get_bookshelf_payload(user, request=None, recent_limit=5):
     )
     read_books_this_month = month_read_items.values("book_id").distinct().count()
 
-    # Keep monthly pages in VK aligned with /accounts/statistics/:
-    # for books moved to "read" this month but without explicit reading logs,
-    # add fallback pages from book/progress metadata.
     month_logged_book_ids = set(
         month_logs.exclude(medium=BookProgress.FORMAT_AUDIO)
         .values_list("progress__book_id", flat=True)
@@ -192,19 +205,25 @@ class VKConnectView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
-        serializer = VKConnectSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        vk_user_id = serializer.validated_data["vk_user_id"]
-        defaults = {
-            "vk_user_id": vk_user_id,
-            "first_name": serializer.validated_data.get("first_name", ""),
-            "last_name": serializer.validated_data.get("last_name", ""),
-            "photo_100": serializer.validated_data.get("photo_100", ""),
-            "screen_name": serializer.validated_data.get("screen_name", ""),
-        }
-
         try:
+            print("=== VK CONNECT VIEW ===")
+            print("Request user:", request.user.id, request.user.username)
+            print("Request data:", request.data)
+            
+            serializer = VKConnectSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+
+            vk_user_id = serializer.validated_data["vk_user_id"]
+            defaults = {
+                "vk_user_id": vk_user_id,
+                "first_name": serializer.validated_data.get("first_name", ""),
+                "last_name": serializer.validated_data.get("last_name", ""),
+                "photo_100": serializer.validated_data.get("photo_100", ""),
+                "screen_name": serializer.validated_data.get("screen_name", ""),
+            }
+            
+            print("Defaults to save:", defaults)
+
             with transaction.atomic():
                 current_account = (
                     VKAccount.objects.select_for_update()
@@ -218,6 +237,7 @@ class VKConnectView(APIView):
                 )
 
                 if existing_vk_account:
+                    print("Existing VK account found")
                     if current_account and current_account.pk != existing_vk_account.pk:
                         current_account.delete()
 
@@ -226,17 +246,25 @@ class VKConnectView(APIView):
                         setattr(existing_vk_account, field, value)
                     existing_vk_account.save()
                 elif current_account:
+                    print("Current account exists, updating")
                     for field, value in defaults.items():
                         setattr(current_account, field, value)
                     current_account.save()
                 else:
+                    print("Creating NEW VK account for user:", request.user.id)
                     VKAccount.objects.create(user=request.user, **defaults)
-        except IntegrityError:
+                    
+            print("VK Connect successful")
+            return Response({"linked": True})
+            
+        except Exception as e:
+            print("=== VK CONNECT ERROR ===")
+            traceback.print_exc()
+            logger.exception("VKConnectView error")
             return Response(
-                {"detail": "Этот VK аккаунт уже привязан к другому пользователю."},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"error": str(e), "trace": traceback.format_exc()},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-        return Response({"linked": True})
 
 
 class VKMeView(APIView):

@@ -63,7 +63,7 @@ export function getToken() {
 export function setToken(token) {
   const nextToken = String(token || '');
   setLocalStorageValue(TOKEN_KEY, nextToken);
-  void setBridgeStorageValue(TOKEN_KEY, nextToken);
+  return setBridgeStorageValue(TOKEN_KEY, nextToken);
 }
 
 export function clearToken() {
@@ -84,7 +84,7 @@ export function getVKId() {
 export function setVKId(vkId) {
   const nextVkId = String(vkId || '');
   setLocalStorageValue(VK_ID_KEY, nextVkId);
-  void setBridgeStorageValue(VK_ID_KEY, nextVkId);
+  return setBridgeStorageValue(VK_ID_KEY, nextVkId);
 }
 
 export function clearVKId() {

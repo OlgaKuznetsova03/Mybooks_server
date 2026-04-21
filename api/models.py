@@ -10,7 +10,7 @@ class VKAccount(models.Model):
     vk_user_id = models.BigIntegerField(unique=True, db_index=True)
     first_name = models.CharField(max_length=255, blank=True)
     last_name = models.CharField(max_length=255, blank=True)
-    photo_100 = models.URLField(blank=True)
+    photo_100 = models.CharField(max_length=1000, blank=True)  # Было URLField, изменили на CharField с 1000
     screen_name = models.CharField(max_length=255, blank=True)
     linked_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

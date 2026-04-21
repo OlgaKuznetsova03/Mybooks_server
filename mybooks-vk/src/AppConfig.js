@@ -158,7 +158,7 @@ export const AppConfig = () => {
 
     try {
       const response = await login(form);
-      setToken(response.token);
+      await setToken(response.token);
 
       const me = await getMe();
 
@@ -173,7 +173,7 @@ export const AppConfig = () => {
       }
 
       if (vkUser?.id) {
-        setVKId(vkUser.id);
+        await setVKId(vkUser.id);
       }
       setAppState(STATES.SHELF);
     } catch (e) {
@@ -187,7 +187,7 @@ export const AppConfig = () => {
 
     try {
       const response = await signup(form);
-      setToken(response.token);
+      await setToken(response.token);
 
       await onLogin({
         login: form.username,

@@ -4,7 +4,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>{% block title %}Калейдоскоп книг{% endblock %}</title>
+  <title>{% block meta_title %}{% block title %}{% firstof seo_title "Калейдоскоп книг" %}{% endblock %}{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}{{ seo_description }}{% endblock %}">
+  <meta name="robots" content="{% block robots %}{{ seo_robots|default:'index,follow' }}{% endblock %}">
+  <link rel="canonical" href="{% block canonical %}{{ canonical_url|default:request.build_absolute_uri }}{% endblock %}">
   <link rel="icon" href="{% static 'img/logo.png' %}?v={{ STATIC_VERSION }}" type="image/png">
   <link rel="apple-touch-icon" href="{% static 'img/logo.png' %}?v={{ STATIC_VERSION }}">
 
@@ -448,7 +451,9 @@
   {% block extra_css %}{% endblock %}
 <head><!-- Yandex.RTB -->
 <script>window.yaContextCb=window.yaContextCb||[]</script>
-<script src="https://yandex.ru/ads/system/context.js" async></script></head>
+<script src="https://yandex.ru/ads/system/context.js" async></script>
+  {% block extra_schema %}{% endblock %}
+</head>
 
 <body class="bg-body{% block body_class %}{% endblock %}">
 

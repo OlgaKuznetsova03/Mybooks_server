@@ -1,6 +1,34 @@
-{% extends "base.html" %}
 {% load static %}
 {% block title %}{{ book.title }} · Калейдоскоп книг{% endblock %}
+{% block meta_description %}{{ seo_description }}{% endblock %}
+{% block extra_schema %}
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "Главная", "item": "{{ request.scheme }}://{{ request.get_host }}/"},
+        {"@type": "ListItem", "position": 2, "name": "Каталог книг", "item": "{{ request.scheme }}://{{ request.get_host }}{% url 'book_list' %}"},
+        {"@type": "ListItem", "position": 3, "name": "{{ book.title|escapejs }}", "item": "{{ request.build_absolute_uri }}"}
+      ]
+    }
+  </script>
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Book",
+      "name": "{{ book.title|escapejs }}",
+      "url": "{{ request.build_absolute_uri }}",
+      "description": "{{ book.synopsis|default:''|truncatechars:300|escapejs }}",
+      "author": [{% for author in book.authors.all %}{"@type":"Person","name":"{{ author.name|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}],
+      "genre": [{% for genre in book.genres.all %}"{{ genre.name|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}],
+      {% if rating_summary.score.average and rating_summary.score.count %}
+      "aggregateRating": {"@type":"AggregateRating","ratingValue":"{{ rating_summary.score.average }}","ratingCount":"{{ rating_summary.score.count }}"},
+      {% endif %}
+      "review": [{% for rating in ratings %}{"@type":"Review","author":{"@type":"Person","name":"{{ rating.user.username|escapejs }}"},"datePublished":"{{ rating.created_at|date:'c' }}","reviewBody":"{{ rating.review|default:''|truncatechars:220|escapejs }}"{% if rating.score %},"reviewRating":{"@type":"Rating","ratingValue":"{{ rating.score }}","bestRating":"10"}{% endif %}}{% if not forloop.last %},{% endif %}{% endfor %}]
+    }
+  </script>
+{% endblock %}
 
 {% block extra_css %}
   {{ block.super }}

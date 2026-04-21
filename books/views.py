@@ -315,6 +315,14 @@ def _matching_books_for_isbns(isbn_values: list[str]) -> list[dict[str, object]]
     return matches
 
 
+def _build_seo_context(*, title: str, description: str, h1: str | None = None) -> dict[str, str]:
+    return {
+        "seo_title": title,
+        "seo_description": description,
+        "h1": h1 or title,
+    }
+
+
 def _serialize_external_item(item) -> dict[str, object]:
     metadata = item.to_metadata_mapping()
     combined_isbns = item.combined_isbns()
@@ -1027,6 +1035,14 @@ def book_list(request):
             "home_library_shelf_id": home_library_shelf_id,
             "want_shelf_id": want_shelf_id,
             "enable_shelf_picker": True,
+            **_build_seo_context(
+                title="Каталог книг — отзывы, рейтинги и подборки | Калейдоскоп книг",
+                description=(
+                    "Каталог книг по жанрам, рейтингам и новинкам. Ищите книги, "
+                    "сохраняйте их в домашнюю библиотеку и делитесь отзывами."
+                ),
+                h1="Каталог книг",
+            ),
         },
     )
 
@@ -1136,6 +1152,14 @@ def genre_detail(request, slug):
             "sort_options": sort_options,
             "active_sort": active_sort,
             "want_shelf_id": want_shelf_id,
+            **_build_seo_context(
+                title=f"Книги жанра {genre.name} — каталог, отзывы и рейтинг | Калейдоскоп книг",
+                description=(
+                    f"Подборка книг жанра {genre.name}: описание, рейтинги, отзывы "
+                    "читателей и удобный каталог книг на Калейдоскоп книг."
+                ),
+                h1=genre.name,
+            ),
         },
     )
 
@@ -2067,6 +2091,8 @@ def book_detail(request, pk):
         club.set_prefetched_message_count(club.message_count)
         reading_clubs_by_status[club.status].append(club)
 
+    authors_line = ", ".join(book.authors.order_by("name").values_list("name", flat=True)[:2])
+
     return render(request, "books/book_detail.html", {
         "book": book,
         "form": form,
@@ -2102,6 +2128,14 @@ def book_detail(request, pk):
         "edit_request_form": edit_request_form,
         "genre_shelves": genre_shelves,
         "reading_clubs_by_status": reading_clubs_by_status,
+        **_build_seo_context(
+            title=f"{book.title} — отзыв, рейтинг, описание книги | Калейдоскоп книг",
+            description=(
+                f"{book.title} {authors_line}: описание, жанры, отзывы читателей, рейтинг и "
+                "место в домашней библиотеке на сайте Калейдоскоп книг."
+            )[:170],
+            h1=book.title,
+        ),
     })
 
 @login_required

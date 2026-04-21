@@ -206,6 +206,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sitemaps',
     'rest_framework',
     'rest_framework.authtoken',
     'api.apps.ApiConfig',
@@ -248,6 +249,7 @@ TEMPLATES = [
                 "django.template.context_processors.media",
                 "collaborations.context_processors.collaboration_notifications",
                 "config.context_processors.static_version",
+                "config.context_processors.seo_defaults",
             ],
             'builtins': [
                 'shelves.templatetags.shelf_extras',
@@ -560,3 +562,17 @@ if RUNNING_TESTS:
 
 # Temporary development setting for VK Mini App
 CORS_ALLOW_ALL_ORIGINS = True
+
+# Добавьте это:
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'x-vk-user-id',  # Эта строка самая важная
+]

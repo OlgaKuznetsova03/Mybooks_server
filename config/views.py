@@ -5,7 +5,7 @@ from typing import Any
 
 from django.db.models import Count, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 
@@ -242,6 +242,12 @@ def home(request):
         "latest_blogger_requests": latest_blogger_requests,
         "home_reaction_choices": HOME_REACTION_CHOICES,
         "home_reaction_icon_map": HOME_REACTION_ICON_MAP,
+        "seo_title": "Калейдоскоп книг — каталог книг, отзывы, совместные чтения и марафоны",
+        "seo_description": (
+            "Калейдоскоп книг — сайт для читателей: каталог книг, отзывы и рейтинги, "
+            "домашняя библиотека, совместные чтения, книжные марафоны, игры и статистика чтения."
+        ),
+        "h1": "Калейдоскоп книг",
     }
     return render(request, "config/home.html", context)
 
@@ -370,6 +376,12 @@ def reading_communities_overview(request):
     context = {
         "club_groups": club_groups,
         "marathon_groups": marathon_groups,
+        "seo_title": "Совместные чтения книг онлайн | Калейдоскоп книг",
+        "seo_description": (
+            "Участвуйте в совместных чтениях, обсуждайте книги, следите за "
+            "прогрессом и находите единомышленников на Калейдоскоп книг."
+        ),
+        "h1": "Совместные чтения и марафоны",
     }
     return render(request, "config/reading_communities.html", context)
 
@@ -405,3 +417,16 @@ def rules(request):
         "last_updated": "12.11.2025",
         }
     return render(request, "config/terms.html", context)
+
+def robots_txt(request):
+    sitemap_url = request.build_absolute_uri('/sitemap.xml')
+    lines = [
+        'User-agent: *',
+        'Disallow: /accounts/login/',
+        'Disallow: /accounts/signup/',
+        'Disallow: /accounts/password-reset/',
+        'Disallow: /accounts/reset/',
+        'Disallow: /search/',
+        f'Sitemap: {sitemap_url}',
+    ]
+    return HttpResponse('\n'.join(lines), content_type='text/plain')
