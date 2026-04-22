@@ -12,6 +12,7 @@ from .services.book_journey import BookJourneyMap
 from .services.forgotten_books import ForgottenBooksGame
 from .services.read_before_buy import ReadBeforeBuyGame
 from .services.nobel_challenge import NobelLaureatesChallenge
+from .services.yasnaya_polyana import YasnayaPolyanaForeign2026Game
 
 
 @dataclass(frozen=True)
@@ -39,6 +40,7 @@ def get_game_cards() -> List[GameCard]:
     forgotten_books = ForgottenBooksGame.get_game()
     book_exchange = BookExchangeGame.get_game()
     nobel_challenge = NobelLaureatesChallenge.get_game()
+    yasnaya_polyana = YasnayaPolyanaForeign2026Game.get_game()
     available: List[GameCard] = [
         GameCard(
             slug=ReadBeforeBuyGame.SLUG,
@@ -98,6 +100,18 @@ def get_game_cards() -> List[GameCard]:
                 f"{NobelLaureatesChallenge.get_stage_count()} лауреата",
                 "Поиск по библиотеке",
                 "Автоматический зачёт этапов",
+            ),
+        ),
+        GameCard(
+            slug=YasnayaPolyanaForeign2026Game.SLUG,
+            title=yasnaya_polyana.title,
+            description=yasnaya_polyana.description,
+            url_name="games:yasnaya_polyana_foreign_2026",
+            icon="🌿",
+            highlights=(
+                "Длинный и короткий список",
+                "Автоматическая синхронизация с «Прочитано»",
+                "Быстрый старт чтения",
             ),
         ),
     ]

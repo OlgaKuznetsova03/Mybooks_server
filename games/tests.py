@@ -27,6 +27,7 @@ from .models import (
     GameShelfPurchase,
     GameShelfState,
     NobelLaureateAssignment,
+    YasnayaPolyanaNominationBook,
 )
 from .forms import BookJourneyAssignForm
 from .services.book_exchange import BookExchangeGame
@@ -34,6 +35,7 @@ from .services.book_journey import BookJourneyMap
 from .services.nobel_challenge import NobelLaureatesChallenge
 from .services.forgotten_books import ForgottenBooksGame
 from .services.read_before_buy import ReadBeforeBuyGame
+from .services.yasnaya_polyana import YasnayaPolyanaForeign2026Game
 
 
 class GameCatalogViewTests(TestCase):
@@ -45,10 +47,74 @@ class GameCatalogViewTests(TestCase):
         self.assertContains(response, active_game.title)
         self.assertContains(response, BookJourneyMap.TITLE)
         self.assertContains(response, NobelLaureatesChallenge.TITLE)
+        self.assertContains(response, YasnayaPolyanaForeign2026Game.TITLE)
         self.assertContains(response, "Скоро появятся")
         self.assertContains(response, reverse("games:read_before_buy"))
         self.assertContains(response, reverse("games:nobel_challenge"))
+        self.assertContains(response, reverse("games:yasnaya_polyana_foreign_2026"))
 
+
+class YasnayaPolyanaGameTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="reader", password="secret123")
+        self.superuser = User.objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="secret123",
+        )
+        self.book = Book.objects.create(title="Иностранный роман", synopsis="")
+        YasnayaPolyanaNominationBook.objects.create(book=self.book)
+
+    def test_game_page_renders(self):
+        response = self.client.get(reverse("games:yasnaya_polyana_foreign_2026"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, YasnayaPolyanaForeign2026Game.TITLE)
+        self.assertContains(response, self.book.title)
+
+    def test_start_reading_moves_book_to_reading_shelf(self):
+        self.client.login(username="reader", password="secret123")
+        response = self.client.post(
+            reverse("games:yasnaya_polyana_foreign_2026"),
+            {"action": "start_reading", "book_id": self.book.id},
+        )
+        self.assertRedirects(response, reverse("games:yasnaya_polyana_foreign_2026"))
+        self.assertTrue(
+            ShelfItem.objects.filter(
+                shelf__user=self.user,
+                shelf__name=DEFAULT_READING_SHELF,
+                book=self.book,
+            ).exists()
+        )
+
+    def test_read_books_tab_uses_read_shelf_and_rating(self):
+        move_book_to_read_shelf(self.user, self.book)
+        Rating.objects.create(user=self.user, book=self.book, score=7, review="Отлично")
+
+        self.client.login(username="reader", password="secret123")
+        response = self.client.get(reverse("games:yasnaya_polyana_foreign_2026"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Дата прочтения")
+        self.assertContains(response, "(7/10)")
+
+    def test_superuser_can_add_book_and_toggle_shortlist(self):
+        second_book = Book.objects.create(title="Вторая книга", synopsis="")
+        self.client.login(username="admin", password="secret123")
+
+        response = self.client.post(
+            reverse("games:yasnaya_polyana_foreign_2026"),
+            {"action": "add_book", "book_id": second_book.id},
+        )
+        self.assertRedirects(response, reverse("games:yasnaya_polyana_foreign_2026"))
+        nomination = YasnayaPolyanaNominationBook.objects.get(book=second_book)
+
+        response = self.client.post(
+            reverse("games:yasnaya_polyana_foreign_2026"),
+            {"action": "toggle_shortlist", "nomination_id": nomination.id},
+        )
+        self.assertRedirects(response, reverse("games:yasnaya_polyana_foreign_2026"))
+        nomination.refresh_from_db()
+        self.assertTrue(nomination.is_shortlist)
 
 
 class NobelChallengeViewTests(TestCase):

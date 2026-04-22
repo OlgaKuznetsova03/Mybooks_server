@@ -2,9 +2,10 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, IntegerField, OuterRef, Subquery, Value
+from django.db.models import Count, IntegerField, OuterRef, Q, Subquery, Value
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_GET
 
 from django.db.models.functions import Coalesce
@@ -13,6 +14,7 @@ from books.models import Book, Rating
 from shelves.models import BookProgress, ShelfItem
 from shelves.services import (
     ALL_DEFAULT_READ_SHELF_NAMES,
+    DEFAULT_READING_SHELF,
     DEFAULT_WANT_SHELF,
     move_book_to_reading_shelf,
 )
@@ -30,12 +32,18 @@ from .forms import (
     BookJourneyReleaseForm,
     ReadBeforeBuyEnrollForm,
 )
-from .models import BookExchangeChallenge, BookJourneyAssignment, NobelLaureateAssignment
+from .models import (
+    BookExchangeChallenge,
+    BookJourneyAssignment,
+    NobelLaureateAssignment,
+    YasnayaPolyanaNominationBook,
+)
 from .services.book_exchange import BookExchangeGame
 from .services.forgotten_books import ForgottenBooksGame
 from .services.book_journey import BookJourneyMap
 from .services.read_before_buy import ReadBeforeBuyGame
 from .services.nobel_challenge import NobelLaureatesChallenge
+from .services.yasnaya_polyana import YasnayaPolyanaForeign2026Game
 
 
 def _truncate_text(value: str, limit: int = 200) -> str:
@@ -935,3 +943,165 @@ def nobel_laureates_challenge(request):
     }
 
     return render(request, "games/nobel_challenge.html", context)
+
+
+def _build_rating_star_payload(score_value):
+    if score_value is None:
+        return {"full": 0, "half": 0, "empty": 5}
+    stars = max(0, min(5, float(score_value) / 2))
+    half_steps = int(round(stars * 2))
+    full = half_steps // 2
+    half = half_steps % 2
+    empty = max(5 - full - half, 0)
+    return {"full": full, "half": half, "empty": empty}
+
+
+def yasnaya_polyana_foreign_2026(request):
+    """Страница игры «Номинация Иностранная литература Ясная поляна 2026»."""
+
+    game = YasnayaPolyanaForeign2026Game.get_game()
+    user = request.user
+
+    if request.method == "POST":
+        if not user.is_authenticated:
+            messages.error(request, "Авторизуйтесь, чтобы участвовать в игре.")
+            return redirect("login")
+
+        action = request.POST.get("action")
+        if action == "start_reading":
+            book_id = request.POST.get("book_id")
+            nomination = (
+                YasnayaPolyanaNominationBook.objects.filter(book_id=book_id)
+                .select_related("book")
+                .first()
+            )
+            if not nomination:
+                messages.error(request, "Книга не найдена в списке игры.")
+                return redirect("games:yasnaya_polyana_foreign_2026")
+            move_book_to_reading_shelf(user, nomination.book)
+            messages.success(
+                request,
+                (
+                    f"«{nomination.book.title}» добавлена на полку "
+                    f"«{DEFAULT_READING_SHELF}»."
+                ),
+            )
+            return redirect("games:yasnaya_polyana_foreign_2026")
+
+        if not user.is_superuser:
+            messages.error(request, "Только superuser может управлять списком игры.")
+            return redirect("games:yasnaya_polyana_foreign_2026")
+
+        if action == "add_book":
+            book_id = request.POST.get("book_id")
+            book = Book.objects.filter(pk=book_id).first()
+            if not book:
+                messages.error(request, "Выберите книгу для добавления.")
+            else:
+                _, created = YasnayaPolyanaNominationBook.objects.get_or_create(book=book)
+                if created:
+                    messages.success(request, f"Книга «{book.title}» добавлена в игру.")
+                else:
+                    messages.info(request, f"Книга «{book.title}» уже есть в игре.")
+            return redirect("games:yasnaya_polyana_foreign_2026")
+
+        if action == "toggle_shortlist":
+            nomination_id = request.POST.get("nomination_id")
+            nomination = YasnayaPolyanaNominationBook.objects.filter(pk=nomination_id).first()
+            if not nomination:
+                messages.error(request, "Запись номинации не найдена.")
+            else:
+                nomination.is_shortlist = not nomination.is_shortlist
+                nomination.save(update_fields=["is_shortlist", "updated_at"])
+                status_label = "короткий список" if nomination.is_shortlist else "длинный список"
+                messages.success(
+                    request,
+                    f"«{nomination.book.title}» перенесена в «{status_label}».",
+                )
+            return redirect("games:yasnaya_polyana_foreign_2026")
+
+    read_book_ids = set()
+    ratings_map = {}
+    read_shelf_items = {}
+    if user.is_authenticated:
+        read_shelf_qs = ShelfItem.objects.filter(
+            shelf__user=user,
+            shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+        ).order_by("-added_at")
+        read_book_ids = set(read_shelf_qs.values_list("book_id", flat=True))
+        read_shelf_items = {item.book_id: item for item in read_shelf_qs}
+
+        ratings = Rating.objects.filter(user=user, book_id__in=read_book_ids).order_by("-created_at")
+        ratings_map = {rating.book_id: rating for rating in ratings}
+
+    nominations = list(
+        YasnayaPolyanaNominationBook.objects.select_related("book")
+        .prefetch_related("book__authors")
+        .order_by("-is_shortlist", "book__title")
+    )
+
+    unread_books = []
+    read_books = []
+    for nomination in nominations:
+        book = nomination.book
+        authors = list(book.authors.all())
+        author_names = ", ".join(author.name for author in authors)
+        author_countries = ", ".join(
+            sorted({author.country.strip() for author in authors if author.country and author.country.strip()})
+        )
+        card = {
+            "nomination_id": nomination.id,
+            "book_id": book.id,
+            "title": book.title,
+            "cover_url": book.get_cover_url(),
+            "authors": author_names,
+            "author_country": author_countries or "Страна автора не указана",
+            "is_shortlist": nomination.is_shortlist,
+            "detail_url": reverse("book_detail", args=[book.id]),
+        }
+        if book.id in read_book_ids:
+            shelf_item = read_shelf_items.get(book.id)
+            rating = ratings_map.get(book.id)
+            score = getattr(rating, "score", None)
+            card.update(
+                {
+                    "read_at": getattr(shelf_item, "added_at", None),
+                    "score": score,
+                    "stars": _build_rating_star_payload(score),
+                }
+            )
+            read_books.append(card)
+        else:
+            unread_books.append(card)
+
+    search_query = (request.GET.get("book_query") or "").strip()
+    search_results = []
+    if user.is_superuser and search_query:
+        search_qs = (
+            Book.objects.filter(
+                Q(title__icontains=search_query)
+                | Q(authors__name__icontains=search_query)
+            )
+            .exclude(yasnaya_polyana_nominations__isnull=False)
+            .distinct()
+            .order_by("title")
+            .prefetch_related("authors")[:30]
+        )
+        for book in search_qs:
+            search_results.append(
+                {
+                    "id": book.id,
+                    "title": book.title,
+                    "authors": ", ".join(book.authors.all().values_list("name", flat=True)),
+                }
+            )
+
+    context = {
+        "game": game,
+        "unread_books": unread_books,
+        "read_books": read_books,
+        "is_authenticated": user.is_authenticated,
+        "book_query": search_query,
+        "search_results": search_results,
+    }
+    return render(request, "games/yasnaya_polyana_foreign_2026.html", context)

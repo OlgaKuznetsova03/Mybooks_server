@@ -9,6 +9,7 @@ from .models import (
     GameShelfPurchase,
     GameShelfState,
     NobelLaureateAssignment,
+    YasnayaPolyanaNominationBook,
 )
 
 
@@ -100,3 +101,11 @@ class NobelLaureateAssignmentAdmin(admin.ModelAdmin):
     list_filter = ("status",)
     search_fields = ("user__username", "book__title")
     autocomplete_fields = ("user", "book")
+
+
+@admin.register(YasnayaPolyanaNominationBook)
+class YasnayaPolyanaNominationBookAdmin(admin.ModelAdmin):
+    list_display = ("book", "is_shortlist", "updated_at")
+    list_filter = ("is_shortlist",)
+    search_fields = ("book__title", "book__authors__name")
+    autocomplete_fields = ("book",)

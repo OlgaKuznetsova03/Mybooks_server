@@ -706,6 +706,29 @@ class BookExchangeAcceptedBook(models.Model):
             entry.challenge.refresh_completion_status()
 
 
+class YasnayaPolyanaNominationBook(models.Model):
+    """Книга в игре «Ясная Поляна 2026: иностранная литература»."""
+
+    book = models.ForeignKey(
+        "books.Book",
+        on_delete=models.CASCADE,
+        related_name="yasnaya_polyana_nominations",
+    )
+    is_shortlist = models.BooleanField(
+        default=False,
+        help_text="Книга входит в короткий список номинации.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("book",)
+        ordering = ["-is_shortlist", "book__title"]
+
+    def __str__(self) -> str:  # pragma: no cover - simple representation
+        return self.book.title
+
+
 __all__ = [
     "ForgottenBookEntry",
     "Game",
@@ -717,4 +740,5 @@ __all__ = [
     "BookExchangeChallenge",
     "BookExchangeOffer",
     "BookExchangeAcceptedBook",
+    "YasnayaPolyanaNominationBook",
 ]

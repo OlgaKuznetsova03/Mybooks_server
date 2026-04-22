@@ -16,4 +16,9 @@ urlpatterns = [
     path("journey-map/", views.book_journey_map, name="book_journey_map"),
     path("nobel-laureates/", views.nobel_laureates_challenge, name="nobel_challenge"),
     path("forgotten-books/", views.forgotten_books_dashboard, name="forgotten_books"),
+    path(
+        "yasnaya-polyana-foreign-2026/",
+        views.yasnaya_polyana_foreign_2026,
+        name="yasnaya_polyana_foreign_2026",
+    ),
 ]
