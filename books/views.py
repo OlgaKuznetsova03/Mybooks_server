@@ -675,7 +675,7 @@ def book_list(request):
 
     if view_mode == "grid":
         total_books = leader_books.count()
-        qs = annotated_books
+        qs = annotated_books.order_by(*sort_definitions[active_sort]["order"])
         if q:
             search_variants = _yo_equivalent_variants(q)[:3]
             search_ids_cache_key = f"books:book_list:search_ids:v2:{q.casefold()}"
