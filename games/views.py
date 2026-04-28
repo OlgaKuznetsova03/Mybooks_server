@@ -35,6 +35,7 @@ from .forms import (
 from .models import (
     BookExchangeChallenge,
     BookJourneyAssignment,
+    Game,
     NobelLaureateAssignment,
     YasnayaPolyanaNominationBook,
 )
@@ -55,7 +56,7 @@ def _truncate_text(value: str, limit: int = 200) -> str:
     truncated = text[:limit].rsplit(" ", 1)[0]
     if not truncated:
         truncated = text[:limit]
-    return truncated.rstrip(" .,;:") + "…"
+    return truncated.rstrip(" .,;:") + "вЂ¦"
 
 
 def _build_book_exchange_payload(challenge, *, request_user):
@@ -194,10 +195,10 @@ def book_exchange_dashboard(request):
                 )
                 messages.success(
                     request,
-                    f"Стартовал раунд #{challenge.round_number}. Пора принимать книги!",
+                    f"РЎС‚Р°СЂС‚РѕРІР°Р» СЂР°СѓРЅРґ #{challenge.round_number}. РџРѕСЂР° РїСЂРёРЅРёРјР°С‚СЊ РєРЅРёРіРё!",
                 )
                 return redirect("games:book_exchange")
-            messages.error(request, "Не удалось запустить раунд. Проверьте форму.")
+            messages.error(request, "РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РїСѓСЃС‚РёС‚СЊ СЂР°СѓРЅРґ. РџСЂРѕРІРµСЂСЊС‚Рµ С„РѕСЂРјСѓ.")
         elif action == "respond" and challenge:
             respond_form = BookExchangeRespondForm(
                 request.POST, user=request.user, challenge=challenge
@@ -218,7 +219,7 @@ def book_exchange_dashboard(request):
                 if success:
                     return redirect("games:book_exchange")
             else:
-                messages.error(request, "Не удалось обработать предложение.")
+                messages.error(request, "РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±СЂР°Р±РѕС‚Р°С‚СЊ РїСЂРµРґР»РѕР¶РµРЅРёРµ.")
 
     challenge_payload = None
     if challenge:
@@ -261,7 +262,7 @@ def book_exchange_detail(request, username, round_number):
         action = request.POST.get("action")
         if action == "offer":
             if not request.user.is_authenticated:
-                messages.error(request, "Авторизуйтесь, чтобы предлагать книги.")
+                messages.error(request, "РђРІС‚РѕСЂРёР·СѓР№С‚РµСЃСЊ, С‡С‚РѕР±С‹ РїСЂРµРґР»Р°РіР°С‚СЊ РєРЅРёРіРё.")
                 return redirect("login")
             offer_form = BookExchangeOfferForm(
                 request.POST, user=request.user, challenge=challenge
@@ -276,7 +277,7 @@ def book_exchange_detail(request, username, round_number):
                 if success:
                     return redirect(challenge.get_absolute_url())
             else:
-                messages.error(request, "Не удалось предложить книгу. Проверьте форму.")
+                messages.error(request, "РќРµ СѓРґР°Р»РѕСЃСЊ РїСЂРµРґР»РѕР¶РёС‚СЊ РєРЅРёРіСѓ. РџСЂРѕРІРµСЂСЊС‚Рµ С„РѕСЂРјСѓ.")
         elif action == "respond" and is_owner:
             respond_form = BookExchangeRespondForm(
                 request.POST, user=request.user, challenge=challenge
@@ -297,7 +298,7 @@ def book_exchange_detail(request, username, round_number):
                 if success:
                     return redirect(challenge.get_absolute_url())
             else:
-                messages.error(request, "Не удалось обработать предложение.")
+                messages.error(request, "РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±СЂР°Р±РѕС‚Р°С‚СЊ РїСЂРµРґР»РѕР¶РµРЅРёРµ.")
 
     challenge_payload = _build_book_exchange_payload(
         challenge, request_user=request.user
@@ -399,24 +400,24 @@ def read_before_buy_dashboard(request):
                 ReadBeforeBuyGame.enable_for_shelf(request.user, shelf)
                 messages.success(
                     request,
-                    f"Полка «{shelf.name}» подключена к игре «{game.title}».",
+                    f"РџРѕР»РєР° В«{shelf.name}В» РїРѕРґРєР»СЋС‡РµРЅР° Рє РёРіСЂРµ В«{game.title}В».",
                 )
                 return redirect("games:read_before_buy")
-            messages.error(request, "Не удалось подключить полку. Проверьте форму.")
+            messages.error(request, "РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕРґРєР»СЋС‡РёС‚СЊ РїРѕР»РєСѓ. РџСЂРѕРІРµСЂСЊС‚Рµ С„РѕСЂРјСѓ.")
         elif action == "bulk_purchase":
             try:
                 state_id = int(request.POST.get("state_id", "0"))
             except (TypeError, ValueError):
-                messages.error(request, "Не удалось определить полку для списания баллов.")
+                messages.error(request, "РќРµ СѓРґР°Р»РѕСЃСЊ РѕРїСЂРµРґРµР»РёС‚СЊ РїРѕР»РєСѓ РґР»СЏ СЃРїРёСЃР°РЅРёСЏ Р±Р°Р»Р»РѕРІ.")
                 return redirect("games:read_before_buy")
             state = ReadBeforeBuyGame.get_state_by_id(request.user, state_id)
             if not state:
-                messages.error(request, "Полка не найдена или не подключена к игре.")
+                messages.error(request, "РџРѕР»РєР° РЅРµ РЅР°Р№РґРµРЅР° РёР»Рё РЅРµ РїРѕРґРєР»СЋС‡РµРЅР° Рє РёРіСЂРµ.")
                 return redirect("games:read_before_buy")
             try:
                 count = int(request.POST.get("count", "0"))
             except (TypeError, ValueError):
-                messages.error(request, "Укажите количество купленных книг.")
+                messages.error(request, "РЈРєР°Р¶РёС‚Рµ РєРѕР»РёС‡РµСЃС‚РІРѕ РєСѓРїР»РµРЅРЅС‹С… РєРЅРёРі.")
                 return redirect("games:read_before_buy")
             success, message_text, level = ReadBeforeBuyGame.spend_points_for_bulk_purchase(
                 state, count
@@ -438,7 +439,7 @@ def read_before_buy_dashboard(request):
 
 @login_required
 def forgotten_books_dashboard(request):
-    """Управление челленджем «12 забытых книг»."""
+    """РЈРїСЂР°РІР»РµРЅРёРµ С‡РµР»Р»РµРЅРґР¶РµРј В«12 Р·Р°Р±С‹С‚С‹С… РєРЅРёРіВ»."""
 
     game = ForgottenBooksGame.get_game()
     add_form = ForgottenBooksAddForm(user=request.user)
@@ -458,7 +459,7 @@ def forgotten_books_dashboard(request):
                 if success:
                     ForgottenBooksGame.ensure_monthly_selection(request.user)
                 return redirect("games:forgotten_books")
-            messages.error(request, "Не удалось добавить книгу. Проверьте форму.")
+            messages.error(request, "РќРµ СѓРґР°Р»РѕСЃСЊ РґРѕР±Р°РІРёС‚СЊ РєРЅРёРіСѓ. РџСЂРѕРІРµСЂСЊС‚Рµ С„РѕСЂРјСѓ.")
         elif action == "remove":
             remove_form = ForgottenBooksRemoveForm(request.POST, user=request.user)
             if remove_form.is_valid():
@@ -467,7 +468,7 @@ def forgotten_books_dashboard(request):
                 message_handler = getattr(messages, level, messages.info)
                 message_handler(request, message_text)
                 return redirect("games:forgotten_books")
-            messages.error(request, "Не удалось удалить книгу из списка.")
+            messages.error(request, "РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ РєРЅРёРіСѓ РёР· СЃРїРёСЃРєР°.")
 
     selection = ForgottenBooksGame.ensure_monthly_selection(request.user)
     if not selection:
@@ -506,7 +507,7 @@ def book_journey_map(request):
 
     if request.method == "POST":
         if not user.is_authenticated:
-            messages.error(request, "Авторизуйтесь, чтобы прикреплять книги к заданиям.")
+            messages.error(request, "РђРІС‚РѕСЂРёР·СѓР№С‚РµСЃСЊ, С‡С‚РѕР±С‹ РїСЂРёРєСЂРµРїР»СЏС‚СЊ РєРЅРёРіРё Рє Р·Р°РґР°РЅРёСЏРј.")
             return redirect("login")
         action = request.POST.get("action")
         if action == "assign":
@@ -528,9 +529,9 @@ def book_journey_map(request):
                     messages.error(
                         request,
                         (
-                            "У вас уже есть активное задание: "
-                            f"#{active_other.stage_number} «{other_stage.title if other_stage else 'Без названия'}»."
-                            " Завершите его или снимите книгу, чтобы продолжить."
+                            "РЈ РІР°СЃ СѓР¶Рµ РµСЃС‚СЊ Р°РєС‚РёРІРЅРѕРµ Р·Р°РґР°РЅРёРµ: "
+                            f"#{active_other.stage_number} В«{other_stage.title if other_stage else 'Р‘РµР· РЅР°Р·РІР°РЅРёСЏ'}В»."
+                            " Р—Р°РІРµСЂС€РёС‚Рµ РµРіРѕ РёР»Рё СЃРЅРёРјРёС‚Рµ РєРЅРёРіСѓ, С‡С‚РѕР±С‹ РїСЂРѕРґРѕР»Р¶РёС‚СЊ."
                         ),
                     )
                 else:
@@ -545,7 +546,7 @@ def book_journey_map(request):
                         if assignment.is_completed:
                             messages.error(
                                 request,
-                                "Завершённое задание нельзя перепроходить повторно.",
+                                "Р—Р°РІРµСЂС€С‘РЅРЅРѕРµ Р·Р°РґР°РЅРёРµ РЅРµР»СЊР·СЏ РїРµСЂРµРїСЂРѕС…РѕРґРёС‚СЊ РїРѕРІС‚РѕСЂРЅРѕ.",
                             )
                             return redirect("games:book_journey_map")
                         assignment.reset_progress(book=book)
@@ -560,7 +561,7 @@ def book_journey_map(request):
                     BookJourneyAssignment.sync_for_user_book(user, book)
                     messages.success(
                         request,
-                        f"Книга «{book.title}» прикреплена к этапу #{stage_number} «{stage.title}».",
+                        f"РљРЅРёРіР° В«{book.title}В» РїСЂРёРєСЂРµРїР»РµРЅР° Рє СЌС‚Р°РїСѓ #{stage_number} В«{stage.title}В».",
                     )
                     return redirect("games:book_journey_map")
         elif action == "release":
@@ -572,13 +573,13 @@ def book_journey_map(request):
                 ).first()
                 stage = BookJourneyMap.get_stage_by_number(stage_number)
                 if not assignment:
-                    messages.error(request, "Для этого этапа пока не выбрана книга.")
+                    messages.error(request, "Р”Р»СЏ СЌС‚РѕРіРѕ СЌС‚Р°РїР° РїРѕРєР° РЅРµ РІС‹Р±СЂР°РЅР° РєРЅРёРіР°.")
                 elif assignment.is_completed:
-                    messages.error(request, "Завершённое задание нельзя отменить.")
+                    messages.error(request, "Р—Р°РІРµСЂС€С‘РЅРЅРѕРµ Р·Р°РґР°РЅРёРµ РЅРµР»СЊР·СЏ РѕС‚РјРµРЅРёС‚СЊ.")
                 else:
                     assignment.delete()
                     title = stage.title if stage else f"#{stage_number}"
-                    messages.success(request, f"Этап «{title}» снова свободен.")
+                    messages.success(request, f"Р­С‚Р°Рї В«{title}В» СЃРЅРѕРІР° СЃРІРѕР±РѕРґРµРЅ.")
                 return redirect("games:book_journey_map")
         else:
             assignment_form = BookJourneyAssignForm(user=user)
@@ -701,9 +702,9 @@ def book_journey_map(request):
         "active_stage_number": active_stage_number,
         "is_authenticated": user.is_authenticated,
         "status_labels": {
-            "available": "Свободно",
-            "in_progress": "В процессе",
-            "completed": "Выполнено",
+            "available": "РЎРІРѕР±РѕРґРЅРѕ",
+            "in_progress": "Р’ РїСЂРѕС†РµСЃСЃРµ",
+            "completed": "Р’С‹РїРѕР»РЅРµРЅРѕ",
         },
         "assignment_stage_value": assignment_stage_value,
         "stage_summary": {
@@ -729,7 +730,7 @@ def nobel_laureates_challenge(request):
 
     if request.method == "POST":
         if not user.is_authenticated:
-            messages.error(request, "Авторизуйтесь, чтобы управлять этапами челленджа.")
+            messages.error(request, "РђРІС‚РѕСЂРёР·СѓР№С‚РµСЃСЊ, С‡С‚РѕР±С‹ СѓРїСЂР°РІР»СЏС‚СЊ СЌС‚Р°РїР°РјРё С‡РµР»Р»РµРЅРґР¶Р°.")
             return redirect("login")
         action = request.POST.get("action")
         if action == "assign":
@@ -746,27 +747,27 @@ def nobel_laureates_challenge(request):
                 if not created and assignment.is_completed:
                     messages.error(
                         request,
-                        "Этап уже выполнен — заменить книгу нельзя, освободите его вручную.",
+                        "Р­С‚Р°Рї СѓР¶Рµ РІС‹РїРѕР»РЅРµРЅ вЂ” Р·Р°РјРµРЅРёС‚СЊ РєРЅРёРіСѓ РЅРµР»СЊР·СЏ, РѕСЃРІРѕР±РѕРґРёС‚Рµ РµРіРѕ РІСЂСѓС‡РЅСѓСЋ.",
                     )
                     return redirect("games:nobel_challenge")
                 assignment.reset_progress(book=book)
                 NobelLaureateAssignment.sync_for_user_book(user, book)
                 assignment.refresh_from_db()
-                stage_title = stage.title if stage else f"Этап #{stage_number}"
+                stage_title = stage.title if stage else f"Р­С‚Р°Рї #{stage_number}"
                 if assignment.is_completed:
                     messages.success(
                         request,
                         (
-                            f"Этап «{stage_title}» засчитан: книга уже отмечена как"
-                            " прочитанная и отзыв найден."
+                            f"Р­С‚Р°Рї В«{stage_title}В» Р·Р°СЃС‡РёС‚Р°РЅ: РєРЅРёРіР° СѓР¶Рµ РѕС‚РјРµС‡РµРЅР° РєР°Рє"
+                            " РїСЂРѕС‡РёС‚Р°РЅРЅР°СЏ Рё РѕС‚Р·С‹РІ РЅР°Р№РґРµРЅ."
                         ),
                     )
                 else:
                     messages.success(
                         request,
                         (
-                            f"Книга «{book.title}» прикреплена к этапу «{stage_title}»."
-                            " Отметьте чтение и отзыв, чтобы завершить его."
+                            f"РљРЅРёРіР° В«{book.title}В» РїСЂРёРєСЂРµРїР»РµРЅР° Рє СЌС‚Р°РїСѓ В«{stage_title}В»."
+                            " РћС‚РјРµС‚СЊС‚Рµ С‡С‚РµРЅРёРµ Рё РѕС‚Р·С‹РІ, С‡С‚РѕР±С‹ Р·Р°РІРµСЂС€РёС‚СЊ РµРіРѕ."
                         ),
                     )
                 return redirect("games:nobel_challenge")
@@ -786,17 +787,17 @@ def nobel_laureates_challenge(request):
                     user=user, stage_number=stage_number
                 ).first()
                 stage = NobelLaureatesChallenge.get_stage_by_number(stage_number)
-                stage_title = stage.title if stage else f"Этап #{stage_number}"
+                stage_title = stage.title if stage else f"Р­С‚Р°Рї #{stage_number}"
                 if not assignment:
-                    messages.error(request, "Для этого этапа пока не выбрана книга.")
+                    messages.error(request, "Р”Р»СЏ СЌС‚РѕРіРѕ СЌС‚Р°РїР° РїРѕРєР° РЅРµ РІС‹Р±СЂР°РЅР° РєРЅРёРіР°.")
                 elif assignment.is_completed:
                     messages.error(
-                        request, "Нельзя удалить книгу с уже выполненного этапа."
+                        request, "РќРµР»СЊР·СЏ СѓРґР°Р»РёС‚СЊ РєРЅРёРіСѓ СЃ СѓР¶Рµ РІС‹РїРѕР»РЅРµРЅРЅРѕРіРѕ СЌС‚Р°РїР°."
                     )
                 else:
                     assignment.delete()
                     messages.success(
-                        request, f"Этап «{stage_title}» снова свободен для выбора."
+                        request, f"Р­С‚Р°Рї В«{stage_title}В» СЃРЅРѕРІР° СЃРІРѕР±РѕРґРµРЅ РґР»СЏ РІС‹Р±РѕСЂР°."
                     )
                 return redirect("games:nobel_challenge")
             for error_list in release_form.errors.values():
@@ -839,9 +840,9 @@ def nobel_laureates_challenge(request):
     completed_count = 0
     in_progress_count = 0
     status_labels = {
-        "available": "Свободно",
-        "in_progress": "В процессе",
-        "completed": "Выполнено",
+        "available": "РЎРІРѕР±РѕРґРЅРѕ",
+        "in_progress": "Р’ РїСЂРѕС†РµСЃСЃРµ",
+        "completed": "Р’С‹РїРѕР»РЅРµРЅРѕ",
     }
 
     for stage in NobelLaureatesChallenge.get_stages():
@@ -957,14 +958,14 @@ def _build_rating_star_payload(score_value):
 
 
 def yasnaya_polyana_foreign_2026(request):
-    """Страница игры «Номинация Иностранная литература Ясная поляна 2026»."""
+    """РЎС‚СЂР°РЅРёС†Р° РёРіСЂС‹ В«РќРѕРјРёРЅР°С†РёСЏ Р РЅРѕСЃС‚СЂР°РЅРЅР°СЏ Р»РёС‚РµСЂР°С‚СѓСЂР° РЇСЃРЅР°СЏ РїРѕР»СЏРЅР° 2026В»."""
 
     game = YasnayaPolyanaForeign2026Game.get_game()
     user = request.user
 
     if request.method == "POST":
         if not user.is_authenticated:
-            messages.error(request, "Авторизуйтесь, чтобы участвовать в игре.")
+            messages.error(request, "РђРІС‚РѕСЂРёР·СѓР№С‚РµСЃСЊ, С‡С‚РѕР±С‹ СѓС‡Р°СЃС‚РІРѕРІР°С‚СЊ РІ РёРіСЂРµ.")
             return redirect("login")
 
         action = request.POST.get("action")
@@ -976,47 +977,66 @@ def yasnaya_polyana_foreign_2026(request):
                 .first()
             )
             if not nomination:
-                messages.error(request, "Книга не найдена в списке игры.")
+                messages.error(request, "РљРЅРёРіР° РЅРµ РЅР°Р№РґРµРЅР° РІ СЃРїРёСЃРєРµ РёРіСЂС‹.")
                 return redirect("games:yasnaya_polyana_foreign_2026")
             move_book_to_reading_shelf(user, nomination.book)
             messages.success(
                 request,
                 (
-                    f"«{nomination.book.title}» добавлена на полку "
-                    f"«{DEFAULT_READING_SHELF}»."
+                    f"В«{nomination.book.title}В» РґРѕР±Р°РІР»РµРЅР° РЅР° РїРѕР»РєСѓ "
+                    f"В«{DEFAULT_READING_SHELF}В»."
                 ),
             )
             return redirect("games:yasnaya_polyana_foreign_2026")
 
         if not user.is_superuser:
-            messages.error(request, "Только superuser может управлять списком игры.")
+            messages.error(request, "РўРѕР»СЊРєРѕ superuser РјРѕР¶РµС‚ СѓРїСЂР°РІР»СЏС‚СЊ СЃРїРёСЃРєРѕРј РёРіСЂС‹.")
             return redirect("games:yasnaya_polyana_foreign_2026")
 
         if action == "add_book":
             book_id = request.POST.get("book_id")
             book = Book.objects.filter(pk=book_id).first()
             if not book:
-                messages.error(request, "Выберите книгу для добавления.")
+                messages.error(request, "Р’С‹Р±РµСЂРёС‚Рµ РєРЅРёРіСѓ РґР»СЏ РґРѕР±Р°РІР»РµРЅРёСЏ.")
             else:
                 _, created = YasnayaPolyanaNominationBook.objects.get_or_create(book=book)
                 if created:
-                    messages.success(request, f"Книга «{book.title}» добавлена в игру.")
+                    messages.success(request, f"РљРЅРёРіР° В«{book.title}В» РґРѕР±Р°РІР»РµРЅР° РІ РёРіСЂСѓ.")
                 else:
-                    messages.info(request, f"Книга «{book.title}» уже есть в игре.")
+                    messages.info(request, f"РљРЅРёРіР° В«{book.title}В» СѓР¶Рµ РµСЃС‚СЊ РІ РёРіСЂРµ.")
+            return redirect("games:yasnaya_polyana_foreign_2026")
+
+        if action == "create_template_game":
+            title = (request.POST.get("title") or "").strip()
+            description = (request.POST.get("description") or "").strip()
+            slug = (request.POST.get("slug") or "").strip()
+            year_raw = (request.POST.get("year") or "").strip()
+            if not title or not slug:
+                messages.error(request, "Заполните название и slug новой игры.")
+                return redirect("games:yasnaya_polyana_foreign_2026")
+            year = int(year_raw) if year_raw.isdigit() else None
+            _, created = Game.objects.get_or_create(
+                slug=slug,
+                defaults={"title": title, "description": description, "year": year},
+            )
+            if created:
+                messages.success(request, "Новая игра по шаблону создана.")
+            else:
+                messages.info(request, "Игра с таким slug уже существует.")
             return redirect("games:yasnaya_polyana_foreign_2026")
 
         if action == "toggle_shortlist":
             nomination_id = request.POST.get("nomination_id")
             nomination = YasnayaPolyanaNominationBook.objects.filter(pk=nomination_id).first()
             if not nomination:
-                messages.error(request, "Запись номинации не найдена.")
+                messages.error(request, "Р—Р°РїРёСЃСЊ РЅРѕРјРёРЅР°С†РёРё РЅРµ РЅР°Р№РґРµРЅР°.")
             else:
                 nomination.is_shortlist = not nomination.is_shortlist
                 nomination.save(update_fields=["is_shortlist", "updated_at"])
-                status_label = "короткий список" if nomination.is_shortlist else "длинный список"
+                status_label = "РєРѕСЂРѕС‚РєРёР№ СЃРїРёСЃРѕРє" if nomination.is_shortlist else "РґР»РёРЅРЅС‹Р№ СЃРїРёСЃРѕРє"
                 messages.success(
                     request,
-                    f"«{nomination.book.title}» перенесена в «{status_label}».",
+                    f"В«{nomination.book.title}В» РїРµСЂРµРЅРµСЃРµРЅР° РІ В«{status_label}В».",
                 )
             return redirect("games:yasnaya_polyana_foreign_2026")
 
@@ -1055,7 +1075,7 @@ def yasnaya_polyana_foreign_2026(request):
             "title": book.title,
             "cover_url": book.get_cover_url(),
             "authors": author_names,
-            "author_country": author_countries or "Страна автора не указана",
+            "author_country": author_countries or "РЎС‚СЂР°РЅР° Р°РІС‚РѕСЂР° РЅРµ СѓРєР°Р·Р°РЅР°",
             "is_shortlist": nomination.is_shortlist,
             "detail_url": reverse("book_detail", args=[book.id]),
         }
@@ -1103,5 +1123,6 @@ def yasnaya_polyana_foreign_2026(request):
         "is_authenticated": user.is_authenticated,
         "book_query": search_query,
         "search_results": search_results,
+        "annual_games": Game.objects.filter(year__isnull=False).order_by("-year", "title")[:30],
     }
     return render(request, "games/yasnaya_polyana_foreign_2026.html", context)

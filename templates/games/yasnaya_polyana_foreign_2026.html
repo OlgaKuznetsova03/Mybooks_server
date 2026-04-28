@@ -31,6 +31,27 @@
 {% if user.is_superuser %}
 <section class="card border-0 shadow-sm mb-4">
   <div class="card-body">
+    <h2 class="h5 mb-3">Создать новую ежегодную игру по шаблону</h2>
+    <form method="post" class="row g-2 mb-4">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="create_template_game">
+      <div class="col-md-4">
+        <input type="text" name="title" class="form-control" placeholder="Название игры" required>
+      </div>
+      <div class="col-md-3">
+        <input type="text" name="slug" class="form-control" placeholder="slug, например yasnaya-polyana-foreign-2027" required>
+      </div>
+      <div class="col-md-2">
+        <input type="number" name="year" class="form-control" placeholder="Год" min="2000" max="2100">
+      </div>
+      <div class="col-md-3">
+        <button class="btn btn-outline-success w-100" type="submit">Создать</button>
+      </div>
+      <div class="col-12">
+        <textarea name="description" rows="2" class="form-control" placeholder="Описание игры"></textarea>
+      </div>
+    </form>
+
     <h2 class="h5 mb-3">Добавить книгу в игру</h2>
     <form method="get" class="row g-2 align-items-end mb-3">
       <div class="col-md-8">
@@ -63,6 +84,16 @@
       {% else %}
         <p class="mb-0 text-muted">По вашему запросу книги не найдены или уже добавлены в игру.</p>
       {% endif %}
+    {% endif %}
+
+    {% if annual_games %}
+      <hr>
+      <h3 class="h6 mb-2">Ежегодные игры (для фильтра по году)</h3>
+      <ul class="small mb-0">
+        {% for yearly_game in annual_games %}
+          <li>{{ yearly_game.year }} — {{ yearly_game.title }}</li>
+        {% endfor %}
+      </ul>
     {% endif %}
   </div>
 </section>

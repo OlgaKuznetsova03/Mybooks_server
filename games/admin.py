@@ -15,8 +15,8 @@ from .models import (
 
 @admin.register(Game)
 class GameAdmin(admin.ModelAdmin):
-    list_display = ("title", "slug", "is_active")
-    list_filter = ("is_active",)
+    list_display = ("title", "slug", "year", "is_active")
+    list_filter = ("is_active", "year")
     search_fields = ("title", "slug")
 
 

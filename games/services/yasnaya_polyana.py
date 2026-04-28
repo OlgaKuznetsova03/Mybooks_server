@@ -12,9 +12,8 @@ class YasnayaPolyanaForeign2026Game:
     )
 
     @classmethod
-    def get_game(cls) -> Game:
-        game, _ = Game.objects.get_or_create(
+    game, _ = Game.objects.get_or_create(
             slug=cls.SLUG,
-            defaults={"title": cls.TITLE, "description": cls.DESCRIPTION},
+            defaults={"title": cls.TITLE, "description": cls.DESCRIPTION, "year": 2026},
         )
         return game

@@ -127,6 +127,12 @@ class Game(models.Model):
     slug = models.SlugField(max_length=64, unique=True)
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
+    year = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Год сезона/премии (для ежегодных игр).",
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
