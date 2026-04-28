@@ -88,10 +88,16 @@
 
     {% if annual_games %}
       <hr>
-      <h3 class="h6 mb-2">Ежегодные игры (для фильтра по году)</h3>
+      <h3 class="h6 mb-2">Ежегодные игры</h3>
       <ul class="small mb-0">
         {% for yearly_game in annual_games %}
-          <li>{{ yearly_game.year }} — {{ yearly_game.title }}</li>
+          <li>
+            {% if yearly_game.slug %}
+              <a href="{% url 'games:yasnaya_polyana_dynamic' yearly_game.slug %}">{{ yearly_game.year }} — {{ yearly_game.title }}</a>
+            {% else %}
+              {{ yearly_game.year }} — {{ yearly_game.title }}
+            {% endif %}
+          </li>
         {% endfor %}
       </ul>
     {% endif %}

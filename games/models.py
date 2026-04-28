@@ -715,6 +715,11 @@ class BookExchangeAcceptedBook(models.Model):
 class YasnayaPolyanaNominationBook(models.Model):
     """Книга в игре «Ясная Поляна 2026: иностранная литература»."""
 
+    game = models.ForeignKey(
+        "games.Game",
+        on_delete=models.CASCADE,
+        related_name="yasnaya_polyana_nominations",
+    )
     book = models.ForeignKey(
         "books.Book",
         on_delete=models.CASCADE,
@@ -728,7 +733,7 @@ class YasnayaPolyanaNominationBook(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ("book",)
+        unique_together = ("game", "book")
         ordering = ["-is_shortlist", "book__title"]
 
     def __str__(self) -> str:  # pragma: no cover - simple representation

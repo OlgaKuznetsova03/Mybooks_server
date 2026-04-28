@@ -63,7 +63,8 @@ class YasnayaPolyanaGameTests(TestCase):
             password="secret123",
         )
         self.book = Book.objects.create(title="Иностранный роман", synopsis="")
-        YasnayaPolyanaNominationBook.objects.create(book=self.book)
+        self.base_game = YasnayaPolyanaForeign2026Game.get_game()
+        YasnayaPolyanaNominationBook.objects.create(game=self.base_game, book=self.book)
 
     def test_game_page_renders(self):
         response = self.client.get(reverse("games:yasnaya_polyana_foreign_2026"))
@@ -106,7 +107,7 @@ class YasnayaPolyanaGameTests(TestCase):
             {"action": "add_book", "book_id": second_book.id},
         )
         self.assertRedirects(response, reverse("games:yasnaya_polyana_foreign_2026"))
-        nomination = YasnayaPolyanaNominationBook.objects.get(book=second_book)
+        nomination = YasnayaPolyanaNominationBook.objects.get(game=self.base_game, book=second_book)
 
         response = self.client.post(
             reverse("games:yasnaya_polyana_foreign_2026"),
@@ -115,6 +116,22 @@ class YasnayaPolyanaGameTests(TestCase):
         self.assertRedirects(response, reverse("games:yasnaya_polyana_foreign_2026"))
         nomination.refresh_from_db()
         self.assertTrue(nomination.is_shortlist)
+
+    def test_superuser_created_game_has_separate_page_and_books(self):
+        self.client.login(username="admin", password="secret123")
+        self.client.post(
+            reverse("games:yasnaya_polyana_foreign_2026"),
+            {
+                "action": "create_template_game",
+                "title": "Ясная Поляна 2027",
+                "slug": "yasnaya-polyana-foreign-2027",
+                "year": "2027",
+                "description": "Новый сезон",
+            },
+        )
+        response = self.client.get(reverse("games:yasnaya_polyana_dynamic", args=["yasnaya-polyana-foreign-2027"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, self.book.title)
 
 
 class NobelChallengeViewTests(TestCase):

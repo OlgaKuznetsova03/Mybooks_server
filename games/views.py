@@ -957,10 +957,7 @@ def _build_rating_star_payload(score_value):
     return {"full": full, "half": half, "empty": empty}
 
 
-def yasnaya_polyana_foreign_2026(request):
-    """РЎС‚СЂР°РЅРёС†Р° РёРіСЂС‹ В«РќРѕРјРёРЅР°С†РёСЏ Р РЅРѕСЃС‚СЂР°РЅРЅР°СЏ Р»РёС‚РµСЂР°С‚СѓСЂР° РЇСЃРЅР°СЏ РїРѕР»СЏРЅР° 2026В»."""
-
-    game = YasnayaPolyanaForeign2026Game.get_game()
+def _yasnaya_polyana_game_page(request, game):
     user = request.user
 
     if request.method == "POST":
@@ -972,7 +969,7 @@ def yasnaya_polyana_foreign_2026(request):
         if action == "start_reading":
             book_id = request.POST.get("book_id")
             nomination = (
-                YasnayaPolyanaNominationBook.objects.filter(book_id=book_id)
+                YasnayaPolyanaNominationBook.objects.filter(game=game, book_id=book_id)
                 .select_related("book")
                 .first()
             )
@@ -999,7 +996,7 @@ def yasnaya_polyana_foreign_2026(request):
             if not book:
                 messages.error(request, "Р’С‹Р±РµСЂРёС‚Рµ РєРЅРёРіСѓ РґР»СЏ РґРѕР±Р°РІР»РµРЅРёСЏ.")
             else:
-                _, created = YasnayaPolyanaNominationBook.objects.get_or_create(book=book)
+                _, created = YasnayaPolyanaNominationBook.objects.get_or_create(game=game, book=book)
                 if created:
                     messages.success(request, f"РљРЅРёРіР° В«{book.title}В» РґРѕР±Р°РІР»РµРЅР° РІ РёРіСЂСѓ.")
                 else:
@@ -1027,7 +1024,7 @@ def yasnaya_polyana_foreign_2026(request):
 
         if action == "toggle_shortlist":
             nomination_id = request.POST.get("nomination_id")
-            nomination = YasnayaPolyanaNominationBook.objects.filter(pk=nomination_id).first()
+            nomination = YasnayaPolyanaNominationBook.objects.filter(pk=nomination_id, game=game).first()
             if not nomination:
                 messages.error(request, "Р—Р°РїРёСЃСЊ РЅРѕРјРёРЅР°С†РёРё РЅРµ РЅР°Р№РґРµРЅР°.")
             else:
@@ -1056,6 +1053,7 @@ def yasnaya_polyana_foreign_2026(request):
 
     nominations = list(
         YasnayaPolyanaNominationBook.objects.select_related("book")
+        .filter(game=game)
         .prefetch_related("book__authors")
         .order_by("-is_shortlist", "book__title")
     )
@@ -1102,7 +1100,7 @@ def yasnaya_polyana_foreign_2026(request):
                 Q(title__icontains=search_query)
                 | Q(authors__name__icontains=search_query)
             )
-            .exclude(yasnaya_polyana_nominations__isnull=False)
+            .exclude(yasnaya_polyana_nominations__game=game)
             .distinct()
             .order_by("title")
             .prefetch_related("authors")[:30]
@@ -1126,3 +1124,13 @@ def yasnaya_polyana_foreign_2026(request):
         "annual_games": Game.objects.filter(year__isnull=False).order_by("-year", "title")[:30],
     }
     return render(request, "games/yasnaya_polyana_foreign_2026.html", context)
+
+
+def yasnaya_polyana_foreign_2026(request):
+    """Страница базовой игры «Ясная Поляна: иностранная литература 2026»."""
+    return _yasnaya_polyana_game_page(request, YasnayaPolyanaForeign2026Game.get_game())
+
+
+def yasnaya_polyana_dynamic(request, slug):
+    game = get_object_or_404(Game, slug=slug)
+    return _yasnaya_polyana_game_page(request, game)

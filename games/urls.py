@@ -21,4 +21,5 @@ urlpatterns = [
         views.yasnaya_polyana_foreign_2026,
         name="yasnaya_polyana_foreign_2026",
     ),
+    path("<slug:slug>/", views.yasnaya_polyana_dynamic, name="yasnaya_polyana_dynamic"),
 ]
