@@ -16,6 +16,7 @@ from .models import (
     BookJourneyAssignment,
     BookExchangeOffer,
     ForgottenBookEntry,
+    Game,
     NobelLaureateAssignment,
 )
 from .services.book_exchange import BookExchangeGame
@@ -258,7 +259,34 @@ class ForgottenBooksAddForm(forms.Form):
             return cleaned
         if not ForgottenBooksGame.can_add_more(user):
             raise ValidationError("Вы уже добавили 12 книг в челлендж.")
-        return cleaned
+
+
+class GameCloneForm(forms.Form):
+    """Форма клонирования игры в админ-блоке Ясной Поляны."""
+
+    source_game = forms.ModelChoiceField(
+        queryset=Game.objects.filter(is_active=True).order_by("-year", "title"),
+        label="Игра-шаблон",
+    )
+    new_title = forms.CharField(max_length=200, label="Название новой игры")
+    new_slug = forms.SlugField(max_length=64, label="Slug новой игры")
+    new_description = forms.CharField(
+        label="Описание",
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+    year = forms.IntegerField(required=False, label="Год")
+    copy_nomination_books = forms.BooleanField(
+        required=False,
+        initial=True,
+        label="Копировать книги номинации",
+    )
+
+    def clean_new_slug(self):
+        slug = self.cleaned_data["new_slug"]
+        if Game.objects.filter(slug=slug).exists():
+            raise ValidationError(f'Игра со slug "{slug}" уже существует')
+        return slug
 
 
 class ForgottenBooksRemoveForm(forms.Form):

@@ -31,6 +31,7 @@ from .forms import (
     ForgottenBooksRemoveForm,
     BookJourneyReleaseForm,
     ReadBeforeBuyEnrollForm,
+    GameCloneForm,
 )
 from .models import (
     BookExchangeChallenge,
@@ -45,6 +46,7 @@ from .services.book_journey import BookJourneyMap
 from .services.read_before_buy import ReadBeforeBuyGame
 from .services.nobel_challenge import NobelLaureatesChallenge
 from .services.yasnaya_polyana import YasnayaPolyanaForeign2026Game
+from .services.game_cloner import GameCloner
 
 
 def _truncate_text(value: str, limit: int = 200) -> str:
@@ -153,9 +155,18 @@ def game_list(request):
     available_games = [card for card in cards if card.is_available]
     upcoming_games = [card for card in cards if not card.is_available]
 
+    year_filter_raw = (request.GET.get("year") or "").strip()
+    annual_games = Game.objects.filter(year__isnull=False).order_by("-year", "title")
+    if year_filter_raw.isdigit():
+        annual_games = annual_games.filter(year=int(year_filter_raw))
+    years = list(Game.objects.filter(year__isnull=False).values_list("year", flat=True).distinct().order_by("-year"))
+
     context = {
         "available_games": available_games,
         "upcoming_games": upcoming_games,
+        "annual_games": annual_games[:50],
+        "available_years": years,
+        "selected_year": year_filter_raw,
     }
     return render(request, "games/index.html", context)
 
@@ -1004,22 +1015,21 @@ def _yasnaya_polyana_game_page(request, game):
             return redirect("games:yasnaya_polyana_foreign_2026")
 
         if action == "create_template_game":
-            title = (request.POST.get("title") or "").strip()
-            description = (request.POST.get("description") or "").strip()
-            slug = (request.POST.get("slug") or "").strip()
-            year_raw = (request.POST.get("year") or "").strip()
-            if not title or not slug:
-                messages.error(request, "Заполните название и slug новой игры.")
+            clone_form = GameCloneForm(request.POST)
+            if not clone_form.is_valid():
+                messages.error(request, "Проверьте поля формы клонирования.")
                 return redirect("games:yasnaya_polyana_foreign_2026")
-            year = int(year_raw) if year_raw.isdigit() else None
-            _, created = Game.objects.get_or_create(
-                slug=slug,
-                defaults={"title": title, "description": description, "year": year},
+            source_game = clone_form.cleaned_data["source_game"]
+            new_game = GameCloner.clone_game(
+                source_game=source_game,
+                new_slug=clone_form.cleaned_data["new_slug"],
+                new_title=clone_form.cleaned_data["new_title"],
+                new_description=clone_form.cleaned_data.get("new_description") or source_game.description,
+                year=clone_form.cleaned_data.get("year"),
+                copy_books=clone_form.cleaned_data.get("copy_nomination_books", True),
             )
-            if created:
-                messages.success(request, "Новая игра по шаблону создана.")
-            else:
-                messages.info(request, "Игра с таким slug уже существует.")
+            copied_count = YasnayaPolyanaNominationBook.objects.filter(game=new_game).count()
+            messages.success(request, f'Создана игра "{new_game.title}". Скопировано книг: {copied_count}.')
             return redirect("games:yasnaya_polyana_foreign_2026")
 
         if action == "toggle_shortlist":

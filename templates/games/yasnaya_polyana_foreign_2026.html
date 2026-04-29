@@ -36,10 +36,10 @@
       {% csrf_token %}
       <input type="hidden" name="action" value="create_template_game">
       <div class="col-md-4">
-        <input type="text" name="title" class="form-control" placeholder="Название игры" required>
+        <input type="text" name="new_title" class="form-control" placeholder="Название игры" required>
       </div>
       <div class="col-md-3">
-        <input type="text" name="slug" class="form-control" placeholder="slug, например yasnaya-polyana-foreign-2027" required>
+        <input type="text" name="new_slug" class="form-control" placeholder="slug, например yasnaya-polyana-foreign-2027" required>
       </div>
       <div class="col-md-2">
         <input type="number" name="year" class="form-control" placeholder="Год" min="2000" max="2100">
@@ -48,7 +48,19 @@
         <button class="btn btn-outline-success w-100" type="submit">Создать</button>
       </div>
       <div class="col-12">
-        <textarea name="description" rows="2" class="form-control" placeholder="Описание игры"></textarea>
+        <textarea name="new_description" rows="2" class="form-control" placeholder="Описание игры"></textarea>
+      </div>
+      <div class="col-md-8">
+        <select name="source_game" class="form-select" required>
+          <option value="">Выберите игру-шаблон</option>
+          {% for yearly_game in annual_games %}
+            <option value="{{ yearly_game.id }}">{{ yearly_game.title }}{% if yearly_game.year %} ({{ yearly_game.year }}){% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4 form-check d-flex align-items-center ps-5">
+        <input class="form-check-input me-2" type="checkbox" name="copy_nomination_books" id="copy_nomination_books" checked>
+        <label class="form-check-label" for="copy_nomination_books">Копировать книги номинации</label>
       </div>
     </form>
 
