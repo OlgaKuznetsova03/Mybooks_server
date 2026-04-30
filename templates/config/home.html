@@ -1247,6 +1247,45 @@
   {% else %}
     <p class="text-muted mb-0">Сейчас нет активных совместных чтений, но вы можете создать своё!</p>
   {% endif %}
+
+  {% if upcoming_clubs %}
+    <div class="mt-4">
+      <h3 class="h5 mb-3">Предстоящие совместные чтения</h3>
+      <div class="community-strip" role="list">
+        {% for club in upcoming_clubs %}
+          <article class="community-card h-100" role="listitem">
+            <div class="community-card__cover" aria-hidden="true">
+              {% with cover_url=club.book.get_cover_url %}
+                {% if cover_url %}
+                  <img src="{{ cover_url }}" alt="Обложка книги {{ club.book.title }}" loading="lazy" style="object-fit: contain; background: #f8f1ea;" />
+                {% else %}
+                  <div class="community-card__cover-placeholder">📚</div>
+                {% endif %}
+              {% endwith %}
+            </div>
+            <div class="flex-grow-1 d-flex flex-column gap-2">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="badge text-bg-light"><i class="bi bi-calendar-event me-1"></i>Скоро</span>
+                <span class="small text-muted">
+                  Старт {{ club.start_date|date:"d E" }}{% if club.end_date %} · до {{ club.end_date|date:"d E" }}{% endif %}
+                </span>
+              </div>
+              <div class="community-card__title h6 mb-0">
+                <a href="{{ club.get_absolute_url }}">{{ club.title }}</a>
+              </div>
+              <div class="text-muted small">
+                <i class="bi bi-book me-1"></i>{{ club.book.title }}
+              </div>
+              <div class="community-card__meta small d-flex flex-wrap gap-3 mt-auto">
+                <span><i class="bi bi-people me-1"></i>{{ club.approved_participant_count }} участн.</span>
+                <span><i class="bi bi-chat-dots me-1"></i>{{ club.message_count }} сообщений</span>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
 </section>
 
 <section class="home-section scroll-reveal">

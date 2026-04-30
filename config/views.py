@@ -100,6 +100,22 @@ def home(request):
             club.approved_participant_count = annotated_participants
         active_clubs.append(club)
 
+    upcoming_clubs_qs = (
+        ReadingClub.objects.select_related("book", "book__primary_isbn", "creator")
+        .with_message_count()
+        .prefetch_related("participants", "book__isbn")
+        .filter(start_date__gt=today)
+        .order_by("start_date", "title")[:8]
+    )
+
+    upcoming_clubs: list[ReadingClub] = []
+    for club in upcoming_clubs_qs:
+        club.set_prefetched_message_count(club.message_count)
+        annotated_participants = club.__dict__.get("approved_participant_count")
+        if annotated_participants is not None:
+            club.approved_participant_count = annotated_participants
+        upcoming_clubs.append(club)
+
     approved_participants = (
         MarathonParticipant.objects.filter(
             marathon=OuterRef("pk"), status=MarathonParticipant.Status.APPROVED
@@ -235,6 +251,7 @@ def home(request):
 
     context = {
         "active_clubs": active_clubs,
+        "upcoming_clubs": upcoming_clubs,
         "active_marathons": active_marathons,
         "reading_items": reading_items,
         "latest_tracker_updates": latest_tracker_updates,
