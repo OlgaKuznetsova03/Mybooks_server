@@ -53,8 +53,8 @@
       <div class="col-md-8">
         <select name="source_game" class="form-select" required>
           <option value="">Выберите игру-шаблон</option>
-          {% for yearly_game in annual_games %}
-            <option value="{{ yearly_game.id }}">{{ yearly_game.title }}{% if yearly_game.year %} ({{ yearly_game.year }}){% endif %}</option>
+          {% for source_game in clone_source_games %}
+            <option value="{{ source_game.id }}">{{ source_game.title }}{% if source_game.year %} ({{ source_game.year }}){% endif %}</option>
           {% endfor %}
         </select>
       </div>

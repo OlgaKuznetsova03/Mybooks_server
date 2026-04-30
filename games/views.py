@@ -590,7 +590,7 @@ def book_journey_map(request):
                 else:
                     assignment.delete()
                     title = stage.title if stage else f"#{stage_number}"
-                    messages.success(request, f"Р­С‚Р°Рї В«{title}В» СЃРЅРѕРІР° СЃРІРѕР±РѕРґРµРЅ.")
+                    messages.success(request, f"РС‚Р°Рї В«{title}В» СЃРЅРѕРІР° СЃРІРѕР±РѕРґРµРЅ.")
                 return redirect("games:book_journey_map")
         else:
             assignment_form = BookJourneyAssignForm(user=user)
@@ -758,18 +758,18 @@ def nobel_laureates_challenge(request):
                 if not created and assignment.is_completed:
                     messages.error(
                         request,
-                        "Р­С‚Р°Рї СѓР¶Рµ РІС‹РїРѕР»РЅРµРЅ вЂ” Р·Р°РјРµРЅРёС‚СЊ РєРЅРёРіСѓ РЅРµР»СЊР·СЏ, РѕСЃРІРѕР±РѕРґРёС‚Рµ РµРіРѕ РІСЂСѓС‡РЅСѓСЋ.",
+                        "РС‚Р°Рї СѓР¶Рµ РІС‹РїРѕР»РЅРµРЅ вЂ” Р·Р°РјРµРЅРёС‚СЊ РєРЅРёРіСѓ РЅРµР»СЊР·СЏ, РѕСЃРІРѕР±РѕРґРёС‚Рµ РµРіРѕ РІСЂСѓС‡РЅСѓСЋ.",
                     )
                     return redirect("games:nobel_challenge")
                 assignment.reset_progress(book=book)
                 NobelLaureateAssignment.sync_for_user_book(user, book)
                 assignment.refresh_from_db()
-                stage_title = stage.title if stage else f"Р­С‚Р°Рї #{stage_number}"
+                stage_title = stage.title if stage else f"РС‚Р°Рї #{stage_number}"
                 if assignment.is_completed:
                     messages.success(
                         request,
                         (
-                            f"Р­С‚Р°Рї В«{stage_title}В» Р·Р°СЃС‡РёС‚Р°РЅ: РєРЅРёРіР° СѓР¶Рµ РѕС‚РјРµС‡РµРЅР° РєР°Рє"
+                            f"РС‚Р°Рї В«{stage_title}В» Р·Р°СЃС‡РёС‚Р°РЅ: РєРЅРёРіР° СѓР¶Рµ РѕС‚РјРµС‡РµРЅР° РєР°Рє"
                             " РїСЂРѕС‡РёС‚Р°РЅРЅР°СЏ Рё РѕС‚Р·С‹РІ РЅР°Р№РґРµРЅ."
                         ),
                     )
@@ -798,7 +798,7 @@ def nobel_laureates_challenge(request):
                     user=user, stage_number=stage_number
                 ).first()
                 stage = NobelLaureatesChallenge.get_stage_by_number(stage_number)
-                stage_title = stage.title if stage else f"Р­С‚Р°Рї #{stage_number}"
+                stage_title = stage.title if stage else f"РС‚Р°Рї #{stage_number}"
                 if not assignment:
                     messages.error(request, "Р”Р»СЏ СЌС‚РѕРіРѕ СЌС‚Р°РїР° РїРѕРєР° РЅРµ РІС‹Р±СЂР°РЅР° РєРЅРёРіР°.")
                 elif assignment.is_completed:
@@ -808,7 +808,7 @@ def nobel_laureates_challenge(request):
                 else:
                     assignment.delete()
                     messages.success(
-                        request, f"Р­С‚Р°Рї В«{stage_title}В» СЃРЅРѕРІР° СЃРІРѕР±РѕРґРµРЅ РґР»СЏ РІС‹Р±РѕСЂР°."
+                        request, f"РС‚Р°Рї В«{stage_title}В» СЃРЅРѕРІР° СЃРІРѕР±РѕРґРµРЅ РґР»СЏ РІС‹Р±РѕСЂР°."
                     )
                 return redirect("games:nobel_challenge")
             for error_list in release_form.errors.values():
@@ -1083,7 +1083,7 @@ def _yasnaya_polyana_game_page(request, game):
             "title": book.title,
             "cover_url": book.get_cover_url(),
             "authors": author_names,
-            "author_country": author_countries or "РЎС‚СЂР°РЅР° Р°РІС‚РѕСЂР° РЅРµ СѓРєР°Р·Р°РЅР°",
+            "author_country": author_countries or "Россия",
             "is_shortlist": nomination.is_shortlist,
             "detail_url": reverse("book_detail", args=[book.id]),
         }
@@ -1124,6 +1124,12 @@ def _yasnaya_polyana_game_page(request, game):
                 }
             )
 
+    clone_source_games = (
+        Game.objects.filter(is_active=True, yasnaya_polyana_nominations__isnull=False)
+        .distinct()
+        .order_by("-year", "title")
+    )
+
     context = {
         "game": game,
         "unread_books": unread_books,
@@ -1131,6 +1137,7 @@ def _yasnaya_polyana_game_page(request, game):
         "is_authenticated": user.is_authenticated,
         "book_query": search_query,
         "search_results": search_results,
+        "clone_source_games": clone_source_games[:30],
         "annual_games": Game.objects.filter(year__isnull=False).order_by("-year", "title")[:30],
     }
     return render(request, "games/yasnaya_polyana_foreign_2026.html", context)
