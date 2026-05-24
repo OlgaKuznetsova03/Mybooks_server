@@ -240,9 +240,6 @@ class ForgottenBooksAddForm(forms.Form):
         home_shelf = get_home_library_shelf(user)
         queryset = Book.objects.filter(
             shelf_items__shelf=home_shelf,
-        ).exclude(
-            shelf_items__shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES,
-            shelf_items__shelf__user=user,
         )
         queryset = queryset.exclude(
             forgotten_book_entries__user=user

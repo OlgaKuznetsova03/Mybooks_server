@@ -894,6 +894,49 @@
   flex-wrap: wrap;
 }
 
+.reading-story-modal .modal-dialog {
+  max-width: 460px;
+}
+
+.reading-story-card {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  min-height: 820px;
+  background: #f5f1e8;
+}
+
+.reading-story-bg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  inset: 0;
+}
+
+.reading-story-content {
+  position: relative;
+  z-index: 2;
+  padding: 240px 26px 0;
+  display: grid;
+  grid-template-columns: 47% 1fr;
+  gap: 18px;
+}
+
+.reading-story-cover {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border-radius: 18px;
+  object-fit: cover;
+  box-shadow: 0 10px 24px rgba(0,0,0,.17);
+}
+
+.reading-story-info-title { font-size: 30px; line-height: 1.1; font-weight: 700; color: #2f3723; }
+.reading-story-info-percent { font-size: 56px; font-weight: 700; line-height: 1; color: #576646; margin-top: 18px;}
+.reading-story-info-label, .reading-story-pages { color:#596050; font-size: 24px; }
+.reading-story-progress { height: 20px; border-radius: 999px; background: #e9e3d5; overflow: hidden; margin: 16px 0 20px; }
+.reading-story-progress__bar { height:100%; background:#70835f; border-radius:999px; }
+
 </style>
 {% endblock %}
 
@@ -914,7 +957,12 @@
         {% endwith %}
       </div>
       <div class="reading-progress-hero__meta">
-        <h1 class="h4 fw-bold mb-3" id="book-title">{{ book.title }}</h1>
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+          <h1 class="h4 fw-bold mb-0" id="book-title">{{ book.title }}</h1>
+          <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#readingStoryModal">
+            <i class="bi bi-instagram me-1"></i> Сторис
+          </button>
+        </div>
         
         <div class="reading-progress-pills mb-3">
           {% for medium in media_details %}
@@ -2330,6 +2378,41 @@
       </div>
     </div>
   </section>
+</div>
+
+
+<div class="modal fade reading-story-modal" id="readingStoryModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 bg-transparent">
+      <div class="modal-header border-0 pb-2">
+        <h5 class="modal-title">Сторис</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body pt-0">
+        <div class="reading-story-card">
+          <img src="/static/statistic/dlja_storis.png" alt="Шаблон сторис" class="reading-story-bg">
+          <div class="reading-story-content">
+            {% with cover_url=display_cover_url|default:book.get_cover_url %}
+              {% if cover_url %}
+                <img src="{{ cover_url }}" alt="{{ book.title }}" class="reading-story-cover">
+              {% else %}
+                <div class="reading-story-cover d-flex align-items-center justify-content-center bg-light text-muted">Нет обложки</div>
+              {% endif %}
+            {% endwith %}
+            <div>
+              <div class="reading-story-info-title">{{ book.title }}</div>
+              <div class="reading-story-info-percent">{{ progress.percent|floatformat:0 }}%</div>
+              <div class="reading-story-info-label">прочитано</div>
+              <div class="reading-story-progress">
+                <div class="reading-story-progress__bar" style="width: {{ progress.percent|floatformat:-2 }}%"></div>
+              </div>
+              <div class="reading-story-pages">{{ progress.current_page|default:0 }} / {{ progress.total_pages|default:book.page_count|default:'—' }} стр.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- JavaScript для мобильных взаимодействий -->
