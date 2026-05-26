@@ -390,15 +390,81 @@
     .daily-reading-summary { grid-template-columns: 1fr; }
   }
 
-  .month-summary-page{background-size:cover;background-position:center;border-radius:1rem;padding:1rem;min-height:70vh;color:#fff;position:relative;}
-  .month-summary-header{text-align:center;margin-bottom:1rem;text-shadow:0 2px 8px rgba(0,0,0,.6);}
-  .month-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem;}
-  .month-summary-book{background:rgba(0,0,0,.35);padding:.5rem;border-radius:.75rem;text-align:center;}
-  .month-summary-book img,.month-summary-cover-placeholder{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:.5rem;margin-bottom:.35rem;background:#ddd;color:#333;display:flex;align-items:center;justify-content:center;font-size:.75rem;}
-  .month-stars{position:relative;display:inline-block;line-height:1;font-size:1rem;letter-spacing:2px;}
-  .month-stars__base{color:rgba(255,255,255,.35);}
-  .month-stars__fill{position:absolute;left:0;top:0;white-space:nowrap;overflow:hidden;color:#ffd34d;}
-  @media (max-width:767.98px){.month-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));}.month-summary-page{min-height:60vh;}}
+  .month-summary-page{background-size:cover;background-position:center;border-radius:1rem;padding:.75rem;aspect-ratio:941/1672;max-width:360px;width:100%;margin:0 auto;color:#fff;position:relative;}
+  .month-summary-header{text-align:center;margin-bottom:.65rem;}
+  .month-summary-header strong,.month-summary-header h4{color:#000;-webkit-text-stroke:1px #fff;text-shadow:0 1px 1px rgba(255,255,255,.7);}
+  .month-summary-header h4{margin-bottom:0;}
+  .month-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.45rem;}
+  .month-summary-book{background:rgba(0,0,0,.38);padding:.35rem;border-radius:.65rem;text-align:center; transform: scale(0.9);
+  transform-origin: top center;}
+  .month-summary-book img,.month-summary-cover-placeholder{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:.4rem;margin-bottom:.25rem;background:#ddd;color:#333;display:flex;align-items:center;justify-content:center;font-size:.65rem;}
+  .month-summary-book .small{font-size:.65rem;line-height:1.2;}
+  .month-stars{position:relative;display:inline-block;line-height:1;font-size:.9rem;letter-spacing:1px;}
+  .month-stars__base{color:rgba(255,255,255,.42);-webkit-text-stroke:1px #000;text-shadow:0 1px 2px rgba(0,0,0,.5);}
+  .month-stars__fill{position:absolute;left:0;top:0;white-space:nowrap;overflow:hidden;color:#ffd34d;-webkit-text-stroke:1px #000;text-shadow:0 1px 2px rgba(0,0,0,.5);}
+  .month-summary-header {
+  position: relative;
+  z-index: 1;
+}
+
+.month-summary-header h4,
+.month-summary-header strong {
+  background: rgba(0, 0, 0, 0.6);
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 2rem;
+  backdrop-filter: blur(4px);
+}
+
+.month-summary-header h4 {
+  font-size: 1.2rem;
+  margin-bottom: 0.3rem;
+}
+
+.month-summary-header strong {
+  font-size: 0.8rem;
+  font-weight: normal;
+}
+  @media (max-width: 767.98px) {
+  .month-summary-page {
+    overflow: hidden; /* обрезает вылезающие элементы */
+  }
+  
+  .month-summary-header,
+  .month-summary-grid,
+  .month-summary-book {
+    transform: scale(0.9);
+    transform-origin: top center;
+  }
+  
+  /* или более точная настройка без transform: */
+  .month-summary-book {
+    padding: 0.25rem;      /* было 0.35rem */
+    border-radius: 0.5rem; /* было 0.65rem */
+  }
+  
+  .month-summary-book .small {
+    font-size: 0.55rem;    /* было 0.65rem */
+  }
+  
+  .month-stars {
+    font-size: 0.75rem;    /* было 0.9rem */
+    letter-spacing: 0.5px;
+  }
+  
+  .month-summary-grid {
+    gap: 0.25rem;          /* было 0.35rem */
+  }
+  
+  .month-summary-header {
+    margin-bottom: 0.4rem; /* было 0.65rem */
+  }
+  
+  .month-summary-header strong,
+  .month-summary-header h4 {
+    -webkit-text-stroke: 0.5px #fff; /* уменьшаем обводку */
+  }
+}
 
 </style>
 {% endblock %}
@@ -1440,10 +1506,10 @@
     const monthBooksEl = document.getElementById('profile-month-completed-books');
     const monthCompletedBooks = monthBooksEl ? JSON.parse(monthBooksEl.textContent || '[]') : [];
     const summaryBackgrounds = [
-      'https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/monat/monat_1.jpg',
-      'https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/monat/monat_2.jpg',
-      'https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/monat/monat_3.jpg',
-      'https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/monat/monat_4.jpg'
+      'https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/monat/monat_1.png',
+      'https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/monat/monat_2.png',
+      'https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/monat/monat_3.png',
+      'https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/monat/monat_4.png'
     ];
 
     function starWidth(score10) {
