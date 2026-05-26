@@ -830,6 +830,7 @@
     margin-top: .4rem;
   }
 }
+
 /* Все поля в одну строку на десктопе */
 @media (min-width: 768px) {
   .ebook-progress-form .form-inline-row {
@@ -894,48 +895,225 @@
   flex-wrap: wrap;
 }
 
+/* Стили для модального окна сторис */
 .reading-story-modal .modal-dialog {
   max-width: 460px;
 }
 
 .reading-story-card {
   position: relative;
-  border-radius: 18px;
+  border-radius: 28px;
   overflow: hidden;
-  min-height: 820px;
   background: #f5f1e8;
 }
 
+/* Фоновое изображение-шаблон */
 .reading-story-bg {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
+  display: block;
+  position: relative;
+  top: 0;
+  left: 0;
+}
+
+/* Контент, который накладывается поверх фона - для десктопа */
+.reading-story-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  padding: 250px 20px 20px 20px;
+  display: flex;
+  gap: 0; /* Убираем отступ между обложкой и текстом (было 16px) */
+  align-items: flex-start;
+}
+
+/* Обложка книги */
+.reading-story-cover {
+  width: 215px;
+  height: 269px;
+  border-radius: 12px;
+  object-fit: contain;
+  box-shadow: 0 8px 20px rgba(0,0,0,.15);
+  flex-shrink: 0;
+  margin-top: -25px;
+  margin-right: 0; /* Убираем правый отступ если есть */
+}
+
+/* Правая часть с информацией */
+.reading-story-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  flex: 1;
+  margin-top: 30px;
+  padding-top: 0;
+  padding-left: 0; /* Убираем левый отступ */
+}
+
+/* Название книги */
+.reading-story-info-title {
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #2f3723;
+  margin-bottom: 6px;
+  overflow: hidden;
+  white-space: nowrap; /* Запрещаем перенос на новую строку */
+  text-overflow: ellipsis; /* Добавляем многоточие в конце, если текст не помещается */
+  display: block; /* Меняем с -webkit-box на block */
+  max-width: 100%; /* Ограничиваем максимальную ширину */
+}
+
+/* Автор книги */
+.reading-story-info-author {
+  font-size: 11px;
+  color: #8B7355;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+/* Процент */
+.reading-story-info-percent {
+  font-size: 27px;
+  font-weight: 700;
+  line-height: 1;
+  color: #E87A2E;
+  margin: 5px 0 4px;
+}
+
+/* Подпись "прочитано" */
+.reading-story-info-label {
+  color: #596050;
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+
+/* Убираем прогресс-бар */
+.reading-story-progress {
+  display: none;
+}
+
+/* Страницы */
+.reading-story-pages {
+  color: #596050;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Форматы чтения - выводим друг под другом */
+.reading-story-formats {
+  display: flex;
+  flex-direction: column; /* Меняем с row на column - теперь вертикально */
+  gap: 6px; /* Уменьшаем расстояние между элементами */
+  margin-top: 10px;
+  font-size: 10px;
+  color: #8B7355;
+}
+
+.reading-story-formats span {
+  background: rgba(232, 122, 46, 0.1);
+  padding: 4px 10px; /* Немного увеличиваем отступы для лучшего вида */
+  border-radius: 12px;
+  display: inline-block; /* Чтобы фон был только под текстом */
+  width: fit-content; /* Ширина по содержимому */
+}
+
+/* Для мобильной версии */
+@media (max-width: 480px) {
+  .reading-story-content {
+    gap: 8px;
+    padding: 220px 12px 12px 12px; /* Возвращаем правильный отступ сверху */
+  }
+  
+  .reading-story-cover {
+    width: 165px;
+    height: 206px;
+    margin-top: -18px; /* Отрицательный отступ для подъема вверх */
+    margin-left: 4%; /* Смещение вправо */
+    margin-bottom: 0; /* Убираем нижний отступ */
+    position: relative;
+    top: 0; /* Фиксируем позицию сверху */
+  }
+  
+  .reading-story-info {
+    margin-top: 15px; /* Уменьшаем отступ текста сверху */
+    padding-top: 0;
+  }
+  
+  /* Остальные стили */
+  .reading-story-info-title {
+    font-size: 13px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+  
+  .reading-story-info-author {
+    font-size: 10px;
+  }
+  
+  .reading-story-info-percent {
+    font-size: 22px;
+  }
+  
+  .reading-story-info-label {
+    font-size: 10px;
+  }
+  
+  .reading-story-pages {
+    font-size: 13px;
+  }
+  
+  .reading-story-formats {
+    gap: 5px;
+    margin-top: 8px;
+  }
+  
+  .reading-story-formats span {
+    padding: 3px 8px;
+    font-size: 9px;
+  }
+}
+
+/* Запасной вариант, если изображение не загрузилось */
+.reading-story-card::before {
+  content: '';
   position: absolute;
   inset: 0;
+  background: linear-gradient(135deg, #f5f1e8 0%, #e8e0d5 100%);
+  z-index: 0;
+  display: none; /* Скрываем, показываем только если изображение не загрузилось */
 }
 
-.reading-story-content {
-  position: relative;
-  z-index: 2;
-  padding: 240px 26px 0;
-  display: grid;
-  grid-template-columns: 47% 1fr;
-  gap: 18px;
-}
-
-.reading-story-cover {
+.reading-story-bg {
+  z-index: 1;
   width: 100%;
-  aspect-ratio: 4 / 5;
-  border-radius: 18px;
-  object-fit: cover;
-  box-shadow: 0 10px 24px rgba(0,0,0,.17);
+  display: block;
 }
 
-.reading-story-info-title { font-size: 30px; line-height: 1.1; font-weight: 700; color: #2f3723; }
-.reading-story-info-percent { font-size: 56px; font-weight: 700; line-height: 1; color: #576646; margin-top: 18px;}
-.reading-story-info-label, .reading-story-pages { color:#596050; font-size: 24px; }
-.reading-story-progress { height: 20px; border-radius: 999px; background: #e9e3d5; overflow: hidden; margin: 16px 0 20px; }
-.reading-story-progress__bar { height:100%; background:#70835f; border-radius:999px; }
+/* Если изображение не загрузилось, показываем градиент */
+.reading-story-bg[onerror] {
+  display: none;
+}
+
+.reading-story-bg[onerror] + .reading-story-card::before {
+  display: block;
+}
+
+@media only screen and (min-width: 428px) and (max-width: 440px) {
+  .reading-story-card .reading-story-cover {
+    margin-top: -2px !important;
+    transform: translateX(10px) !important;
+  }
+  
+  .reading-story-card .reading-story-info {
+    transform: translateY(14px) !important;
+  }
+}
 
 </style>
 {% endblock %}
@@ -960,7 +1138,7 @@
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
           <h1 class="h4 fw-bold mb-0" id="book-title">{{ book.title }}</h1>
           <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#readingStoryModal">
-            <i class="bi bi-instagram me-1"></i> Сторис
+            Для истории
           </button>
         </div>
         
@@ -2384,29 +2562,58 @@
 <div class="modal fade reading-story-modal" id="readingStoryModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 bg-transparent">
-      <div class="modal-header border-0 pb-2">
+      <div class="modal-header border-0 pb-0">
         <h5 class="modal-title">Сторис</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
       </div>
-      <div class="modal-body pt-0">
+      <div class="modal-body pt-2">
         <div class="reading-story-card">
-          <img src="/static/statistic/dlja_storis.png" alt="Шаблон сторис" class="reading-story-bg">
+          <!-- Фоновый шаблон -->
+          <img src="https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/statistic/dlja_storis.png" 
+               alt="Шаблон сторис" 
+               class="reading-story-bg">
+          
+          <!-- Накладываемые данные -->
           <div class="reading-story-content">
+            <!-- Обложка книги - увеличенная и полностью видимая -->
             {% with cover_url=display_cover_url|default:book.get_cover_url %}
               {% if cover_url %}
                 <img src="{{ cover_url }}" alt="{{ book.title }}" class="reading-story-cover">
               {% else %}
-                <div class="reading-story-cover d-flex align-items-center justify-content-center bg-light text-muted">Нет обложки</div>
+                <div class="reading-story-cover d-flex align-items-center justify-content-center bg-light text-muted">
+                  Нет обложки
+                </div>
               {% endif %}
             {% endwith %}
-            <div>
-              <div class="reading-story-info-title">{{ book.title }}</div>
+            
+            <!-- Текстовая информация -->
+            <div class="reading-story-info">
+              <div class="reading-story-info-title">
+                {{ book.title|truncatechars:15 }}
+              </div>
+              
+              <!-- Если есть автор -->
+              {% if book.author %}
+                <div class="reading-story-info-author">{{ book.author }}</div>
+              {% endif %}
+              
               <div class="reading-story-info-percent">{{ progress.percent|floatformat:0 }}%</div>
               <div class="reading-story-info-label">прочитано</div>
-              <div class="reading-story-progress">
-                <div class="reading-story-progress__bar" style="width: {{ progress.percent|floatformat:-2 }}%"></div>
+              
+              <!-- Прогресс-бар убран, так как на шаблоне уже есть -->
+              
+              <div class="reading-story-pages">
+                {{ progress.current_page|default:0 }} / {{ progress.total_pages|default:book.get_total_pages|default:'—' }} стр.
               </div>
-              <div class="reading-story-pages">{{ progress.current_page|default:0 }} / {{ progress.total_pages|default:book.page_count|default:'—' }} стр.</div>
+              
+              <!-- Форматы чтения -->
+              {% if media_details %}
+                <div class="reading-story-formats">
+                  {% for medium in media_details %}
+                    <span>{{ medium.label }}</span>
+                  {% endfor %}
+                </div>
+              {% endif %}
             </div>
           </div>
         </div>
