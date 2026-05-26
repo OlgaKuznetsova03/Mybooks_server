@@ -2569,7 +2569,7 @@
       <div class="modal-body pt-2">
         <div class="reading-story-card">
           <!-- Фоновый шаблон -->
-          <img src="https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/statistic/dlja_storis.png" 
+          <img src="" 
                alt="Шаблон сторис" 
                class="reading-story-bg">
           
@@ -2625,6 +2625,68 @@
 <!-- JavaScript для мобильных взаимодействий -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  const storyTemplates = [
+    'https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/statistic/dlja_storis.png',
+    'https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/statistic/dlja_storis_1.jpg',
+    'https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/statistic/dlja_storis_2.jpg',
+    'https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/statistic/dlja_storis_3.jpg',
+    'https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/statistic/dlja_storis_4.jpg',
+    'https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/statistic/dlja_storis_5.jpg'
+  ];
+
+  let lastSuccessfulStoryTemplate = null;
+
+  const getRandomStoryTemplate = (excludeTemplate = null) => {
+    const availableTemplates = storyTemplates.filter((template) => template !== excludeTemplate);
+    const pool = availableTemplates.length > 0 ? availableTemplates : [...storyTemplates];
+    const randomIndex = Math.floor(Math.random() * pool.length);
+    return pool[randomIndex];
+  };
+
+  const getShuffledStoryTemplates = () => {
+    const templates = [...storyTemplates];
+    for (let i = templates.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [templates[i], templates[j]] = [templates[j], templates[i]];
+    }
+    return templates;
+  };
+
+  const setRandomStoryBackground = (bgImage) => {
+    const primaryTemplate = getRandomStoryTemplate(lastSuccessfulStoryTemplate);
+    const fallbackTemplates = getShuffledStoryTemplates().filter((template) => template !== primaryTemplate);
+    const templatesQueue = [primaryTemplate, ...fallbackTemplates];
+
+    const tryNextTemplate = () => {
+      const nextTemplate = templatesQueue.shift();
+      if (!nextTemplate) {
+        return;
+      }
+      bgImage.src = nextTemplate;
+    };
+
+    bgImage.onerror = () => {
+      tryNextTemplate();
+    };
+
+    bgImage.onload = () => {
+      lastSuccessfulStoryTemplate = bgImage.src;
+      bgImage.onerror = null;
+    };
+
+    tryNextTemplate();
+  };
+
+  const readingStoryModal = document.getElementById('readingStoryModal');
+  if (readingStoryModal) {
+    readingStoryModal.addEventListener('show.bs.modal', function () {
+      const bgImage = this.querySelector('.reading-story-bg');
+      if (bgImage) {
+        setRandomStoryBackground(bgImage);
+      }
+    });
+  }
+
   window.toggleCharacterDescription = function(element) {
     const description = element.nextElementSibling;
     element.classList.toggle('expanded');
