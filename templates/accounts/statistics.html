@@ -389,6 +389,17 @@
     .book-challenge-month-extra { width: 30px; height: 46px; }
     .daily-reading-summary { grid-template-columns: 1fr; }
   }
+
+  .month-summary-page{background-size:cover;background-position:center;border-radius:1rem;padding:1rem;min-height:70vh;color:#fff;position:relative;}
+  .month-summary-header{text-align:center;margin-bottom:1rem;text-shadow:0 2px 8px rgba(0,0,0,.6);}
+  .month-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem;}
+  .month-summary-book{background:rgba(0,0,0,.35);padding:.5rem;border-radius:.75rem;text-align:center;}
+  .month-summary-book img,.month-summary-cover-placeholder{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:.5rem;margin-bottom:.35rem;background:#ddd;color:#333;display:flex;align-items:center;justify-content:center;font-size:.75rem;}
+  .month-stars{position:relative;display:inline-block;line-height:1;font-size:1rem;letter-spacing:2px;}
+  .month-stars__base{color:rgba(255,255,255,.35);}
+  .month-stars__fill{position:absolute;left:0;top:0;white-space:nowrap;overflow:hidden;color:#ffd34d;}
+  @media (max-width:767.98px){.month-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));}.month-summary-page{min-height:60vh;}}
+
 </style>
 {% endblock %}
 
@@ -613,6 +624,9 @@
                 >
                   <i class="bi bi-printer me-1"></i>Скачать PDF отчёт
                 </a>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="monthSummaryButton">
+                  <i class="bi bi-images me-1"></i>Итоги месяца
+                </button>
               </div>
             </div>
           <button
@@ -740,6 +754,7 @@
       {% if calendar.day_payloads %}
         {{ calendar.day_payloads|json_script:"profile-calendar-day-data" }}
       {% endif %}
+      {{ calendar.completed_books|json_script:"profile-month-completed-books" }}
     {% endif %}
   {% endwith %}
 
@@ -1207,6 +1222,20 @@
     </div>
   </div>
 </div>
+
+<div class="modal fade" id="monthSummaryModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Итоги месяца</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div id="monthSummaryPages" class="d-grid gap-3"></div>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -1407,6 +1436,44 @@
       window.location.assign(buildDayDetailUrl(isoDate));
     }
 
+
+    const monthBooksEl = document.getElementById('profile-month-completed-books');
+    const monthCompletedBooks = monthBooksEl ? JSON.parse(monthBooksEl.textContent || '[]') : [];
+    const summaryBackgrounds = [
+      'https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/monat/monat_1.jpg',
+      'https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/monat/monat_2.jpg',
+      'https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/monat/monat_3.jpg',
+      'https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/monat/monat_4.jpg'
+    ];
+
+    function starWidth(score10) {
+      const score5 = Math.max(0, Math.min(5, (Number(score10) || 0) / 2));
+      return `${(score5 / 5) * 100}%`;
+    }
+
+    function renderMonthSummary() {
+      const container = document.getElementById('monthSummaryPages');
+      if (!container) return;
+      container.innerHTML = '';
+      if (!monthCompletedBooks.length) { container.innerHTML = '<div class="alert alert-secondary">В этом месяце нет завершённых книг.</div>'; return; }
+      const chunks = [];
+      for (let i = 0; i < monthCompletedBooks.length; i += 9) chunks.push(monthCompletedBooks.slice(i, i + 9));
+      chunks.forEach((chunk) => {
+        const bg = summaryBackgrounds[Math.floor(Math.random() * summaryBackgrounds.length)];
+        const page = document.createElement('section');
+        page.className = 'month-summary-page';
+        page.style.backgroundImage = `url(${bg})`;
+        const cards = chunk.map((book) => `
+          <div class="month-summary-book">
+            ${book.cover_url ? `<img src="${book.cover_url}" alt="${book.title}">` : '<div class="month-summary-cover-placeholder">Нет обложки</div>'}
+            <div class="small">${book.start_date || '—'} — ${book.finish_date || '—'}</div>
+            <div class="month-stars"><div class="month-stars__base">★★★★★</div><div class="month-stars__fill" style="width:${starWidth(book.score10)}">★★★★★</div></div>
+          </div>`).join('');
+        page.innerHTML = `<div class="month-summary-header"><strong>Калейдоскоп книг</strong><h4>Итоги месяца</h4></div><div class="month-summary-grid">${cards}</div>`;
+        container.appendChild(page);
+      });
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
       const periodTabs = document.querySelectorAll('.period-tab');
       const periodSelect = document.getElementById('id_period');
@@ -1415,6 +1482,14 @@
       const periodFiltersToggleButton = document.getElementById('periodFiltersToggleButton');
 
       setupAnimatedNumbers();
+      const monthSummaryButton = document.getElementById('monthSummaryButton');
+      if (monthSummaryButton) {
+        monthSummaryButton.addEventListener('click', () => {
+          renderMonthSummary();
+          const el = document.getElementById('monthSummaryModal');
+          if (el) bootstrap.Modal.getOrCreateInstance(el).show();
+        });
+      }
 
       periodTabs.forEach((tab) => {
         tab.addEventListener('click', () => {

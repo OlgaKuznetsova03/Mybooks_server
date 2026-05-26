@@ -359,6 +359,38 @@ def _build_reading_calendar(user: User, params, read_items_qs, period_meta):
 
     month_name = MONTH_NAMES[calendar_month] if 1 <= calendar_month < len(MONTH_NAMES) else str(calendar_month)
 
+    completed_items_data = []
+    if read_items_qs is not None:
+        completed_items_full = (
+            read_items_qs.filter(
+                added_at__date__gte=first_day,
+                added_at__date__lte=last_day,
+            )
+            .select_related("book")
+            .order_by("added_at")
+        )
+        completed_book_ids = [item.book_id for item in completed_items_full]
+        rating_by_book = {
+            r.book_id: r.score
+            for r in Rating.objects.filter(user=user, book_id__in=completed_book_ids)
+        }
+        progress_by_book = {
+            pr.book_id: pr
+            for pr in BookProgress.objects.filter(user=user, book_id__in=completed_book_ids)
+        }
+        for item in completed_items_full:
+            progress = progress_by_book.get(item.book_id)
+            started_at = getattr(progress, "started_at", None)
+            completed_items_data.append(
+                {
+                    "title": item.book.title,
+                    "cover_url": _resolve_cover(item.book),
+                    "start_date": started_at.strftime("%d.%m") if started_at else None,
+                    "finish_date": timezone.localtime(item.added_at).strftime("%d.%m"),
+                    "score10": rating_by_book.get(item.book_id),
+                }
+            )
+
     month_stats = None
     if month_pages_total > 0 or month_completed_ids or month_reading_days:
         avg_pages = None
@@ -385,6 +417,7 @@ def _build_reading_calendar(user: User, params, read_items_qs, period_meta):
         "next_url": _build_calendar_url(params, next_month_start.year, next_month_start.month),
         "month_totals": month_stats,
         "day_payloads": day_payloads,
+        "completed_books": completed_items_data,
     }
 
 
