@@ -391,9 +391,21 @@
   }
 
   .month-summary-page{background-size:cover;background-position:center;border-radius:1rem;padding:.75rem;aspect-ratio:941/1672;max-width:360px;width:100%;margin:0 auto;color:#fff;position:relative;}
-  .month-summary-header{text-align:center;margin-bottom:.65rem;}
-  .month-summary-header strong,.month-summary-header h4{color:#000;-webkit-text-stroke:1px #fff;text-shadow:0 1px 1px rgba(255,255,255,.7);}
-  .month-summary-header h4{margin-bottom:0;}
+  .month-summary-header{display:flex;flex-direction:column;align-items:center;gap:.35rem;margin-bottom:.65rem;}
+  .month-summary-header h4,.month-summary-header strong{
+    color:rgba(255,255,255,.95);
+    font-size:.72rem;
+    line-height:1.2;
+    font-weight:500;
+    background:rgba(0,0,0,.38);
+    display:inline-block;
+    padding:.2rem .6rem;
+    border-radius:2rem;
+    backdrop-filter:blur(4px);
+    -webkit-backdrop-filter:blur(4px);
+  }
+  .month-summary-header h4{font-size:1.2rem;margin-bottom:0;font-weight:600;}
+  .month-summary-header strong{font-weight:500;}
   .month-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.45rem;}
   .month-summary-book{background:rgba(0,0,0,.38);padding:.35rem;border-radius:.65rem;text-align:center; transform: scale(0.9);
   transform-origin: top center;}
@@ -402,29 +414,6 @@
   .month-stars{position:relative;display:inline-block;line-height:1;font-size:.9rem;letter-spacing:1px;}
   .month-stars__base{color:rgba(255,255,255,.42);-webkit-text-stroke:1px #000;text-shadow:0 1px 2px rgba(0,0,0,.5);}
   .month-stars__fill{position:absolute;left:0;top:0;white-space:nowrap;overflow:hidden;color:#ffd34d;-webkit-text-stroke:1px #000;text-shadow:0 1px 2px rgba(0,0,0,.5);}
-  .month-summary-header {
-  position: relative;
-  z-index: 1;
-}
-
-.month-summary-header h4,
-.month-summary-header strong {
-  background: rgba(0, 0, 0, 0.6);
-  display: inline-block;
-  padding: 0.2rem 0.6rem;
-  border-radius: 2rem;
-  backdrop-filter: blur(4px);
-}
-
-.month-summary-header h4 {
-  font-size: 1.2rem;
-  margin-bottom: 0.3rem;
-}
-
-.month-summary-header strong {
-  font-size: 0.8rem;
-  font-weight: normal;
-}
   @media (max-width: 767.98px) {
   .month-summary-page {
     overflow: hidden; /* обрезает вылезающие элементы */
@@ -460,10 +449,6 @@
     margin-bottom: 0.4rem; /* было 0.65rem */
   }
   
-  .month-summary-header strong,
-  .month-summary-header h4 {
-    -webkit-text-stroke: 0.5px #fff; /* уменьшаем обводку */
-  }
 }
 
 </style>
@@ -1535,7 +1520,7 @@
             <div class="small">${book.start_date || '—'} — ${book.finish_date || '—'}</div>
             <div class="month-stars"><div class="month-stars__base">★★★★★</div><div class="month-stars__fill" style="width:${starWidth(book.score10)}">★★★★★</div></div>
           </div>`).join('');
-        page.innerHTML = `<div class="month-summary-header"><strong>Калейдоскоп книг</strong><h4>Итоги месяца</h4></div><div class="month-summary-grid">${cards}</div>`;
+        page.innerHTML = `<div class="month-summary-header"><h4>Итоги месяца</h4><strong>Калейдоскоп книг</strong></div><div class="month-summary-grid">${cards}</div>`;
         container.appendChild(page);
       });
     }
