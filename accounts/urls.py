@@ -60,6 +60,7 @@ urlpatterns = [
     path("me/", views.profile, name="my_profile"),
     path("u/<str:username>/", views.profile, name="profile"),
     path("me/edit/", views.profile_edit, name="profile_edit"),
+    path("account/delete/", views.account_delete, name="account_delete"),
     path("api/reward-ads/config/", views.reward_ad_config, name="reward_ad_config"),
     path("api/reward-ads/claim/", views.claim_reward_ad_api, name="reward_ad_claim"),
     path('webhooks/yookassa/', webhooks.yookassa_webhook, name='yookassa-webhook'),

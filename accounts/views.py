@@ -12,7 +12,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -51,7 +51,7 @@ from books.models import Rating, Book
 from books.utils import enhance_cover_url_for_pdf
 from user_ratings.models import LeaderboardPeriod, UserPointEvent
 
-from .forms import SignUpForm, ProfileForm, RoleForm, PremiumPurchaseForm
+from .forms import SignUpForm, ProfileForm, RoleForm, PremiumPurchaseForm, AccountDeleteForm
 from .models import YANDEX_AD_REWARD_COINS
 from .yookassa import (
     YooKassaPaymentResult,
@@ -2529,6 +2529,22 @@ def profile_edit(request):
         "form": form,
         "role_form": role_form,
     })
+
+
+@login_required
+def account_delete(request):
+    if request.method == "POST":
+        form = AccountDeleteForm(request.POST)
+        if form.is_valid():
+            user = request.user
+            logout(request)
+            user.delete()
+            messages.success(request, "Ваш аккаунт и связанные данные удалены.")
+            return redirect("home")
+    else:
+        form = AccountDeleteForm()
+
+    return render(request, "accounts/account_delete.html", {"form": form})
 
 
 @require_GET

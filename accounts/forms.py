@@ -251,3 +251,13 @@ class PremiumPurchaseForm(forms.Form):
         )
         return payment
 
+
+
+class AccountDeleteForm(forms.Form):
+    confirm_data_deletion = forms.BooleanField(
+        required=True,
+        label=(
+            "Я подтверждаю, что все мои сохранённые книги, трекеры и отзывы будут удалены без возможности восстановления."
+        ),
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )

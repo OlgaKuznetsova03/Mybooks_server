@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Удаление аккаунта{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3 text-danger">Удаление аккаунта</h1>
+<div class="card p-3" style="max-width:640px">
+  <p class="mb-3">
+    После подтверждения будут удалены ваш профиль, личные данные,
+    сохранённые книги, трекеры чтения и отзывы.
+  </p>
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-check mb-3">
+      {{ form.confirm_data_deletion }}
+      <label class="form-check-label" for="{{ form.confirm_data_deletion.id_for_label }}">
+        {{ form.confirm_data_deletion.label }}
+      </label>
+      {% if form.confirm_data_deletion.errors %}
+        <div class="invalid-feedback d-block">{{ form.confirm_data_deletion.errors|join:", " }}</div>
+      {% endif %}
+    </div>
+
+    <button type="submit" class="btn btn-danger">Удалить мой аккаунт</button>
+    <a href="{% url 'profile_edit' %}" class="btn btn-outline-secondary">Отмена</a>
+  </form>
+</div>
+{% endblock %}
