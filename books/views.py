@@ -140,6 +140,11 @@ def _absolute_cover_url(request, book: Book) -> str | None:
 
 
 SHELF_BOOKS_LIMIT = 14
+POPULAR_GENRE_SHELVES_LIMIT = 4
+BOOK_LIST_RECENT_DISCOVERY_CACHE_KEY = "books:book_list:discover:recent:v1"
+BOOK_LIST_POPULAR_DISCOVERY_CACHE_KEY = "books:book_list:discover:popular:v1"
+BOOK_LIST_RECENT_DISCOVERY_CACHE_TIMEOUT = 300
+BOOK_LIST_POPULAR_DISCOVERY_CACHE_TIMEOUT = 60 * 60 * 24
 
 
 def _serialize_book_for_shelf(
@@ -204,6 +209,264 @@ def _serialize_book_for_shelf(
     return data
 
 
+def _popular_genres_for_discovery(popular_window) -> list[Genre]:
+    """Return the top active discovery genres for the last 30 days."""
+
+    genre_stats = list(
+        BookProgress.objects.filter(
+            updated_at__gte=popular_window,
+            book__genres__isnull=False,
+        )
+        .values("book__genres")
+        .annotate(reader_count=Count("user", distinct=True))
+        .filter(reader_count__gt=0)
+        .order_by("-reader_count", "book__genres__name")[:POPULAR_GENRE_SHELVES_LIMIT]
+    )
+
+    if not genre_stats:
+        return []
+
+    genre_ids = [entry["book__genres"] for entry in genre_stats]
+    reader_count_by_genre_id = {
+        entry["book__genres"]: int(entry["reader_count"] or 0)
+        for entry in genre_stats
+    }
+    genre_by_id = {
+        genre.pk: genre
+        for genre in Genre.objects.filter(pk__in=genre_ids).only("id", "name", "slug")
+    }
+
+    popular_genres: list[Genre] = []
+    for genre_id in genre_ids:
+        genre = genre_by_id.get(genre_id)
+        if not genre:
+            continue
+        setattr(
+            genre,
+            "recent_reader_count",
+            reader_count_by_genre_id.get(genre_id, 0),
+        )
+        popular_genres.append(genre)
+
+    return popular_genres
+
+
+def _book_list_querysets():
+    base_qs = (
+        Book.objects.all()
+        .select_related("audio")
+        .prefetch_related("authors", "genres", "publisher", "isbn")
+    )
+
+    group_leader_subquery = (
+        Book.objects.filter(edition_group_key=OuterRef("edition_group_key"))
+        .order_by("pk")
+        .values("pk")[:1]
+    )
+
+    leader_books = base_qs.annotate(
+        edition_leader=Case(
+            When(edition_group_key="", then=F("pk")),
+            default=Subquery(group_leader_subquery),
+        )
+    ).filter(pk=F("edition_leader"))
+
+    return leader_books, _with_rating_stats(leader_books)
+
+
+def build_book_list_discovery_payload(
+    *,
+    leader_books=None,
+    annotated_books=None,
+    include_recent: bool = True,
+    include_popular: bool = True,
+) -> dict[str, object]:
+    """Build the cacheable discovery shelves payload for the book list page."""
+
+    if leader_books is None or annotated_books is None:
+        leader_books, annotated_books = _book_list_querysets()
+
+    discovery_shelves: list[dict[str, object]] = []
+    total_books = leader_books.count()
+    now = timezone.now()
+    if include_recent:
+        recent_cutoff = now - timedelta(days=10)
+        recent_books = list(
+            annotated_books.filter(created_at__gte=recent_cutoff)
+            .order_by("-created_at", "-pk")[:SHELF_BOOKS_LIMIT]
+        )
+        if not recent_books and total_books:
+            recent_books = list(
+                annotated_books.order_by("-created_at", "-pk")[:SHELF_BOOKS_LIMIT]
+            )
+        if recent_books:
+            recent_serialized_books = []
+            for book in recent_books:
+                cover_url = _book_cover_url(book)
+                if not cover_url:
+                    continue
+                recent_serialized_books.append(
+                    _serialize_book_for_shelf(
+                        book,
+                        extra={
+                            "added_at": getattr(book, "created_at", None),
+                        },
+                        cover_url=cover_url,
+                    )
+                )
+
+            if recent_serialized_books:
+                discovery_shelves.append(
+                    {
+                        "title": "Недавно добавленные",
+                        "subtitle": "Свежие книги за последние 10 дней.",
+                        "variant": "profile",
+                        "texture_url": None,
+                        "cta": {
+                            "url": "?view=grid&sort=recent",
+                            "label": "Все новинки",
+                        },
+                        "books": recent_serialized_books,
+                    }
+                )
+
+    if include_popular:
+        popular_window = now - timedelta(days=30)
+        popular_stats = list(
+            BookProgress.objects.filter(updated_at__gte=popular_window)
+            .values("book")
+            .annotate(reader_count=Count("user", distinct=True))
+            .values("book", "reader_count")
+            .order_by("-reader_count", "book")[: SHELF_BOOKS_LIMIT * 3]
+        )
+
+        recent_reader_count_queryset = (
+            BookProgress.objects.filter(
+                book=OuterRef("pk"),
+                updated_at__gte=popular_window,
+            )
+            .values("book")
+            .annotate(reader_count=Count("user", distinct=True))
+            .values("book", "reader_count")
+            .values("reader_count")
+        )
+        recent_reader_count_subquery = Subquery(recent_reader_count_queryset[:1])
+
+        popular_ids = [entry["book"] for entry in popular_stats if entry["book"]]
+        if popular_ids:
+            popular_books_qs = annotated_books.filter(pk__in=popular_ids).annotate(
+                recent_reader_count=Coalesce(
+                    recent_reader_count_subquery,
+                    Value(0),
+                    output_field=IntegerField(),
+                )
+            )
+            popular_book_map = {book.pk: book for book in popular_books_qs}
+            ordered_popular_books = [
+                popular_book_map[pk]
+                for pk in popular_ids
+                if pk in popular_book_map
+            ][:SHELF_BOOKS_LIMIT]
+            if ordered_popular_books:
+                popular_serialized_books: list[dict[str, object]] = []
+                for book in ordered_popular_books:
+                    cover_url = _book_cover_url(book)
+                    if not cover_url:
+                        continue
+                    popular_serialized_books.append(
+                        _serialize_book_for_shelf(
+                            book,
+                            extra={
+                                "reader_count": int(
+                                    getattr(book, "recent_reader_count", 0) or 0
+                                ),
+                            },
+                            cover_url=cover_url,
+                        )
+                    )
+
+                if popular_serialized_books:
+                    discovery_shelves.append(
+                        {
+                            "title": "Популярные сейчас",
+                            "subtitle": "Больше всего читателей за последние 30 дней.",
+                            "variant": "profile",
+                            "texture_url": None,
+                            "cta": {
+                                "url": "?view=grid&sort=popular",
+                                "label": "Открыть каталог",
+                            },
+                            "books": popular_serialized_books,
+                        }
+                    )
+
+        popular_genres = _popular_genres_for_discovery(popular_window)
+
+        for genre in popular_genres:
+            top_books = list(
+                annotated_books.filter(genres=genre)
+                .annotate(
+                    recent_reader_count=Coalesce(
+                        recent_reader_count_subquery,
+                        Value(0),
+                        output_field=IntegerField(),
+                    )
+                )
+                .order_by("-recent_reader_count", "-rating_count", "title")[:SHELF_BOOKS_LIMIT]
+            )
+            if not top_books:
+                continue
+
+            genre_reader_count = int(getattr(genre, "recent_reader_count", 0) or 0)
+            if genre_reader_count:
+                subtitle = (
+                    f"{genre_reader_count} "
+                    f"{_russian_plural(genre_reader_count, ('читатель', 'читателя', 'читателей'))} за 30 дней"
+                )
+            else:
+                subtitle = "Популярный жанр сообщества."
+
+            serialized_genre_books: list[dict[str, object]] = []
+            for book in top_books:
+                cover_url = _book_cover_url(book)
+                if not cover_url:
+                    continue
+                serialized_genre_books.append(
+                    _serialize_book_for_shelf(
+                        book,
+                        extra={
+                            "reader_count": int(
+                                getattr(book, "recent_reader_count", 0) or 0
+                            ),
+                        },
+                        cover_url=cover_url,
+                    )
+                )
+
+            if not serialized_genre_books:
+                continue
+
+            discovery_shelves.append(
+                {
+                    "title": genre.name,
+                    "subtitle": subtitle,
+                    "variant": "profile",
+                    "texture_url": None,
+                    "cta": {
+                        "url": genre.get_absolute_url(),
+                        "label": "Все книги жанра",
+                    },
+                    "books": serialized_genre_books,
+                }
+            )
+
+    return {
+        "total_books": total_books,
+        "shelves": discovery_shelves,
+        "generated_at": now.isoformat(),
+    }
+    
+    
 def _attach_default_shelf_status(books: Iterable[Book], user) -> list[Book]:
     book_list = list(books)
     for book in book_list:
@@ -619,25 +882,7 @@ def book_list(request):
 
     active_sort = (request.GET.get("sort") or "popular").lower()
 
-    base_qs = (
-        Book.objects.all()
-        .select_related("audio")
-        .prefetch_related("authors", "genres", "publisher", "isbn")
-    )
-
-    group_leader_subquery = (
-        Book.objects.filter(edition_group_key=OuterRef("edition_group_key"))
-        .order_by("pk")
-        .values("pk")[:1]
-    )
-
-    leader_books = base_qs.annotate(
-        edition_leader=Case(
-            When(edition_group_key="", then=F("pk")),
-            default=Subquery(group_leader_subquery),
-        )
-    ).filter(pk=F("edition_leader"))
-    annotated_books = _with_rating_stats(leader_books)
+    leader_books, annotated_books = _book_list_querysets()
     total_books = 0
 
     sort_definitions = {
@@ -781,223 +1026,40 @@ def book_list(request):
 
                 show_external_results = True
     else:
-        discovery_cache_key = "books:book_list:discover:v1"
-        cached_discovery_payload = cache.get(discovery_cache_key)
-
-        if cached_discovery_payload:
-            total_books = int(cached_discovery_payload.get("total_books", 0) or 0)
-            discovery_shelves = deepcopy(cached_discovery_payload.get("shelves", []))
-            discovery_shelves = _attach_default_status_to_shelf_entries(
-                discovery_shelves,
-                request.user,
+        recent_discovery_payload = cache.get(BOOK_LIST_RECENT_DISCOVERY_CACHE_KEY)
+        if recent_discovery_payload is None:
+            recent_discovery_payload = build_book_list_discovery_payload(
+                leader_books=leader_books,
+                annotated_books=annotated_books,
+                include_popular=False,
             )
-        else:
-            total_books = leader_books.count()
-            now = timezone.now()
-            recent_cutoff = now - timedelta(days=10)
-            recent_books = list(
-                annotated_books.filter(created_at__gte=recent_cutoff)
-                .order_by("-created_at", "-pk")[:SHELF_BOOKS_LIMIT]
-            )
-            if not recent_books and total_books:
-                recent_books = list(
-                    annotated_books.order_by("-created_at", "-pk")[:SHELF_BOOKS_LIMIT]
-                )
-            if recent_books:
-                recent_serialized_books = []
-                for book in recent_books:
-                    cover_url = _book_cover_url(book)
-                    if not cover_url:
-                        continue
-                    recent_serialized_books.append(
-                        _serialize_book_for_shelf(
-                            book,
-                            extra={
-                                "added_at": getattr(book, "created_at", None),
-                            },
-                            cover_url=cover_url,
-                        )
-                    )
-
-                if recent_serialized_books:
-                    discovery_shelves.append(
-                        {
-                            "title": "Недавно добавленные",
-                            "subtitle": "Свежие книги за последние 10 дней.",
-                            "variant": "profile",
-                            "texture_url": None,
-                            "cta": {
-                                "url": "?view=grid&sort=recent",
-                                "label": "Все новинки",
-                            },
-                            "books": recent_serialized_books,
-                        }
-                    )
-
-            popular_window = now - timedelta(days=30)
-            popular_stats = list(
-                BookProgress.objects.filter(updated_at__gte=popular_window)
-                .values("book")
-                .annotate(reader_count=Count("user", distinct=True))
-                .values("book", "reader_count")
-                .order_by("-reader_count", "book")[: SHELF_BOOKS_LIMIT * 3]
+        cache.set(
+                BOOK_LIST_RECENT_DISCOVERY_CACHE_KEY,
+                recent_discovery_payload,
+                timeout=BOOK_LIST_RECENT_DISCOVERY_CACHE_TIMEOUT,
             )
 
-            recent_reader_count_queryset = (
-                BookProgress.objects.filter(
-                    book=OuterRef("pk"),
-                    updated_at__gte=popular_window,
-                )
-                .values("book")
-                .annotate(reader_count=Count("user", distinct=True))
-                .values("book", "reader_count")
-                .values("reader_count")
+        popular_discovery_payload = cache.get(BOOK_LIST_POPULAR_DISCOVERY_CACHE_KEY)
+        if popular_discovery_payload is None:
+            popular_discovery_payload = build_book_list_discovery_payload(
+                leader_books=leader_books,
+                annotated_books=annotated_books,
+                include_recent=False,
             )
-            recent_reader_count_subquery = Subquery(recent_reader_count_queryset[:1])
-
-            popular_ids = [entry["book"] for entry in popular_stats if entry["book"]]
-            if popular_ids:
-                popular_books_qs = annotated_books.filter(pk__in=popular_ids).annotate(
-                    recent_reader_count=Coalesce(
-                        recent_reader_count_subquery,
-                        Value(0),
-                        output_field=IntegerField(),
-                    )
-                )
-                popular_book_map = {book.pk: book for book in popular_books_qs}
-                ordered_popular_books = [
-                    popular_book_map[pk]
-                    for pk in popular_ids
-                    if pk in popular_book_map
-                ][:SHELF_BOOKS_LIMIT]
-                if ordered_popular_books:
-                    popular_serialized_books: list[dict[str, object]] = []
-                    for book in ordered_popular_books:
-                        cover_url = _book_cover_url(book)
-                        if not cover_url:
-                            continue
-                        popular_serialized_books.append(
-                            _serialize_book_for_shelf(
-                                book,
-                                extra={
-                                    "reader_count": int(
-                                        getattr(book, "recent_reader_count", 0) or 0
-                                    ),
-                                },
-                                cover_url=cover_url,
-                            )
-                        )
-
-                    if popular_serialized_books:
-                        discovery_shelves.append(
-                            {
-                                "title": "Популярные сейчас",
-                                "subtitle": "Больше всего читателей за последние 30 дней.",
-                                "variant": "profile",
-                                "texture_url": None,
-                                "cta": {
-                                    "url": "?view=grid&sort=popular",
-                                    "label": "Открыть каталог",
-                                },
-                                "books": popular_serialized_books,
-                            }
-                        )
-
-            genre_reader_count_queryset = (
-                BookProgress.objects.filter(
-                    book__genres=OuterRef("pk"),
-                    updated_at__gte=popular_window,
-                )
-                .values("book__genres")
-                .annotate(reader_count=Count("user", distinct=True))
-                .values("book__genres", "reader_count")
-                .values("reader_count")
-            )
-            genre_reader_count_subquery = Subquery(genre_reader_count_queryset[:1])
-
-            popular_genres = list(
-                Genre.objects.annotate(
-                    recent_reader_count=Coalesce(
-                        genre_reader_count_subquery,
-                        Value(0),
-                        output_field=IntegerField(),
-                    )
-                )
-                .filter(recent_reader_count__gt=0)
-                .order_by("-recent_reader_count", "name")[:4]
-            )
-
-            for genre in popular_genres:
-                top_books = list(
-                    annotated_books.filter(genres=genre)
-                    .annotate(
-                        recent_reader_count=Coalesce(
-                            recent_reader_count_subquery,
-                            Value(0),
-                            output_field=IntegerField(),
-                        )
-                    )
-                    .order_by("-recent_reader_count", "-rating_count", "title")[:SHELF_BOOKS_LIMIT]
-                )
-                if not top_books:
-                    continue
-
-                genre_reader_count = int(getattr(genre, "recent_reader_count", 0) or 0)
-                if genre_reader_count:
-                    subtitle = (
-                        f"{genre_reader_count} "
-                        f"{_russian_plural(genre_reader_count, ('читатель', 'читателя', 'читателей'))} за 30 дней"
-                    )
-                else:
-                    subtitle = "Популярный жанр сообщества."
-
-                serialized_genre_books: list[dict[str, object]] = []
-                for book in top_books:
-                    cover_url = _book_cover_url(book)
-                    if not cover_url:
-                        continue
-                    serialized_genre_books.append(
-                        _serialize_book_for_shelf(
-                            book,
-                            extra={
-                                "reader_count": int(
-                                    getattr(book, "recent_reader_count", 0) or 0
-                                ),
-                            },
-                            cover_url=cover_url,
-                        )
-                    )
-
-                if not serialized_genre_books:
-                    continue
-
-                discovery_shelves.append(
-                    {
-                        "title": genre.name,
-                        "subtitle": subtitle,
-                        "variant": "profile",
-                        "texture_url": None,
-                        "cta": {
-                            "url": genre.get_absolute_url(),
-                            "label": "Все книги жанра",
-                        },
-                        "books": serialized_genre_books,
-                    }
-                )
-
             cache.set(
-                discovery_cache_key,
-                {
-                    "total_books": total_books,
-                    "shelves": discovery_shelves,
-                },
-                timeout=300,
-            )
-            discovery_shelves = _attach_default_status_to_shelf_entries(
-                discovery_shelves,
-                request.user,
+                BOOK_LIST_POPULAR_DISCOVERY_CACHE_KEY,
+                popular_discovery_payload,
+                timeout=BOOK_LIST_POPULAR_DISCOVERY_CACHE_TIMEOUT,
             )
 
+        total_books = int(recent_discovery_payload.get("total_books", 0) or 0)
+        discovery_shelves = deepcopy(recent_discovery_payload.get("shelves", []))
+        discovery_shelves.extend(deepcopy(popular_discovery_payload.get("shelves", [])))
+        discovery_shelves = _attach_default_status_to_shelf_entries(
+            discovery_shelves,
+            request.user,
+        )
+        
     if request.user.is_authenticated:
         quick_add_form = QuickAddShelfForm(user=request.user)
         read_shelf_ids = list(
