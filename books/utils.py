@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import mimetypes
 import os
 import re
@@ -186,3 +187,73 @@ def enhance_cover_url_for_pdf(url: str | None) -> str | None:
             )
 
     return raw_url
+
+def generate_cover_thumbnail_file(
+    source_file,
+    *,
+    size: tuple[int, int] = (160, 240),
+    quality: int = 80,
+) -> ContentFile | None:
+    """Generate a lightweight WebP thumbnail for a book cover.
+
+    The thumbnail is cropped to the requested 2:3 cover ratio so list/grid pages
+    can request a predictable 160x240 image instead of downloading the original.
+    Returns ``None`` if Pillow is unavailable or the source cannot be processed.
+    """
+
+    if not source_file:
+        return None
+
+    try:
+        from PIL import Image, ImageOps, UnidentifiedImageError
+    except Exception:
+        return None
+
+    try:
+        source_file.open("rb")
+    except (AttributeError, ValueError):
+        pass
+
+    try:
+        with Image.open(source_file) as image:
+            image = ImageOps.exif_transpose(image)
+            if image.mode not in {"RGB", "RGBA"}:
+                image = image.convert("RGB")
+            elif image.mode == "RGBA":
+                background = Image.new("RGB", image.size, (255, 255, 255))
+                background.paste(image, mask=image.getchannel("A"))
+                image = background
+
+            thumb = ImageOps.fit(
+                image,
+                size,
+                method=Image.Resampling.LANCZOS,
+                centering=(0.5, 0.5),
+            )
+            buffer = io.BytesIO()
+            thumb.save(buffer, format="WEBP", quality=quality, method=6)
+    except (OSError, ValueError, UnidentifiedImageError):
+        return None
+    finally:
+        try:
+            source_file.close()
+        except (AttributeError, ValueError):
+            pass
+
+    buffer.seek(0)
+    return ContentFile(buffer.getvalue())
+
+
+def build_cover_thumbnail_name(source_name: str, *, suffix: str = "_160x240.webp") -> str:
+    """Return a stable storage path for a generated cover thumbnail."""
+
+    raw_name = (source_name or "").strip().lstrip("/")
+    directory, filename = os.path.split(raw_name)
+    stem, _extension = os.path.splitext(filename or secrets.token_hex(8))
+    safe_stem = stem or secrets.token_hex(8)
+    thumb_directory = (
+        os.path.join(directory, "thumbnails")
+        if directory
+        else "book_covers/thumbnails"
+    )
+    return os.path.join(thumb_directory, f"{safe_stem}{suffix}").replace("\\", "/")

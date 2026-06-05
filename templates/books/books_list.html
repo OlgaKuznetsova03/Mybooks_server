@@ -511,7 +511,7 @@
                   {% with cover_url=b.get_cover_url %}
                     <a class="book-item__cover-link" href="{% url 'book_detail' b.pk %}">
                       {% if cover_url %}
-                        <img src="{{ cover_url }}" class="book-item__cover" alt="Обложка {{ b.title }}" loading="lazy">
+                        <img src="{{ cover_url }}" class="book-item__cover" alt="Обложка {{ b.title }}" loading="lazy" width="160" height="240">
                       {% else %}
                         <div class="book-item__cover book-item__cover--placeholder">
                           {{ b.title|default_if_none:"?"|slice:":1"|upper }}

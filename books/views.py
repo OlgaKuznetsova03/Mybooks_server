@@ -120,9 +120,9 @@ def _book_cover_url(book: Book) -> str:
 
 
 def _absolute_cover_url(request, book: Book) -> str | None:
-    """Вернуть абсолютный URL обложки для генерации PDF."""
+    """Вернуть абсолютный URL оригинальной обложки для генерации PDF."""
 
-    cover_url = _book_cover_url(book)
+    cover_url = book.get_original_cover_url()
     if not cover_url:
         return None
 
@@ -1728,10 +1728,11 @@ def book_detail(request, pk):
     if not display_primary_isbn_id and isbn_entries:
         display_primary_isbn_id = isbn_entries[0].pk
 
-    if book.cover:
+    original_book_cover_url = book.get_original_cover_url()
+    if book.cover and original_book_cover_url:
         cover_variants.append({
             "key": "book-cover",
-            "image": book.cover.url,
+            "image": original_book_cover_url,
             "alt": f"Обложки книги «{book.title}»",
             "label": "Текущее издание",
             "is_primary": True,

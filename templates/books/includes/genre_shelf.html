@@ -195,7 +195,7 @@
               <!-- Обложка -->
               <a class="genre-shelf-card__cover" href="{{ entry.detail_url }}" aria-label="{{ entry.title }}">
                 {% if entry.cover_url %}
-                  <img src="{{ entry.cover_url }}" alt="Обложка «{{ entry.title }}»" loading="lazy">
+                  <img src="{{ entry.cover_url }}" alt="Обложка «{{ entry.title }}»" loading="lazy" width="160" height="240">
                 {% else %}
                   <span class="genre-shelf-card__cover-placeholder">{{ entry.initial|default:"?" }}</span>
                 {% endif %}

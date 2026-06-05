@@ -11,7 +11,12 @@ from django.db.models import Sum, F, Avg, Count
 from django.db.models.signals import m2m_changed
 from django.dispatch import receiver
 
-from .utils import build_edition_group_key, normalize_genre_name
+from .utils import (
+    build_cover_thumbnail_name,
+    build_edition_group_key,
+    generate_cover_thumbnail_file,
+    normalize_genre_name,
+)
 
 
 class Author(models.Model):
@@ -244,6 +249,13 @@ class Book(models.Model):
 
     # новое поле для обложки
     cover = models.ImageField(upload_to="book_covers/", blank=True, null=True)
+    cover_thumbnail = models.ImageField(
+        upload_to="book_covers/thumbnails/",
+        blank=True,
+        null=True,
+        editable=False,
+        help_text="Автоматически созданное превью обложки 160×240 WebP для списков.",
+    )
     contributors = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         blank=True,
@@ -262,37 +274,47 @@ class Book(models.Model):
             ),
         ]
 
-    def get_cover_url(self) -> str:
-        """Вернуть подходящий URL обложки книги с учётом источника."""
+    @staticmethod
+    def _resolve_file_url(file_value) -> str:
+        if not file_value:
+            return ""
 
-        cover_file = getattr(self, "cover", None)
-        if cover_file:
-            try:
-                url = cover_file.url
-            except (ValueError, AttributeError):
-                url = ""
-            else:
-                if url:
-                    return url
-            cover_name = str(getattr(cover_file, "name", "") or "").strip()
-            if cover_name:
-                if cover_name.startswith(("http://", "https://", "//")):
-                    return cover_name
-                if cover_name.startswith("/"):
-                    return cover_name
-                media_url = getattr(settings, "MEDIA_URL", "/media/") or "/media/"
-                media_url = str(media_url).strip()
-                normalized_path = cover_name.lstrip("/")
-                if media_url.startswith(("http://", "https://", "//")):
-                    base = media_url if media_url.endswith("/") else f"{media_url}/"
-                    return urljoin(base, normalized_path)
-                if not media_url:
-                    media_url = "/media/"
-                if not media_url.endswith("/"):
-                    media_url = f"{media_url}/"
-                if not media_url.startswith("/"):
-                    media_url = f"/{media_url.lstrip('/')}"
-                return f"{media_url}{normalized_path}"
+        try:
+            url = file_value.url
+        except (ValueError, AttributeError):
+            url = ""
+        else:
+            if url:
+                return url
+
+        file_name = str(getattr(file_value, "name", "") or file_value or "").strip()
+        if not file_name:
+            return ""
+        if file_name.startswith(("http://", "https://", "//")):
+            return file_name
+        if file_name.startswith("/"):
+            return file_name
+
+        media_url = getattr(settings, "MEDIA_URL", "/media/") or "/media/"
+        media_url = str(media_url).strip()
+        normalized_path = file_name.lstrip("/")
+        if media_url.startswith(("http://", "https://", "//")):
+            base = media_url if media_url.endswith("/") else f"{media_url}/"
+            return urljoin(base, normalized_path)
+        if not media_url:
+            media_url = "/media/"
+        if not media_url.endswith("/"):
+            media_url = f"{media_url}/"
+        if not media_url.startswith("/"):
+            media_url = f"/{media_url.lstrip('/')}"
+        return f"{media_url}{normalized_path}"
+
+    def get_original_cover_url(self) -> str:
+        """Вернуть оригинальную обложку для детальной страницы книги."""
+
+        cover_url = self._resolve_file_url(getattr(self, "cover", None))
+        if cover_url:
+            return cover_url
 
         primary = getattr(self, "primary_isbn", None)
         if primary:
@@ -312,6 +334,45 @@ class Book(models.Model):
 
         return ""
 
+    def get_cover_thumbnail_url(self) -> str:
+        """Вернуть лёгкую обложку 160×240 для списков и сеток."""
+
+        thumbnail_url = self._resolve_file_url(getattr(self, "cover_thumbnail", None))
+        if thumbnail_url:
+            return thumbnail_url
+        return self.get_original_cover_url()
+
+    def get_cover_url(self) -> str:
+        """Вернуть URL обложки для недетальных страниц (предпочтительно превью)."""
+
+        return self.get_cover_thumbnail_url()
+
+    def ensure_cover_thumbnail(self, *, force: bool = False, save: bool = True) -> bool:
+        """Create a 160×240 WebP thumbnail for the uploaded cover when possible."""
+
+        if not self.cover:
+            return False
+        if self.cover_thumbnail and not force:
+            return False
+
+        thumbnail_file = generate_cover_thumbnail_file(self.cover)
+        if not thumbnail_file:
+            return False
+
+        source_name = getattr(self.cover, "name", "") or ""
+        thumbnail_name = build_cover_thumbnail_name(source_name)
+        if self.cover_thumbnail and force:
+            try:
+                self.cover_thumbnail.delete(save=False)
+            except (OSError, ValueError):
+                pass
+        self.cover_thumbnail.save(thumbnail_name, thumbnail_file, save=False)
+        if save and self.pk:
+            type(self).objects.filter(pk=self.pk).update(
+                cover_thumbnail=self.cover_thumbnail.name
+            )
+        return True
+        
     def get_total_pages(self):
         """
         Источник приоритетов:
@@ -383,9 +444,17 @@ class Book(models.Model):
         return new_key
 
     def save(self, *args, **kwargs):
+        update_fields = kwargs.get("update_fields")
         super().save(*args, **kwargs)
         if self.pk:
             self.refresh_edition_group_key()
+            should_generate_thumbnail = (
+                update_fields is None
+                or "cover" in update_fields
+                or not self.cover_thumbnail
+            )
+            if should_generate_thumbnail:
+                self.ensure_cover_thumbnail(save=True)
 
 
 class BookEditRequest(models.Model):

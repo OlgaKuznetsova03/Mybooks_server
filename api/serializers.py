@@ -86,6 +86,18 @@ class BookDetailSerializer(BookListSerializer):
             "edition_group_key",
             "age_rating",
         ]
+        
+    def get_cover_url(self, obj: Book) -> str:
+        cover_url = obj.get_original_cover_url()
+        request = self.context.get("request")
+
+        if not cover_url or not request:
+            return cover_url
+
+        if cover_url.startswith(("http://", "https://", "//")):
+            return cover_url
+
+        return request.build_absolute_uri(cover_url)
 
     def get_primary_isbn(self, obj: Book):
         primary = getattr(obj, "primary_isbn", None)
