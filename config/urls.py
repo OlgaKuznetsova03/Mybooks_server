@@ -34,6 +34,8 @@ urlpatterns = [
     path("", views.home, name="home"),
     path("tracker-updates/<int:progress_id>/react/", views.toggle_tracker_reaction, name="toggle_tracker_reaction"),
     path("rules/", views.rules, name="rules"),
+    path("privacy/", views.privacy_policy, name="privacy_policy"),
+    path("account-deletion/", views.account_deletion, name="account_deletion"),
     path("admin/", admin.site.urls),
     path(
         "api/v1/",

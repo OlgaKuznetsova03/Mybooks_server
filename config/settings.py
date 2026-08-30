@@ -16,6 +16,7 @@ import sys
 import os
 from decimal import Decimal, InvalidOperation
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -167,7 +168,7 @@ SECRET_KEY = os.getenv(
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_bool("DJANGO_DEBUG", "DEBUG", default=False)
 
 ALLOWED_HOSTS = [
     host.strip()
@@ -224,6 +225,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     'django.middleware.security.SecurityMiddleware',
+    'django.middleware.gzip.GZipMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -269,90 +271,114 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 def env(*names, default=None):
-    for n in names:
-        v = os.getenv(n)
-        if v not in (None, ""):
-            return v
+    for name in names:
+        value = os.getenv(name)
+        if value not in (None, ""):
+            return value.strip()
     return default
+
+
+RUNNING_TESTS = (
+    "test" in sys.argv
+    or os.getenv("RUNNING_TESTS", "").lower() in {"1", "true", "yes"}
+)
+USE_POSTGRES_FOR_TESTS = os.getenv(
+    "USE_POSTGRES_FOR_TESTS", ""
+).lower() in {"1", "true", "yes"}
+
+
+def _postgres_options(url_options=None):
+    options = dict(url_options or {})
+    options.setdefault(
+        "sslmode",
+        env("PG_SSLMODE", "DB_SSLMODE", default="require"),
+    )
+    options.setdefault(
+        "connect_timeout",
+        int(env("PG_CONNECT_TIMEOUT", "DB_CONNECT_TIMEOUT", default="10")),
+    )
+    options.setdefault("target_session_attrs", "read-write")
+
+    ssl_root_cert = env("PG_SSLROOTCERT", "DB_SSLROOTCERT")
+    if ssl_root_cert:
+        options.setdefault("sslrootcert", ssl_root_cert)
+
+    return options
+
 
 def _database_from_url(url: str) -> dict:
     parsed = urlparse(url)
     if parsed.scheme not in {"postgres", "postgresql"}:
-        raise ValueError("Unsupported database scheme")
+        raise ImproperlyConfigured(
+            "DATABASE_URL must use the postgres:// or postgresql:// scheme."
+        )
 
-    db_name = unquote(parsed.path.lstrip("/")) or "postgres"
-    options = parse_qs(parsed.query)
+    query = parse_qs(parsed.query)
+    url_options = {key: values[-1] for key, values in query.items() if values}
 
-    def _pop_option(name: str, default=None):
-        values = options.pop(name, None)
-        if not values:
-            return default
-        return values[-1]
-
-    return {
+    database = {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": db_name,
+        "NAME": unquote(parsed.path.lstrip("/")),
         "USER": unquote(parsed.username or ""),
         "PASSWORD": unquote(parsed.password or ""),
         "HOST": parsed.hostname or "",
-        "PORT": str(parsed.port) if parsed.port is not None else "",
-        "OPTIONS": {
-            **{k: v[-1] for k, v in options.items()},
-            "sslmode": _pop_option("sslmode", env("PG_SSLMODE", "DB_SSLMODE", default="disable")),
-        },
+        "PORT": str(parsed.port or 5432),
+        "OPTIONS": _postgres_options(url_options),
         "CONN_MAX_AGE": int(env("PG_CONN_MAX_AGE", default="60")),
+        "CONN_HEALTH_CHECKS": True,
     }
+    _validate_postgres_database(database)
+    return database
 
 
-database_url = env("DATABASE_URL", "POSTGRES_URL")
-
-DEFAULT_DATABASE = None
-
-if database_url:
-    try:
-        DEFAULT_DATABASE = _database_from_url(database_url)
-    except ValueError:
-        print("⚠️  DATABASE_URL has unsupported scheme – falling back to discrete settings")
-
-if DEFAULT_DATABASE is None:
-    # БАЗОВОЕ подключение к Postgres (Beget)
-    DEFAULT_DATABASE = {
+def _database_from_env() -> dict:
+    database = {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": env("PG_NAME", "DB_NAME", default="mybooks"),
-        "USER": env("PG_USER", "DB_USER", default="cloud_user"),
-        "PASSWORD": env("PG_PASSWORD", "DB_PASSWORD", default=""),
-        "HOST": env("PG_HOST", "DB_HOST", default="10.16.0.1"),
+        "NAME": env("PG_NAME", "DB_NAME"),
+        "USER": env("PG_USER", "DB_USER"),
+        "PASSWORD": env("PG_PASSWORD", "DB_PASSWORD"),
+        "HOST": env("PG_HOST", "DB_HOST"),
         "PORT": env("PG_PORT", "DB_PORT", default="5432"),
-        "OPTIONS": {
-            "sslmode": env("PG_SSLMODE", "DB_SSLMODE", default="disable"),
-        },
+        "OPTIONS": _postgres_options(),
         "CONN_MAX_AGE": int(env("PG_CONN_MAX_AGE", default="60")),
+        "CONN_HEALTH_CHECKS": True,
     }
+    _validate_postgres_database(database)
+    return database
 
-RUNNING_TESTS = (
-    "test" in sys.argv or
-    os.getenv("RUNNING_TESTS", "").lower() in {"1", "true", "yes"}
-)
 
-# Основная конфигурация DATABASES
-DATABASES = {
-    "default": DEFAULT_DATABASE
-}
+def _validate_postgres_database(database: dict) -> None:
+    required = {
+        "NAME": "PG_NAME",
+        "USER": "PG_USER",
+        "PASSWORD": "PG_PASSWORD",
+        "HOST": "PG_HOST",
+    }
+    missing = [env_name for key, env_name in required.items() if not database.get(key)]
+    if missing:
+        raise ImproperlyConfigured(
+            "Missing PostgreSQL settings: " + ", ".join(missing)
+        )
 
-# Для PostgreSQL добавляем опции чтобы решить проблему с GROUP BY
-DATABASES["default"]["OPTIONS"] = {
-    **DATABASES["default"].get("OPTIONS", {}),
-    "sslmode": env("PG_SSLMODE", "DB_SSLMODE", default="require"),
-}
 
-# Если запущены тесты и не используется PostgreSQL для тестов
-if RUNNING_TESTS and os.getenv("USE_POSTGRES_FOR_TESTS", "").lower() not in {"1", "true", "yes"}:
-    DATABASES["default"] = {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": ":memory:",
+if RUNNING_TESTS and not USE_POSTGRES_FOR_TESTS:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": ":memory:",
+        }
     }
 else:
-    DATABASES = {"default": DEFAULT_DATABASE}
+    database_url = env("DATABASE_URL", "POSTGRES_URL")
+    has_discrete_postgres_settings = bool(env("PG_HOST", "DB_HOST"))
+    if has_discrete_postgres_settings:
+        default_database = _database_from_env()
+    elif database_url:
+        default_database = _database_from_url(database_url)
+    else:
+        default_database = _database_from_env()
+
+    DATABASES = {"default": default_database}
 
 
 # Password validation
@@ -448,6 +474,28 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 ISBNDB_API_KEY = os.getenv("ISBNDB_API_KEY", "")
+BOOK_EXTERNAL_SEARCH_PROVIDER = os.getenv("BOOK_EXTERNAL_SEARCH_PROVIDER", "google").strip().lower() or "google"
+if BOOK_EXTERNAL_SEARCH_PROVIDER not in {"google", "isbndb"}:
+    BOOK_EXTERNAL_SEARCH_PROVIDER = "google"
+GOOGLE_BOOKS_API_KEY = os.getenv("GOOGLE_BOOKS_API_KEY", "").strip()
+
+BOOK_LIST_RECENT_DISCOVERY_CACHE_TIMEOUT = env_int(
+    "BOOK_LIST_RECENT_DISCOVERY_CACHE_TIMEOUT",
+    default=60 * 30,
+    min_value=60,
+)
+BOOK_LIST_POPULAR_DISCOVERY_CACHE_TIMEOUT = env_int(
+    "BOOK_LIST_POPULAR_DISCOVERY_CACHE_TIMEOUT",
+    default=60 * 60 * 24,
+    min_value=60,
+)
+BOOK_LIST_POPULAR_DISCOVERY_JSON_PATH = Path(
+    os.getenv(
+        "BOOK_LIST_POPULAR_DISCOVERY_JSON_PATH",
+        BASE_DIR / "var" / "book_list_popular_discovery.json",
+    )
+)
+
 if not ISBNDB_API_KEY:
     print("⚠️  ISBNDB_API_KEY is not set (put it into BASE_DIR/.env)")
 
@@ -513,7 +561,11 @@ else:
         )
 
 # === Mobile app & advertising integration ===
-YANDEX_REWARDED_AD_UNIT_ID = os.getenv("YANDEX_REWARDED_AD_UNIT_ID", "").strip()
+YANDEX_REWARDED_AD_UNIT_ID = os.getenv("YANDEX_REWARDED_AD_UNIT_ID", "R-M-17600984-2").strip()
+REWARD_AD_DAILY_LIMIT = int(os.getenv("REWARD_AD_DAILY_LIMIT", "10"))
+REWARD_AD_COOLDOWN_SECONDS = int(os.getenv("REWARD_AD_COOLDOWN_SECONDS", "60"))
+REWARD_AD_MIN_VIEW_SECONDS = int(os.getenv("REWARD_AD_MIN_VIEW_SECONDS", "5"))
+REWARD_AD_TICKET_TTL_SECONDS = int(os.getenv("REWARD_AD_TICKET_TTL_SECONDS", "900"))
 MOBILE_APP_CLIENT_HEADER = os.getenv("MOBILE_APP_CLIENT_HEADER", "X-MyBooks-Client")
 MOBILE_APP_ALLOWED_CLIENTS = [
     client.strip().lower()
@@ -544,14 +596,15 @@ LOGGING = {
     'disable_existing_loggers': False,
     'handlers': {
         'console': {
-            'level': 'DEBUG',
+            'level': 'DEBUG' if DEBUG else 'INFO',
             'class': 'logging.StreamHandler',
         },
     },
     'loggers': {
         'django.db.backends': {
-            'level': 'DEBUG',
+            'level': 'DEBUG' if env_bool("DJANGO_DB_DEBUG_LOGGING", default=False) else 'WARNING',
             'handlers': ['console'],
+            'propagate': False,
         }
     }
 }

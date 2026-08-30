@@ -740,6 +740,59 @@ class YasnayaPolyanaNominationBook(models.Model):
         return self.book.title
 
 
+class MonthlyChallenge(models.Model):
+    class Kind(models.TextChoices):
+        MINI_BOOKS = "mini-books", "Mini books"
+        BOOK_LIST = "book-list", "Book list"
+        PAGES_MINUTES = "pages-minutes", "Pages and minutes"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="monthly_challenges",
+    )
+    kind = models.CharField(max_length=32, choices=Kind.choices, db_index=True)
+    month = models.DateField(db_index=True)
+    target_books = models.PositiveIntegerField(null=True, blank=True)
+    target_pages = models.PositiveIntegerField(null=True, blank=True)
+    target_minutes = models.PositiveIntegerField(null=True, blank=True)
+    awarded_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("user", "kind", "month")
+        ordering = ["-month", "kind"]
+        indexes = [
+            models.Index(fields=["user", "kind", "month"]),
+        ]
+
+    def __str__(self) -> str:  # pragma: no cover - simple representation
+        return f"{self.user.username} - {self.kind} - {self.month:%m.%Y}"
+
+
+class MonthlyChallengeBook(models.Model):
+    challenge = models.ForeignKey(
+        MonthlyChallenge,
+        on_delete=models.CASCADE,
+        related_name="books",
+    )
+    book = models.ForeignKey(
+        "books.Book",
+        on_delete=models.CASCADE,
+        related_name="monthly_challenge_books",
+    )
+    order = models.PositiveSmallIntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("challenge", "book")
+        ordering = ["order", "id"]
+
+    def __str__(self) -> str:  # pragma: no cover - simple representation
+        return f"{self.challenge} - {self.book.title}"
+
+
 __all__ = [
     "ForgottenBookEntry",
     "Game",
@@ -752,4 +805,6 @@ __all__ = [
     "BookExchangeOffer",
     "BookExchangeAcceptedBook",
     "YasnayaPolyanaNominationBook",
+    "MonthlyChallenge",
+    "MonthlyChallengeBook",
 ]

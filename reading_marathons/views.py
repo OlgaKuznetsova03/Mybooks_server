@@ -17,6 +17,7 @@ from accounts.services import (
     get_feature_payment_context,
     InsufficientCoinsError,
 )
+from books.models import Book
 
 from user_ratings.services import award_for_marathon_confirmation
 
@@ -102,6 +103,7 @@ class MarathonDetailView(DetailView):
         groups: Dict[MarathonParticipant, list] = defaultdict(list)
         entries = (
             MarathonEntry.objects.filter(participant__marathon=marathon)
+            .filter(book__visibility=Book.Visibility.PUBLIC, book__is_hidden_by_admin=False)
             .select_related("participant__user", "theme", "book", "book__primary_isbn")
             .prefetch_related("book__isbn")
             .order_by("participant__user__username", "theme__order", "created_at")
@@ -115,6 +117,7 @@ class MarathonDetailView(DetailView):
         seen_book_ids = set()
         entries = (
             MarathonEntry.objects.filter(participant__marathon=marathon)
+            .filter(book__visibility=Book.Visibility.PUBLIC, book__is_hidden_by_admin=False)
             .select_related("book", "book__primary_isbn")
             .prefetch_related("book__isbn")
             .order_by("created_at")
@@ -198,7 +201,10 @@ def marathon_entry_create(request: HttpRequest, slug: str) -> HttpResponse:
 @login_required
 def marathon_entry_update(request: HttpRequest, pk: int) -> HttpResponse:
     entry = get_object_or_404(
-        MarathonEntry.objects.select_related("participant__marathon", "participant__user"),
+        MarathonEntry.objects.filter(
+            book__visibility=Book.Visibility.PUBLIC,
+            book__is_hidden_by_admin=False,
+        ).select_related("participant__marathon", "participant__user"),
         pk=pk,
     )
     marathon = entry.participant.marathon
@@ -247,7 +253,10 @@ def marathon_entry_update(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required
 def marathon_entry_approve(request: HttpRequest, pk: int) -> HttpResponse:
     entry = get_object_or_404(
-        MarathonEntry.objects.select_related("participant__marathon", "participant__user"),
+        MarathonEntry.objects.filter(
+            book__visibility=Book.Visibility.PUBLIC,
+            book__is_hidden_by_admin=False,
+        ).select_related("participant__marathon", "participant__user"),
         pk=pk,
     )
     marathon = entry.participant.marathon
@@ -263,7 +272,10 @@ def marathon_entry_approve(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required
 def marathon_entry_confirm_completion(request: HttpRequest, pk: int) -> HttpResponse:
     entry = get_object_or_404(
-        MarathonEntry.objects.select_related("participant__marathon", "participant__user"),
+        MarathonEntry.objects.filter(
+            book__visibility=Book.Visibility.PUBLIC,
+            book__is_hidden_by_admin=False,
+        ).select_related("participant__marathon", "participant__user"),
         pk=pk,
     )
     marathon = entry.participant.marathon

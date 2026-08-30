@@ -291,3 +291,90 @@ class DiscussionRead(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - simple display
         return f"{self.author}: {self.content[:30]}"
+
+
+class DiscussionPostReport(models.Model):
+    class Reason(models.TextChoices):
+        SPAM = "spam", _("Спам или реклама")
+        HARASSMENT = "harassment", _("Оскорбления или травля")
+        HATE = "hate", _("Язык вражды")
+        DANGEROUS = "dangerous", _("Опасный или незаконный контент")
+        SEXUAL = "sexual", _("Контент сексуального характера")
+        PERSONAL_DATA = "personal_data", _("Персональные данные")
+        OTHER = "other", _("Другое")
+
+    class Status(models.TextChoices):
+        PENDING = "pending", _("Ожидает проверки")
+        REVIEWING = "reviewing", _("На проверке")
+        ACTION_TAKEN = "action_taken", _("Приняты меры")
+        REJECTED = "rejected", _("Нарушение не найдено")
+
+    post = models.ForeignKey(
+        DiscussionPost,
+        on_delete=models.SET_NULL,
+        related_name="reports",
+        null=True,
+        blank=True,
+        verbose_name=_("Сообщение"),
+    )
+    reporter = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="reading_post_reports",
+        verbose_name=_("Отправитель жалобы"),
+    )
+    reported_user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        related_name="reported_reading_posts",
+        null=True,
+        blank=True,
+        verbose_name=_("Автор сообщения"),
+    )
+    reason = models.CharField(max_length=32, choices=Reason.choices, verbose_name=_("Причина"))
+    details = models.TextField(blank=True, verbose_name=_("Комментарий"))
+    content_snapshot = models.TextField(verbose_name=_("Текст сообщения"))
+    topic_snapshot = models.CharField(max_length=255, blank=True, verbose_name=_("Обсуждение"))
+    status = models.CharField(
+        max_length=24,
+        choices=Status.choices,
+        default=Status.PENDING,
+        verbose_name=_("Статус"),
+    )
+    moderator_note = models.TextField(blank=True, verbose_name=_("Заметка модератора"))
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        related_name="reviewed_reading_post_reports",
+        null=True,
+        blank=True,
+        verbose_name=_("Проверил"),
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Проверено"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Создано"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Обновлено"))
+
+    class Meta:
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("reporter", "post"),
+                name="unique_reading_post_report_per_user",
+            )
+        ]
+        verbose_name = _("Жалоба на сообщение")
+        verbose_name_plural = _("Жалобы на сообщения")
+
+    def save(self, *args, **kwargs) -> None:
+        if self.post_id:
+            post = self.post
+            if not self.reported_user_id:
+                self.reported_user_id = post.author_id
+            if not self.content_snapshot:
+                self.content_snapshot = post.content
+            if not self.topic_snapshot:
+                self.topic_snapshot = post.topic.title
+        super().save(*args, **kwargs)
+
+    def __str__(self) -> str:  # pragma: no cover - simple display
+        return f"{self.reporter}: {self.get_reason_display()}"

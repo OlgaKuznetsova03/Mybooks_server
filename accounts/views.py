@@ -17,7 +17,7 @@ from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from .models import PremiumPayment, BookChallenge
-from django.db.models import Count, Max, Sum, Prefetch
+from django.db.models import Count, Max, Sum
 from django.http import JsonResponse, Http404, HttpResponse, QueryDict, HttpRequest
 from django.urls import reverse
 from django.utils import timezone
@@ -981,7 +981,7 @@ def _collect_profile_stats(user: User, params):
 
     genre_stats = (
         books.values("genres__name")
-        .annotate(total=Count("genres__id", distinct=True))
+        .annotate(total=Count("id", distinct=True))
         .values("genres__name", "total")
         .exclude(genres__name__isnull=True)
         .order_by("-total")
@@ -2055,6 +2055,7 @@ def yookassa_webhook(request):
 
 @login_required
 def profile(request, username=None):
+    profile_shelf_preview_limit = 10
     user_obj = get_object_or_404(
         User.objects.select_related("profile").prefetch_related("groups"),
         username=username or request.user.username
@@ -2074,26 +2075,32 @@ def profile(request, username=None):
         active_tab = "overview"
     if active_tab not in {"overview", "books", "reviews", "activities"}:
         active_tab = "overview"
-
-    shelf_items_prefetch = Prefetch(
-        "items",
-        queryset=(
-            ShelfItem.objects
-            .select_related("book", "home_entry", "selected_edition")
-            .prefetch_related("book__authors")
-            .order_by("-added_at")
-        ),
-    )
+    public_book_kwargs = {
+        "book__visibility": Book.Visibility.PUBLIC,
+        "book__is_hidden_by_admin": False,
+    }
 
     user_shelves = list(
         user_obj.shelves
         .filter(is_managed=False)
         .select_related("user")
-        .prefetch_related(shelf_items_prefetch)
         .order_by("-is_default", "name")
     )
 
     if user_shelves:
+        shelf_item_counts = {
+            row["shelf_id"]: row["total"]
+            for row in (
+                ShelfItem.objects
+                .filter(shelf_id__in=[shelf.id for shelf in user_shelves])
+                .filter(**({} if is_owner else public_book_kwargs))
+                .values("shelf_id")
+                .annotate(total=Count("id"))
+            )
+        }
+        for shelf in user_shelves:
+            shelf.profile_items_count = shelf_item_counts.get(shelf.id, 0)
+
         normalized_order = {}
         for label in (READING_PROGRESS_LABEL, DEFAULT_READING_SHELF):
             if label:
@@ -2118,10 +2125,21 @@ def profile(request, username=None):
         user_shelves = [shelf for _, shelf in indexed_shelves]
 
     if user_shelves:
+        for shelf in user_shelves:
+            preview_items_qs = (
+                ShelfItem.objects
+                .filter(shelf=shelf)
+                .filter(**({} if is_owner else public_book_kwargs))
+                .select_related("book", "home_entry", "selected_edition")
+                .prefetch_related("book__authors")
+                .order_by("-added_at")
+            )
+            shelf.profile_preview_items = list(preview_items_qs[:profile_shelf_preview_limit])
+
         book_ids = set()
         home_entries = []
         for shelf in user_shelves:
-            for item in shelf.items.all():
+            for item in shelf.profile_preview_items:
                 if item.book_id:
                     book_ids.add(item.book_id)
                 home_entry = getattr(item, "home_entry", None)
@@ -2161,8 +2179,9 @@ def profile(request, username=None):
 
     is_author = user_obj.groups.filter(name="author").exists()
 
+    author_books_source = Book.objects if is_owner else Book.objects.public()
     author_books_qs = (
-        Book.objects.filter(contributors=user_obj)
+        author_books_source.filter(contributors=user_obj)
         .select_related("primary_isbn")
         .prefetch_related("authors")
         .order_by("-created_at", "title")
@@ -2172,6 +2191,10 @@ def profile(request, username=None):
 
     user_reviews = (
         Rating.objects.filter(user=user_obj)
+        .filter(**({} if is_owner else {
+            "book__visibility": Book.Visibility.PUBLIC,
+            "book__is_hidden_by_admin": False,
+        }))
         .exclude(review__isnull=True)
         .exclude(review__exact="")
         .select_related("book")
@@ -2196,6 +2219,7 @@ def profile(request, username=None):
     # --- Активности пользователя ---
     journey_assignments = list(
         BookJourneyAssignment.objects.filter(user=user_obj)
+        .filter(**({} if is_owner else public_book_kwargs))
         .select_related("book")
         .order_by("stage_number")
     )
@@ -2220,6 +2244,7 @@ def profile(request, username=None):
 
     forgotten_entries = list(
         ForgottenBookEntry.objects.filter(user=user_obj)
+        .filter(**({} if is_owner else public_book_kwargs))
         .select_related("book")
         .order_by("added_at")
     )
@@ -2253,6 +2278,7 @@ def profile(request, username=None):
 
     nobel_assignments = list(
         NobelLaureateAssignment.objects.filter(user=user_obj)
+        .filter(**({} if is_owner else public_book_kwargs))
         .select_related("book")
         .order_by("stage_number")
     )
@@ -2351,6 +2377,7 @@ def profile(request, username=None):
     clubs_owned = [
         serialize_club(club, "creator")
         for club in ReadingClub.objects.filter(creator=user_obj)
+        .filter(**({} if is_owner else public_book_kwargs))
         .select_related("book")
         .order_by("-start_date", "-created_at")
     ]
@@ -2360,6 +2387,7 @@ def profile(request, username=None):
             participants__user=user_obj,
             participants__status=ReadingParticipant.Status.APPROVED,
         )
+        .filter(**({} if is_owner else public_book_kwargs))
         .exclude(creator=user_obj)
         .select_related("book")
         .order_by("-start_date", "-created_at")
@@ -2371,6 +2399,7 @@ def profile(request, username=None):
             participants__user=user_obj,
             participants__status=ReadingParticipant.Status.PENDING,
         )
+        .filter(**({} if is_owner else public_book_kwargs))
         .select_related("book")
         .order_by("-start_date", "-created_at")
         .distinct()
@@ -2569,41 +2598,13 @@ def reward_ad_config(request):
 @login_required
 @require_POST
 def claim_reward_ad_api(request):
-    """Allow authenticated app users to claim a rewarded-ad bonus."""
+    """Reject the legacy client-trusted reward claim endpoint."""
 
     _ensure_mobile_app_request(request)
-
-    placement_id = getattr(settings, "YANDEX_REWARDED_AD_UNIT_ID", "")
-    if not placement_id:
-        return JsonResponse({"error": "reward_unavailable"}, status=503)
-
-    try:
-        payload = json.loads(request.body or "{}")
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "invalid_payload"}, status=400)
-
-    ad_unit_id = (payload.get("ad_unit_id") or "").strip()
-    if ad_unit_id and ad_unit_id != placement_id:
-        return JsonResponse({"error": "ad_unit_mismatch"}, status=400)
-
-    reward_id = (payload.get("reward_id") or "").strip()
-    description = "Вознаграждение от Яндекс за просмотр рекламы через приложение"
-    if reward_id:
-        description = f"{description} (reward_id={reward_id})"
-
-    profile = request.user.profile
-    tx = profile.reward_ad_view(
-        YANDEX_AD_REWARD_COINS,
-        description=description,
+    return JsonResponse(
+        {
+            "error": "legacy_reward_endpoint_disabled",
+            "detail": "Обновите приложение, чтобы получать награды с проверкой рекламного билета.",
+        },
+        status=410,
     )
-
-    response_payload = {
-        "coins_awarded": YANDEX_AD_REWARD_COINS,
-        "transaction_id": tx.pk,
-        "balance_after": tx.balance_after,
-        "reward_id": reward_id or None,
-        "unlimited_balance": profile.has_unlimited_coins,
-    }
-
-    status_code = 201
-    return JsonResponse(response_payload, status=status_code)

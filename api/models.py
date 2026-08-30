@@ -1,5 +1,30 @@
 from django.conf import settings
+import secrets
 from django.db import models
+
+
+def generate_mobile_token_key() -> str:
+    return secrets.token_hex(32)
+
+
+class MobileAuthToken(models.Model):
+    key = models.CharField(max_length=64, primary_key=True, default=generate_mobile_token_key, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="mobile_auth_tokens",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["user", "-created_at"])]
+
+    def __str__(self) -> str:
+        return f"Mobile token for {self.user_id}"
+
 
 class VKAccount(models.Model):
     user = models.OneToOneField(

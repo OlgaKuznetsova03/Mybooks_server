@@ -2,7 +2,9 @@
 {% load static %}
 {% block title %}{{ book.title }} · Калейдоскоп книг{% endblock %}
 {% block meta_description %}{{ seo_description }}{% endblock %}
+{% block robots %}{% if book_is_publicly_visible %}{{ block.super }}{% else %}noindex,nofollow{% endif %}{% endblock %}
 {% block extra_schema %}
+  {% if book_is_publicly_visible %}
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -29,6 +31,7 @@
       "review": [{% for rating in ratings %}{"@type":"Review","author":{"@type":"Person","name":"{{ rating.user.username|escapejs }}"},"datePublished":"{{ rating.created_at|date:'c' }}","reviewBody":"{{ rating.review|default:''|truncatechars:220|escapejs }}"{% if rating.score %},"reviewRating":{"@type":"Rating","ratingValue":"{{ rating.score }}","bestRating":"10"}{% endif %}}{% if not forloop.last %},{% endif %}{% endfor %}]
     }
   </script>
+  {% endif %}
 {% endblock %}
 
 {% block extra_css %}
@@ -36,6 +39,7 @@
   <link rel="stylesheet" href="{% static 'books/book-detail.css' %}?v={{ STATIC_VERSION }}">
   <link rel="stylesheet" href="{% static 'books/genre-shelf.css' %}?v={{ STATIC_VERSION }}">
   <link rel="stylesheet" href="{% static 'reading_clubs/style.css' %}?v={{ STATIC_VERSION }}">
+  <link rel="stylesheet" href="{% static 'css/review-image-generator.css' %}?v={{ STATIC_VERSION }}">
 
   <style>
     /* =========================
@@ -237,6 +241,7 @@
       margin-top: 1rem;
     }
   </style>
+  <link rel="stylesheet" href="{% static 'books/book-detail-refresh.css' %}?v={{ STATIC_VERSION }}">
 {% endblock %}
 
 {% block content %}
@@ -336,6 +341,9 @@
             В домашнюю библиотеку
           </button>
         {% endif %}
+        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#purchaseListModal">
+          В список покупок
+        </button>
         {% if edit_request_form %}
           <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#bookEditRequestModal">
             Попросить правку
@@ -441,6 +449,18 @@
               {% endfor %}
             </dl>
           </div>
+        </div>
+      {% endif %}
+
+      {% if book_age_warning_required %}
+        <div
+          class="book-detail-age-warning"
+          title="{{ book_age_warning_text }}"
+          aria-label="{{ book_age_warning_text }}"
+          tabindex="0"
+        >
+          <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+          <span>Книга отмечена как 18+</span>
         </div>
       {% endif %}
 
@@ -609,6 +629,9 @@
                 </form>
             {% endif %}
           {% endif %}
+          <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#purchaseListModal">
+            В список покупок
+          </button>
           {% if edit_request_form %}
             <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#bookEditRequestModal">
               Попросить правку
@@ -789,6 +812,18 @@
                   {% endif %}
                 {% endwith %}
                 {% if r.review %}<p class="mt-2 mb-0">{{ r.review|linebreaksbr }}</p>{% endif %}
+                {% if request.user == r.user and r.review %}
+                  <div class="mt-3">
+                    <button
+                      class="btn btn-outline-success btn-sm review-image-trigger js-review-image"
+                      type="button"
+                      data-endpoint="{% url 'v1:review-image-payment' r.id %}"
+                    >
+                      <i class="bi bi-image"></i>
+                      Скачать изображение · 50 ◉
+                    </button>
+                  </div>
+                {% endif %}
               </div>
             {% endfor %}
           </div>
@@ -877,7 +912,46 @@
   </div>
 </div>
 
-<!-- Modal: Домашняя библиотека -->
+<!-- Modal: Будущие покупки -->
+<div class="modal fade shelf-modal" id="purchaseListModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{% url 'book_detail' book.pk %}">
+      <div class="modal-header">
+        <h5 class="modal-title">Будущие покупки</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="purchase-list-add">
+        {% if purchase_lists %}
+          <div class="mb-3">
+            <label class="form-label small" for="purchaseListSelect">Выберите список</label>
+            <select class="form-select" name="purchase_list" id="purchaseListSelect">
+              <option value="">Создать новый список</option>
+              {% for purchase_list in purchase_lists %}
+                <option value="{{ purchase_list.id }}">{{ purchase_list.title }}{% if purchase_list.books_count %} · {{ purchase_list.books_count }}{% endif %}</option>
+              {% endfor %}
+            </select>
+          </div>
+        {% endif %}
+        <div class="mb-3">
+          <label class="form-label small" for="purchaseListTitle">Новый список</label>
+          <input class="form-control" type="text" name="purchase_list_title" id="purchaseListTitle" maxlength="120" placeholder="Например, Купить серию">
+          <div class="form-text">Если список не выбран, книга попадет в новый список. Без названия создадим «Будущие покупки».</div>
+        </div>
+        <div class="mb-0">
+          <label class="form-label small" for="purchaseListNote">Заметка</label>
+          <textarea class="form-control" name="note" id="purchaseListNote" rows="2" placeholder="Например, взять бумажное издание или дождаться скидки"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">Закрыть</button>
+        <button type="submit" class="btn btn-primary">Добавить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="modal fade shelf-modal" id="homeLibraryModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <form class="modal-content" method="post" action="{% url 'book_detail' book.pk %}">
@@ -947,6 +1021,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/review-image-generator.js' %}?v={{ STATIC_VERSION }}" defer></script>
 <script>
   /* эффект «шапка прилипла» */
   (function(){

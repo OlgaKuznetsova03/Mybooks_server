@@ -13,6 +13,26 @@ from .services.forgotten_books import ForgottenBooksGame
 from .services.read_before_buy import ReadBeforeBuyGame
 from .services.nobel_challenge import NobelLaureatesChallenge
 from .services.yasnaya_polyana import YasnayaPolyanaForeign2026Game
+from .services.monthly_awards import build_monthly_challenge_award_url
+from .services.monthly_challenges import (
+    MONTHLY_CHALLENGE_DESCRIPTIONS,
+    MONTHLY_CHALLENGE_HIGHLIGHTS,
+    MONTHLY_CHALLENGE_TITLES,
+    slug_from_kind,
+)
+
+GAME_ICON_BASE_URL = "https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/icons"
+GAME_ICON_URLS = {
+    "read-before-buy": f"{GAME_ICON_BASE_URL}/read_before_buy.png",
+    "book-exchange-challenge": f"{GAME_ICON_BASE_URL}/empfehle.png",
+    "forgotten-books-12": f"{GAME_ICON_BASE_URL}/12_forgottene_books.png",
+    "book-journey-map": f"{GAME_ICON_BASE_URL}/books_travel.png",
+    "nobel-laureates": f"{GAME_ICON_BASE_URL}/nobel.png",
+    "yasnaya-polyana-foreign-2026": f"{GAME_ICON_BASE_URL}/prime.png",
+    "monthly-mini-books": build_monthly_challenge_award_url("mini-books", state=1),
+    "monthly-book-list": build_monthly_challenge_award_url("book-list", state=1),
+    "monthly-pages-minutes": build_monthly_challenge_award_url("pages-minutes", state=1),
+}
 
 
 @dataclass(frozen=True)
@@ -23,7 +43,9 @@ class GameCard:
     title: str
     description: str
     url_name: str
-    icon: str = "🎮"
+    icon: str = "\U0001F3AE"
+
+    icon_url: str | None = None
     is_available: bool = True
     badge: str | None = None
     badge_variant: str = "primary"
@@ -48,6 +70,7 @@ def get_game_cards() -> List[GameCard]:
             description=read_before_buy.description,
             url_name="games:read_before_buy",
             icon="📚",
+            icon_url=GAME_ICON_URLS["read-before-buy"],
             highlights=(
                 "Баллы за прочитанные страницы",
                 "Бонусы за большие книги",
@@ -60,6 +83,7 @@ def get_game_cards() -> List[GameCard]:
             description=book_exchange.description,
             url_name="games:book_exchange",
             icon="🤝",
+            icon_url=GAME_ICON_URLS["book-exchange-challenge"],
             highlights=(
                 "Вы сами задаёте цель",
                 "Книги только из любимых жанров",
@@ -72,6 +96,7 @@ def get_game_cards() -> List[GameCard]:
             description=forgotten_books.description,
             url_name="games:forgotten_books",
             icon="🕰️",
+            icon_url=GAME_ICON_URLS["forgotten-books-12"],
             highlights=(
                 "12 книг из домашней библиотеки",
                 "Случайный выбор каждый месяц",
@@ -84,6 +109,7 @@ def get_game_cards() -> List[GameCard]:
             description=BookJourneyMap.SUBTITLE,
             url_name="games:book_journey_map",
             icon="🗺️",
+            icon_url=GAME_ICON_URLS["book-journey-map"],
             highlights=(
                 f"{BookJourneyMap.get_stage_count()} этапов",
                 "Геймификация чтения",
@@ -96,6 +122,7 @@ def get_game_cards() -> List[GameCard]:
             description=nobel_challenge.description,
             url_name="games:nobel_challenge",
             icon="🏆",
+            icon_url=GAME_ICON_URLS["nobel-laureates"],
             highlights=(
                 f"{NobelLaureatesChallenge.get_stage_count()} лауреата",
                 "Поиск по библиотеке",
@@ -108,11 +135,39 @@ def get_game_cards() -> List[GameCard]:
             description=yasnaya_polyana.description,
             url_name="games:yasnaya_polyana_foreign_2026",
             icon="🌿",
+            icon_url=GAME_ICON_URLS["yasnaya-polyana-foreign-2026"],
             highlights=(
                 "Длинный и короткий список",
                 "Автоматическая синхронизация с «Прочитано»",
                 "Быстрый старт чтения",
             ),
+        ),
+        GameCard(
+            slug=slug_from_kind("mini-books"),
+            title=MONTHLY_CHALLENGE_TITLES["mini-books"],
+            description=MONTHLY_CHALLENGE_DESCRIPTIONS["mini-books"],
+            url_name="games:monthly_mini_books",
+            icon_url=GAME_ICON_URLS["monthly-mini-books"],
+            badge="ежемесячно",
+            highlights=MONTHLY_CHALLENGE_HIGHLIGHTS["mini-books"],
+        ),
+        GameCard(
+            slug=slug_from_kind("book-list"),
+            title=MONTHLY_CHALLENGE_TITLES["book-list"],
+            description=MONTHLY_CHALLENGE_DESCRIPTIONS["book-list"],
+            url_name="games:monthly_book_list",
+            icon_url=GAME_ICON_URLS["monthly-book-list"],
+            badge="ежемесячно",
+            highlights=MONTHLY_CHALLENGE_HIGHLIGHTS["book-list"],
+        ),
+        GameCard(
+            slug=slug_from_kind("pages-minutes"),
+            title=MONTHLY_CHALLENGE_TITLES["pages-minutes"],
+            description=MONTHLY_CHALLENGE_DESCRIPTIONS["pages-minutes"],
+            url_name="games:monthly_pages_minutes",
+            icon_url=GAME_ICON_URLS["monthly-pages-minutes"],
+            badge="ежемесячно",
+            highlights=MONTHLY_CHALLENGE_HIGHLIGHTS["pages-minutes"],
         ),
     ]
 

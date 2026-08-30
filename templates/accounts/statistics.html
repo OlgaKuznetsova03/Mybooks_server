@@ -444,6 +444,22 @@
   .month-summary-grid {
     gap: 0.25rem;          /* было 0.35rem */
   }
+  .statistics-export-item{display:grid;grid-template-columns:minmax(0,360px);justify-content:center;gap:.65rem;}
+  .statistics-export-actions{display:flex;justify-content:center;gap:.5rem;flex-wrap:wrap;}
+  .statistics-export-actions .btn{min-width:8.5rem;}
+  .statistics-export-message{max-width:480px;margin:0 auto;text-align:center;}
+  .calendar-summary-page{overflow:hidden;}
+  .calendar-summary-page .month-summary-header{position:relative;z-index:2;}
+  .calendar-export-surface{position:relative;z-index:2;background:rgba(255,255,255,.86);color:#183b2e;border-radius:.75rem;padding:.45rem;overflow:hidden;}
+  .calendar-export-surface .reading-calendar{font-size:.43rem;min-width:0!important;width:100%!important;table-layout:fixed;}
+  .calendar-export-surface .reading-calendar th,
+  .calendar-export-surface .reading-calendar td{padding:.12rem!important;height:4.1rem!important;min-width:0!important;}
+  .calendar-export-surface img{max-width:1.25rem!important;max-height:1.85rem!important;object-fit:cover;}
+  .calendar-export-surface .btn{display:none!important;}
+  .statistics-payment-overlay{position:fixed;inset:0;z-index:1090;background:rgba(10,24,19,.62);display:grid;place-items:center;padding:1rem;}
+  .statistics-payment-overlay[hidden]{display:none;}
+  .statistics-payment-panel{width:min(100%,420px);background:var(--bs-body-bg);border:1px solid rgba(47,107,79,.24);border-radius:1rem;padding:1.1rem;box-shadow:0 1rem 3rem rgba(0,0,0,.25);}
+  .statistics-payment-row{display:flex;justify-content:space-between;gap:1rem;padding:.45rem 0;border-bottom:1px solid rgba(47,107,79,.12);}
   
   .month-summary-header {
     margin-bottom: 0.4rem; /* было 0.65rem */
@@ -668,15 +684,11 @@
                     <i class="bi bi-chevron-right"></i>
                   </a>
                 </div>
-                <a
-                  class="btn btn-outline-secondary btn-sm"
-                  href="{% url 'profile_monthly_print' %}?year={{ calendar.year }}&amp;month={{ calendar.month }}"
-                  download
-                >
-                  <i class="bi bi-printer me-1"></i>Скачать PDF отчёт
-                </a>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="calendarImageButton">
+                  <i class="bi bi-download me-1"></i>Скачать календарь
+                </button>
                 <button type="button" class="btn btn-outline-primary btn-sm" id="monthSummaryButton">
-                  <i class="bi bi-images me-1"></i>Итоги месяца
+                  <i class="bi bi-images me-1"></i>Итоги месяца · 60 монет
                 </button>
               </div>
             </div>
@@ -1278,18 +1290,35 @@
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Итоги месяца</h5>
+        <h5 class="modal-title" id="statisticsExportTitle">Итоги месяца</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
       </div>
       <div class="modal-body">
+        <div id="statisticsExportMessage" class="statistics-export-message alert alert-danger" hidden></div>
         <div id="monthSummaryPages" class="d-grid gap-3"></div>
       </div>
     </div>
   </div>
 </div>
+
+<div class="statistics-payment-overlay" id="monthSummaryPaymentDialog" hidden>
+  <section class="statistics-payment-panel" role="dialog" aria-modal="true" aria-labelledby="monthSummaryPaymentTitle">
+    <h2 class="h5 mb-2" id="monthSummaryPaymentTitle">Создать итоги месяца?</h2>
+    <p class="text-muted small" id="monthSummaryPaymentText">Будет создан набор изображений, которые можно проверить, скачать и оформить разными фонами.</p>
+    <div class="statistics-payment-row"><span>Стоимость</span><strong id="monthSummaryPaymentCost">60 монет</strong></div>
+    <div class="statistics-payment-row"><span>Ваш баланс</span><strong id="monthSummaryPaymentBalance">—</strong></div>
+    <div class="statistics-payment-row" id="monthSummaryPaymentRemainingRow"><span>Останется</span><strong id="monthSummaryPaymentRemaining">—</strong></div>
+    <p class="small text-danger mt-2 mb-0" id="monthSummaryPaymentError" hidden></p>
+    <div class="d-flex justify-content-end gap-2 mt-3">
+      <button type="button" class="btn btn-outline-secondary" id="monthSummaryPaymentCancel">Отмена</button>
+      <button type="button" class="btn btn-primary" id="monthSummaryPaymentConfirm" disabled>Создать</button>
+    </div>
+  </section>
+</div>
 {% endblock %}
 
 {% block extra_js %}
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
     function setupAnimatedNumbers() {
       const numberElements = Array.from(document.querySelectorAll('.animated-number'));
@@ -1490,6 +1519,12 @@
 
     const monthBooksEl = document.getElementById('profile-month-completed-books');
     const monthCompletedBooks = monthBooksEl ? JSON.parse(monthBooksEl.textContent || '[]') : [];
+    const statisticsImageProxyUrl = '{% url "v1:vk-app-image-proxy" %}';
+    const monthSummaryPaymentUrl = '/api/v1/statistics/monthly-summary-payment/';
+    const statisticsMonth = Number('{{ stats.reading_calendar.month|default:0 }}') || new Date().getMonth() + 1;
+    const statisticsYear = Number('{{ stats.reading_calendar.year|default:0 }}') || new Date().getFullYear();
+    const statisticsMonthTitle = '{{ stats.reading_calendar.month_name|default:""|escapejs }} {{ stats.reading_calendar.year|default:"" }}'.trim() || `${String(statisticsMonth).padStart(2, '0')}.${statisticsYear}`;
+    const monthlySummaryOperationStorageKey = `monthly-summary-operation-${statisticsYear}-${statisticsMonth}`;
     const summaryBackgrounds = [
       'https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/monat/monat_1.png',
       'https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/monat/monat_2.png',
@@ -1509,6 +1544,113 @@
       return `${(score5 / 5) * 100}%`;
     }
 
+    const statisticsProxiedImageUrl = (source) => `${statisticsImageProxyUrl}?url=${encodeURIComponent(source)}`;
+    const escapeStatisticsHtml = (value) => String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+
+    function getCookie(name) {
+      const prefix = `${name}=`;
+      return document.cookie.split(';').map((part) => part.trim()).find((part) => part.startsWith(prefix))?.slice(prefix.length) || '';
+    }
+
+    function setStatisticsPageBackground(page, backgroundIndex) {
+      const index = ((backgroundIndex % summaryBackgrounds.length) + summaryBackgrounds.length) % summaryBackgrounds.length;
+      const backgroundUrl = statisticsProxiedImageUrl(summaryBackgrounds[index]);
+      page.dataset.backgroundIndex = String(index);
+      page.dataset.backgroundUrl = backgroundUrl;
+      page.style.backgroundImage = `url(${backgroundUrl})`;
+    }
+
+    let requestStatisticsBackgroundPayment = null;
+
+    async function waitForStatisticsImages(root) {
+      const images = Array.from(root.querySelectorAll('img'));
+      const pendingImages = images.map((image) => {
+        if (image.complete && image.naturalWidth > 0) return Promise.resolve();
+        return new Promise((resolve) => {
+          image.addEventListener('load', resolve, { once: true });
+          image.addEventListener('error', resolve, { once: true });
+          setTimeout(resolve, 8000);
+        });
+      });
+      if (root.dataset.backgroundUrl) {
+        pendingImages.push(new Promise((resolve) => {
+          const background = new Image();
+          background.onload = resolve;
+          background.onerror = resolve;
+          background.src = root.dataset.backgroundUrl;
+          setTimeout(resolve, 8000);
+        }));
+      }
+      await Promise.all(pendingImages);
+      if (document.fonts?.ready) await document.fonts.ready;
+    }
+
+    async function saveStatisticsPage(page, filename, button) {
+      const message = document.getElementById('statisticsExportMessage');
+      message.hidden = true;
+      button.disabled = true;
+      try {
+        if (typeof window.html2canvas !== 'function') throw new Error('Модуль сохранения еще загружается. Попробуйте снова.');
+        await waitForStatisticsImages(page);
+        const canvas = await window.html2canvas(page, {
+          backgroundColor: null,
+          scale: 3,
+          useCORS: true,
+          allowTaint: false,
+          logging: false,
+        });
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.95));
+        if (!blob) throw new Error('Не удалось подготовить JPG.');
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+      } catch (error) {
+        message.textContent = error.message || 'Не удалось сохранить изображение.';
+        message.hidden = false;
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    function createStatisticsExportItem(page, filename, options = {}) {
+      const { paidBackground = false, pageIndex = 0 } = options;
+      const item = document.createElement('article');
+      item.className = 'statistics-export-item';
+      const actions = document.createElement('div');
+      actions.className = 'statistics-export-actions';
+      const backgroundButton = document.createElement('button');
+      backgroundButton.type = 'button';
+      backgroundButton.className = 'btn btn-outline-secondary btn-sm';
+      backgroundButton.innerHTML = paidBackground
+        ? '<i class="bi bi-image me-1"></i>Сменить фон · 5 монет'
+        : '<i class="bi bi-image me-1"></i>Сменить фон';
+      backgroundButton.addEventListener('click', () => {
+        if (paidBackground && requestStatisticsBackgroundPayment) {
+          requestStatisticsBackgroundPayment(page, pageIndex);
+          return;
+        }
+        setStatisticsPageBackground(page, Number(page.dataset.backgroundIndex || 0) + 1);
+      });
+      const saveButton = document.createElement('button');
+      saveButton.type = 'button';
+      saveButton.className = 'btn btn-primary btn-sm';
+      saveButton.innerHTML = '<i class="bi bi-download me-1"></i>Скачать JPG';
+      saveButton.addEventListener('click', () => saveStatisticsPage(page, filename, saveButton));
+      actions.append(backgroundButton, saveButton);
+      item.append(page, actions);
+      return item;
+    }
+
     function renderMonthSummary() {
       const container = document.getElementById('monthSummaryPages');
       if (!container) return;
@@ -1516,20 +1658,101 @@
       if (!monthCompletedBooks.length) { container.innerHTML = '<div class="alert alert-secondary">В этом месяце нет завершённых книг.</div>'; return; }
       const chunks = [];
       for (let i = 0; i < monthCompletedBooks.length; i += 9) chunks.push(monthCompletedBooks.slice(i, i + 9));
-      chunks.forEach((chunk) => {
-        const bg = summaryBackgrounds[Math.floor(Math.random() * summaryBackgrounds.length)];
+      chunks.forEach((chunk, pageIndex) => {
         const page = document.createElement('section');
         page.className = 'month-summary-page';
-        page.style.backgroundImage = `url(${bg})`;
+        setStatisticsPageBackground(page, statisticsMonth + statisticsYear + pageIndex);
         const cards = chunk.map((book) => `
           <div class="month-summary-book">
-            ${book.cover_url ? `<img src="${book.cover_url}" alt="${book.title}">` : '<div class="month-summary-cover-placeholder">Нет обложки</div>'}
-            <div class="small">${book.start_date || '—'} — ${book.finish_date || '—'}</div>
+            ${book.cover_url ? `<img src="${statisticsProxiedImageUrl(book.cover_url)}" alt="${escapeStatisticsHtml(book.title)}">` : '<div class="month-summary-cover-placeholder">Нет обложки</div>'}
+            <div class="small fw-semibold">${escapeStatisticsHtml(book.title)}</div>
+            <div class="small">${escapeStatisticsHtml(book.start_date || '—')} — ${escapeStatisticsHtml(book.finish_date || '—')}</div>
             <div class="month-stars"><div class="month-stars__base">★★★★★</div><div class="month-stars__fill" style="width:${starWidth(book.score10)}">★★★★★</div></div>
           </div>`).join('');
-        page.innerHTML = `<div class="month-summary-header"><h4>Итоги месяца</h4><strong>Калейдоскоп книг</strong></div><div class="month-summary-grid">${cards}</div>`;
-        container.appendChild(page);
+        page.innerHTML = `<div class="month-summary-header"><h4>Итоги месяца ${escapeStatisticsHtml(statisticsMonthTitle)}</h4><strong>Калейдоскоп книг</strong></div><div class="month-summary-grid">${cards}</div>`;
+        const suffix = chunks.length > 1 ? `-${pageIndex + 1}` : '';
+        container.appendChild(createStatisticsExportItem(
+          page,
+          `kalejdoskop-itogi-${statisticsMonth}-${statisticsYear}${suffix}.jpg`,
+          { paidBackground: true, pageIndex },
+        ));
       });
+    }
+
+    function renderCalendarSummary() {
+      const container = document.getElementById('monthSummaryPages');
+      const source = document.querySelector('#readingCalendarCollapse .reading-calendar');
+      container.innerHTML = '';
+      if (!source) {
+        container.innerHTML = '<div class="alert alert-secondary">Календарь пока недоступен.</div>';
+        return;
+      }
+      const page = document.createElement('section');
+      page.className = 'month-summary-page calendar-summary-page';
+      setStatisticsPageBackground(page, statisticsMonth + statisticsYear);
+      const clonedCalendar = source.cloneNode(true);
+      clonedCalendar.querySelectorAll('img').forEach((image) => {
+        if (image.src) image.src = statisticsProxiedImageUrl(image.src);
+      });
+      page.innerHTML = `<div class="month-summary-header"><h4>Календарь чтения ${escapeStatisticsHtml(statisticsMonthTitle)}</h4><strong>Калейдоскоп книг</strong></div>`;
+      const surface = document.createElement('div');
+      surface.className = 'calendar-export-surface';
+      surface.appendChild(clonedCalendar);
+      page.appendChild(surface);
+      container.appendChild(createStatisticsExportItem(page, `kalejdoskop-calendar-${statisticsMonth}-${statisticsYear}.jpg`));
+    }
+
+    async function readMonthlySummaryPayment(response) {
+      let payload = {};
+      try { payload = await response.json(); } catch (_) { payload = {}; }
+      if (!response.ok) {
+        const error = new Error(payload.detail || `HTTP ${response.status}`);
+        error.payload = payload;
+        throw error;
+      }
+      return payload;
+    }
+
+    async function getMonthlySummaryQuote(action = 'generate') {
+      const payload = await readMonthlySummaryPayment(await fetch(monthSummaryPaymentUrl, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      }));
+      return action === 'change_background'
+        ? (payload.background || payload)
+        : (payload.generation || payload);
+    }
+
+    function getMonthlySummaryOperationId() {
+      const existing = sessionStorage.getItem(monthlySummaryOperationStorageKey);
+      if (existing) return existing;
+      const operationId = `monthly-summary-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      sessionStorage.setItem(monthlySummaryOperationStorageKey, operationId);
+      return operationId;
+    }
+
+    async function chargeMonthlySummary(action = 'generate', pageIndex = 0, operationId = null) {
+      const resolvedOperationId = operationId || (
+        action === 'generate'
+          ? getMonthlySummaryOperationId()
+          : `monthly-summary-background-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+      );
+      return readMonthlySummaryPayment(await fetch(monthSummaryPaymentUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRFToken': decodeURIComponent(getCookie('csrftoken')),
+        },
+        body: JSON.stringify({
+          action,
+          year: statisticsYear,
+          month: statisticsMonth,
+          page_index: pageIndex,
+          operation_id: resolvedOperationId,
+        }),
+      }));
     }
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -1541,13 +1764,121 @@
 
       setupAnimatedNumbers();
       const monthSummaryButton = document.getElementById('monthSummaryButton');
+      const calendarImageButton = document.getElementById('calendarImageButton');
+      const exportModalElement = document.getElementById('monthSummaryModal');
+      const exportTitle = document.getElementById('statisticsExportTitle');
+      const paymentDialog = document.getElementById('monthSummaryPaymentDialog');
+      const paymentTitle = document.getElementById('monthSummaryPaymentTitle');
+      const paymentText = document.getElementById('monthSummaryPaymentText');
+      const paymentCancel = document.getElementById('monthSummaryPaymentCancel');
+      const paymentConfirm = document.getElementById('monthSummaryPaymentConfirm');
+      const paymentCost = document.getElementById('monthSummaryPaymentCost');
+      const paymentBalance = document.getElementById('monthSummaryPaymentBalance');
+      const paymentRemaining = document.getElementById('monthSummaryPaymentRemaining');
+      const paymentRemainingRow = document.getElementById('monthSummaryPaymentRemainingRow');
+      const paymentError = document.getElementById('monthSummaryPaymentError');
+      let pendingPaymentAction = null;
+      let pendingBackgroundPage = null;
+      let pendingBackgroundPageIndex = 0;
+      let pendingPaymentOperationId = null;
+
+      const closeSummaryPayment = () => {
+        pendingPaymentAction = null;
+        pendingBackgroundPage = null;
+        pendingPaymentOperationId = null;
+        paymentDialog.hidden = true;
+        paymentConfirm.disabled = true;
+        paymentError.hidden = true;
+      };
+
+      const openSummaryPayment = async (action, page = null, pageIndex = 0) => {
+        pendingPaymentAction = action;
+        pendingBackgroundPage = page;
+        pendingBackgroundPageIndex = pageIndex;
+        pendingPaymentOperationId = action === 'change_background'
+          ? `monthly-summary-background-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+          : null;
+        paymentDialog.hidden = false;
+        paymentConfirm.disabled = true;
+        paymentError.hidden = true;
+        paymentBalance.textContent = 'Проверяем...';
+        paymentTitle.textContent = action === 'change_background'
+          ? 'Сменить фон изображения?'
+          : 'Создать итоги месяца?';
+        paymentText.textContent = action === 'change_background'
+          ? 'Для этого изображения будет выбран новый фон.'
+          : 'Будет создан набор изображений, которые можно проверить и скачать.';
+        paymentConfirm.textContent = action === 'change_background' ? 'Сменить фон' : 'Создать';
+        try {
+          const quote = await getMonthlySummaryQuote(action);
+          paymentCost.textContent = quote.unlimited ? 'Включено в Премиум' : `${quote.cost} монет`;
+          paymentBalance.textContent = quote.unlimited ? 'Без ограничений' : `${quote.balance} монет`;
+          paymentRemainingRow.hidden = Boolean(quote.unlimited);
+          paymentRemaining.textContent = `${Math.max(0, Number(quote.balance || 0) - Number(quote.cost || 0))} монет`;
+          if (!quote.unlimited && !quote.can_afford) {
+            paymentError.textContent = `Не хватает ${quote.shortage} монет.`;
+            paymentError.hidden = false;
+          }
+          paymentConfirm.disabled = !quote.unlimited && !quote.can_afford;
+        } catch (error) {
+          paymentError.textContent = error.message || 'Не удалось проверить баланс.';
+          paymentError.hidden = false;
+        }
+      };
+
+      requestStatisticsBackgroundPayment = (page, pageIndex) => {
+        openSummaryPayment('change_background', page, pageIndex);
+      };
+
       if (monthSummaryButton) {
-        monthSummaryButton.addEventListener('click', () => {
-          renderMonthSummary();
-          const el = document.getElementById('monthSummaryModal');
-          if (el) bootstrap.Modal.getOrCreateInstance(el).show();
-        });
+        monthSummaryButton.addEventListener('click', () => openSummaryPayment('generate'));
       }
+
+      paymentCancel?.addEventListener('click', closeSummaryPayment);
+      paymentDialog?.addEventListener('click', (event) => {
+        if (event.target === paymentDialog) closeSummaryPayment();
+      });
+      paymentConfirm?.addEventListener('click', async () => {
+        const action = pendingPaymentAction;
+        const backgroundPage = pendingBackgroundPage;
+        const backgroundPageIndex = pendingBackgroundPageIndex;
+        const operationId = pendingPaymentOperationId;
+        if (!action) return;
+        paymentConfirm.disabled = true;
+        paymentError.hidden = true;
+        try {
+          await chargeMonthlySummary(action, backgroundPageIndex, operationId);
+          if (action === 'change_background') {
+            if (backgroundPage) {
+              setStatisticsPageBackground(
+                backgroundPage,
+                Number(backgroundPage.dataset.backgroundIndex || 0) + 1,
+              );
+            }
+            closeSummaryPayment();
+          } else {
+            sessionStorage.removeItem(monthlySummaryOperationStorageKey);
+            closeSummaryPayment();
+            exportTitle.textContent = 'Итоги месяца';
+            renderMonthSummary();
+            bootstrap.Modal.getOrCreateInstance(exportModalElement).show();
+          }
+        } catch (error) {
+          paymentError.textContent = error.message || (
+            action === 'change_background'
+              ? 'Не удалось сменить фон.'
+              : 'Не удалось создать итоги месяца.'
+          );
+          paymentError.hidden = false;
+          paymentConfirm.disabled = false;
+        }
+      });
+
+      calendarImageButton?.addEventListener('click', () => {
+        exportTitle.textContent = 'Календарь чтения';
+        renderCalendarSummary();
+        bootstrap.Modal.getOrCreateInstance(exportModalElement).show();
+      });
 
       periodTabs.forEach((tab) => {
         tab.addEventListener('click', () => {

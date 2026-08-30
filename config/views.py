@@ -18,6 +18,7 @@ from reading_marathons.models import (
 )
 from django.views.decorators.http import require_POST
 
+from books.models import Book
 from shelves.models import BookProgress, BookProgressReaction, Shelf, ShelfItem
 
 
@@ -69,6 +70,8 @@ HOME_REACTION_CHOICES = [
     for emoji in ALLOWED_HOME_REACTION_EMOJIS
 ]
 
+HOME_TRACKER_FEED_LIMIT = 15
+
 
 def _attach_reaction_icons(summary_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [
@@ -87,6 +90,7 @@ def home(request):
         ReadingClub.objects.select_related("book", "book__primary_isbn", "creator")
         .with_message_count()
         .prefetch_related("participants", "book__isbn")
+        .filter(book__visibility=Book.Visibility.PUBLIC, book__is_hidden_by_admin=False)
         .filter(start_date__lte=today)
         .filter(Q(end_date__isnull=True) | Q(end_date__gte=today))
         .order_by("start_date", "title")[:8]
@@ -104,6 +108,7 @@ def home(request):
         ReadingClub.objects.select_related("book", "book__primary_isbn", "creator")
         .with_message_count()
         .prefetch_related("participants", "book__isbn")
+        .filter(book__visibility=Book.Visibility.PUBLIC, book__is_hidden_by_admin=False)
         .filter(start_date__gt=today)
         .order_by("start_date", "title")[:8]
     )
@@ -195,9 +200,13 @@ def home(request):
                 item.progress_updated_at = progress.updated_at
 
         latest_tracker_updates = list(
-            BookProgress.objects.filter(event__isnull=True)
+            BookProgress.objects.filter(
+                event__isnull=True,
+                book__visibility=Book.Visibility.PUBLIC,
+                book__is_hidden_by_admin=False,
+            )
             .select_related("user", "user__profile", "book", "book__primary_isbn")
-            .order_by("-updated_at", "-id")[:10]
+            .order_by("-updated_at", "-id")[:HOME_TRACKER_FEED_LIMIT]
         )
 
         if latest_tracker_updates:
@@ -266,7 +275,7 @@ def home(request):
         ),
         "h1": "Калейдоскоп книг",
     }
-    return render(request, "config/home.html", context)
+    return render(request, "config/home_modern.html", context)
 
 
 @require_POST
@@ -278,7 +287,13 @@ def toggle_tracker_reaction(request, progress_id: int):
     if emoji not in ALLOWED_HOME_REACTION_EMOJI_SET:
         return JsonResponse({"ok": False, "error": "invalid_emoji"}, status=400)
 
-    progress = get_object_or_404(BookProgress, pk=progress_id, event__isnull=True)
+    progress = get_object_or_404(
+        BookProgress,
+        pk=progress_id,
+        event__isnull=True,
+        book__visibility=Book.Visibility.PUBLIC,
+        book__is_hidden_by_admin=False,
+    )
 
     reaction, created = BookProgressReaction.objects.get_or_create(
         progress=progress,
@@ -314,6 +329,7 @@ def reading_communities_overview(request):
         ReadingClub.objects.select_related("book", "book__primary_isbn", "creator")
         .with_message_count()
         .prefetch_related("participants", "book__isbn")
+        .filter(book__visibility=Book.Visibility.PUBLIC, book__is_hidden_by_admin=False)
         .order_by("start_date", "title")
     )
     active_clubs: list[ReadingClub] = []
@@ -431,9 +447,36 @@ def rules(request):
     """
     context = {
         "page_title": "Правила пользования сайтом",
-        "last_updated": "12.11.2025",
-        }
+        "last_updated": "16.08.2026",
+        "last_updated_iso": "2026-08-16",
+    }
     return render(request, "config/terms.html", context)
+
+
+def privacy_policy(request):
+    """Публичная политика конфиденциальности сайта и приложений."""
+    return render(
+        request,
+        "config/privacy.html",
+        {
+            "page_title": "Политика конфиденциальности",
+            "last_updated": "16.08.2026",
+            "last_updated_iso": "2026-08-16",
+        },
+    )
+
+
+def account_deletion(request):
+    """Публичная инструкция по удалению аккаунта и связанных данных."""
+    return render(
+        request,
+        "config/account_deletion.html",
+        {
+            "page_title": "Удаление аккаунта",
+            "last_updated": "16.08.2026",
+            "last_updated_iso": "2026-08-16",
+        },
+    )
 
 def robots_txt(request):
     sitemap_url = request.build_absolute_uri('/sitemap.xml')

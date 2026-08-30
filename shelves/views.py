@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Count, Sum
+from django.db.models import Count, Prefetch, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib import messages
 from django.http import JsonResponse
@@ -27,6 +27,8 @@ from .models import (
     Event,
     EventParticipant,
     HomeLibraryEntry,
+    PurchaseList,
+    PurchaseListItem,
     ReadingFeedEntry,
     ReadingLog,
     ProgressAnnotation,
@@ -198,6 +200,27 @@ def home_library(request):
     """Подробный учёт книг из полки «Моя домашняя библиотека» пользователя."""
 
     shelf = get_home_library_shelf(request.user)
+
+    if request.method == "POST" and request.POST.get("action") == "purchase-list-create":
+        title = (request.POST.get("title") or "").strip()
+        description = (request.POST.get("description") or "").strip()
+        if not title:
+            messages.error(request, "Введите название списка покупок.")
+        else:
+            purchase_list, created = PurchaseList.objects.get_or_create(
+                user=request.user,
+                title=title,
+                defaults={"description": description},
+            )
+            if not created and description and purchase_list.description != description:
+                purchase_list.description = description
+                purchase_list.save(update_fields=["description", "updated_at"])
+            messages.success(
+                request,
+                "Список покупок создан." if created else "Такой список покупок уже есть.",
+            )
+        return redirect("shelves:home_library")
+
     items = list(
         shelf.items
         .select_related("book")
@@ -641,6 +664,24 @@ def home_library(request):
         "recent_entries": recent_entries,
     }
 
+    purchase_lists = (
+        PurchaseList.objects
+        .filter(user=request.user)
+        .annotate(books_count=Count("items", distinct=True))
+        .prefetch_related(
+            Prefetch(
+                "items",
+                queryset=(
+                    PurchaseListItem.objects
+                    .select_related("book")
+                    .prefetch_related("book__authors")
+                    .order_by("-added_at", "-id")
+                ),
+            )
+        )
+        .order_by("title", "id")
+    )
+
     context = {
         "shelf": shelf,
         "entries": entries,
@@ -656,6 +697,7 @@ def home_library(request):
         "default_period_stats": default_period_stats,
         "period_options": period_options,
         "initial_period_options": period_options.get(default_period_type, []),
+        "purchase_lists": purchase_lists,
     }
     return render(request, "shelves/home_library.html", context)
 
@@ -717,7 +759,7 @@ def shelf_create(request):
 @login_required
 def add_book_to_shelf(request, book_id):
     """Добавить книгу в выбранную полку пользователя (форма-страница)."""
-    book = get_object_or_404(Book, pk=book_id)
+    book = get_object_or_404(Book.objects.visible_to_user(request.user), pk=book_id)
     if request.method == "POST":
         form = AddToShelfForm(request.POST, user=request.user, book=book)
         if form.is_valid():
@@ -819,7 +861,7 @@ DEFAULT_SHELF_MAP = {
 @require_POST
 def quick_add_default_shelf(request, book_id, code):
     """Быстрое добавление в одну из трёх стандартных полок."""
-    book = get_object_or_404(Book, pk=book_id)
+    book = get_object_or_404(Book.objects.visible_to_user(request.user), pk=book_id)
     next_url = request.POST.get("next")
     if code not in DEFAULT_SHELF_MAP:
         messages.error(request, "Неизвестная полка.")
@@ -884,7 +926,7 @@ def quick_add_default_shelf(request, book_id, code):
 def move_book_to_reading(request, book_id):
     """Переместить книгу в стандартную полку «Читаю» текущего пользователя."""
 
-    book = get_object_or_404(Book, pk=book_id)
+    book = get_object_or_404(Book.objects.visible_to_user(request.user), pk=book_id)
     next_url = request.POST.get("next")
 
     move_book_to_reading_shelf(request.user, book)
@@ -913,7 +955,7 @@ def add_book_to_event(request, book_id):
     Добавить книгу в выбранный марафон/событие (требуется участие пользователя).
     После добавления редиректим в трекер чтения этой книги.
     """
-    book = get_object_or_404(Book, pk=book_id)
+    book = get_object_or_404(Book.objects.visible_to_user(request.user), pk=book_id)
     if request.method == "POST":
         form = AddToEventForm(request.POST, user=request.user)
         if form.is_valid():
@@ -1252,7 +1294,7 @@ def reading_track(request, book_id):
     Трекер чтения одной книги (личный прогресс без привязки к событию).
     ETA/таймер не используем — только ручное обновление и быстрые кнопки.
     """
-    book = get_object_or_404(Book, pk=book_id)
+    book = get_object_or_404(Book.objects.visible_to_user(request.user), pk=book_id)
     progress, _ = BookProgress.objects.get_or_create(
         event=None,
         user=request.user,
@@ -1260,6 +1302,7 @@ def reading_track(request, book_id):
         is_active=True,
         defaults={"percent": 0, "current_page": 0, "started_at": timezone.localdate()},
     )
+    progress.normalize_page_totals()
     format_form = BookProgressFormatForm(instance=progress, book=book)
     celebration_progress_id = request.session.pop("finish_celebration_progress_id", None)
     show_finish_celebration = celebration_progress_id == progress.pk
@@ -1433,6 +1476,7 @@ def reading_update_notes(request, progress_id):
 def reading_set_page(request, progress_id):
     """Ручное выставление текущей страницы."""
     progress = get_object_or_404(BookProgress, pk=progress_id, user=request.user)
+    progress.normalize_page_totals()
     medium_code = request.POST.get("medium") or BookProgress.FORMAT_PAPER
     reaction_text = (request.POST.get("reaction") or "").strip()
     is_public = _parse_public_flag(request)
@@ -1592,7 +1636,7 @@ def _parse_public_flag(request):
 
 
 def _maybe_publish_feed_entry(progress, *, medium_code, reaction, is_public):
-    if not is_public:
+    if not is_public or not progress.book.is_publicly_visible:
         return
     combined = progress.get_combined_current_pages()
     current_page = None
@@ -1934,7 +1978,7 @@ def reading_mark_unfinished(request, progress_id):
 def reread_book(request, book_id):
     """Запустить перечитывание: новая запись трекера + перенос в «Читаю»."""
 
-    book = get_object_or_404(Book, pk=book_id)
+    book = get_object_or_404(Book.objects.visible_to_user(request.user), pk=book_id)
     progress = start_book_reread(request.user, book)
     if not progress:
         messages.error(request, "Не удалось запустить перечитывание.")
@@ -2013,6 +2057,10 @@ def reading_update_format(request, progress_id):
 def reading_feed(request):
     entries = (
         ReadingFeedEntry.objects.filter(is_public=True)
+        .filter(
+            book__visibility=Book.Visibility.PUBLIC,
+            book__is_hidden_by_admin=False,
+        )
         .select_related(
             "user",
             "user__profile",
@@ -2026,6 +2074,10 @@ def reading_feed(request):
     reviews_qs = (
         Rating.objects.exclude(review__isnull=True)
         .exclude(review__exact="")
+        .filter(
+            book__visibility=Book.Visibility.PUBLIC,
+            book__is_hidden_by_admin=False,
+        )
         .select_related(
             "user",
             "user__profile",
@@ -2092,6 +2144,8 @@ def reading_leaderboard(request):
                     log_date__gte=start_date,
                     log_date__lte=today,
                     pages_equivalent__gt=0,
+                    progress__book__visibility=Book.Visibility.PUBLIC,
+                    progress__book__is_hidden_by_admin=False,
                 )
                 .order_by()
                 .values("progress__user")
@@ -2154,7 +2208,13 @@ def reading_leaderboard(request):
 @login_required
 @require_POST
 def reading_feed_comment(request, entry_id):
-    entry = get_object_or_404(ReadingFeedEntry, pk=entry_id, is_public=True)
+    entry = get_object_or_404(
+        ReadingFeedEntry,
+        pk=entry_id,
+        is_public=True,
+        book__visibility=Book.Visibility.PUBLIC,
+        book__is_hidden_by_admin=False,
+    )
     form = ReadingFeedCommentForm(request.POST)
     if form.is_valid():
         comment = form.save(commit=False)
@@ -2171,7 +2231,12 @@ def reading_feed_comment(request, entry_id):
 @require_POST
 def reading_feed_review_comment(request, review_id):
     rating = get_object_or_404(
-        Rating.objects.exclude(review__isnull=True).exclude(review__exact=""),
+        Rating.objects.exclude(review__isnull=True)
+        .exclude(review__exact="")
+        .filter(
+            book__visibility=Book.Visibility.PUBLIC,
+            book__is_hidden_by_admin=False,
+        ),
         pk=review_id,
     )
     form = RatingCommentForm(request.POST)

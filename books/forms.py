@@ -641,7 +641,7 @@ class RatingForm(forms.ModelForm):
 
         if book_pk:
             book_field.initial = book_pk
-            book_field.queryset = Book.objects.filter(pk=book_pk)
+            book_field.queryset = Book.objects.visible_to_user(self.user).filter(pk=book_pk)
 
     def clean(self):
         cleaned_data = super().clean()

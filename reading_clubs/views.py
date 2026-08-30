@@ -17,12 +17,19 @@ from django.views.generic import DetailView, FormView, ListView
 from django.db.models.functions import Coalesce
 
 from accounts.services import charge_feature_access, InsufficientCoinsError
+from books.models import Book
 from user_ratings.services import award_for_discussion_post
 
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import DiscussionPostForm, ReadingClubForm, ReadingNormForm
-from .models import DiscussionPost, ReadingClub, ReadingNorm, ReadingParticipant
+from .forms import DiscussionPostForm, DiscussionPostReportForm, ReadingClubForm, ReadingNormForm
+from .models import (
+    DiscussionPost,
+    DiscussionPostReport,
+    ReadingClub,
+    ReadingNorm,
+    ReadingParticipant,
+)
 from .services import mark_topic_read
 from shelves.models import BookProgress, ShelfItem
 from shelves.services import ALL_DEFAULT_READ_SHELF_NAMES
@@ -64,6 +71,7 @@ class ReadingClubListView(ListView):
     def get_queryset(self):  # type: ignore[override]
         base_qs = (
             ReadingClub.objects.with_message_count()
+            .filter(book__visibility=Book.Visibility.PUBLIC, book__is_hidden_by_admin=False)
             .select_related("book", "book__primary_isbn", "creator")
             .prefetch_related("participants", "book__isbn")
             .order_by("start_date", "title")
@@ -151,6 +159,7 @@ class ReadingClubDetailView(DetailView):
     def get_queryset(self):  # type: ignore[override]
         return (
             ReadingClub.objects.with_message_count()
+            .filter(book__visibility=Book.Visibility.PUBLIC, book__is_hidden_by_admin=False)
             .select_related("book", "creator")
             .prefetch_related(
                 Prefetch(
@@ -252,7 +261,13 @@ class ReadingClubDetailView(DetailView):
 
 @login_required
 def reading_join(request: HttpRequest, slug: str) -> HttpResponse:
-    reading = get_object_or_404(ReadingClub, slug=slug)
+    reading = get_object_or_404(
+        ReadingClub.objects.filter(
+            book__visibility=Book.Visibility.PUBLIC,
+            book__is_hidden_by_admin=False,
+        ),
+        slug=slug,
+    )
     participant, created = ReadingParticipant.objects.get_or_create(
         reading=reading,
         user=request.user,
@@ -278,7 +293,13 @@ def reading_join(request: HttpRequest, slug: str) -> HttpResponse:
 
 @login_required
 def reading_approve_participant(request: HttpRequest, slug: str, participant_id: int) -> HttpResponse:
-    reading = get_object_or_404(ReadingClub, slug=slug)
+    reading = get_object_or_404(
+        ReadingClub.objects.filter(
+            book__visibility=Book.Visibility.PUBLIC,
+            book__is_hidden_by_admin=False,
+        ),
+        slug=slug,
+    )
     if reading.creator != request.user:
         raise Http404
     participant = get_object_or_404(ReadingParticipant, pk=participant_id, reading=reading)
@@ -293,7 +314,13 @@ class ReadingNormCreateView(LoginRequiredMixin, View):
     template_name = "reading_clubs/topic_form.html"
 
     def dispatch(self, request: HttpRequest, *args, **kwargs):
-        self.reading = get_object_or_404(ReadingClub, slug=kwargs["slug"])
+        self.reading = get_object_or_404(
+            ReadingClub.objects.filter(
+                book__visibility=Book.Visibility.PUBLIC,
+                book__is_hidden_by_admin=False,
+            ),
+            slug=kwargs["slug"],
+        )
         if self.reading.creator != request.user:
             raise Http404
         return super().dispatch(request, *args, **kwargs)
@@ -326,7 +353,13 @@ class ReadingNormUpdateView(LoginRequiredMixin, View):
     template_name = "reading_clubs/topic_form.html"
 
     def dispatch(self, request: HttpRequest, *args, **kwargs):
-        self.reading = get_object_or_404(ReadingClub, slug=kwargs["slug"])
+        self.reading = get_object_or_404(
+            ReadingClub.objects.filter(
+                book__visibility=Book.Visibility.PUBLIC,
+                book__is_hidden_by_admin=False,
+            ),
+            slug=kwargs["slug"],
+        )
         self.topic = get_object_or_404(ReadingNorm, pk=kwargs["pk"], reading=self.reading)
         if self.reading.creator != request.user:
             raise Http404
@@ -362,6 +395,10 @@ class ReadingTopicDetailView(DetailView):
     def get_queryset(self):  # type: ignore[override]
         return (
             ReadingNorm.objects.select_related("reading", "reading__book", "reading__creator")
+            .filter(
+                reading__book__visibility=Book.Visibility.PUBLIC,
+                reading__book__is_hidden_by_admin=False,
+            )
             .prefetch_related(
                 Prefetch(
                     "posts",
@@ -391,6 +428,14 @@ class ReadingTopicDetailView(DetailView):
             form = None
             if is_participant:
                 mark_topic_read(user, topic)
+            reported_post_ids = set(
+                DiscussionPostReport.objects.filter(
+                    reporter=user,
+                    post__topic=topic,
+                ).values_list("post_id", flat=True)
+            )
+        else:
+            reported_post_ids = set()
         reply_to_post = None
         if can_post:
             reply_to_post = self._get_reply_post(topic)
@@ -406,6 +451,7 @@ class ReadingTopicDetailView(DetailView):
                 "form": form,
                 "reply_to_post": reply_to_post,
                 "posts": topic.posts.all(),
+                "reported_post_ids": reported_post_ids,
             }
         )
         return context
@@ -421,6 +467,8 @@ class DiscussionPostCreateView(View):
             ReadingNorm.objects.select_related("reading"),
             pk=pk,
             reading__slug=slug,
+            reading__book__visibility=Book.Visibility.PUBLIC,
+            reading__book__is_hidden_by_admin=False,
         )
         reading = topic.reading
         if not topic.is_open():
@@ -452,5 +500,52 @@ class DiscussionPostCreateView(View):
             "is_participant": True,
             "can_post": True,
             "reply_to_post": parent_post,
+            "posts": topic.posts.select_related("author", "parent", "parent__author"),
+            "reported_post_ids": set(
+                DiscussionPostReport.objects.filter(
+                    reporter=request.user,
+                    post__topic=topic,
+                ).values_list("post_id", flat=True)
+            ),
         }
         return render(request, "reading_clubs/topic_detail.html", context)
+
+
+@method_decorator(login_required, name="dispatch")
+class DiscussionPostReportView(View):
+    def post(self, request: HttpRequest, slug: str, pk: int, post_pk: int) -> HttpResponse:
+        post = get_object_or_404(
+            DiscussionPost.objects.select_related("author", "topic", "topic__reading"),
+            pk=post_pk,
+            topic_id=pk,
+            topic__reading__slug=slug,
+            topic__reading__book__visibility=Book.Visibility.PUBLIC,
+            topic__reading__book__is_hidden_by_admin=False,
+        )
+        target_url = f"{post.topic.get_absolute_url()}#post-{post.pk}"
+
+        if post.author_id == request.user.id:
+            messages.error(request, "Нельзя пожаловаться на собственное сообщение.")
+            return redirect(target_url)
+
+        form = DiscussionPostReportForm(request.POST)
+        if not form.is_valid():
+            messages.error(request, "Выберите причину жалобы.")
+            return redirect(target_url)
+
+        _, created = DiscussionPostReport.objects.get_or_create(
+            post=post,
+            reporter=request.user,
+            defaults={
+                "reason": form.cleaned_data["reason"],
+                "details": form.cleaned_data["details"],
+                "content_snapshot": post.content,
+                "topic_snapshot": post.topic.title,
+                "reported_user": post.author,
+            },
+        )
+        if created:
+            messages.success(request, "Жалоба отправлена. Спасибо, мы проверим сообщение.")
+        else:
+            messages.info(request, "Вы уже пожаловались на это сообщение.")
+        return redirect(target_url)

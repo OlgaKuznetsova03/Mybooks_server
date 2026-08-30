@@ -195,6 +195,7 @@ class BookExchangeGame:
             challenge.offers.select_related(
                 "book", "offered_by", "offered_by__profile", "accepted_entry"
             )
+            .filter(book__visibility=Book.Visibility.PUBLIC, book__is_hidden_by_admin=False)
             .prefetch_related("book__authors")
             .order_by("-created_at")
         )
@@ -213,6 +214,8 @@ class BookExchangeGame:
     ) -> tuple[bool, str, str]:
         if challenge.status != BookExchangeChallenge.Status.ACTIVE:
             return False, "Раунд уже завершён.", "warning"
+        if not book.is_publicly_visible:
+            return False, "Эту книгу нельзя предлагать другим пользователям.", "warning"
         if offered_by == challenge.user:
             return False, "Нельзя предлагать книги самому себе.", "danger"
         if challenge.accepted_count >= challenge.target_books:
@@ -228,6 +231,13 @@ class BookExchangeGame:
         ).exists()
         if not has_read:
             return False, "Добавьте книгу в полку «Прочитал», прежде чем предлагать.", "danger"
+        receiver_has_read = ShelfItem.objects.filter(
+            shelf__user=challenge.user,
+            shelf__name__in=ALL_DEFAULT_READ_SHELF_NAMES,
+            book=book,
+        ).exists()
+        if receiver_has_read:
+            return False, "Эта книга уже есть у игрока на полке «Прочитано», предложите другую.", "warning"
         if BookExchangeOffer.objects.filter(
             challenge=challenge, offered_by=offered_by, book=book
         ).exists():
@@ -244,7 +254,10 @@ class BookExchangeGame:
     def _get_decline_stats(
         cls, challenge: BookExchangeChallenge
     ) -> tuple[int, int]:
-        result = challenge.offers.aggregate(
+        result = challenge.offers.filter(
+            book__visibility=Book.Visibility.PUBLIC,
+            book__is_hidden_by_admin=False,
+        ).aggregate(
             total=Count("id"),
             declined=Count("id", filter=Q(status=BookExchangeOffer.Status.DECLINED)),
         )
@@ -268,6 +281,8 @@ class BookExchangeGame:
         challenge = offer.challenge
         if acting_user != challenge.user:
             return False, "Только владелец раунда может принимать книги.", "danger"
+        if not offer.book.is_publicly_visible:
+            return False, "Эта книга больше недоступна для публичной игры.", "warning"
         if offer.status != BookExchangeOffer.Status.PENDING:
             return False, "Предложение уже обработано.", "info"
         if challenge.status != BookExchangeChallenge.Status.ACTIVE:
@@ -280,7 +295,10 @@ class BookExchangeGame:
             )
             if not challenge:
                 return False, "Раунд не найден.", "danger"
-            if challenge.accepted_books.count() >= challenge.target_books:
+            if challenge.accepted_books.filter(
+                book__visibility=Book.Visibility.PUBLIC,
+                book__is_hidden_by_admin=False,
+            ).count() >= challenge.target_books:
                 return False, "Вы уже приняли достаточно книг.", "info"
             now = timezone.now()
             BookExchangeOffer.objects.filter(pk=offer.pk).update(
@@ -315,6 +333,8 @@ class BookExchangeGame:
         challenge = offer.challenge
         if acting_user != challenge.user:
             return False, "Только владелец раунда может отклонять книги.", "danger"
+        if not offer.book.is_publicly_visible:
+            return False, "Эта книга больше недоступна для публичной игры.", "warning"
         if offer.status != BookExchangeOffer.Status.PENDING:
             return False, "Предложение уже обработано.", "info"
         if not cls.can_decline_offer(challenge, additional_decline=1):

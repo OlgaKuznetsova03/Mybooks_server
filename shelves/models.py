@@ -65,6 +65,42 @@ class ShelfItem(models.Model):
         return self.book.get_cover_url()
 
 
+class PurchaseList(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="purchase_lists")
+    title = models.CharField(max_length=120)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("user", "title")
+        ordering = ["title", "id"]
+        indexes = [
+            models.Index(fields=["user", "title"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.title}"
+
+
+class PurchaseListItem(models.Model):
+    purchase_list = models.ForeignKey(PurchaseList, on_delete=models.CASCADE, related_name="items")
+    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="purchase_list_items")
+    note = models.TextField(blank=True)
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("purchase_list", "book")
+        ordering = ["-added_at", "-id"]
+        indexes = [
+            models.Index(fields=["purchase_list", "-added_at"]),
+            models.Index(fields=["book"]),
+        ]
+
+    def __str__(self):
+        return f"{self.book.title} -> {self.purchase_list.title}"
+
+
 class Event(models.Model):
     KIND_CHOICES = [
         ("readathon", "Марафон"),
@@ -177,31 +213,101 @@ class BookProgress(models.Model):
         ]
 
     def get_effective_total_pages(self):
-        """Количество страниц для расчёта прогресса с учётом пользовательских данных.
-
-        Для гибридных прогрессов используем базовое количество страниц,
-        указанное пользователем или взятое из книги.
-        """
-        total = self.custom_total_pages or self.book.get_total_pages()
+        """Return the paper-page base used for overall progress."""
+        total = self.book.get_total_pages() or self.custom_total_pages
         if not total or total <= 0:
             return None
         return total
+
+    def _get_book_total_pages(self):
+        if not self.book_id:
+            return None
+        total = self.book.get_total_pages()
+        if not total or total <= 0:
+            return None
+        return total
+
+    def normalize_page_totals(self):
+        """Keep book pages as the base while preserving format-specific totals."""
+
+        book_total_pages = self._get_book_total_pages()
+        old_custom_total = self.custom_total_pages
+        changed = False
+
+        media = list(self.media.all())
+        if (
+            book_total_pages
+            and old_custom_total
+            and not media
+            and self.format != self.FORMAT_AUDIO
+        ):
+            self.media.create(
+                medium=self.format or self.FORMAT_PAPER,
+                current_page=self.current_page,
+                total_pages_override=(
+                    old_custom_total if self.format == self.FORMAT_EBOOK else None
+                ),
+            )
+            if hasattr(self, "_prefetched_objects_cache"):
+                self._prefetched_objects_cache.pop("media", None)
+            media = list(self.media.all())
+            changed = True
+
+        if book_total_pages:
+            for medium in media:
+                update_fields = []
+                if medium.medium == self.FORMAT_PAPER and medium.total_pages_override is not None:
+                    medium.total_pages_override = None
+                    update_fields.append("total_pages_override")
+                elif (
+                    medium.medium == self.FORMAT_EBOOK
+                    and medium.total_pages_override is None
+                    and old_custom_total
+                    and old_custom_total != book_total_pages
+                ):
+                    medium.total_pages_override = old_custom_total
+                    update_fields.append("total_pages_override")
+                if update_fields:
+                    medium.save(update_fields=update_fields)
+                    changed = True
+
+            if self.custom_total_pages is not None:
+                self.custom_total_pages = None
+                self.save(update_fields=["custom_total_pages"])
+                changed = True
+
+        if changed:
+            self.refresh_current_page()
+            self.recalc_percent()
+        return changed
 
     def _iter_active_media(self):
         media = list(self.media.all())
         if media:
             return media
         # Поддержка старых записей без связанных носителей
+        book_total_pages = self._get_book_total_pages()
+        legacy_total_override = None
+        if self.format != self.FORMAT_AUDIO and self.custom_total_pages:
+            if self.format == self.FORMAT_EBOOK or not book_total_pages:
+                legacy_total_override = self.custom_total_pages
         legacy = BookProgressMedium(
             progress=self,
             medium=self.format,
             current_page=self.current_page,
-            total_pages_override=self.custom_total_pages if self.format != self.FORMAT_AUDIO else None,
+            total_pages_override=legacy_total_override,
             audio_position=getattr(self, "audio_position", None),
             audio_length=self.audio_length,
             playback_speed=self.audio_playback_speed,
         )
         return [legacy]
+
+    def _clear_media_prefetch_cache(self):
+        """Drop media snapshots before recalculating values after a write."""
+
+        prefetched = getattr(self, "_prefetched_objects_cache", None)
+        if prefetched is not None:
+            prefetched.pop("media", None)
 
     def get_medium(self, medium_code):
         medium = self.media.filter(medium=medium_code).first()
@@ -219,10 +325,15 @@ class BookProgress(models.Model):
                 }
             )
         else:
+            book_total_pages = self._get_book_total_pages()
+            total_override = None
+            if self.custom_total_pages:
+                if medium_code == self.FORMAT_EBOOK or not book_total_pages:
+                    total_override = self.custom_total_pages
             defaults.update(
                 {
                     "current_page": self.current_page,
-                    "total_pages_override": self.custom_total_pages,
+                    "total_pages_override": total_override,
                 }
             )
         return self.media.create(medium=medium_code, **defaults)
@@ -372,7 +483,11 @@ class BookProgress(models.Model):
             if self.current_page != medium.current_page:
                 self.current_page = medium.current_page
                 fields.append("current_page")
-            if desired_override and self.custom_total_pages != desired_override:
+            if (
+                desired_override
+                and not self._get_book_total_pages()
+                and self.custom_total_pages != desired_override
+            ):
                 self.custom_total_pages = desired_override
                 fields.append("custom_total_pages")
             if fields:
@@ -425,6 +540,7 @@ class BookProgress(models.Model):
     def refresh_current_page(self):
         """Пересчитать текущую страницу на основе данных всех активных форматов."""
 
+        self._clear_media_prefetch_cache()
         combined = self.get_combined_current_pages()
         if combined is None:
             if self.current_page is not None:
@@ -440,6 +556,7 @@ class BookProgress(models.Model):
         return combined
     
     def recalc_percent(self):
+        self._clear_media_prefetch_cache()
         total = self.get_effective_total_pages()
         current_decimal = self.get_combined_current_pages()
         if total and current_decimal is not None:

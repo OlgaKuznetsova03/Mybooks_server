@@ -360,7 +360,7 @@ class BookExchangeOfferForm(forms.Form):
         if genre_ids:
             read_items = read_items.filter(book__genres__id__in=genre_ids)
         book_ids = read_items.values_list("book_id", flat=True).distinct()
-        field.queryset = Book.objects.filter(id__in=book_ids).order_by("title")
+        field.queryset = Book.objects.public().filter(id__in=book_ids).order_by("title")
 
     def clean(self):
         cleaned = super().clean()
@@ -371,6 +371,8 @@ class BookExchangeOfferForm(forms.Form):
         book = cleaned.get("book")
         if not book:
             return cleaned
+        if not book.is_publicly_visible:
+            raise ValidationError("Эту книгу нельзя предлагать другим пользователям.")
         if user == challenge.user:
             raise ValidationError("Нельзя предлагать книги самому себе.")
         if not ShelfItem.objects.filter(

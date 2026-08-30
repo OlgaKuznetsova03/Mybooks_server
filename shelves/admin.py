@@ -3,6 +3,8 @@ from django.contrib import admin
 from .models import (
     Shelf,
     ShelfItem,
+    PurchaseList,
+    PurchaseListItem,
     Event,
     EventParticipant,
     BookProgress,
@@ -26,6 +28,32 @@ class ShelfAdmin(admin.ModelAdmin):
 class ShelfItemAdmin(admin.ModelAdmin):
     list_display = ("shelf", "book", "added_at")
     search_fields = ("shelf__name", "book__title", "shelf__user__username")
+
+
+class PurchaseListItemInline(admin.TabularInline):
+    model = PurchaseListItem
+    extra = 0
+    autocomplete_fields = ("book",)
+
+
+@admin.register(PurchaseList)
+class PurchaseListAdmin(admin.ModelAdmin):
+    list_display = ("title", "user", "items_count", "updated_at")
+    list_filter = ("created_at", "updated_at")
+    search_fields = ("title", "description", "user__username", "user__email")
+    inlines = [PurchaseListItemInline]
+
+    def items_count(self, obj):
+        return obj.items.count()
+
+    items_count.short_description = "Книг"
+
+
+@admin.register(PurchaseListItem)
+class PurchaseListItemAdmin(admin.ModelAdmin):
+    list_display = ("purchase_list", "book", "added_at")
+    search_fields = ("purchase_list__title", "purchase_list__user__username", "book__title")
+    autocomplete_fields = ("book",)
 
 
 class EventParticipantInline(admin.TabularInline):

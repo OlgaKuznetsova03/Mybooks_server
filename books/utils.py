@@ -12,6 +12,7 @@ from urllib.request import Request, urlopen
 
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import UploadedFile
+from django.db.models import Q
 
 # We import lazily in functions to avoid circular imports during Django app
 # initialization.
@@ -88,6 +89,32 @@ def normalize_isbn(value: str | None) -> str:
     if not value:
         return ""
     return "".join(ch for ch in str(value).upper() if ch.isdigit() or ch == "X")
+
+
+def yo_equivalent_variants(query: str) -> list[str]:
+    lowered = (query or "").strip().lower()
+    variants = {lowered, lowered.replace("ё", "е"), lowered.replace("е", "ё")}
+    return [value for value in variants if value]
+
+
+def build_book_search_filter(query: str | None) -> Q:
+    """Build a lightweight book search filter for title, author name and exact ISBN."""
+
+    cleaned = (query or "").strip()
+    search_filter = Q()
+    if not cleaned:
+        return search_filter
+
+    text_filter = Q()
+    for variant in yo_equivalent_variants(cleaned)[:3]:
+        text_filter |= Q(title__icontains=variant) | Q(authors__name__icontains=variant)
+    search_filter |= text_filter
+
+    isbn_query = normalize_isbn(cleaned)
+    if len(isbn_query) in (10, 13):
+        search_filter |= Q(isbn__isbn=isbn_query) | Q(isbn__isbn13=isbn_query)
+
+    return search_filter
 
 
 def download_cover_from_url(

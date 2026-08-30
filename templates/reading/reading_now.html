@@ -360,6 +360,7 @@
     overflow: hidden;
   }
 </style>
+<link rel="stylesheet" href="{% static 'css/current-reading-image-generator.css' %}?v={{ STATIC_VERSION }}">
 {% endblock %}
 
 {% block content %}
@@ -371,9 +372,16 @@
         <p class="text-muted mb-1">Ваши активные книги</p>
         <h1 class="h3 mb-0">Продолжайте читать книги на полке</h1>
       </div>
-      <a class="btn btn-outline-dark btn-magic" href="{% url 'shelves:reading_feed' %}">
-        <i class="bi bi-activity me-2"></i>Лента чтения
-      </a>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        {% if items %}
+          <button type="button" class="btn btn-outline-dark btn-magic current-reading-image-trigger js-current-reading-image">
+            <i class="bi bi-image"></i>Для истории <span aria-hidden="true">· 20 ◉</span>
+          </button>
+        {% endif %}
+        <a class="btn btn-outline-dark btn-magic" href="{% url 'shelves:reading_feed' %}">
+          <i class="bi bi-activity me-2"></i>Лента чтения
+        </a>
+      </div>
     </div>
   </div>
 </section>
@@ -523,4 +531,5 @@
     });
   });
 </script>
+<script src="{% static 'js/current-reading-image-generator.js' %}?v={{ STATIC_VERSION }}"></script>
 {% endblock %}

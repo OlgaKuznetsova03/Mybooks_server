@@ -6,6 +6,9 @@ app_name = "games"
 
 urlpatterns = [
     path("", views.game_list, name="index"),
+    path("monthly-mini-books/", views.monthly_mini_books, name="monthly_mini_books"),
+    path("monthly-book-list/", views.monthly_book_list, name="monthly_book_list"),
+    path("monthly-pages-minutes/", views.monthly_pages_minutes, name="monthly_pages_minutes"),
     path("book-exchange/", views.book_exchange_dashboard, name="book_exchange"),
     path(
         "book-exchange/<str:username>/<int:round_number>/",

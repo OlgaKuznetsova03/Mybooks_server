@@ -1,6 +1,7 @@
 {% load shelf_extras %}
 {% with variant=variant|default:shelf.variant %}
 <section class="genre-shelf-card card border-0 shadow-sm{% if variant %} genre-shelf-card--{{ variant }}{% endif %}">
+  {% if include_styles|default_if_none:1 %}
   <style>
     /* ====== ЛОКАЛЬНЫЕ ПЕРЕМЕННЫЕ ====== */
     .genre-shelf-card{
@@ -161,6 +162,7 @@
 
     .genre-shelf-card__empty{ color: var(--bs-secondary-color); margin:0; padding:.5rem 0 .25rem; }
   </style>
+  {% endif %}
 
   <div class="genre-shelf-card__body">
 

@@ -230,6 +230,42 @@ class CoinTransaction(models.Model):
         )
 
 
+class RewardAdTicket(models.Model):
+    class Provider(models.TextChoices):
+        VK = ("vk", "VK Реклама")
+        YANDEX = ("yandex", "Яндекс Реклама")
+
+    profile = models.ForeignKey(
+        Profile,
+        on_delete=models.CASCADE,
+        related_name="reward_ad_tickets",
+    )
+    token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    provider = models.CharField(max_length=20, choices=Provider.choices)
+    ad_unit_id = models.CharField(max_length=120, blank=True)
+    issued_at = models.DateTimeField(auto_now_add=True)
+    not_before = models.DateTimeField()
+    expires_at = models.DateTimeField()
+    claimed_at = models.DateTimeField(blank=True, null=True)
+    transaction = models.OneToOneField(
+        CoinTransaction,
+        on_delete=models.SET_NULL,
+        related_name="reward_ad_ticket",
+        blank=True,
+        null=True,
+    )
+
+    class Meta:
+        ordering = ("-issued_at",)
+        indexes = [
+            models.Index(fields=("profile", "issued_at"), name="reward_ad_profile_issued_idx"),
+            models.Index(fields=("profile", "claimed_at"), name="reward_ad_profile_claimed_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"RewardAdTicket({self.profile.user.username}, {self.provider}, {self.token})"
+
+
 class PremiumPayment(models.Model):
     class PaymentMethod(models.TextChoices):
         YOOMONEY = ("yoomoney", "YooKassa")

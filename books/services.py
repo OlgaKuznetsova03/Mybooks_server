@@ -165,6 +165,8 @@ def register_book_edition(
     force_new: bool = False,
     isbn_metadata: Mapping[str, Mapping[str, Any]] | None = None,
     submitted_by=None,
+    owner=None,
+    visibility: str | None = None,
 ) -> EditionRegistrationResult:
     """Register a new edition and attach it to an existing book when possible."""
 
@@ -194,6 +196,10 @@ def register_book_edition(
         downloaded_cover = download_cover_from_url(metadata_cover_url)
         if downloaded_cover:
             cover_file = downloaded_cover
+
+    visibility = visibility or Book.Visibility.PUBLIC
+    if visibility not in {choice[0] for choice in Book.Visibility.choices}:
+        visibility = Book.Visibility.PUBLIC
     
     with transaction.atomic():
         book: Optional[Book]
@@ -203,9 +209,10 @@ def register_book_edition(
         else:
             key = build_edition_group_key(title, [author.name for author in authors])
             book = None
-            if key and not force_new:
+            if key and not force_new and visibility == Book.Visibility.PUBLIC:
                 book = (
                     Book.objects.select_for_update()
+                    .public()
                     .filter(edition_group_key=key)
                     .first()
                 )
@@ -220,6 +227,8 @@ def register_book_edition(
                 age_rating=age_rating or None,
                 language=language or None,
                 audio=audio,
+                owner=owner,
+                visibility=visibility,
             )
             book.authors.set(authors)
             if genres:

@@ -30,4 +30,9 @@ urlpatterns = [
         views.DiscussionPostCreateView.as_view(),
         name="post_add",
     ),
+    path(
+        "<slug:slug>/topics/<int:pk>/posts/<int:post_pk>/report/",
+        views.DiscussionPostReportView.as_view(),
+        name="post_report",
+    ),
 ]

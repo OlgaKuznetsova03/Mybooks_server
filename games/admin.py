@@ -8,6 +8,8 @@ from .models import (
     GameShelfBook,
     GameShelfPurchase,
     GameShelfState,
+    MonthlyChallenge,
+    MonthlyChallengeBook,
     NobelLaureateAssignment,
     YasnayaPolyanaNominationBook,
 )
@@ -109,3 +111,18 @@ class YasnayaPolyanaNominationBookAdmin(admin.ModelAdmin):
     list_filter = ("is_shortlist",)
     search_fields = ("book__title", "book__authors__name")
     autocomplete_fields = ("book",)
+
+
+class MonthlyChallengeBookInline(admin.TabularInline):
+    model = MonthlyChallengeBook
+    extra = 0
+    autocomplete_fields = ("book",)
+
+
+@admin.register(MonthlyChallenge)
+class MonthlyChallengeAdmin(admin.ModelAdmin):
+    list_display = ("user", "kind", "month", "target_books", "target_pages", "target_minutes", "awarded_at")
+    list_filter = ("kind", "month")
+    search_fields = ("user__username",)
+    autocomplete_fields = ("user",)
+    inlines = (MonthlyChallengeBookInline,)

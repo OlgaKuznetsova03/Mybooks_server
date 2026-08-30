@@ -14,7 +14,19 @@ class YasnayaPolyanaForeign2026Game:
     @classmethod
     def get_game(cls) -> Game:
         game, _ = Game.objects.get_or_create(
-                slug=cls.SLUG,
-                defaults={"title": cls.TITLE, "description": cls.DESCRIPTION, "year": 2026},
-            )
+            slug=cls.SLUG,
+            defaults={"title": cls.TITLE, "description": cls.DESCRIPTION, "year": 2026},
+        )
+        update_fields = []
+        if game.year != 2026:
+            game.year = 2026
+            update_fields.append("year")
+        if not game.title:
+            game.title = cls.TITLE
+            update_fields.append("title")
+        if not game.description:
+            game.description = cls.DESCRIPTION
+            update_fields.append("description")
+        if update_fields:
+            game.save(update_fields=update_fields)
         return game

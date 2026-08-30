@@ -1,0 +1,20 @@
+[0;1;32m●[0m mybooks.service - Gunicorn service for MyBooks Django project
+     Loaded: loaded (]8;;file://nlxawsjlmp/etc/systemd/system/mybooks.service/etc/systemd/system/mybooks.service]8;;; [0;1;32menabled[0m; preset: [0;1;32menabled[0m)
+     Active: [0;1;32mactive (running)[0m since Mon 2026-08-24 14:01:27 UTC; 51s ago
+   Main PID: 2985372 (python)
+      Tasks: 4 (limit: 4653)
+     Memory: 381.8M (peak: 382.3M)
+        CPU: 6.166s
+     CGroup: /system.slice/mybooks.service
+             ├─[0;38;5;245m2985372 /srv/kalejdoskop/Mybooks/venv/bin/python -m gunicorn --workers 3 --bind 127.0.0.1:8001 config.wsgi:application[0m
+             ├─[0;38;5;245m2985375 /srv/kalejdoskop/Mybooks/venv/bin/python -m gunicorn --workers 3 --bind 127.0.0.1:8001 config.wsgi:application[0m
+             ├─[0;38;5;245m2985376 /srv/kalejdoskop/Mybooks/venv/bin/python -m gunicorn --workers 3 --bind 127.0.0.1:8001 config.wsgi:application[0m
+             └─[0;38;5;245m2985377 /srv/kalejdoskop/Mybooks/venv/bin/python -m gunicorn --workers 3 --bind 127.0.0.1:8001 config.wsgi:application[0m
+
+Aug 24 14:01:27 nlxawsjlmp systemd[1]: Started mybooks.service - Gunicorn service for MyBooks Django project.
+Aug 24 14:01:28 nlxawsjlmp python[2985372]: [2026-08-24 14:01:28 +0000] [2985372] [INFO] Starting gunicorn 23.0.0
+Aug 24 14:01:28 nlxawsjlmp python[2985372]: [2026-08-24 14:01:28 +0000] [2985372] [INFO] Listening at: http://127.0.0.1:8001 (2985372)
+Aug 24 14:01:28 nlxawsjlmp python[2985372]: [2026-08-24 14:01:28 +0000] [2985372] [INFO] Using worker: sync
+Aug 24 14:01:28 nlxawsjlmp python[2985375]: [2026-08-24 14:01:28 +0000] [2985375] [INFO] Booting worker with pid: 2985375
+Aug 24 14:01:28 nlxawsjlmp python[2985376]: [2026-08-24 14:01:28 +0000] [2985376] [INFO] Booting worker with pid: 2985376
+Aug 24 14:01:28 nlxawsjlmp python[2985377]: [2026-08-24 14:01:28 +0000] [2985377] [INFO] Booting worker with pid: 2985377

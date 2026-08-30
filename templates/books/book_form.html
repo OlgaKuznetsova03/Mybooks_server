@@ -60,10 +60,10 @@
           {% endif %}
 
           <!-- ПОИСК КНИГИ -->
-          <div id="book-lookup" class="mb-4 rt-highlight rt-pulse-once" data-lookup-url="{% url 'book_lookup' %}">
+          <div id="book-lookup" class="mb-4 rt-highlight rt-pulse-once" data-lookup-url="{% url 'book_lookup' %}" data-external-provider-label="{{ external_provider_label|default:'Google Books' }}">
             <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
               <h2 class="h5 mb-0">Поиск книги</h2>
-              <span class="text-muted small">Поиск выполняется одновременно на сайте и в ISBNdb.</span>
+              <span class="text-muted small">Поиск выполняется одновременно на сайте и в {{ external_provider_label|default:'Google Books' }}.</span>
             </div>
             <div class="row g-3 align-items-end">
               <div class="col-md-4">
@@ -105,7 +105,7 @@
 
               <div class="mb-3" data-role="external-section" hidden>
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                  <h3 class="h6 mb-0">Найдено через ISBNdb</h3>
+                  <h3 class="h6 mb-0">Найдено через {{ external_provider_label|default:'Google Books' }}</h3>
                   <span class="text-muted small">Выберите подходящее издание, чтобы заполнить форму автоматически.</span>
                 </div>
                 <div class="vstack gap-3" data-role="external-results"></div>
@@ -267,6 +267,7 @@
       if (!lookupRoot) return;
 
       const lookupUrl = lookupRoot.dataset.lookupUrl;
+      const externalProviderLabel = lookupRoot.dataset.externalProviderLabel || 'Google Books';
       const titleInput = document.getElementById('book-lookup-title');
       const authorInput = document.getElementById('book-lookup-author');
       const isbnInput = document.getElementById('book-lookup-isbn');
@@ -451,11 +452,15 @@
           if (item.cover_url) {
             const thumbWrapper = document.createElement('div');
             thumbWrapper.className = 'ratio ratio-3x4 flex-shrink-0';
+            thumbWrapper.style.width = '72px';
             thumbWrapper.style.maxWidth = '72px';
             const img = document.createElement('img');
             img.src = item.cover_url;
             img.alt = `Обложка книги ${item.title}`;
             img.className = 'rounded object-fit-cover';
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'cover';
             thumbWrapper.appendChild(img);
             card.appendChild(thumbWrapper);
           }
@@ -516,8 +521,16 @@
         showCoverPreview(item.cover_url || '');
 
         if (feedback) {
-          feedback.textContent = 'Данные заполнены из ISBNdb. Проверьте и дополните при необходимости.';
+          feedback.textContent = `Данные заполнены из ${externalProviderLabel}. Проверьте и дополните при необходимости.`;
           feedback.classList.remove('text-muted');
+        }
+        const firstFormField = titleField || authorsField || document.querySelector('form [id^="id_"]');
+        if (firstFormField) {
+          firstFormField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          window.setTimeout(() => {
+            try { firstFormField.focus({ preventScroll: true }); }
+            catch (err) { firstFormField.focus(); }
+          }, 350);
         }
       }
 
@@ -551,11 +564,15 @@
           if (item.cover_url) {
             const cover = document.createElement('div');
             cover.className = 'ratio ratio-3x4 flex-shrink-0';
+            cover.style.width = '96px';
             cover.style.maxWidth = '96px';
             const img = document.createElement('img');
             img.src = item.cover_url;
             img.alt = `Обложка книги ${item.title}`;
             img.className = 'rounded object-fit-cover shadow-sm';
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'cover';
             cover.appendChild(img);
             header.appendChild(cover);
           }
@@ -636,7 +653,7 @@
             sourceLink.target = '_blank';
             sourceLink.rel = 'noopener';
             sourceLink.className = 'btn btn-sm btn-outline-secondary';
-            sourceLink.textContent = 'Открыть в ISBNdb';
+            sourceLink.textContent = `Открыть в ${externalProviderLabel}`;
             header.appendChild(sourceLink);
           }
 
@@ -688,6 +705,9 @@
         if (title) params.set('title', title);
         if (author) params.set('author', author);
         if (isbn) params.set('isbn', isbn);
+        params.set('limit', '20');
+        params.set('external', '1');
+        params.set('external_limit', '30');
 
         clearResults();
         setLoading(true);
@@ -706,14 +726,22 @@
 
           const data = await response.json();
           if (resultsRoot) resultsRoot.hidden = false;
-          renderLocal(data.local_results || []);
-          renderExternal(data.external_results || [], data.external_error);
+          const localItems = data.local_results || [];
+          const externalItems = data.external_results || [];
+          renderLocal(localItems);
+          renderExternal(externalItems, data.external_error);
 
-          if (feedback && data.local_results?.length) {
-            feedback.textContent = 'Эти книги уже есть на сайте. Убедитесь, что вы добавляете другое издание или книгу.';
+          if (feedback && localItems.length && externalItems.length) {
+            feedback.textContent = `Нашли книги на сайте и варианты из ${externalProviderLabel} ниже. Выберите подходящее издание или продолжайте ручное добавление.`;
+            feedback.classList.remove('text-muted');
+          } else if (feedback && localItems.length) {
+            feedback.textContent = `Нашли книги на сайте. Если нужной нет в списке, проверьте блок ${externalProviderLabel} ниже или уточните запрос.`;
+            feedback.classList.remove('text-muted');
+          } else if (feedback && externalItems.length) {
+            feedback.textContent = `Нашли варианты из ${externalProviderLabel}. Выберите подходящее издание, чтобы заполнить форму автоматически.`;
             feedback.classList.remove('text-muted');
           } else if (feedback) {
-            feedback.textContent = 'Мы не нашли книгу на сайте. Проверьте результаты ISBNdb ниже или добавьте данные вручную.';
+            feedback.textContent = `Мы не нашли книгу на сайте. Проверьте результаты ${externalProviderLabel} ниже или добавьте данные вручную.`;
             feedback.classList.remove('text-muted');
           }
         } catch (err) {

@@ -1,0 +1,430 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Главная · Калейдоскоп книг{% endblock %}
+{% block body_class %} home-page home-page--modern{% endblock %}
+
+{% block extra_css %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'config/home-modern.css' %}?v={{ STATIC_VERSION }}">
+  <link rel="stylesheet" href="{% static 'css/current-reading-image-generator.css' %}?v={{ STATIC_VERSION }}">
+{% endblock %}
+
+{% block content %}
+  <div class="home-layout">
+    {% if user.is_authenticated %}
+      <section class="home-band home-reading" aria-labelledby="current-reading-title">
+        <div class="home-heading">
+          <div class="home-heading__copy">
+            <span class="home-eyebrow">Читаю сейчас</span>
+            <h1 id="current-reading-title">Продолжить чтение</h1>
+            <p>Книги и актуальный прогресс всегда под рукой.</p>
+          </div>
+          <div class="home-heading__actions">
+            {% if reading_items %}
+              <button type="button" class="home-button home-button--ghost js-current-reading-image">
+                <i class="bi bi-image" aria-hidden="true"></i>
+                <span>Для истории</span>
+                <span class="home-price">20 ◉</span>
+              </button>
+            {% endif %}
+            <a class="home-button home-button--ghost" href="{% url 'shelves:reading_now' %}">
+              <i class="bi bi-journal-text" aria-hidden="true"></i>
+              <span>Все книги</span>
+            </a>
+          </div>
+        </div>
+
+        {% if reading_items %}
+          <div class="home-reading-grid" role="list">
+            {% for item in reading_items %}
+              <article class="reading-card" role="listitem">
+                <a class="reading-card__cover" href="{% url 'book_detail' item.book.id %}">
+                  {% with cover_url=item.book.get_cover_url %}
+                    {% if cover_url %}
+                      <img src="{{ cover_url }}" alt="Обложка книги {{ item.book.title }}" loading="{% if forloop.first %}eager{% else %}lazy{% endif %}">
+                    {% else %}
+                      <img src="{% static 'books/cover-placeholder-2x3.png' %}" alt="Обложка отсутствует">
+                    {% endif %}
+                  {% endwith %}
+                </a>
+                <div class="reading-card__body">
+                  <div class="reading-card__topline">
+                    {% if item.progress_label %}<span class="home-chip">{{ item.progress_label }}</span>{% endif %}
+                    {% if item.progress %}<strong>{{ item.progress_percent|floatformat:"0" }}%</strong>{% endif %}
+                  </div>
+                  <a class="reading-card__title" href="{% url 'book_detail' item.book.id %}">{{ item.book.title }}</a>
+                  {% with authors=item.book.authors.all %}
+                    {% if authors %}<p class="reading-card__author">{{ authors|join:", " }}</p>{% endif %}
+                  {% endwith %}
+
+                  {% if item.progress %}
+                    <div class="home-progress" aria-label="Прогресс {{ item.progress_percent|floatformat:'0' }} процентов">
+                      <span style="width: {{ item.progress_percent|floatformat:'0' }}%"></span>
+                    </div>
+                    <div class="reading-card__progress-meta">
+                      {% if item.progress_current_page %}<span>{{ item.progress_current_page }} стр.</span>{% endif %}
+                      {% if item.progress_total_pages %}<span>из {{ item.progress_total_pages }}</span>{% endif %}
+                    </div>
+                  {% else %}
+                    <p class="reading-card__empty">Прогресс пока не добавлен.</p>
+                  {% endif %}
+
+                  <div class="reading-card__actions">
+                    <a class="home-button home-button--primary" href="{% url 'shelves:reading_track' item.book.id %}">
+                      <i class="bi bi-graph-up-arrow" aria-hidden="true"></i>
+                      <span>К трекеру</span>
+                    </a>
+                    <a class="home-icon-button" href="{% url 'book_detail' item.book.id %}" aria-label="Открыть карточку книги {{ item.book.title }}" title="Карточка книги">
+                      <i class="bi bi-arrow-up-right" aria-hidden="true"></i>
+                    </a>
+                  </div>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="home-empty">
+            <i class="bi bi-book" aria-hidden="true"></i>
+            <div>
+              <h2>На полке «Читаю» пока нет книг</h2>
+              <p>Добавьте книгу и откройте трекер, чтобы видеть прогресс здесь.</p>
+            </div>
+            <a class="home-button home-button--primary" href="{% url 'shelves:reading_now' %}">Добавить книгу</a>
+          </div>
+        {% endif %}
+      </section>
+
+      <section class="home-band home-feed" aria-labelledby="tracker-feed-title">
+        <div class="home-heading home-heading--compact">
+          <div class="home-heading__copy">
+            <span class="home-eyebrow">Лента трекера</span>
+            <h2 id="tracker-feed-title">Последние обновления</h2>
+            <p>15 свежих записей о прогрессе читателей.</p>
+          </div>
+          {% if latest_tracker_updates %}<span class="home-count" aria-label="Записей в ленте">{{ latest_tracker_updates|length }}</span>{% endif %}
+        </div>
+
+        {% if latest_tracker_updates %}
+          <div class="tracker-strip" role="list" aria-label="Последние записи в трекере">
+            {% for update in latest_tracker_updates %}
+              {% with display_name=update.user.get_full_name|default:update.user.username cover_url=update.book.get_cover_url %}
+                <article class="tracker-card" role="listitem">
+                  <div class="tracker-card__user">
+                    <a href="{% url 'profile' update.user.username %}" class="tracker-card__avatar" aria-label="Профиль {{ display_name }}">
+                      {% if update.user.profile.avatar %}
+                        <img src="{{ update.user.profile.avatar.url }}" alt="" loading="lazy">
+                      {% else %}
+                        <span>{{ update.user.username|slice:":1"|upper }}</span>
+                      {% endif %}
+                    </a>
+                    <div>
+                      <a href="{% url 'profile' update.user.username %}" class="tracker-card__username">{{ update.user.username }}</a>
+                      <time datetime="{{ update.updated_at|date:'c' }}">{{ update.updated_at|date:"d.m.Y H:i" }}</time>
+                    </div>
+                  </div>
+
+                  <div class="tracker-card__book">
+                    <a class="tracker-card__cover" href="{% url 'book_detail' update.book.id %}">
+                      {% if cover_url %}
+                        <img src="{{ cover_url }}" alt="Обложка книги {{ update.book.title }}" loading="lazy">
+                      {% else %}
+                        <img src="{% static 'books/cover-placeholder-2x3.png' %}" alt="Обложка отсутствует">
+                      {% endif %}
+                    </a>
+                    <div>
+                      <a href="{% url 'book_detail' update.book.id %}" class="tracker-card__title">{{ update.book.title }}</a>
+                      <strong class="tracker-card__percent">{{ update.percent|floatformat:"0" }}%</strong>
+                    </div>
+                  </div>
+
+                  <div class="home-progress" aria-label="Прогресс {{ update.percent|floatformat:'0' }} процентов">
+                    <span style="width: {{ update.percent|floatformat:'0' }}%"></span>
+                  </div>
+                  <div class="tracker-card__progress-meta">
+                    <span>Добавлено {{ update.percent|floatformat:"0" }}%</span>
+                    {% if update.current_page %}<span>{{ update.current_page }} стр.</span>{% endif %}
+                  </div>
+
+                  <div class="tracker-reactions" data-reaction-widget data-progress-id="{{ update.id }}" data-react-url="{% url 'toggle_tracker_reaction' update.id %}">
+                    <div class="tracker-reactions__summary">
+                      <div class="tracker-reactions__list" data-reaction-list>
+                        {% for reaction_item in update.reaction_summary %}
+                          <button type="button" class="tracker-reaction{% if reaction_item.emoji in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="{{ reaction_item.emoji }}" aria-label="Реакция {{ reaction_item.emoji }}: {{ reaction_item.count }}">
+                            {% if reaction_item.icon_url %}
+                              <img src="{{ reaction_item.icon_url }}" alt="{{ reaction_item.emoji }}" loading="lazy">
+                            {% else %}
+                              <span aria-hidden="true">{{ reaction_item.emoji }}</span>
+                            {% endif %}
+                            <span data-count>{{ reaction_item.count }}</span>
+                          </button>
+                        {% empty %}
+                          <span class="tracker-reactions__empty">Пока без реакций</span>
+                        {% endfor %}
+                      </div>
+                      <button type="button" class="tracker-reactions__toggle" data-reaction-toggle aria-expanded="false" aria-label="Выбрать реакцию">
+                        <i class="bi bi-plus" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                    <div class="tracker-reactions__picker" data-reaction-picker hidden>
+                      {% for reaction in home_reaction_choices %}
+                        <button type="button" class="tracker-reaction{% if reaction.emoji in update.user_reaction_emojis %} is-active{% endif %}" data-emoji="{{ reaction.emoji }}" aria-label="Поставить реакцию {{ reaction.emoji }}">
+                          {% if reaction.icon_url %}
+                            <img src="{{ reaction.icon_url }}" alt="{{ reaction.emoji }}" loading="lazy">
+                          {% else %}
+                            <span aria-hidden="true">{{ reaction.emoji }}</span>
+                          {% endif %}
+                        </button>
+                      {% endfor %}
+                    </div>
+                  </div>
+                </article>
+              {% endwith %}
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="home-empty home-empty--small">
+            <i class="bi bi-activity" aria-hidden="true"></i>
+            <p>Свежих публичных обновлений пока нет.</p>
+          </div>
+        {% endif %}
+      </section>
+
+      {% if latest_author_offers or latest_blogger_requests %}
+        <section class="home-band home-collaboration" aria-labelledby="collaboration-title">
+          <div class="home-heading home-heading--compact">
+            <div class="home-heading__copy">
+              <span class="home-eyebrow">Сотрудничество</span>
+              <h2 id="collaboration-title">Авторы и блогеры ищут друг друга</h2>
+              <p>Свежие предложения и заявки от сообщества.</p>
+            </div>
+            <a class="home-button home-button--ghost" href="{% url 'collaborations:offer_list' %}">Все предложения</a>
+          </div>
+
+          <div class="collaboration-strip" role="list">
+            {% for offer in latest_author_offers %}
+              {% with cover_url=offer.get_attached_book_cover_url %}
+                <article class="collaboration-card" role="listitem">
+                  <div class="collaboration-card__person">
+                    {% if offer.author.profile.avatar %}
+                      <img src="{{ offer.author.profile.avatar.url }}" alt="" loading="lazy">
+                    {% else %}
+                      <span>{{ offer.author.username|slice:":1"|upper }}</span>
+                    {% endif %}
+                    <a href="{% url 'profile' offer.author.username %}">{{ offer.author.username }}</a>
+                  </div>
+                  <div class="collaboration-card__content">
+                    <a class="collaboration-card__cover" href="{% url 'collaborations:offer_detail' offer.pk %}">
+                      {% if cover_url %}
+                        <img src="{{ cover_url }}" alt="Обложка {{ offer.title }}" loading="lazy">
+                      {% else %}
+                        <img src="{% static 'books/cover-placeholder-2x3.png' %}" alt="Обложка отсутствует">
+                      {% endif %}
+                    </a>
+                    <div>
+                      <span class="home-chip">Авторское предложение</span>
+                      <a class="collaboration-card__title" href="{% url 'collaborations:offer_detail' offer.pk %}">{{ offer.title }}</a>
+                      <p>{{ offer.get_offered_format_display }} · {{ offer.created_at|date:"d.m.Y" }}</p>
+                    </div>
+                  </div>
+                </article>
+              {% endwith %}
+            {% endfor %}
+
+            {% for request_item in latest_blogger_requests %}
+              <article class="collaboration-card" role="listitem">
+                <div class="collaboration-card__person">
+                  {% if request_item.blogger.profile.avatar %}
+                    <img src="{{ request_item.blogger.profile.avatar.url }}" alt="" loading="lazy">
+                  {% else %}
+                    <span>{{ request_item.blogger.username|slice:":1"|upper }}</span>
+                  {% endif %}
+                  <a href="{% url 'profile' request_item.blogger.username %}">{{ request_item.blogger.username }}</a>
+                </div>
+                <div class="collaboration-card__content collaboration-card__content--request">
+                  <div>
+                    <span class="home-chip">Заявка блогера</span>
+                    <a class="collaboration-card__title" href="{% url 'collaborations:blogger_request_detail' request_item.pk %}">{{ request_item.title }}</a>
+                    <p>{{ request_item.get_collaboration_type_display }} · {{ request_item.created_at|date:"d.m.Y" }}</p>
+                  </div>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+    {% else %}
+      <section class="home-band home-welcome" aria-labelledby="welcome-title">
+        <div class="home-welcome__copy">
+          <span class="home-eyebrow">Калейдоскоп книг</span>
+          <h1 id="welcome-title">Ваша библиотека, чтение и книжное сообщество в одном месте</h1>
+          <p>Ведите полки, отмечайте прогресс, участвуйте в совместных чтениях, марафонах и книжных играх.</p>
+          <div class="home-heading__actions">
+            <a class="home-button home-button--primary" href="{% url 'login' %}">Войти</a>
+            <a class="home-button home-button--ghost" href="{% url 'signup' %}">Создать аккаунт</a>
+          </div>
+        </div>
+        <div class="home-welcome__features">
+          <a href="{% url 'shelves:home_library' %}"><i class="bi bi-bookshelf" aria-hidden="true"></i><span>Домашняя библиотека</span></a>
+          <a href="{% url 'games:index' %}"><i class="bi bi-controller" aria-hidden="true"></i><span>Игры и вызовы</span></a>
+          <a href="{% url 'collaborations:offer_list' %}"><i class="bi bi-people" aria-hidden="true"></i><span>Сотрудничество</span></a>
+        </div>
+      </section>
+    {% endif %}
+
+    <section class="home-band home-community" aria-labelledby="community-title" data-community-tabs>
+      <div class="home-heading home-heading--compact">
+        <div class="home-heading__copy">
+          <span class="home-eyebrow">Сообщество</span>
+          <h2 id="community-title">Читаем вместе</h2>
+          <p>Обсуждения по общей книге и тематические марафоны.</p>
+        </div>
+      </div>
+
+      <div class="home-tabs" role="tablist" aria-label="Формат совместного чтения">
+        <button type="button" class="home-tab is-active" role="tab" aria-selected="true" aria-controls="community-clubs" id="community-clubs-tab" data-community-tab="clubs">
+          <i class="bi bi-people" aria-hidden="true"></i>
+          <span>Совместные чтения</span>
+          <span class="home-tab__count">{{ active_clubs|length }}</span>
+        </button>
+        <button type="button" class="home-tab" role="tab" aria-selected="false" aria-controls="community-marathons" id="community-marathons-tab" data-community-tab="marathons">
+          <i class="bi bi-flag" aria-hidden="true"></i>
+          <span>Марафоны</span>
+          <span class="home-tab__count">{{ active_marathons|length }}</span>
+        </button>
+      </div>
+
+      <div class="home-tab-panel" id="community-clubs" role="tabpanel" aria-labelledby="community-clubs-tab" data-community-panel="clubs">
+        <div class="home-subheading">
+          <div>
+            <h3>Идут сейчас</h3>
+            <p>Можно присоединиться к обсуждению книги.</p>
+          </div>
+          <a href="{% url 'reading_clubs:list' %}">Все чтения <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+        </div>
+
+        {% if active_clubs %}
+          <div class="community-grid" role="list">
+            {% for club in active_clubs %}
+              <a class="community-card" href="{{ club.get_absolute_url }}" role="listitem">
+                <span class="community-card__cover">
+                  {% with cover_url=club.book.get_cover_url %}
+                    {% if cover_url %}
+                      <img src="{{ cover_url }}" alt="Обложка книги {{ club.book.title }}" loading="lazy">
+                    {% else %}
+                      <img src="{% static 'books/cover-placeholder-2x3.png' %}" alt="Обложка отсутствует">
+                    {% endif %}
+                  {% endwith %}
+                </span>
+                <span class="community-card__body">
+                  <span class="community-card__status"><i class="bi bi-broadcast-pin" aria-hidden="true"></i> Идёт сейчас</span>
+                  <strong>{{ club.title }}</strong>
+                  <span class="community-card__book">{{ club.book.title }}</span>
+                  <span class="community-card__date">{{ club.start_date|date:"d.m.Y" }}{% if club.end_date %} – {{ club.end_date|date:"d.m.Y" }}{% endif %}</span>
+                  <span class="community-card__meta"><span><i class="bi bi-people" aria-hidden="true"></i> {{ club.approved_participant_count }}</span><span><i class="bi bi-chat-dots" aria-hidden="true"></i> {{ club.message_count }}</span></span>
+                </span>
+              </a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="home-empty home-empty--small"><i class="bi bi-people" aria-hidden="true"></i><p>Активных совместных чтений пока нет.</p></div>
+        {% endif %}
+
+        {% if upcoming_clubs %}
+          <div class="home-subheading home-subheading--secondary">
+            <div><h3>Скоро начнутся</h3><p>Запланированные чтения, к которым можно подготовиться.</p></div>
+          </div>
+          <div class="community-grid" role="list">
+            {% for club in upcoming_clubs %}
+              <a class="community-card community-card--upcoming" href="{{ club.get_absolute_url }}" role="listitem">
+                <span class="community-card__cover">
+                  {% with cover_url=club.book.get_cover_url %}
+                    {% if cover_url %}<img src="{{ cover_url }}" alt="Обложка книги {{ club.book.title }}" loading="lazy">{% else %}<img src="{% static 'books/cover-placeholder-2x3.png' %}" alt="Обложка отсутствует">{% endif %}
+                  {% endwith %}
+                </span>
+                <span class="community-card__body">
+                  <span class="community-card__status"><i class="bi bi-calendar-event" aria-hidden="true"></i> Скоро</span>
+                  <strong>{{ club.title }}</strong>
+                  <span class="community-card__book">{{ club.book.title }}</span>
+                  <span class="community-card__date">Старт {{ club.start_date|date:"d.m.Y" }}</span>
+                  <span class="community-card__meta"><span><i class="bi bi-people" aria-hidden="true"></i> {{ club.approved_participant_count }}</span><span><i class="bi bi-chat-dots" aria-hidden="true"></i> {{ club.message_count }}</span></span>
+                </span>
+              </a>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="home-tab-panel" id="community-marathons" role="tabpanel" aria-labelledby="community-marathons-tab" data-community-panel="marathons" hidden>
+        <div class="home-subheading">
+          <div><h3>Активные марафоны</h3><p>Задания, тематические подборки и общий прогресс.</p></div>
+          <a href="{% url 'reading_marathons:list' %}">Все марафоны <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+        </div>
+
+        {% if active_marathons %}
+          <div class="community-grid" role="list">
+            {% for marathon in active_marathons %}
+              <a class="community-card" href="{{ marathon.get_absolute_url }}" role="listitem">
+                <span class="community-card__cover">
+                  {% if marathon.cover %}
+                    <img src="{{ marathon.cover.url }}" alt="Обложка марафона {{ marathon.title }}" loading="lazy">
+                  {% else %}
+                    <span class="community-card__placeholder"><i class="bi bi-flag" aria-hidden="true"></i></span>
+                  {% endif %}
+                </span>
+                <span class="community-card__body">
+                  <span class="community-card__status"><i class="bi bi-lightning-charge" aria-hidden="true"></i> В процессе</span>
+                  <strong>{{ marathon.title }}</strong>
+                  <span class="community-card__date">{{ marathon.start_date|date:"d.m.Y" }}{% if marathon.end_date %} – {{ marathon.end_date|date:"d.m.Y" }}{% endif %}</span>
+                  <span class="community-card__meta"><span><i class="bi bi-people" aria-hidden="true"></i> {{ marathon.participant_count }}</span><span><i class="bi bi-layers" aria-hidden="true"></i> {{ marathon.theme_count }} тем</span></span>
+                </span>
+              </a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="home-empty home-empty--small"><i class="bi bi-flag" aria-hidden="true"></i><p>Активных марафонов пока нет.</p></div>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="home-band home-features" aria-labelledby="features-title">
+      <div class="home-heading home-heading--compact">
+        <div class="home-heading__copy">
+          <span class="home-eyebrow">Ваши данные</span>
+          <h2 id="features-title">Статистика и прогресс без лишней рутины</h2>
+        </div>
+      </div>
+      <div class="feature-grid">
+        <a class="feature-card" href="{% url 'statistics_overview' %}">
+          <span class="feature-card__icon"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i></span>
+          <span><strong>Статистика чтения</strong><small>Дни, страницы, аудио, форматы и динамика.</small></span>
+          <i class="bi bi-arrow-right" aria-hidden="true"></i>
+        </a>
+        <a class="feature-card" href="{% url 'shelves:my_shelves' %}">
+          <span class="feature-card__icon"><i class="bi bi-bookshelf" aria-hidden="true"></i></span>
+          <span><strong>Полки и история</strong><small>Вся библиотека и прогресс по книгам в одном месте.</small></span>
+          <i class="bi bi-arrow-right" aria-hidden="true"></i>
+        </a>
+      </div>
+    </section>
+
+    <section class="home-cta" aria-labelledby="home-cta-title">
+      <div>
+        <span class="home-eyebrow">Новые впечатления</span>
+        <h2 id="home-cta-title">Выберите следующий книжный маршрут</h2>
+        <p>Присоединяйтесь к марафону, игре или новому предложению сообщества.</p>
+      </div>
+      <div class="home-heading__actions">
+        <a class="home-button home-button--light" href="{% url 'games:index' %}"><i class="bi bi-controller" aria-hidden="true"></i> Игры</a>
+        <a class="home-button home-button--outline-light" href="{% url 'collaborations:offer_list' %}"><i class="bi bi-people" aria-hidden="true"></i> Сотрудничество</a>
+      </div>
+    </section>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  {{ home_reaction_icon_map|json_script:"home-reaction-icon-map" }}
+  <script src="{% static 'config/home-modern.js' %}?v={{ STATIC_VERSION }}"></script>
+  <script src="{% static 'js/current-reading-image-generator.js' %}?v={{ STATIC_VERSION }}"></script>
+{% endblock %}

@@ -1,0 +1,649 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ game.title }} — Калейдоскоп книг{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'games/game-pages.css?v=1762270644' %}">
+<style>
+  .monthly-challenge-grid {
+    display: grid;
+    gap: 1rem;
+  }
+  .monthly-goal-details > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    list-style: none;
+    cursor: pointer;
+    padding: 0.9rem 1rem;
+    border: 1px solid rgba(84, 106, 80, 0.18);
+    border-radius: 0.85rem;
+    background: rgba(84, 106, 80, 0.06);
+  }
+  .monthly-goal-details > summary::-webkit-details-marker {
+    display: none;
+  }
+  .monthly-goal-details[open] > summary {
+    margin-bottom: 1rem;
+    border-color: rgba(47, 107, 79, 0.28);
+    background: rgba(47, 107, 79, 0.08);
+  }
+  .monthly-goal-details__title {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+  .monthly-goal-details__title small {
+    color: #6f796f;
+  }
+  .monthly-goal-details__edit {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex: 0 0 auto;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid rgba(47, 107, 79, 0.22);
+    border-radius: 0.65rem;
+    background: rgba(255, 255, 255, 0.8);
+    color: #2f6b4f;
+    font-weight: 700;
+  }
+  .monthly-goal-details__content {
+    display: grid;
+    gap: 1rem;
+  }
+  .monthly-challenge-search {
+    border: 1px solid rgba(84, 106, 80, 0.16);
+    border-radius: 1rem;
+    padding: 0.85rem;
+    background: rgba(255, 255, 255, 0.7);
+  }
+  .monthly-challenge-search .input-group {
+    max-width: 720px;
+  }
+  .monthly-challenge-award {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: minmax(140px, 220px) minmax(0, 1fr);
+    align-items: center;
+  }
+  .monthly-challenge-award img {
+    width: 100%;
+    border-radius: 1.25rem;
+    box-shadow: 0 18px 38px rgba(43, 62, 52, 0.16);
+  }
+  .monthly-challenge-progress {
+    height: 0.75rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(84, 106, 80, 0.16);
+  }
+  .monthly-challenge-progress span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #2f6b4f, #e99b5e);
+  }
+  .monthly-challenge-books {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    max-height: 460px;
+    overflow: auto;
+    padding-right: 0.25rem;
+  }
+  .monthly-challenge-book {
+    display: grid;
+    gap: 0.75rem;
+    border: 1px solid rgba(84, 106, 80, 0.18);
+    border-radius: 1rem;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.84);
+  }
+  .monthly-challenge-book__body {
+    display: grid;
+    grid-template-columns: 54px minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: start;
+  }
+  .monthly-challenge-book img {
+    width: 54px;
+    height: 78px;
+    object-fit: cover;
+    border-radius: 0.45rem;
+    box-shadow: 0 10px 22px rgba(43, 62, 52, 0.14);
+  }
+  .monthly-challenge-book__title {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    line-height: 1.2;
+  }
+  .monthly-challenge-book__authors {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .monthly-challenge-book__action {
+    width: 100%;
+  }
+  .monthly-challenge-selected-empty {
+    border: 1px dashed rgba(84, 106, 80, 0.24);
+    border-radius: 1rem;
+    padding: 1rem;
+    background: rgba(84, 106, 80, 0.06);
+  }
+  .monthly-goal-payment-note {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid rgba(47, 107, 79, 0.2);
+    border-radius: 0.75rem;
+    background: rgba(47, 107, 79, 0.07);
+    color: #244d3c;
+  }
+  .monthly-goal-payment-dialog {
+    width: min(430px, calc(100vw - 2rem));
+    padding: 0;
+    border: 0;
+    border-radius: 0.75rem;
+    box-shadow: 0 24px 64px rgba(22, 39, 31, 0.28);
+  }
+  .monthly-goal-payment-dialog::backdrop {
+    background: rgba(19, 29, 24, 0.58);
+  }
+  .monthly-goal-payment-dialog__body {
+    display: grid;
+    gap: 0.85rem;
+    padding: 1.15rem;
+    background: #fff;
+  }
+  .monthly-goal-payment-dialog__balance,
+  .monthly-goal-payment-dialog__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+  .monthly-goal-payment-dialog__balance span {
+    padding: 0.7rem;
+    border: 1px solid rgba(84, 106, 80, 0.16);
+    border-radius: 0.6rem;
+    background: rgba(84, 106, 80, 0.06);
+  }
+  @media (max-width: 576px) {
+    .monthly-goal-details > summary {
+      align-items: flex-start;
+      padding: 0.8rem;
+    }
+    .monthly-goal-details__edit {
+      width: 2.35rem;
+      height: 2.35rem;
+      justify-content: center;
+      padding: 0;
+    }
+    .monthly-goal-details__edit span {
+      display: none;
+    }
+    .monthly-challenge-books {
+      grid-template-columns: 1fr;
+      max-height: none;
+    }
+  }
+  @media (max-width: 576px) {
+    .monthly-challenge-award {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="game-hero card border-0 shadow-sm mb-4">
+  <div class="card-body monthly-challenge-award">
+    <img src="{{ challenge.award_url }}" alt="Награда игры {{ game.title }}" loading="lazy">
+    <div>
+      <p class="small text-uppercase mb-2">Ежемесячный вызов</p>
+      <h1 class="game-hero-heading mb-2">{{ game.title }}</h1>
+      <p class="game-hero-description">{{ game.description }}</p>
+      <div class="d-flex flex-wrap gap-2 mb-3">
+        <span class="badge text-bg-light">{{ challenge.month_display }}</span>
+        <span class="badge text-bg-light">До {{ challenge.deadline_display }}</span>
+        {% if challenge.is_completed %}
+          <span class="badge text-bg-success">Награда получена</span>
+        {% else %}
+          <span class="badge text-bg-secondary">Награда закрыта</span>
+        {% endif %}
+      </div>
+      <div class="monthly-challenge-progress mb-2" role="progressbar" aria-valuenow="{{ challenge.progress_percent }}" aria-valuemin="0" aria-valuemax="100">
+        <span style="width: {{ challenge.progress_percent }}%"></span>
+      </div>
+      <div class="small text-muted">{{ challenge.progress_percent }}% выполнено</div>
+    </div>
+  </div>
+</section>
+
+<section class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <details class="monthly-goal-details" {% if not challenge.is_configured or book_query %}open{% endif %}>
+      <summary>
+        <span class="monthly-goal-details__title">
+          <strong>{% if challenge.is_configured %}Цель месяца{% else %}Настройте цель месяца{% endif %}</strong>
+          <small>
+            {% if challenge.is_configured %}
+              {% if challenge.kind == "mini-books" %}
+                {{ challenge.target_books|default:0 }} книг
+              {% elif challenge.kind == "pages-minutes" %}
+                {% if challenge.target_pages %}{{ challenge.target_pages }} стр.{% endif %}{% if challenge.target_pages and challenge.target_minutes %} · {% endif %}{% if challenge.target_minutes %}{{ challenge.target_minutes }} мин.{% endif %}
+              {% else %}
+                {{ challenge.books|length }} книг в списке
+              {% endif %}
+              · {% if challenge.goal_edit_payment.has_unlimited_coins %}изменение бесплатно по Премиум{% else %}изменение 50 монет{% endif %}
+            {% else %}
+              Первая настройка бесплатна
+            {% endif %}
+          </small>
+        </span>
+        {% if challenge.is_configured %}
+          <span class="monthly-goal-details__edit" aria-label="Редактировать цель">
+            <i class="bi bi-pencil" aria-hidden="true"></i>
+            <span>Редактировать</span>
+          </span>
+        {% endif %}
+      </summary>
+      <div class="monthly-goal-details__content">
+    {% if challenge.kind == "book-list" %}
+      <form method="get" class="monthly-challenge-search mb-3">
+        <label class="form-label w-100 mb-0">
+          Найти книгу в каталоге
+          <div class="input-group mt-2">
+            <input class="form-control" type="search" name="book_query" value="{{ book_query }}" placeholder="Название, автор или ISBN">
+            <button class="btn btn-games-primary" type="submit">Найти</button>
+          </div>
+        </label>
+        {% if book_query %}
+          <a class="small d-inline-block mt-2" href="{% url 'games:monthly_book_list' %}">Показать подсказки из моих полок</a>
+        {% endif %}
+      </form>
+    {% endif %}
+    <form method="post" class="monthly-challenge-grid"
+          data-monthly-goal-form
+          data-goal-kind="{{ challenge.kind }}"
+          data-goal-configured="{{ challenge.is_configured|yesno:'true,false' }}"
+          data-payment-cost="{{ challenge.goal_edit_payment.cost }}"
+          data-payment-balance="{{ challenge.goal_edit_payment.coin_balance|default_if_none:'' }}"
+          data-payment-unlimited="{{ challenge.goal_edit_payment.has_unlimited_coins|yesno:'true,false' }}"
+          data-payment-can-afford="{{ challenge.goal_edit_payment.can_afford|yesno:'true,false' }}"
+          data-payment-shortage="{{ challenge.goal_edit_payment.shortage|default_if_none:'' }}"
+          data-initial-target-books="{{ challenge.target_books|default:0 }}"
+          data-initial-target-pages="{{ challenge.target_pages|default:0 }}"
+          data-initial-target-minutes="{{ challenge.target_minutes|default:0 }}"
+          data-initial-book-ids="{% for book in challenge.books %}{{ book.book_id|default:book.id }}{% if not forloop.last %},{% endif %}{% endfor %}"
+          {% if challenge.kind == "book-list" %}data-monthly-book-list data-month-key="{{ challenge.month_key }}"{% endif %}>
+      {% csrf_token %}
+      {% if challenge.kind == "book-list" %}
+        <input type="hidden" name="book_query" value="{{ book_query }}">
+      {% endif %}
+      {% if challenge.kind == "mini-books" %}
+        <label class="form-label">
+          Сколько книг прочитать в этом месяце
+          <input class="form-control" type="number" name="target_books" min="2" max="500" value="{{ challenge.target_books|default:'' }}" required>
+          <small class="text-muted">Минимум 2 книги.</small>
+        </label>
+      {% elif challenge.kind == "pages-minutes" %}
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">
+              Страницы
+              <input class="form-control" type="number" name="target_pages" min="500" value="{{ challenge.target_pages|default:'' }}">
+              <small class="text-muted">От 500 страниц.</small>
+            </label>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">
+              Аудиоминуты
+              <input class="form-control" type="number" name="target_minutes" min="600" value="{{ challenge.target_minutes|default:'' }}">
+              <small class="text-muted">От 600 минут.</small>
+            </label>
+          </div>
+        </div>
+      {% else %}
+        <div>
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+            <h3 class="h6 mb-0">Выбранные книги</h3>
+            <span class="badge text-bg-light" data-selected-count>0 книг</span>
+          </div>
+          <p class="text-muted small mb-2">Добавляйте книги во временный список, ищите следующие и сохраните итоговый набор одной кнопкой.</p>
+          <div class="monthly-challenge-selected-empty mb-3" data-selected-empty>
+            Пока список пуст. Добавьте минимум 2 книги.
+          </div>
+          <div class="monthly-challenge-books mb-3" data-selected-books>
+            {% for book in challenge.books %}
+              <div class="monthly-challenge-book" data-selected-book-card data-book-id="{{ book.book_id|default:book.id }}" data-title="{{ book.title }}" data-authors="{{ book.authors }}" data-cover-url="{{ book.cover_url|default_if_none:'' }}">
+                <input type="hidden" name="book_ids" value="{{ book.book_id|default:book.id }}" data-selected-book-input>
+                <div class="monthly-challenge-book__body">
+                  {% if book.cover_url %}<img src="{{ book.cover_url }}" alt="" loading="lazy">{% endif %}
+                  <span>
+                    <strong class="monthly-challenge-book__title">{{ book.title }}</strong>
+                    <small class="monthly-challenge-book__authors text-muted">{{ book.authors }}</small>
+                  </span>
+                </div>
+                <button class="btn btn-outline-danger btn-sm monthly-challenge-book__action" type="button" data-remove-selected-book>Убрать</button>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div>
+          <h3 class="h6">{% if book_query %}Результаты поиска{% else %}Добавить книги из ваших полок{% endif %}</h3>
+          <p class="text-muted small mb-2">
+            {% if book_query %}
+              Нажмите «Добавить», книга появится в выбранном списке выше. Прочитанные и уже выбранные книги скрыты.
+            {% else %}
+              Для списка на месяц выберите минимум 2 книги. Можно взять подсказки с полок или найти книгу выше.
+            {% endif %}
+          </p>
+          <div class="monthly-challenge-books">
+            {% for book in challenge.available_books %}
+              <div class="monthly-challenge-book" data-book-result data-book-id="{{ book.book_id|default:book.id }}" data-title="{{ book.title }}" data-authors="{{ book.authors }}" data-cover-url="{{ book.cover_url|default_if_none:'' }}">
+                <div class="monthly-challenge-book__body">
+                  {% if book.cover_url %}<img src="{{ book.cover_url }}" alt="" loading="lazy">{% endif %}
+                  <span>
+                    <strong class="monthly-challenge-book__title">{{ book.title }}</strong>
+                    <small class="monthly-challenge-book__authors text-muted">{{ book.authors }}</small>
+                  </span>
+                </div>
+                <button class="btn btn-games-primary btn-sm monthly-challenge-book__action" type="button" data-add-book>Добавить</button>
+              </div>
+            {% empty %}
+              {% if book_query %}
+                <p class="text-muted mb-0">По запросу «{{ book_query }}» книги не найдены.</p>
+              {% else %}
+                <p class="text-muted mb-0">Добавьте книги на полку или найдите книгу в каталоге выше, чтобы собрать список на месяц.</p>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+      {% if challenge.is_configured %}
+        <div class="monthly-goal-payment-note">
+          <strong>{% if challenge.goal_edit_payment.has_unlimited_coins %}Премиум{% else %}50 монет{% endif %}</strong>
+          <span>{% if challenge.goal_edit_payment.has_unlimited_coins %}Изменение цели доступно бесплатно.{% else %}Стоимость изменения уже сохраненной цели.{% endif %}</span>
+        </div>
+      {% endif %}
+      {% if challenge.kind == "book-list" %}
+        <button class="btn btn-games-primary align-self-start" type="submit" data-save-book-list>{% if challenge.is_configured %}{% if challenge.goal_edit_payment.has_unlimited_coins %}Сохранить изменения{% else %}Сохранить изменения · 50 монет{% endif %}{% else %}Сохранить список{% endif %}</button>
+        <p class="text-muted small mb-0">Для получения награды в списке должно быть минимум 2 книги, и все они должны попасть на полку «Прочитано» до конца месяца.</p>
+      {% else %}
+        <button class="btn btn-games-primary align-self-start" type="submit">{% if challenge.is_configured %}{% if challenge.goal_edit_payment.has_unlimited_coins %}Сохранить изменения{% else %}Сохранить изменения · 50 монет{% endif %}{% else %}Сохранить цель{% endif %}</button>
+      {% endif %}
+    </form>
+      </div>
+    </details>
+  </div>
+</section>
+
+<dialog class="monthly-goal-payment-dialog" data-monthly-payment-dialog>
+  <div class="monthly-goal-payment-dialog__body">
+    <div>
+      <h2 class="h5 mb-1">Изменить цель?</h2>
+      <p class="text-muted mb-0" data-payment-message></p>
+    </div>
+    <div class="monthly-goal-payment-dialog__balance" data-payment-balance-row>
+      <span>Баланс<br><strong data-payment-current></strong></span>
+      <span>После изменения<br><strong data-payment-after></strong></span>
+    </div>
+    <p class="text-danger small mb-0" data-payment-shortage-message hidden></p>
+    <div class="monthly-goal-payment-dialog__actions">
+      <button class="btn btn-light" type="button" data-payment-cancel>Отмена</button>
+      <button class="btn btn-games-primary" type="button" data-payment-confirm>Изменить</button>
+    </div>
+  </div>
+</dialog>
+
+<section class="card border-0 shadow-sm">
+  <div class="card-body">
+    <h2 class="h5 mb-3">Ваш прогресс</h2>
+    <div class="row g-3">
+      <div class="col-md-4"><div class="game-hero-stat"><span class="label">Книги</span><span class="value">{{ challenge.progress_books }}</span></div></div>
+      <div class="col-md-4"><div class="game-hero-stat"><span class="label">Страницы</span><span class="value">{{ challenge.progress_pages }}</span></div></div>
+      <div class="col-md-4"><div class="game-hero-stat"><span class="label">Аудио</span><span class="value">{{ challenge.progress_minutes }} мин.</span></div></div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+
+{% block extra_js %}
+{{ block.super }}
+{% if challenge.kind == "book-list" %}
+<script>
+  (() => {
+    const form = document.querySelector('[data-monthly-book-list]');
+    if (!form) return;
+
+    const selectedGrid = form.querySelector('[data-selected-books]');
+    const emptyState = form.querySelector('[data-selected-empty]');
+    const countBadge = form.querySelector('[data-selected-count]');
+    const saveButton = form.querySelector('[data-save-book-list]');
+    const storageKey = `monthly-book-list:${form.dataset.monthKey || 'current'}`;
+
+    const selected = new Map();
+
+    const getBookFromElement = (element) => ({
+      id: String(element.dataset.bookId || '').trim(),
+      title: element.dataset.title || '',
+      authors: element.dataset.authors || '',
+      coverUrl: element.dataset.coverUrl || '',
+    });
+
+    const escapeText = (value) => String(value || '').replace(/[&<>"]/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+    }[char]));
+
+    const persist = () => {
+      try {
+        sessionStorage.setItem(storageKey, JSON.stringify(Array.from(selected.values())));
+      } catch (_error) {
+        // The form remains usable even if browser storage is unavailable.
+      }
+    };
+
+    const restore = () => {
+      form.querySelectorAll('[data-selected-book-card]').forEach((card) => {
+        const book = getBookFromElement(card);
+        if (book.id) selected.set(book.id, book);
+      });
+      try {
+        const stored = JSON.parse(sessionStorage.getItem(storageKey) || '[]');
+        if (Array.isArray(stored) && stored.length) {
+          selected.clear();
+          stored.forEach((book) => {
+            const id = String(book?.id || '').trim();
+            if (id) selected.set(id, {
+              id,
+              title: book.title || '',
+              authors: book.authors || '',
+              coverUrl: book.coverUrl || '',
+            });
+          });
+        }
+      } catch (_error) {
+        // Ignore broken storage and fall back to server-rendered books.
+      }
+    };
+
+    const renderSelectedCard = (book) => {
+      const card = document.createElement('div');
+      card.className = 'monthly-challenge-book';
+      card.dataset.selectedBookCard = 'true';
+      card.dataset.bookId = book.id;
+      card.dataset.title = book.title;
+      card.dataset.authors = book.authors;
+      card.dataset.coverUrl = book.coverUrl;
+
+      const hiddenInput = document.createElement('input');
+      hiddenInput.type = 'hidden';
+      hiddenInput.name = 'book_ids';
+      hiddenInput.value = book.id;
+      hiddenInput.dataset.selectedBookInput = 'true';
+      card.appendChild(hiddenInput);
+
+      const body = document.createElement('div');
+      body.className = 'monthly-challenge-book__body';
+      if (book.coverUrl) {
+        const img = document.createElement('img');
+        img.src = book.coverUrl;
+        img.alt = '';
+        img.loading = 'lazy';
+        body.appendChild(img);
+      }
+
+      const text = document.createElement('span');
+      text.innerHTML = `
+        <strong class="monthly-challenge-book__title">${escapeText(book.title)}</strong>
+        <small class="monthly-challenge-book__authors text-muted">${escapeText(book.authors)}</small>
+      `;
+      body.appendChild(text);
+      card.appendChild(body);
+
+      const removeButton = document.createElement('button');
+      removeButton.type = 'button';
+      removeButton.className = 'btn btn-outline-danger btn-sm monthly-challenge-book__action';
+      removeButton.dataset.removeSelectedBook = 'true';
+      removeButton.textContent = 'Убрать';
+      card.appendChild(removeButton);
+
+      selectedGrid.appendChild(card);
+    };
+
+    const updateResultButtons = () => {
+      form.querySelectorAll('[data-book-result]').forEach((card) => {
+        const button = card.querySelector('[data-add-book]');
+        const isSelected = selected.has(String(card.dataset.bookId || ''));
+        if (!button) return;
+        button.disabled = isSelected;
+        button.textContent = isSelected ? 'Выбрана' : 'Добавить';
+        button.classList.toggle('btn-games-primary', !isSelected);
+        button.classList.toggle('btn-outline-secondary', isSelected);
+      });
+    };
+
+    const render = () => {
+      selectedGrid.innerHTML = '';
+      Array.from(selected.values()).forEach(renderSelectedCard);
+      const count = selected.size;
+      if (emptyState) emptyState.hidden = count > 0;
+      if (countBadge) countBadge.textContent = `${count} ${count === 1 ? 'книга' : 'книг'}`;
+      if (saveButton) saveButton.disabled = count < 2;
+      updateResultButtons();
+    };
+
+    restore();
+    render();
+
+    form.addEventListener('click', (event) => {
+      const addButton = event.target.closest('[data-add-book]');
+      if (addButton) {
+        const card = addButton.closest('[data-book-result]');
+        const book = getBookFromElement(card);
+        if (book.id) {
+          selected.set(book.id, book);
+          persist();
+          render();
+        }
+        return;
+      }
+
+      const removeButton = event.target.closest('[data-remove-selected-book]');
+      if (removeButton) {
+        const card = removeButton.closest('[data-selected-book-card]');
+        const id = String(card?.dataset.bookId || '');
+        if (id) {
+          selected.delete(id);
+          persist();
+          render();
+        }
+      }
+    });
+
+    form.addEventListener('submit', () => {
+      persist();
+    });
+  })();
+</script>
+{% endif %}
+<script>
+  (() => {
+    const form = document.querySelector('[data-monthly-goal-form]');
+    const dialog = document.querySelector('[data-monthly-payment-dialog]');
+    if (!form || !dialog || form.dataset.goalConfigured !== 'true') return;
+
+    const toInt = (value) => Number.parseInt(String(value || '0'), 10) || 0;
+    const initialBookIds = String(form.dataset.initialBookIds || '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    const hasGoalChanged = () => {
+      if (form.dataset.goalKind === 'mini-books') {
+        return toInt(form.elements.target_books?.value) !== toInt(form.dataset.initialTargetBooks);
+      }
+      if (form.dataset.goalKind === 'pages-minutes') {
+        return toInt(form.elements.target_pages?.value) !== toInt(form.dataset.initialTargetPages)
+          || toInt(form.elements.target_minutes?.value) !== toInt(form.dataset.initialTargetMinutes);
+      }
+      const selectedIds = Array.from(form.querySelectorAll('[data-selected-book-input]'))
+        .map((input) => String(input.value || ''));
+      return selectedIds.length !== initialBookIds.length
+        || selectedIds.some((id, index) => id !== initialBookIds[index]);
+    };
+
+    const cost = toInt(form.dataset.paymentCost) || 50;
+    const balance = toInt(form.dataset.paymentBalance);
+    const unlimited = form.dataset.paymentUnlimited === 'true';
+    const canAfford = form.dataset.paymentCanAfford === 'true';
+    const confirmButton = dialog.querySelector('[data-payment-confirm]');
+    const balanceRow = dialog.querySelector('[data-payment-balance-row]');
+    const shortageMessage = dialog.querySelector('[data-payment-shortage-message]');
+    let approved = false;
+
+    if (unlimited) {
+      dialog.querySelector('[data-payment-message]').textContent = 'Для Премиум-пользователей изменение цели бесплатно.';
+      balanceRow.hidden = true;
+    } else {
+      dialog.querySelector('[data-payment-message]').textContent = `Изменение уже сохраненной цели стоит ${cost} монет.`;
+      dialog.querySelector('[data-payment-current]').textContent = `${balance} монет`;
+      dialog.querySelector('[data-payment-after]').textContent = `${Math.max(0, balance - cost)} монет`;
+      confirmButton.textContent = `Изменить · ${cost} монет`;
+      confirmButton.disabled = !canAfford;
+      if (!canAfford) {
+        const shortage = toInt(form.dataset.paymentShortage) || Math.max(0, cost - balance);
+        shortageMessage.textContent = `Не хватает ${shortage} монет.`;
+        shortageMessage.hidden = false;
+      }
+    }
+
+    form.addEventListener('submit', (event) => {
+      if (approved || !hasGoalChanged()) return;
+      event.preventDefault();
+      dialog.showModal();
+    });
+
+    dialog.querySelector('[data-payment-cancel]').addEventListener('click', () => dialog.close());
+    confirmButton.addEventListener('click', () => {
+      if (!unlimited && !canAfford) return;
+      approved = true;
+      dialog.close();
+      form.requestSubmit();
+    });
+  })();
+</script>
+{% endblock %}

@@ -1,8 +1,9 @@
 {% extends "base.html" %}
-{% load shelf_extras %}
+{% load static shelf_extras %}
 {% block title %}Моя домашняя библиотека{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/random-book-picker.css' %}">
 <style>
   :root{
     --home-hero-gradient: linear-gradient(130deg,#7f9aaf 0%,#5d7283 42%,#38444e 100%);
@@ -365,6 +366,111 @@
     color: #1c242b;
     border-color: var(--home-accent);
     animation: pulseGlow 2s infinite;
+  }
+
+  .purchase-lists-panel {
+    display: grid;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .purchase-lists-panel__header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .purchase-lists-panel__title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .purchase-lists-panel__subtitle {
+    color: rgba(244, 249, 255, .76);
+    font-size: .875rem;
+    margin: .25rem 0 0;
+  }
+
+  .purchase-lists-create {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) auto;
+    gap: .75rem;
+  }
+
+  .purchase-lists-create .form-control {
+    border-radius: 999px;
+    border-color: var(--home-card-border);
+    background: rgba(255, 255, 255, .92);
+  }
+
+  .purchase-lists-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+
+  .purchase-list-card {
+    border: 1px solid var(--home-divider);
+    border-radius: 18px;
+    background: rgba(255,255,255,.06);
+    padding: 1rem;
+  }
+
+  .purchase-list-card__top {
+    display: flex;
+    justify-content: space-between;
+    gap: .75rem;
+    align-items: flex-start;
+    margin-bottom: .75rem;
+  }
+
+  .purchase-list-card__title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .purchase-list-card__count {
+    border-radius: 999px;
+    background: rgba(194, 224, 239, .16);
+    color: var(--home-accent);
+    font-size: .75rem;
+    font-weight: 700;
+    padding: .25rem .55rem;
+    white-space: nowrap;
+  }
+
+  .purchase-list-card__books {
+    display: flex;
+    gap: .55rem;
+    min-height: 82px;
+    overflow-x: auto;
+    padding-bottom: .25rem;
+  }
+
+  .purchase-list-card__book {
+    flex: 0 0 48px;
+    width: 48px;
+    text-decoration: none;
+  }
+
+  .purchase-list-card__book img,
+  .purchase-list-card__placeholder {
+    display: block;
+    width: 48px;
+    height: 72px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: rgba(255,255,255,.14);
+    box-shadow: 0 8px 18px rgba(0,0,0,.18);
+  }
+
+  .purchase-list-card__empty {
+    color: rgba(244, 249, 255, .7);
+    font-size: .875rem;
+    margin: .25rem 0 0;
   }
 
   /* Прогресс бар */
@@ -818,6 +924,7 @@
       <p class="home-hero__subtitle mb-4">Отслеживайте бумажные и электронные экземпляры, расставляйте их по полкам и возвращайтесь к любимым сериям.</p>
       <div class="home-hero__actions mb-3">
         <a class="btn btn-light home-hero__btn" href="{% url 'book_list' %}"><i class="bi bi-plus-circle me-2"></i> Добавить книгу</a>
+        <button class="btn btn-light home-hero__btn" type="button" data-random-book-picker data-shelf="library"><i class="bi bi-shuffle me-1"></i>Случайная книга · 10 монет</button>
         <a class="btn btn-outline-light home-hero__btn" href="{% url 'profile' request.user.username %}">
           <i class="bi bi-person-circle me-1"></i>К полкам
         </a>
@@ -927,6 +1034,55 @@
 </div>
 
 <!-- Поиск и фильтры -->
+<section class="home-glow-card purchase-lists-panel">
+  <div class="purchase-lists-panel__header">
+    <div>
+      <p class="home-section-title mb-2">Планирование</p>
+      <h2 class="purchase-lists-panel__title">Будущие покупки</h2>
+      <p class="purchase-lists-panel__subtitle">Собирайте отдельные списки: по сериям, авторам, магазинам или настроению.</p>
+    </div>
+  </div>
+
+  <form class="purchase-lists-create" method="post" action="{% url 'shelves:home_library' %}">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="purchase-list-create">
+    <input class="form-control" type="text" name="title" maxlength="120" placeholder="Например, Серии на осень" required>
+    <button class="btn btn-light" type="submit">Создать</button>
+  </form>
+
+  {% if purchase_lists %}
+    <div class="purchase-lists-grid">
+      {% for purchase_list in purchase_lists %}
+        <article class="purchase-list-card">
+          <div class="purchase-list-card__top">
+            <h3 class="purchase-list-card__title">{{ purchase_list.title }}</h3>
+            <span class="purchase-list-card__count">{{ purchase_list.books_count }} книг</span>
+          </div>
+          {% with list_items=purchase_list.items.all %}
+            {% if list_items %}
+              <div class="purchase-list-card__books">
+                {% for item in list_items|slice:":8" %}
+                  <a class="purchase-list-card__book" href="{% url 'book_detail' item.book.pk %}" title="{{ item.book.title }}">
+                    {% if item.book.get_cover_url %}
+                      <img src="{{ item.book.get_cover_url }}" alt="{{ item.book.title }}" loading="lazy">
+                    {% else %}
+                      <span class="purchase-list-card__placeholder" aria-hidden="true"></span>
+                    {% endif %}
+                  </a>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="purchase-list-card__empty">В этом списке пока нет книг.</p>
+            {% endif %}
+          {% endwith %}
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="purchase-list-card__empty">Создайте первый список покупок и добавляйте туда книги из карточки книги.</p>
+  {% endif %}
+</section>
+
 <div class="search-box">
   <div class="input-group">
     <span class="input-group-text"><i class="bi bi-search"></i></span>
@@ -1174,6 +1330,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/random-book-picker.js' %}"></script>
 {{ summary_data.periods|json_script:"homeLibraryPeriodsData" }}
 {{ period_options|json_script:"homeLibraryPeriodOptionsData" }}
 {{ summary_data.defaultPeriod|json_script:"homeLibraryDefaultPeriodData" }}

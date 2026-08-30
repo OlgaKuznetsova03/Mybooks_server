@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
 from books.models import Author, Book, Genre, ISBNModel
@@ -10,7 +11,8 @@ from reading_clubs.models import ReadingClub
 from reading_marathons.models import MarathonParticipant, MarathonTheme, ReadingMarathon
 from decimal import Decimal
 
-from accounts.models import Profile
+from accounts.models import DAILY_LOGIN_REWARD_COINS, Profile
+from api.models import VKAccount
 from shelves.models import BookProgress, ReadingLog, Shelf, ShelfItem
 from shelves.services import READING_PROGRESS_LABEL
 
@@ -47,6 +49,37 @@ class HomeFeedApiTests(APITestCase):
         self.assertEqual(len(payload['reading_items']), 1)
         self.assertEqual(payload['reading_items'][0]['book']['title'], 'Книга в процессе')
         self.assertIn('tracker_url', payload['reading_items'][0])
+
+    def test_vk_app_home_alias_returns_home_feed_json(self):
+        response = self.client.get('/api/v1/vk-app/home/', secure=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        payload = response.json()
+        self.assertIn('active_clubs', payload)
+        self.assertIn('active_marathons', payload)
+        self.assertIn('reading_items', payload)
+        self.assertIn('reading_updates', payload)
+
+    def test_authenticated_home_metrics_support_decimal_page_totals(self):
+        today = timezone.localdate()
+        progress = BookProgress.objects.create(
+            user=self.user,
+            book=self.book,
+            percent=Decimal('10.5'),
+            current_page=42,
+        )
+        ReadingLog.objects.create(
+            progress=progress,
+            pages_equivalent=Decimal('12.50'),
+            log_date=today,
+        )
+
+        self.client.force_authenticate(self.user)
+        response = self.client.get('/api/v1/home/', secure=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json()['reading_metrics']['total_pages'], 12.5)
 
     def test_home_feed_populates_all_sections_with_active_entities(self):
         today = timezone.localdate()
@@ -126,6 +159,172 @@ class HomeFeedApiTests(APITestCase):
         payload = response.json()
         self.assertEqual(payload['active_clubs'][0]['id'], upcoming_club.id)
         self.assertEqual(payload['active_marathons'][0]['id'], upcoming_marathon.id)
+
+
+class VKAppProfileDailyRewardApiTests(APITestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='vk_daily_reader',
+            email='vk_daily_reader@example.com',
+            password='StrongPass123!'
+        )
+        self.profile = self.user.profile
+        Profile.objects.filter(pk=self.profile.pk).update(
+            coins=0,
+            last_daily_reward_at=None,
+        )
+        self.profile.refresh_from_db()
+        self.client.force_authenticate(self.user)
+
+    def test_profile_endpoint_grants_daily_reward_once_per_day(self):
+        first_response = self.client.get('/api/v1/vk-app/profile/', secure=True)
+
+        self.assertEqual(first_response.status_code, status.HTTP_200_OK)
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.coins, DAILY_LOGIN_REWARD_COINS)
+        first_payload = first_response.json()
+        self.assertTrue(first_payload['daily_reward']['awarded'])
+        self.assertEqual(first_payload['daily_reward']['coins'], DAILY_LOGIN_REWARD_COINS)
+        self.assertEqual(first_payload['profile']['coins'], DAILY_LOGIN_REWARD_COINS)
+
+        second_response = self.client.get('/api/v1/vk-app/profile/', secure=True)
+
+        self.assertEqual(second_response.status_code, status.HTTP_200_OK)
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.coins, DAILY_LOGIN_REWARD_COINS)
+        second_payload = second_response.json()
+        self.assertFalse(second_payload['daily_reward']['awarded'])
+        self.assertEqual(second_payload['daily_reward']['coins'], 0)
+
+
+class VKAppProfileDeleteApiTests(APITestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='delete_mobile_reader',
+            email='delete_mobile_reader@example.com',
+            password='StrongPass123!',
+        )
+        self.client.force_authenticate(self.user)
+
+    def test_profile_delete_requires_current_password(self):
+        response = self.client.delete(
+            '/api/v1/vk-app/profile/',
+            {'password': 'wrong-password'},
+            format='json',
+            secure=True,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue(
+            get_user_model().objects.filter(pk=self.user.pk).exists()
+        )
+
+    def test_profile_delete_removes_authenticated_user(self):
+        user_id = self.user.pk
+
+        response = self.client.delete(
+            '/api/v1/vk-app/profile/',
+            {'password': 'StrongPass123!'},
+            format='json',
+            secure=True,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(
+            get_user_model().objects.filter(pk=user_id).exists()
+        )
+
+
+class VKPublicShelfVisibilityApiTests(APITestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.owner = user_model.objects.create_user(
+            username='shelf_owner',
+            email='shelf_owner@example.com',
+            password='StrongPass123!',
+        )
+        self.visitor = user_model.objects.create_user(
+            username='shelf_visitor',
+            email='shelf_visitor@example.com',
+            password='StrongPass123!',
+        )
+        self.vk_account = VKAccount.objects.create(
+            user=self.owner,
+            vk_user_id=123456789,
+            first_name='Shelf',
+            last_name='Owner',
+        )
+        self.owner_token = Token.objects.create(user=self.owner)
+        self.visitor_token = Token.objects.create(user=self.visitor)
+        shelf, _ = Shelf.objects.get_or_create(
+            user=self.owner,
+            name='Хочу прочитать',
+            defaults={'is_default': True, 'is_public': True},
+        )
+        self.public_book = Book.objects.create(
+            title='Общедоступная книга',
+            visibility=Book.Visibility.PUBLIC,
+        )
+        self.private_book = Book.objects.create(
+            title='Личная книга',
+            owner=self.owner,
+            visibility=Book.Visibility.PRIVATE,
+        )
+        ShelfItem.objects.create(shelf=shelf, book=self.public_book)
+        ShelfItem.objects.create(shelf=shelf, book=self.private_book)
+        self.url = f'/api/v1/vk/public-shelf/{self.vk_account.vk_user_id}/'
+
+    def _want_to_read_titles(self, response):
+        return {
+            book['title']
+            for book in response.json()['shelves']['want_to_read']
+        }
+
+    def test_owner_sees_public_and_private_books(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.owner_token.key}')
+
+        response = self.client.get(self.url, secure=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            self._want_to_read_titles(response),
+            {'Общедоступная книга', 'Личная книга'},
+        )
+        self.assertEqual(response.json()['shelf_counts']['want_to_read'], 2)
+
+    def test_owner_shelf_endpoint_includes_public_and_private_books(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.owner_token.key}')
+
+        response = self.client.get(
+            '/api/v1/vk/shelf/?status=want_to_read',
+            secure=True,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            {book['title'] for book in response.json()['books']},
+            {'Общедоступная книга', 'Личная книга'},
+        )
+        self.assertEqual(response.json()['count'], 2)
+
+    def test_other_user_sees_only_public_books(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.visitor_token.key}')
+
+        response = self.client.get(self.url, secure=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(self._want_to_read_titles(response), {'Общедоступная книга'})
+        self.assertEqual(response.json()['shelf_counts']['want_to_read'], 1)
+
+    def test_anonymous_user_sees_only_public_books(self):
+        response = self.client.get(self.url, secure=True)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(self._want_to_read_titles(response), {'Общедоступная книга'})
+        self.assertEqual(response.json()['shelf_counts']['want_to_read'], 1)
+
 
 class ApiUrlsCompatibilityTests(APITestCase):
     def test_mobile_endpoints_work_without_trailing_slash(self):

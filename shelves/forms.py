@@ -555,7 +555,8 @@ class BookProgressFormatForm(forms.ModelForm):
         custom_pages = cleaned.get("custom_total_pages")
         paper_total = cleaned.get("paper_total_pages")
         ebook_total = cleaned.get("ebook_total_pages")
-        base_total = custom_pages or paper_total or (self.book.get_total_pages() if self.book else None) or ebook_total
+        book_total = self.book.get_total_pages() if self.book else None
+        base_total = book_total or custom_pages or paper_total or ebook_total
         requires_pages = any(fmt in {BookProgress.FORMAT_PAPER, BookProgress.FORMAT_EBOOK} for fmt in formats)
         if requires_pages and not base_total:
             raise ValidationError("Введите количество страниц для этой книги")
@@ -574,7 +575,11 @@ class BookProgressFormatForm(forms.ModelForm):
                 value = cleaned.get(field)
                 if value is not None and value < 0:
                     self.add_error(field, "Значение не может быть отрицательным")
-                if value is not None and base_total and value > base_total:
+                if fmt == BookProgress.FORMAT_EBOOK:
+                    field_total = ebook_total or custom_pages or book_total or paper_total
+                else:
+                    field_total = paper_total or book_total or custom_pages
+                if value is not None and field_total and value > field_total:
                     self.add_error(field, "Текущее значение не может превышать количество страниц")
 
         for fmt, field in (
@@ -606,6 +611,8 @@ class BookProgressFormatForm(forms.ModelForm):
         progress = super().save(commit=False)
         if formats:
             progress.format = formats[0]
+        if self.book and self.book.get_total_pages():
+            progress.custom_total_pages = None
         if BookProgress.FORMAT_AUDIO in formats:
             progress.audio_length = self.cleaned_data.get("audio_length_input")
             progress.audio_position = self.cleaned_data.get("audio_position_input")
@@ -642,6 +649,7 @@ class BookProgressFormatForm(forms.ModelForm):
             BookProgress.FORMAT_PAPER: "paper_total_pages",
             BookProgress.FORMAT_EBOOK: "ebook_total_pages",
         }
+        book_total_pages = progress.book.get_total_pages() if progress.book_id else None
         for medium_code in formats:
             medium_obj = existing.get(medium_code)
             if not medium_obj:
@@ -650,7 +658,9 @@ class BookProgressFormatForm(forms.ModelForm):
                 value = self.cleaned_data.get(page_fields[medium_code])
                 medium_obj.current_page = value if value is not None else None
                 override_value = self.cleaned_data.get(override_fields.get(medium_code))
-                if override_value:
+                if medium_code == BookProgress.FORMAT_PAPER and book_total_pages:
+                    medium_obj.total_pages_override = None
+                elif override_value:
                     medium_obj.total_pages_override = override_value
                 else:
                     medium_obj.total_pages_override = progress.custom_total_pages
@@ -672,6 +682,7 @@ class BookProgressFormatForm(forms.ModelForm):
             else None
         )
         progress.save(update_fields=["current_page"])
+        progress.normalize_page_totals()
         progress.recalc_percent()
 
 class HomeLibraryEntryForm(forms.ModelForm):

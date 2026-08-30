@@ -99,9 +99,6 @@
           {% endif %}
         </div>
         <div class="d-flex flex-column flex-sm-row gap-2">
-          <a class="btn btn-primary" href="{% url 'author_tracker_pdf' author.slug %}">
-            <i class="bi bi-printer me-2"></i>Распечатать трекер
-          </a>
           <a class="btn btn-light text-primary-emphasis" href="{% url 'book_list' %}">
             <i class="bi bi-arrow-left me-2"></i>Вернуться к каталогу
           </a>
@@ -228,7 +225,7 @@
           <ul class="pagination justify-content-center mb-0">
             {% if page_obj.has_previous %}
               <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}" aria-label="Предыдущая страница">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if pagination_query %}&{{ pagination_query }}{% endif %}" aria-label="Предыдущая страница">
                   <span aria-hidden="true">&laquo;</span>
                 </a>
               </li>
@@ -238,13 +235,13 @@
               {% if num == page_obj.number %}
                 <li class="page-item active" aria-current="page"><span class="page-link">{{ num }}</span></li>
               {% elif num >= page_obj.number|add:'-2' and num <= page_obj.number|add:'2' %}
-                <li class="page-item"><a class="page-link" href="?page={{ num }}&{{ request.GET.urlencode }}">{{ num }}</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ num }}{% if pagination_query %}&{{ pagination_query }}{% endif %}">{{ num }}</a></li>
               {% endif %}
             {% endfor %}
 
             {% if page_obj.has_next %}
               <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}" aria-label="Следующая страница">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if pagination_query %}&{{ pagination_query }}{% endif %}" aria-label="Следующая страница">
                   <span aria-hidden="true">&raquo;</span>
                 </a>
               </li>

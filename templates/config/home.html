@@ -898,6 +898,8 @@
     }
   }
 </style>
+<link rel="stylesheet" href="{% static 'config/home-refresh.css' %}?v={{ STATIC_VERSION }}-homefix2">
+<link rel="stylesheet" href="{% static 'css/current-reading-image-generator.css' %}?v={{ STATIC_VERSION }}">
 {% endblock %}
 
 {% block content %}
@@ -911,9 +913,14 @@
             <p class="text-muted mb-1">Читаю сейчас</p>
             <h1 class="h3 mb-0">Продолжайте книги, которые у вас на полке</h1>
           </div>
-          <a class="btn btn-outline-dark btn-magic" href="{% url 'shelves:reading_now' %}">
-            <i class="bi bi-journal-text me-2"></i>Все книги в процессе
-          </a>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <button type="button" class="btn btn-outline-dark btn-magic current-reading-image-trigger js-current-reading-image">
+              <i class="bi bi-image"></i>Для истории <span aria-hidden="true">· 20 ◉</span>
+            </button>
+            <a class="btn btn-outline-dark btn-magic" href="{% url 'shelves:reading_now' %}">
+              <i class="bi bi-journal-text me-2"></i>Все книги в процессе
+            </a>
+          </div>
         </div>
 
         <div class="hero-highlight">
@@ -1826,4 +1833,5 @@
     overflow: hidden;
   }
 </style>
+<script src="{% static 'js/current-reading-image-generator.js' %}?v={{ STATIC_VERSION }}"></script>
 {% endblock %}

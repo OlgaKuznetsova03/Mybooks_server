@@ -1,7 +1,15 @@
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.db import transaction
 from django.utils import timezone
 
-from .models import CoinTransaction, PremiumPayment, PremiumSubscription, Profile
+from .models import (
+    CoinTransaction,
+    PremiumPayment,
+    PremiumSubscription,
+    Profile,
+    RewardAdTicket,
+    YANDEX_AD_REWARD_COINS,
+)
 
 
 @admin.register(Profile)
@@ -87,11 +95,12 @@ class CoinTransactionAdmin(admin.ModelAdmin):
         "profile",
         "transaction_type",
         "change",
-        "balance_after",
+        "balance_after_display",
+        "current_balance_display",
         "unlimited",
         "created_at",
     )
-    list_filter = ("transaction_type", "unlimited")
+    list_filter = ("transaction_type", "unlimited", "created_at")
     search_fields = (
         "profile__user__username",
         "profile__user__email",
@@ -99,3 +108,89 @@ class CoinTransactionAdmin(admin.ModelAdmin):
     )
     autocomplete_fields = ("profile",)
     readonly_fields = ("created_at",)
+    list_select_related = ("profile", "profile__user")
+    date_hierarchy = "created_at"
+    ordering = ("-created_at", "-id")
+
+    @admin.display(description="Баланс после операции", ordering="balance_after")
+    def balance_after_display(self, obj):
+        return obj.balance_after
+
+    @admin.display(description="Текущий общий баланс")
+    def current_balance_display(self, obj):
+        return obj.profile.coins
+
+
+@admin.register(RewardAdTicket)
+class RewardAdTicketAdmin(admin.ModelAdmin):
+    list_display = (
+        "profile",
+        "provider",
+        "issued_at",
+        "claimed_at",
+        "transaction",
+        "current_balance_display",
+        "expires_at",
+    )
+    list_filter = ("provider", "claimed_at")
+    search_fields = ("profile__user__username", "profile__user__email", "token")
+    autocomplete_fields = ("profile",)
+    readonly_fields = (
+        "token",
+        "issued_at",
+        "not_before",
+        "expires_at",
+        "claimed_at",
+        "transaction",
+    )
+    list_select_related = ("profile", "profile__user", "transaction")
+    ordering = ("-issued_at", "-id")
+    actions = ("credit_selected_unclaimed_tickets",)
+
+    @admin.display(description="Текущий общий баланс")
+    def current_balance_display(self, obj):
+        return obj.profile.coins
+
+    @admin.action(
+        description=f"Начислить {YANDEX_AD_REWARD_COINS} монет по выбранным незакрытым билетам"
+    )
+    def credit_selected_unclaimed_tickets(self, request, queryset):
+        credited = 0
+        skipped = 0
+
+        for ticket_id in queryset.values_list("pk", flat=True):
+            with transaction.atomic():
+                ticket = (
+                    RewardAdTicket.objects.select_for_update()
+                    .select_related("profile")
+                    .get(pk=ticket_id)
+                )
+                if ticket.claimed_at or ticket.transaction_id:
+                    skipped += 1
+                    continue
+
+                profile = Profile.objects.select_for_update().get(pk=ticket.profile_id)
+                coin_transaction = profile.reward_ad_view(
+                    YANDEX_AD_REWARD_COINS,
+                    description=(
+                        "Награда за просмотр рекламы, восстановленная администратором "
+                        f"({ticket.get_provider_display()})"
+                    ),
+                )
+                ticket.claimed_at = timezone.now()
+                ticket.transaction = coin_transaction
+                ticket.save(update_fields=("claimed_at", "transaction"))
+                credited += 1
+
+        if credited:
+            self.message_user(
+                request,
+                f"Начислено наград: {credited}. Каждая награда — {YANDEX_AD_REWARD_COINS} монет.",
+                level=messages.SUCCESS,
+            )
+        if skipped:
+            self.message_user(
+                request,
+                f"Пропущено уже обработанных билетов: {skipped}.",
+                level=messages.WARNING,
+            )

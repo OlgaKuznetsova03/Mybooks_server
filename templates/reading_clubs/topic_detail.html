@@ -303,7 +303,10 @@
     }
 
     .chat-message__menu {
-      opacity: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.15rem;
+      opacity: 0.72;
       transition: opacity 0.2s;
       margin-left: 0.5rem;
     }
@@ -324,6 +327,33 @@
     .chat-message__reply-btn:hover {
       color: var(--page-primary);
       background: rgba(0, 0, 0, .05);
+    }
+
+    .chat-message__report-btn {
+      display: inline-grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: #888;
+      font-size: 0.8rem;
+      transition: color 0.2s, background 0.2s;
+    }
+
+    .chat-message__report-btn:hover,
+    .chat-message__report-btn:focus-visible {
+      color: #b85845;
+      background: rgba(184, 88, 69, 0.1);
+      outline: none;
+    }
+
+    .chat-message__report-btn:disabled {
+      color: var(--page-primary);
+      cursor: default;
+      opacity: 0.72;
     }
 
     /* ===== БЛОК ОТВЕТА НА СООБЩЕНИЕ ===== */
@@ -537,6 +567,42 @@
     </div>
 
     <!-- ФОРМА ВВОДА СООБЩЕНИЯ -->
+    {% if request.user.is_authenticated %}
+      <div class="modal fade" id="messageReportModal" tabindex="-1" aria-labelledby="messageReportModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <form method="post" id="messageReportForm">
+              {% csrf_token %}
+              <div class="modal-header">
+                <h2 class="modal-title fs-5" id="messageReportModalLabel">Пожаловаться на сообщение</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+              </div>
+              <div class="modal-body">
+                <p class="small text-muted mb-3" id="messageReportPreview"></p>
+                <label class="form-label" for="messageReportReason">Причина</label>
+                <select class="form-select" id="messageReportReason" name="reason" required>
+                  <option value="">Выберите причину</option>
+                  <option value="spam">Спам или реклама</option>
+                  <option value="harassment">Оскорбления или травля</option>
+                  <option value="hate">Язык вражды</option>
+                  <option value="dangerous">Опасный или незаконный контент</option>
+                  <option value="sexual">Контент сексуального характера</option>
+                  <option value="personal_data">Персональные данные</option>
+                  <option value="other">Другое</option>
+                </select>
+                <label class="form-label mt-3" for="messageReportDetails">Комментарий <span class="text-muted">(необязательно)</span></label>
+                <textarea class="form-control" id="messageReportDetails" name="details" rows="3" maxlength="1000" placeholder="Коротко опишите нарушение"></textarea>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" class="btn btn-danger">Отправить жалобу</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
     <div class="chat-input-wrapper" id="reply-form">
       <div class="chat-input-inner">
         <div class="chat-input-container">
@@ -595,6 +661,20 @@
 <script>
   // Автоматическое увеличение высоты textarea
   document.addEventListener('DOMContentLoaded', function() {
+    const reportModal = document.getElementById('messageReportModal');
+    if (reportModal) {
+      reportModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const form = document.getElementById('messageReportForm');
+        const preview = document.getElementById('messageReportPreview');
+        if (!button || !form || !preview) return;
+        form.action = button.getAttribute('data-report-url') || '';
+        const author = button.getAttribute('data-report-author') || 'пользователя';
+        const text = button.getAttribute('data-report-text') || '';
+        preview.textContent = author + ': ' + text;
+      });
+    }
+
     const textarea = document.querySelector('textarea[name="content"]');
     if (textarea) {
       textarea.addEventListener('input', function() {

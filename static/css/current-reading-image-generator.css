@@ -1,0 +1,172 @@
+.current-reading-image-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+  white-space: nowrap;
+}
+
+.current-reading-image-modal[hidden] { display: none; }
+
+.current-reading-image-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.current-reading-image-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(13, 29, 22, .7);
+  backdrop-filter: blur(4px);
+}
+
+.current-reading-image-modal__dialog {
+  position: relative;
+  width: min(100%, 760px);
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  border: 1px solid rgba(47, 116, 87, .24);
+  border-radius: 16px;
+  background: #fff;
+  color: #183c2d;
+  box-shadow: 0 24px 64px rgba(11, 33, 24, .3);
+}
+
+.current-reading-image-modal__header,
+.current-reading-image-modal__footer {
+  position: sticky;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  padding: .9rem 1rem;
+  background: rgba(255, 255, 255, .97);
+}
+
+.current-reading-image-modal__header {
+  top: 0;
+  justify-content: center;
+  border-bottom: 1px solid #dbe7e1;
+  text-align: center;
+}
+
+.current-reading-image-modal__header > div {
+  display: grid;
+  gap: .15rem;
+  justify-items: center;
+}
+
+.current-reading-image-modal__header .current-reading-image-modal__close {
+  position: absolute;
+  right: 1rem;
+}
+
+.current-reading-image-modal__header small,
+.current-reading-image-modal__header strong { display: block; }
+
+.current-reading-image-modal__header small { color: #718077; }
+
+.current-reading-image-modal__footer {
+  bottom: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  border-top: 1px solid #dbe7e1;
+}
+
+.current-reading-image-modal__body { padding: 1rem; }
+
+.current-reading-image-modal__close {
+  width: 2.35rem;
+  height: 2.35rem;
+  border: 1px solid #cbdcd4;
+  border-radius: 50%;
+  background: #f8fbf9;
+  color: #244f3e;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.current-reading-image-modal__quote {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .75rem;
+  align-items: center;
+  padding: .85rem;
+  border: 1px solid #d7e5de;
+  border-radius: 10px;
+  background: #f5f9f7;
+}
+
+.current-reading-image-modal__quote small { color: #68776f; }
+.current-reading-image-modal__price { color: #2f7457; font-weight: 800; }
+
+.current-reading-image-modal__preview {
+  display: grid;
+  place-items: center;
+  min-height: 260px;
+  margin-top: 1rem;
+  padding: .75rem;
+  border-radius: 10px;
+  background: #eef3f0;
+}
+
+.current-reading-image-modal__preview canvas {
+  display: block;
+  width: min(100%, 432px);
+  height: auto;
+  aspect-ratio: 4 / 5;
+  border-radius: 6px;
+  box-shadow: 0 12px 30px rgba(12, 39, 27, .2);
+}
+
+.current-reading-image-modal__pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+  margin-top: .75rem;
+}
+
+.current-reading-image-modal__message {
+  min-height: 1.35rem;
+  margin: .75rem 0 0;
+  color: #617168;
+  font-size: .9rem;
+  text-align: center;
+}
+
+.current-reading-image-modal__message.is-error { color: #b75042; }
+
+@media (max-width: 575.98px) {
+  .current-reading-image-modal { align-items: end; padding: 0; }
+  .current-reading-image-modal__dialog {
+    max-height: 94dvh;
+    border-radius: 16px 16px 0 0;
+  }
+  .current-reading-image-modal__footer .btn {
+    flex: 1 1 calc(50% - .4rem);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .current-reading-image-modal__dialog,
+  .current-reading-image-modal__header,
+  .current-reading-image-modal__footer {
+    background: #14231d;
+    color: #f4f7f5;
+  }
+  .current-reading-image-modal__header,
+  .current-reading-image-modal__footer { border-color: #314a3f; }
+  .current-reading-image-modal__close,
+  .current-reading-image-modal__quote {
+    border-color: #3a584a;
+    background: #1b2d25;
+    color: #f4f7f5;
+  }
+  .current-reading-image-modal__quote small { color: #b6c4bd; }
+  .current-reading-image-modal__preview { background: #0e1b16; }
+}

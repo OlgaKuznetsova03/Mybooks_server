@@ -136,8 +136,24 @@
   }
 
   .games-card__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: clamp(4.25rem, 7vw, 5.25rem);
+    height: clamp(4.25rem, 7vw, 5.25rem);
+    border-radius: 1.15rem;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: 0 14px 28px rgba(43, 62, 52, 0.12);
     font-size: clamp(2.5rem, 3vw + 1rem, 3rem);
     line-height: 1;
+  }
+
+  .games-card__icon-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
   .games-card__badge {
@@ -356,6 +372,49 @@
 </section>
 {% endif %}
 
+{% if monthly_games %}
+<section class="games-section mb-5">
+  <div class="d-flex align-items-center justify-content-between gap-3 mb-4 flex-wrap">
+    <h2 class="h4 mb-0">Ежемесячные игры с наградами</h2>
+    <span class="games-section__badge">Мини-игры</span>
+  </div>
+  <div class="row row-cols-1 row-cols-md-3 g-4">
+    {% for card in monthly_games %}
+    <div class="col">
+      <article class="games-card games-card--available card h-100 border-0 shadow-sm">
+        <div class="card-body d-flex flex-column">
+          <div class="games-card__header">
+            {% if card.icon_url %}
+              <span class="games-card__icon games-card__icon--image" aria-hidden="true">
+                <img class="games-card__icon-image" src="{{ card.icon_url }}" alt="" loading="lazy">
+              </span>
+            {% else %}
+              <span class="games-card__icon" aria-hidden="true">{{ card.icon }}</span>
+            {% endif %}
+            {% if card.badge %}
+              <span class="games-card__badge games-card__badge--{{ card.badge_variant }}">{{ card.badge }}</span>
+            {% endif %}
+          </div>
+          <h3 class="games-card__title h5">{{ card.title }}</h3>
+          <p class="games-card__description">{{ card.description }}</p>
+          {% if card.highlights %}
+          <ul class="games-card__highlights">
+            {% for highlight in card.highlights %}
+            <li>{{ highlight }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+          <a class="btn btn-games-primary mt-auto align-self-start" href="{{ card.resolve_url }}">
+            Открыть вызов
+          </a>
+        </div>
+      </article>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 {% if available_games %}
 <section class="games-section mb-5">
   <div class="d-flex align-items-center justify-content-between gap-3 mb-4 flex-wrap">
@@ -368,7 +427,13 @@
       <article class="games-card games-card--available card h-100 border-0 shadow-sm">
         <div class="card-body d-flex flex-column">
           <div class="games-card__header">
-            <span class="games-card__icon" aria-hidden="true">{{ card.icon }}</span>
+            {% if card.icon_url %}
+              <span class="games-card__icon games-card__icon--image" aria-hidden="true">
+                <img class="games-card__icon-image" src="{{ card.icon_url }}" alt="" loading="lazy">
+              </span>
+            {% else %}
+              <span class="games-card__icon" aria-hidden="true">{{ card.icon }}</span>
+            {% endif %}
             {% if card.badge %}
               <span class="games-card__badge games-card__badge--{{ card.badge_variant }}">{{ card.badge }}</span>
             {% endif %}
@@ -405,7 +470,13 @@
       <article class="games-card games-card--upcoming card h-100 border-0">
         <div class="card-body d-flex flex-column">
           <div class="games-card__header">
-            <span class="games-card__icon" aria-hidden="true">{{ card.icon }}</span>
+            {% if card.icon_url %}
+              <span class="games-card__icon games-card__icon--image" aria-hidden="true">
+                <img class="games-card__icon-image" src="{{ card.icon_url }}" alt="" loading="lazy">
+              </span>
+            {% else %}
+              <span class="games-card__icon" aria-hidden="true">{{ card.icon }}</span>
+            {% endif %}
             {% if card.badge %}
               <span class="games-card__badge games-card__badge--{{ card.badge_variant }}">{{ card.badge }}</span>
             {% endif %}

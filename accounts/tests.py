@@ -564,7 +564,7 @@ class RewardAdApiTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn("/accounts/login/", response["Location"])
 
-    def test_claim_awards_coins_via_api(self):
+    def test_legacy_claim_endpoint_is_disabled(self):
         self.client.force_login(self.user)
         response = self.client.post(
             reverse("reward_ad_claim"),
@@ -572,35 +572,10 @@ class RewardAdApiTests(TestCase):
             content_type="application/json",
         )
 
-        self.assertEqual(response.status_code, 201)
-        data = response.json()
-        self.profile.refresh_from_db()
-        self.assertEqual(self.profile.coins, self.initial_balance + YANDEX_AD_REWARD_COINS)
-        self.assertEqual(data["coins_awarded"], YANDEX_AD_REWARD_COINS)
-        self.assertEqual(data["balance_after"], self.profile.coins)
-        self.assertEqual(data["reward_id"], "abc-123")
-
-    def test_claim_rejects_unknown_ad_unit(self):
-        self.client.force_login(self.user)
-        response = self.client.post(
-            reverse("reward_ad_claim"),
-            data=json.dumps({"ad_unit_id": "wrong"}),
-            content_type="application/json",
-        )
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 410)
+        self.assertEqual(response.json()["error"], "legacy_reward_endpoint_disabled")
         self.profile.refresh_from_db()
         self.assertEqual(self.profile.coins, self.initial_balance)
-
-    @override_settings(YANDEX_REWARDED_AD_UNIT_ID="")
-    def test_claim_returns_service_unavailable_when_disabled(self):
-        self.client.force_login(self.user)
-        response = self.client.post(
-            reverse("reward_ad_claim"),
-            data=json.dumps({}),
-            content_type="application/json",
-        )
-        self.assertEqual(response.status_code, 503)
-        self.assertEqual(response.json()["error"], "reward_unavailable")
 
 
 @override_settings(

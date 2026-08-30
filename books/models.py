@@ -1,13 +1,15 @@
+import hashlib
 from urllib.parse import urljoin
 
 from django.conf import settings
+from django.core.cache import cache
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 from django.utils.text import slugify
 from django.urls import reverse
-from django.db.models import Sum, F, Avg, Count
+from django.db.models import Sum, F, Avg, Count, Q
 from django.db.models.signals import m2m_changed
 from django.dispatch import receiver
 
@@ -17,6 +19,15 @@ from .utils import (
     generate_cover_thumbnail_file,
     normalize_genre_name,
 )
+
+BOOK_LIST_DISCOVERY_CACHE_KEYS = (
+    "books:book_list:discover:recent:v1",
+    "books:book_list:discover:popular:v4",
+)
+
+
+def clear_book_list_discovery_cache() -> None:
+    cache.delete_many(BOOK_LIST_DISCOVERY_CACHE_KEYS)
 
 
 class Author(models.Model):
@@ -220,7 +231,56 @@ class AudioBook(models.Model):
         return self.title
 
 
+class BookQuerySet(models.QuerySet):
+    def public(self):
+        return self.filter(
+            visibility=Book.Visibility.PUBLIC,
+            is_hidden_by_admin=False,
+        )
+
+    def retained_by_user(self, user):
+        if not (user is not None and getattr(user, "is_authenticated", False)):
+            return self.none()
+        return self.filter(
+            Q(owner=user)
+            | Q(shelf_items__shelf__user=user)
+            | Q(bookprogress__user=user)
+            | Q(ratings__user=user)
+        ).distinct()
+
+    def visible_to_user(self, user):
+        if user is not None and getattr(user, "is_staff", False):
+            return self
+
+        public_filter = Q(
+            visibility=Book.Visibility.PUBLIC,
+            is_hidden_by_admin=False,
+        )
+
+        if not (user is not None and getattr(user, "is_authenticated", False)):
+            return self.filter(public_filter)
+
+        private_owner_filter = Q(
+            visibility=Book.Visibility.PRIVATE,
+            owner=user,
+        )
+        retained_hidden_filter = (
+            Q(visibility=Book.Visibility.PUBLIC, is_hidden_by_admin=True)
+            & (
+                Q(owner=user)
+                | Q(shelf_items__shelf__user=user)
+                | Q(bookprogress__user=user)
+                | Q(ratings__user=user)
+            )
+        )
+        return self.filter(public_filter | private_owner_filter | retained_hidden_filter).distinct()
+
+
 class Book(models.Model):
+    class Visibility(models.TextChoices):
+        PUBLIC = "public", "В общем каталоге"
+        PRIVATE = "private", "Личная книга"
+
     title = models.CharField(max_length=255)
     authors = models.ManyToManyField("Author", related_name="books_author")
     genres = models.ManyToManyField("Genre", related_name="books")
@@ -262,7 +322,31 @@ class Book(models.Model):
         related_name="contributed_books",
         help_text="Пользователи сайта, которые указаны авторами этой книги.",
     )
+    visibility = models.CharField(
+        max_length=20,
+        choices=Visibility.choices,
+        default=Visibility.PUBLIC,
+        db_index=True,
+        help_text="Определяет, видна ли книга в общем каталоге или только владельцу.",
+    )
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="private_books",
+        help_text="Владелец личной книги, если она не публикуется в общем каталоге.",
+    )
+    is_hidden_by_admin = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Скрыть книгу из публичного каталога, поиска и общих подборок.",
+    )
+    hidden_reason = models.TextField(blank=True, default="")
+    hidden_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    objects = BookQuerySet.as_manager()
 
     class Meta:
         indexes = [
@@ -272,7 +356,32 @@ class Book(models.Model):
                 fields=["title", "created_at"],
                 name="book_title_created_idx",
             ),
+            models.Index(
+                fields=["visibility", "is_hidden_by_admin"],
+                name="book_visibility_idx",
+            ),
         ]
+
+    @property
+    def is_publicly_visible(self) -> bool:
+        return self.visibility == self.Visibility.PUBLIC and not self.is_hidden_by_admin
+
+    def user_has_personal_access(self, user) -> bool:
+        if user is not None and getattr(user, "is_staff", False):
+            return True
+        if not (user is not None and getattr(user, "is_authenticated", False)):
+            return self.is_publicly_visible
+        if self.is_publicly_visible:
+            return True
+        if self.visibility == self.Visibility.PRIVATE:
+            return self.owner_id == user.pk
+        if self.owner_id == user.pk:
+            return True
+        return (
+            self.shelf_items.filter(shelf__user=user).exists()
+            or self.bookprogress_set.filter(user=user).exists()
+            or self.ratings.filter(user=user).exists()
+        )
 
     @staticmethod
     def _resolve_file_url(file_value) -> str:
@@ -359,8 +468,23 @@ class Book(models.Model):
         if not thumbnail_file:
             return False
 
+        try:
+            thumbnail_file.seek(0)
+            thumbnail_digest = hashlib.blake2s(
+                thumbnail_file.read(),
+                digest_size=8,
+            ).hexdigest()
+            thumbnail_file.seek(0)
+        except (AttributeError, OSError, ValueError):
+            thumbnail_digest = ""
+
         source_name = getattr(self.cover, "name", "") or ""
-        thumbnail_name = build_cover_thumbnail_name(source_name)
+        thumbnail_suffix = (
+            f"_{thumbnail_digest}_160x240.webp"
+            if thumbnail_digest
+            else "_160x240.webp"
+        )
+        thumbnail_name = build_cover_thumbnail_name(source_name, suffix=thumbnail_suffix)
         if self.cover_thumbnail and force:
             try:
                 self.cover_thumbnail.delete(save=False)
@@ -371,6 +495,7 @@ class Book(models.Model):
             type(self).objects.filter(pk=self.pk).update(
                 cover_thumbnail=self.cover_thumbnail.name
             )
+            clear_book_list_discovery_cache()
         return True
         
     def get_total_pages(self):
@@ -394,6 +519,12 @@ class Book(models.Model):
 
     def get_rating_summary(self):
         """Средние оценки по каждой категории и общее количество голосов."""
+
+        if not self.is_publicly_visible:
+            return {
+                field: {"label": label, "average": None, "count": 0}
+                for field, label in Rating.get_score_fields()
+            }
 
         aggregates = self.ratings.aggregate(
             **{
@@ -443,18 +574,67 @@ class Book(models.Model):
                 )
         return new_key
 
+    @staticmethod
+    def _file_field_name(file_value) -> str:
+        return str(getattr(file_value, "name", "") or file_value or "").strip()
+
     def save(self, *args, **kwargs):
-        update_fields = kwargs.get("update_fields")
+        previous_cover_name = ""
+        previous_thumbnail_name = ""
+        previous_visibility = None
+        previous_hidden = None
+        if self.pk:
+            try:
+                previous = type(self).objects.only(
+                    "cover",
+                    "cover_thumbnail",
+                    "visibility",
+                    "is_hidden_by_admin",
+                ).get(pk=self.pk)
+            except type(self).DoesNotExist:
+                previous = None
+            if previous is not None:
+                previous_cover_name = self._file_field_name(previous.cover)
+                previous_thumbnail_name = self._file_field_name(previous.cover_thumbnail)
+                previous_visibility = previous.visibility
+                previous_hidden = previous.is_hidden_by_admin
+
+        if self.is_hidden_by_admin:
+            if not self.hidden_at:
+                self.hidden_at = timezone.now()
+        else:
+            self.hidden_at = None
+
         super().save(*args, **kwargs)
         if self.pk:
             self.refresh_edition_group_key()
-            should_generate_thumbnail = (
-                update_fields is None
-                or "cover" in update_fields
-                or not self.cover_thumbnail
+            current_cover_name = self._file_field_name(self.cover)
+            cover_changed = previous_cover_name != current_cover_name
+            thumbnail_missing = bool(self.cover and not self.cover_thumbnail)
+            visibility_changed = (
+                previous_visibility is not None
+                and previous_visibility != self.visibility
             )
-            if should_generate_thumbnail:
-                self.ensure_cover_thumbnail(save=True)
+            hidden_changed = (
+                previous_hidden is not None
+                and previous_hidden != self.is_hidden_by_admin
+            )
+
+            if cover_changed and previous_thumbnail_name:
+                try:
+                    self.cover_thumbnail.delete(save=False)
+                except (OSError, ValueError):
+                    pass
+                self.cover_thumbnail = None
+                type(self).objects.filter(pk=self.pk).update(cover_thumbnail="")
+
+            if self.cover and (cover_changed or thumbnail_missing):
+                self.ensure_cover_thumbnail(force=cover_changed, save=True)
+            elif cover_changed:
+                clear_book_list_discovery_cache()
+
+            if visibility_changed or hidden_changed:
+                clear_book_list_discovery_cache()
 
 
 class BookEditRequest(models.Model):

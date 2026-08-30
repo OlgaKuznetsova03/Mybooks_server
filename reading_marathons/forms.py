@@ -109,7 +109,7 @@ class MarathonEntryForm(forms.ModelForm):
         marathon = kwargs.pop("marathon")
         super().__init__(*args, **kwargs)
         self.fields["theme"].queryset = marathon.themes.all()
-        self.fields["book"].queryset = Book.objects.prefetch_related("authors").order_by("title")
+        self.fields["book"].queryset = Book.objects.public().prefetch_related("authors").order_by("title")
         if marathon.book_submission_policy == ReadingMarathon.BookSubmissionPolicy.APPROVAL:
             self.fields["status"].help_text = _(
                 "Книга появится в полке после подтверждения создателя марафона."

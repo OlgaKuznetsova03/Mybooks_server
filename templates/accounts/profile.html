@@ -1,10 +1,11 @@
 {% extends "base.html" %}
-{% load role_filters shelf_extras %}
+{% load static role_filters shelf_extras %}
 
 {% block title %}Профиль {{ u.username }}{% endblock %}
 
 {% block extra_css %}
   {{ block.super }}
+  <link rel="stylesheet" href="{% static 'css/review-image-generator.css' %}?v={{ STATIC_VERSION }}">
   <style>
     /* Базовая стилистика профиля */
     :root {
@@ -2092,6 +2093,16 @@
                     {% endif %}
                   </div>
                   <div class="d-flex gap-2">
+                    {% if request.user == u and review.review %}
+                      <button
+                        class="btn btn-outline-success btn-sm review-image-trigger js-review-image"
+                        type="button"
+                        data-endpoint="{% url 'v1:review-image-payment' review.id %}"
+                      >
+                        <i class="bi bi-image"></i>
+                        Изображение · 50 ◉
+                      </button>
+                    {% endif %}
                     <a class="btn btn-outline-secondary btn-sm" href="{% url 'book_review_print' review.book.pk %}" target="_blank" rel="noopener">
                       <i class="bi bi-file-text me-1"></i>HTML
                     </a>
@@ -2124,6 +2135,7 @@
 
 {% block extra_js %}
   {{ block.super }}
+  <script src="{% static 'js/review-image-generator.js' %}?v={{ STATIC_VERSION }}" defer></script>
    <script>
     // Анимация чисел
     function setupAnimatedNumbers() {

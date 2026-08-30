@@ -1,6 +1,12 @@
 from django.contrib import admin
 
-from .models import DiscussionPost, ReadingClub, ReadingNorm, ReadingParticipant
+from .models import (
+    DiscussionPost,
+    DiscussionPostReport,
+    ReadingClub,
+    ReadingNorm,
+    ReadingParticipant,
+)
 
 
 @admin.register(ReadingClub)
@@ -30,3 +36,34 @@ class ReadingParticipantAdmin(admin.ModelAdmin):
     list_display = ("reading", "user", "status", "joined_at")
     list_filter = ("status",)
     search_fields = ("reading__title", "user__username")
+
+
+@admin.register(DiscussionPostReport)
+class DiscussionPostReportAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "reason",
+        "status",
+        "reported_user",
+        "reporter",
+        "topic_snapshot",
+        "created_at",
+    )
+    list_filter = ("status", "reason", "created_at")
+    search_fields = (
+        "content_snapshot",
+        "details",
+        "topic_snapshot",
+        "reporter__username",
+        "reported_user__username",
+    )
+    readonly_fields = (
+        "post",
+        "reporter",
+        "reported_user",
+        "content_snapshot",
+        "topic_snapshot",
+        "created_at",
+        "updated_at",
+    )
+    list_select_related = ("post", "reporter", "reported_user", "reviewed_by")

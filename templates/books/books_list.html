@@ -469,7 +469,7 @@
     {% if discovery_shelves %}
       <div class="genre-shelf-collection">
         {% for shelf in discovery_shelves %}
-          {% include "books/includes/genre_shelf.html" with shelf=shelf variant='profile' texture_url=MEDIA_URL|add:'book_list/booksshelfhell.PNG' %}
+          {% include "books/includes/genre_shelf.html" with shelf=shelf variant='profile' texture_url=MEDIA_URL|add:'book_list/booksshelfhell.PNG' include_styles=forloop.first %}
         {% endfor %}
       </div>
     {% else %}
@@ -578,7 +578,7 @@
     </section>
 
     {% if show_external_results %}
-      {% include "books/includes/isbndb_suggestions.html" with heading="Другие книги в ISBNdb" %}
+      {% include "books/includes/isbndb_suggestions.html" with heading="Другие книги во внешнем поиске" %}
     {% endif %}
 
     <nav class="mt-4">
@@ -597,13 +597,13 @@
     <div class="books-empty-state card border-0 shadow-sm mb-4">
       <div class="card-body">
         <h2 class="h5 mb-2">Мы не нашли «{{ q }}»</h2>
-        <p class="text-muted mb-3">Попробуйте изменить запрос или добавить книгу вручную. Мы также поискали подходящие издания через ISBNdb.</p>
+        <p class="text-muted mb-3">Попробуйте изменить запрос или добавить книгу вручную. Мы также поискали подходящие издания через {{ external_provider_label|default:'Google Books' }}.</p>
         <a class="btn btn-primary" href="{% url 'book_create' %}">Добавить новую книгу</a>
       </div>
     </div>
 
     {% if show_external_results %}
-      {% include "books/includes/isbndb_suggestions.html" with heading="Предложения из ISBNdb" %}
+      {% include "books/includes/isbndb_suggestions.html" with heading="Предложения из внешнего поиска" %}
     {% endif %}
   {% else %}
     <div class="books-empty-state card border-0 shadow-sm">

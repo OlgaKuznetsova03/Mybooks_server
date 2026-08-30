@@ -15,6 +15,9 @@ class StaticViewSitemap(Sitemap):
     def items(self):
         return [
             "home",
+            "rules",
+            "privacy_policy",
+            "account_deletion",
             "book_list",
             "games:index",
             "reading_communities_overview",
@@ -33,7 +36,7 @@ class BookSitemap(Sitemap):
     priority = 0.8
 
     def items(self):
-        return Book.objects.order_by("-created_at")
+        return Book.objects.public().order_by("-created_at")
 
     def lastmod(self, obj: Book):
         return obj.created_at
@@ -60,7 +63,10 @@ class ReadingClubSitemap(Sitemap):
     priority = 0.7
 
     def items(self):
-        return ReadingClub.objects.order_by("-updated_at")
+        return ReadingClub.objects.filter(
+            book__visibility=Book.Visibility.PUBLIC,
+            book__is_hidden_by_admin=False,
+        ).order_by("-updated_at")
 
     def lastmod(self, obj: ReadingClub):
         return obj.updated_at

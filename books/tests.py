@@ -16,7 +16,7 @@ from shelves.services import ALL_DEFAULT_READ_SHELF_NAMES
 
 from .models import Author, Book, Genre, ISBNModel, Publisher
 from .services import register_book_edition
-from .api_clients import ExternalBookData, ISBNDBClient
+from .api_clients import ExternalBookData, GoogleBooksClient, ISBNDBClient
 
 
 def make_isbn13(seed: int) -> str:
@@ -73,6 +73,45 @@ class ISBNDBClientTests(TestCase):
         self.assertIn("1234567890", result.isbn_10)
         self.assertIn("9781234567897", result.isbn_13)
 
+
+class GoogleBooksClientTests(TestCase):
+    def test_author_search_uses_latin_fallback_when_cyrillic_query_is_empty(self):
+        client = GoogleBooksClient()
+        response = {
+            "items": [
+                {
+                    "id": "google-1",
+                    "volumeInfo": {
+                        "title": "Remote Book",
+                        "authors": ["Glen Cook"],
+                        "industryIdentifiers": [
+                            {"type": "ISBN_13", "identifier": "9781234567890"},
+                        ],
+                    },
+                }
+            ]
+        }
+
+        with mock.patch.object(client, "_fetch_json_url", side_effect=[{}, response]) as fetch_mock:
+            results = client.search(author="Умберто Эко", limit=5)
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].title, "Remote Book")
+        first_params = fetch_mock.call_args_list[0].args[1]
+        second_params = fetch_mock.call_args_list[1].args[1]
+        self.assertEqual(first_params["q"], "Умберто Эко")
+        self.assertEqual(second_params["q"], "Umberto Eko")
+
+    def test_cyrillic_author_search_adds_latin_variants(self):
+        client = GoogleBooksClient()
+
+        queries = client._build_queries(author="Умберто Эко")
+
+        self.assertEqual(queries[0], "Умберто Эко")
+        self.assertEqual(queries[1], 'inauthor:"Умберто Эко"')
+        self.assertIn("Umberto Eko", queries)
+
+class ISBNDBClientFormatTests(TestCase):
     def test_parse_book_translates_known_physical_format(self):
         client = ISBNDBClient()
         isbn13 = make_isbn13(1)
@@ -635,6 +674,7 @@ class BookLookupViewTests(TestCase):
         self.assertEqual(data["local_results"][0]["title"], "Поисковая книга")
         self.assertEqual(data["external_results"], [])
 
+    @override_settings(BOOK_EXTERNAL_SEARCH_PROVIDER="isbndb")
     @mock.patch("books.views.isbndb_client")
     def test_fetches_external_results_when_forced(self, mock_client):
         mock_client.search.return_value = [
@@ -727,6 +767,7 @@ class BookLookupAPIViewTests(TestCase):
         self.assertEqual(len(data["local_results"]), 1)
         self.assertEqual(data["local_results"][0]["title"], "Поисковая книга")
 
+    @override_settings(BOOK_EXTERNAL_SEARCH_PROVIDER="isbndb")
     @mock.patch("books.views.isbndb_client")
     def test_external_results_when_forced(self, mock_client):
         mock_client.search.return_value = [

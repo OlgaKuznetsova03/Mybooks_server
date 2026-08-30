@@ -479,6 +479,7 @@
   <!-- Добавляем header для отступа от логотипа -->
   <div class="header"></div>
   
+  {% if not compact_mode %}
   <section class="section">
     <h2 class="section-title">Трекер чтения {{ author.name }} </h2>
     <div class="section-subtitle">
@@ -541,7 +542,9 @@
       </div>
     {% endif %}
   </section>
+  {% endif %}
 
+  {% if compact_mode %}
   <section class="section book-list-section">
     <h2 class="section-title">Список для зачёркивания</h2>
     <div class="section-subtitle">
@@ -579,6 +582,7 @@
       </div>
     {% endif %}
   </section>
+  {% endif %}
 
   <div class="page-footer">Создано в Калейдоскоп книг kalejdoskopknig.ru</div>
 

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from django import forms
 
-from .models import DiscussionPost, ReadingClub, ReadingNorm
+from books.models import Book
+from .models import DiscussionPost, DiscussionPostReport, ReadingClub, ReadingNorm
 
 
 class ReadingClubForm(forms.ModelForm):
@@ -15,6 +16,7 @@ class ReadingClubForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["book"].queryset = Book.objects.public().order_by("title")
         self._apply_form_control_styles()
         self._apply_invalid_classes_if_needed()
 
@@ -125,3 +127,8 @@ class DiscussionPostForm(forms.ModelForm):
             for name in self.errors:
                 w = self.fields[name].widget
                 w.attrs["class"] = (w.attrs.get("class", "") + " is-invalid").strip()
+
+
+class DiscussionPostReportForm(forms.Form):
+    reason = forms.ChoiceField(choices=DiscussionPostReport.Reason.choices)
+    details = forms.CharField(required=False, max_length=1000, strip=True)

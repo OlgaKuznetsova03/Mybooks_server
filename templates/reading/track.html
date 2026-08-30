@@ -555,6 +555,67 @@
   gap: .5rem;
 }
 
+.book-character-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-bottom: .45rem;
+}
+
+.book-character-name {
+  min-width: 0;
+  color: var(--text-main);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.book-character-edit-button {
+  display: inline-flex;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.book-character-description-text {
+  color: var(--text-muted);
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.book-character-description-text.is-collapsed {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.book-character-expand-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  margin-top: .35rem;
+  padding: .25rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: .82rem;
+  font-weight: 700;
+}
+
+.book-character-expand-toggle .bi {
+  transition: transform .2s ease;
+}
+
+.book-character-expand-toggle[aria-expanded="true"] .bi {
+  transform: rotate(180deg);
+}
+
 .mobile-action-buttons {
   margin-top: .75rem;
 }
@@ -900,6 +961,90 @@
   max-width: 460px;
 }
 
+.reading-story-paid-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 6px;
+  color: var(--accent);
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+.reading-story-actions {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px 0 2px;
+  background: var(--bg-card);
+}
+
+.reading-story-actions .btn:last-of-type {
+  grid-column: 1 / -1;
+}
+
+.reading-story-message {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: .82rem;
+}
+
+.reading-story-confirm[hidden] {
+  display: none !important;
+}
+
+.reading-story-confirm {
+  position: fixed;
+  inset: 0;
+  z-index: 1095;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(23, 31, 27, .58);
+  backdrop-filter: blur(5px);
+}
+
+.reading-story-confirm__panel {
+  width: min(390px, 100%);
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  background: var(--bg-card);
+  box-shadow: 0 22px 60px rgba(20, 31, 25, .22);
+}
+
+.reading-story-confirm__summary {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.reading-story-confirm__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: var(--bg-card-soft);
+}
+
+.reading-story-confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 16px;
+}
+
+.reading-story-confirm__check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 14px;
+  font-size: .88rem;
+}
+
 .reading-story-card {
   position: relative;
   border-radius: 28px;
@@ -1137,8 +1282,13 @@
       <div class="reading-progress-hero__meta">
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
           <h1 class="h4 fw-bold mb-0" id="book-title">{{ book.title }}</h1>
-          <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#readingStoryModal">
-            Для истории
+          <button
+            type="button"
+            class="btn btn-outline-secondary rounded-pill px-3"
+            id="readingStoryLauncher"
+            data-payment-url="{% url 'v1:tracker-story-payment' progress.id %}"
+          >
+            Для истории <span class="reading-story-paid-label">10 монет</span>
           </button>
         </div>
         
@@ -1945,18 +2095,40 @@
       {% if character_rows %}
         <div class="mb-3">
           {% for character, form in character_rows %}
-            <div class="character-card">
-              <div class="character-name" onclick="toggleCharacterDescription(this)">
-                {{ character.name }}
+            <div class="character-card book-character-card">
+              <div class="book-character-card__header">
+                <div class="book-character-name">{{ character.name }}</div>
+                <button
+                  class="btn btn-outline-secondary btn-sm book-character-edit-button"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#mobile-character-edit-{{ character.id }}"
+                  aria-expanded="false"
+                  aria-controls="mobile-character-edit-{{ character.id }}"
+                  aria-label="Редактировать героя {{ character.name }}"
+                  title="Редактировать"
+                >
+                  <i class="bi bi-pencil"></i>
+                </button>
               </div>
-              <div class="character-description">
+              <div
+                id="mobile-character-description-{{ character.id }}"
+                class="book-character-description-text{% if character.description|length > 150 %} is-collapsed{% endif %}"
+              >
                 {{ character.description|default:"—"|linebreaksbr }}
-                <div class="character-actions">
-                  <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#mobile-character-edit-{{ character.id }}">
-                    Редактировать
-                  </button>
-                </div>
               </div>
+              {% if character.description|length > 150 %}
+                <button
+                  class="book-character-expand-toggle"
+                  type="button"
+                  aria-expanded="false"
+                  aria-controls="mobile-character-description-{{ character.id }}"
+                  onclick="toggleCharacterDescription(this)"
+                >
+                  <i class="bi bi-chevron-down"></i>
+                  <span>Показать полностью</span>
+                </button>
+              {% endif %}
 
               <div class="collapse mt-2" id="mobile-character-edit-{{ character.id }}">
                 <form method="post" action="{% url 'shelves:reading_update_character' progress.id character.id %}" class="compact-form">
@@ -2014,7 +2186,26 @@
               {% for character, form in character_rows %}
                 <tr>
                   <td class="fw-semibold">{{ character.name }}</td>
-                  <td>{{ character.description|default:"—"|linebreaksbr }}</td>
+                  <td>
+                    <div
+                      id="desktop-character-description-{{ character.id }}"
+                      class="book-character-description-text{% if character.description|length > 220 %} is-collapsed{% endif %}"
+                    >
+                      {{ character.description|default:"—"|linebreaksbr }}
+                    </div>
+                    {% if character.description|length > 220 %}
+                      <button
+                        class="book-character-expand-toggle"
+                        type="button"
+                        aria-expanded="false"
+                        aria-controls="desktop-character-description-{{ character.id }}"
+                        onclick="toggleCharacterDescription(this)"
+                      >
+                        <i class="bi bi-chevron-down"></i>
+                        <span>Показать полностью</span>
+                      </button>
+                    {% endif %}
+                  </td>
                   <td class="text-end">
                     <button
                       class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center justify-content-center"
@@ -2567,10 +2758,10 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
       </div>
       <div class="modal-body pt-2">
-        <div class="reading-story-card">
+        <div class="reading-story-card" id="readingStoryCanvas">
           <!-- Фоновый шаблон -->
-          <img src="" 
-               alt="Шаблон сторис" 
+          <img src=""
+               alt="Шаблон сторис"
                class="reading-story-bg">
           
           <!-- Накладываемые данные -->
@@ -2578,7 +2769,7 @@
             <!-- Обложка книги - увеличенная и полностью видимая -->
             {% with cover_url=display_cover_url|default:book.get_cover_url %}
               {% if cover_url %}
-                <img src="{{ cover_url }}" alt="{{ book.title }}" class="reading-story-cover">
+                <img src="{{ cover_url }}" crossorigin="anonymous" alt="{{ book.title }}" class="reading-story-cover">
               {% else %}
                 <div class="reading-story-cover d-flex align-items-center justify-content-center bg-light text-muted">
                   Нет обложки
@@ -2617,12 +2808,57 @@
             </div>
           </div>
         </div>
+        <div class="reading-story-actions">
+          <button type="button" class="btn btn-outline-secondary" id="readingStoryChangeBackground">
+            Сменить фон · 5 монет
+          </button>
+          <button type="button" class="btn btn-outline-secondary" id="readingStorySave">
+            Сохранить JPG
+          </button>
+          <p class="reading-story-message text-danger" id="readingStoryMessage" hidden></p>
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Готово</button>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
+<div class="reading-story-confirm" id="readingStoryPaymentDialog" hidden>
+  <section class="reading-story-confirm__panel" role="dialog" aria-modal="true" aria-labelledby="readingStoryPaymentTitle">
+    <div class="small text-muted fw-semibold mb-1">Платная функция</div>
+    <h2 class="h5 mb-2" id="readingStoryPaymentTitle">Создать изображение?</h2>
+    <p class="mb-0" id="readingStoryPaymentText">После подтверждения стоимость спишется с вашего баланса.</p>
+    <div class="reading-story-confirm__summary">
+      <div class="reading-story-confirm__row"><span>Стоимость</span><strong id="readingStoryPaymentCost">10 монет</strong></div>
+      <div class="reading-story-confirm__row"><span>Ваш баланс</span><strong id="readingStoryPaymentBalance">—</strong></div>
+      <div class="reading-story-confirm__row" id="readingStoryPaymentRemainingRow"><span>Останется</span><strong id="readingStoryPaymentRemaining">—</strong></div>
+    </div>
+    <p class="small text-danger mb-0" id="readingStoryPaymentError" hidden></p>
+    <div class="reading-story-confirm__actions">
+      <button type="button" class="btn btn-outline-secondary" id="readingStoryPaymentCancel">Отмена</button>
+      <button type="button" class="btn btn-primary" id="readingStoryPaymentConfirm">Подтвердить</button>
+    </div>
+  </section>
+</div>
+
+<div class="reading-story-confirm" id="readingStoryCloseDialog" hidden>
+  <section class="reading-story-confirm__panel" role="alertdialog" aria-modal="true" aria-labelledby="readingStoryCloseTitle">
+    <div class="small text-muted fw-semibold mb-1">Перед закрытием</div>
+    <h2 class="h5 mb-2" id="readingStoryCloseTitle">Сохраните изображение</h2>
+    <p class="mb-0">Новая генерация будет стоить ещё 10 монет. Сохраните готовое изображение, если оно вам нравится.</p>
+    <label class="reading-story-confirm__check">
+      <input type="checkbox" id="readingStoryCloseDontShow">
+      <span>Больше не показывать это предупреждение</span>
+    </label>
+    <div class="reading-story-confirm__actions">
+      <button type="button" class="btn btn-outline-secondary" id="readingStoryCloseReturn">Вернуться</button>
+      <button type="button" class="btn btn-primary" id="readingStoryCloseConfirm">Закрыть</button>
+    </div>
+  </section>
+</div>
+
 <!-- JavaScript для мобильных взаимодействий -->
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const storyTemplates = [
@@ -2642,7 +2878,128 @@ document.addEventListener('DOMContentLoaded', function() {
     'https://s3.ru1.storage.beget.cloud/0a648590a767-openhearted-anastasiya/static/statistic/dlja_storis_13.jpg',
   ];
 
+  const readingStoryLauncher = document.getElementById('readingStoryLauncher');
+  const readingStoryModal = document.getElementById('readingStoryModal');
+  const readingStoryPaymentDialog = document.getElementById('readingStoryPaymentDialog');
+  const readingStoryPaymentTitle = document.getElementById('readingStoryPaymentTitle');
+  const readingStoryPaymentText = document.getElementById('readingStoryPaymentText');
+  const readingStoryPaymentError = document.getElementById('readingStoryPaymentError');
+  const readingStoryPaymentCancel = document.getElementById('readingStoryPaymentCancel');
+  const readingStoryPaymentConfirm = document.getElementById('readingStoryPaymentConfirm');
+  const readingStoryChangeBackground = document.getElementById('readingStoryChangeBackground');
+  const readingStorySave = document.getElementById('readingStorySave');
+  const readingStoryError = document.getElementById('readingStoryMessage');
+  const readingStoryCloseDialog = document.getElementById('readingStoryCloseDialog');
+  const readingStoryCloseReturn = document.getElementById('readingStoryCloseReturn');
+  const readingStoryCloseConfirm = document.getElementById('readingStoryCloseConfirm');
+  const readingStoryCloseRemember = document.getElementById('readingStoryCloseDontShow');
+  const readingStoryPaymentCost = document.getElementById('readingStoryPaymentCost');
+  const readingStoryPaymentBalance = document.getElementById('readingStoryPaymentBalance');
+  const readingStoryPaymentRemainingRow = document.getElementById('readingStoryPaymentRemainingRow');
+  const readingStoryPaymentRemaining = document.getElementById('readingStoryPaymentRemaining');
+  const closeWarningStorageKey = 'kalejdoskop_story_close_warning_hidden';
+  const imageProxyUrl = '{% url "v1:vk-app-image-proxy" %}';
   let lastSuccessfulStoryTemplate = null;
+  let pendingPaymentAction = null;
+  let storyHasPaidGeneration = false;
+  let storySaved = false;
+  let forceStoryClose = false;
+
+  const getCookie = (name) => {
+    const cookie = document.cookie
+      .split(';')
+      .map((item) => item.trim())
+      .find((item) => item.startsWith(`${name}=`));
+    return cookie ? decodeURIComponent(cookie.slice(name.length + 1)) : '';
+  };
+
+  const createOperationId = (action) => {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+      return `${action}-${window.crypto.randomUUID()}`;
+    }
+    return `${action}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  };
+
+  const formatBalance = (payment) => {
+    if (payment.unlimited) {
+      return 'Премиум: монеты не списываются.';
+    }
+    return `Ваш баланс: ${payment.balance} монет.`;
+  };
+
+  const getPaymentDetails = async () => {
+    const response = await fetch(readingStoryLauncher.dataset.paymentUrl, {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload.detail || 'Не удалось проверить баланс.');
+    }
+    return payload;
+  };
+
+  const chargeStoryAction = async (action) => {
+    const response = await fetch(readingStoryLauncher.dataset.paymentUrl, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken'),
+      },
+      body: JSON.stringify({
+        action,
+        operation_id: createOperationId(action),
+      }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(payload.detail || 'Не удалось выполнить оплату.');
+      error.payload = payload;
+      throw error;
+    }
+    return payload;
+  };
+
+  const closePaymentDialog = () => {
+    pendingPaymentAction = null;
+    readingStoryPaymentDialog.hidden = true;
+    readingStoryPaymentError.hidden = true;
+    readingStoryPaymentConfirm.disabled = false;
+  };
+
+  const openPaymentDialog = async (action) => {
+    pendingPaymentAction = action;
+    readingStoryPaymentDialog.hidden = false;
+    readingStoryPaymentError.hidden = true;
+    readingStoryPaymentConfirm.disabled = true;
+    readingStoryPaymentTitle.textContent = action === 'generate'
+      ? 'Создать изображение для истории?'
+      : 'Сменить фон изображения?';
+    readingStoryPaymentText.textContent = 'Проверяем баланс...';
+
+    try {
+      const paymentData = await getPaymentDetails();
+      const payment = action === 'generate' ? paymentData.generation : paymentData.background;
+      readingStoryPaymentText.textContent = `${formatBalance(payment)} Стоимость: ${payment.cost} монет.`;
+      readingStoryPaymentCost.textContent = `${payment.cost} монет`;
+      readingStoryPaymentBalance.textContent = payment.unlimited ? 'Без ограничений' : `${payment.balance} монет`;
+      readingStoryPaymentRemainingRow.hidden = Boolean(payment.unlimited);
+      readingStoryPaymentRemaining.textContent = payment.unlimited
+        ? 'Без списания'
+        : `${Math.max(0, payment.balance - payment.cost)} монет`;
+      readingStoryPaymentConfirm.textContent = action === 'generate' ? 'Создать' : 'Сменить фон';
+      if (!payment.unlimited && !payment.can_afford) {
+        readingStoryPaymentError.textContent = `Не хватает ${payment.shortage} монет.`;
+        readingStoryPaymentError.hidden = false;
+      }
+      readingStoryPaymentConfirm.disabled = !payment.unlimited && !payment.can_afford;
+    } catch (error) {
+      readingStoryPaymentError.textContent = error.message;
+      readingStoryPaymentError.hidden = false;
+    }
+  };
 
   const getRandomStoryTemplate = (excludeTemplate = null) => {
     const availableTemplates = storyTemplates.filter((template) => template !== excludeTemplate);
@@ -2660,6 +3017,8 @@ document.addEventListener('DOMContentLoaded', function() {
     return templates;
   };
 
+  const proxiedImageUrl = (source) => `${imageProxyUrl}?url=${encodeURIComponent(source)}`;
+
   const setRandomStoryBackground = (bgImage) => {
     const primaryTemplate = getRandomStoryTemplate(lastSuccessfulStoryTemplate);
     const fallbackTemplates = getShuffledStoryTemplates().filter((template) => template !== primaryTemplate);
@@ -2670,7 +3029,8 @@ document.addEventListener('DOMContentLoaded', function() {
       if (!nextTemplate) {
         return;
       }
-      bgImage.src = nextTemplate;
+      bgImage.dataset.template = nextTemplate;
+      bgImage.src = proxiedImageUrl(nextTemplate);
     };
 
     bgImage.onerror = () => {
@@ -2678,27 +3038,170 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     bgImage.onload = () => {
-      lastSuccessfulStoryTemplate = bgImage.src;
+      lastSuccessfulStoryTemplate = bgImage.dataset.template || null;
       bgImage.onerror = null;
     };
 
     tryNextTemplate();
   };
 
-  const readingStoryModal = document.getElementById('readingStoryModal');
-  if (readingStoryModal) {
-    readingStoryModal.addEventListener('show.bs.modal', function () {
-      const bgImage = this.querySelector('.reading-story-bg');
-      if (bgImage) {
-        setRandomStoryBackground(bgImage);
+  const showPaidStory = () => {
+    const bgImage = readingStoryModal.querySelector('.reading-story-bg');
+    if (bgImage) {
+      setRandomStoryBackground(bgImage);
+    }
+    storyHasPaidGeneration = true;
+    storySaved = false;
+    readingStoryError.hidden = true;
+    bootstrap.Modal.getOrCreateInstance(readingStoryModal).show();
+  };
+
+  const updateStoryCoverForExport = () => {
+    const cover = readingStoryModal.querySelector('.reading-story-cover');
+    if (!cover || !cover.src || cover.dataset.proxied === 'true') {
+      return;
+    }
+    cover.dataset.originalSrc = cover.src;
+    cover.dataset.proxied = 'true';
+    cover.src = proxiedImageUrl(cover.src);
+  };
+
+  const waitForStoryImages = async () => {
+    const images = Array.from(readingStoryModal.querySelectorAll('#readingStoryCanvas img'));
+    await Promise.all(images.map((image) => {
+      if (image.complete && image.naturalWidth > 0) {
+        return Promise.resolve();
       }
+      return new Promise((resolve) => {
+        image.addEventListener('load', resolve, { once: true });
+        image.addEventListener('error', resolve, { once: true });
+        setTimeout(resolve, 8000);
+      });
+    }));
+    if (document.fonts && document.fonts.ready) {
+      await document.fonts.ready;
+    }
+  };
+
+  if (readingStoryLauncher && readingStoryModal) {
+    updateStoryCoverForExport();
+    readingStoryLauncher.removeAttribute('data-bs-toggle');
+    readingStoryLauncher.removeAttribute('data-bs-target');
+    readingStoryLauncher.addEventListener('click', () => openPaymentDialog('generate'));
+
+    readingStoryPaymentCancel.addEventListener('click', closePaymentDialog);
+    readingStoryPaymentDialog.addEventListener('click', (event) => {
+      if (event.target === readingStoryPaymentDialog) {
+        closePaymentDialog();
+      }
+    });
+
+    readingStoryPaymentConfirm.addEventListener('click', async () => {
+      if (!pendingPaymentAction) {
+        return;
+      }
+      const action = pendingPaymentAction;
+      readingStoryPaymentConfirm.disabled = true;
+      readingStoryPaymentError.hidden = true;
+      try {
+        await chargeStoryAction(action);
+        closePaymentDialog();
+        if (action === 'generate') {
+          showPaidStory();
+        } else {
+          const bgImage = readingStoryModal.querySelector('.reading-story-bg');
+          if (bgImage) {
+            setRandomStoryBackground(bgImage);
+          }
+          storySaved = false;
+        }
+      } catch (error) {
+        const payload = error.payload || {};
+        const balanceText = Number.isFinite(payload.balance) ? ` Баланс: ${payload.balance} монет.` : '';
+        readingStoryPaymentError.textContent = `${error.message}${balanceText}`;
+        readingStoryPaymentError.hidden = false;
+        readingStoryPaymentConfirm.disabled = false;
+      }
+    });
+
+    readingStoryChangeBackground.addEventListener('click', () => openPaymentDialog('change_background'));
+
+    readingStorySave.addEventListener('click', async () => {
+      readingStorySave.disabled = true;
+      readingStoryError.hidden = true;
+      try {
+        if (typeof window.html2canvas !== 'function') {
+          throw new Error('Модуль сохранения еще загружается. Попробуйте через несколько секунд.');
+        }
+        const card = document.getElementById('readingStoryCanvas');
+        if (!card) {
+          throw new Error('Не удалось найти область изображения. Обновите страницу.');
+        }
+        await waitForStoryImages();
+        const canvas = await window.html2canvas(card, {
+          backgroundColor: null,
+          scale: 2,
+          useCORS: true,
+          allowTaint: false,
+          logging: false,
+        });
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.94));
+        if (!blob) {
+          throw new Error('Не удалось подготовить JPG.');
+        }
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `kalejdoskop-story-{{ book.id }}.jpg`;
+        document.body.appendChild(link);
+        requestAnimationFrame(() => link.click());
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        storySaved = true;
+      } catch (error) {
+        readingStoryError.textContent = error.message || 'Не удалось сохранить изображение.';
+        readingStoryError.hidden = false;
+      } finally {
+        readingStorySave.disabled = false;
+      }
+    });
+
+    readingStoryModal.addEventListener('hide.bs.modal', (event) => {
+      const warningHidden = localStorage.getItem(closeWarningStorageKey) === '1';
+      if (forceStoryClose || !storyHasPaidGeneration || storySaved || warningHidden) {
+        forceStoryClose = false;
+        return;
+      }
+      event.preventDefault();
+      readingStoryCloseDialog.hidden = false;
+    });
+
+    readingStoryCloseReturn.addEventListener('click', () => {
+      readingStoryCloseDialog.hidden = true;
+    });
+    readingStoryCloseConfirm.addEventListener('click', () => {
+      if (readingStoryCloseRemember.checked) {
+        localStorage.setItem(closeWarningStorageKey, '1');
+      }
+      readingStoryCloseDialog.hidden = true;
+      forceStoryClose = true;
+      bootstrap.Modal.getOrCreateInstance(readingStoryModal).hide();
     });
   }
 
-  window.toggleCharacterDescription = function(element) {
-    const description = element.nextElementSibling;
-    element.classList.toggle('expanded');
-    description.classList.toggle('expanded');
+  window.toggleCharacterDescription = function(button) {
+    const descriptionId = button.getAttribute('aria-controls');
+    const description = descriptionId ? document.getElementById(descriptionId) : null;
+    if (!description) {
+      return;
+    }
+
+    const willExpand = description.classList.contains('is-collapsed');
+    description.classList.toggle('is-collapsed', !willExpand);
+    button.setAttribute('aria-expanded', willExpand ? 'true' : 'false');
+    const label = button.querySelector('span');
+    if (label) {
+      label.textContent = willExpand ? 'Свернуть' : 'Показать полностью';
+    }
   };
 
   window.toggleQuoteDetails = function(element) {

@@ -4,7 +4,11 @@ import json
 import logging
 from copy import deepcopy
 from datetime import date, datetime, timedelta
+from pathlib import Path
+from urllib.parse import urlencode
 
+from django.conf import settings
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import (
     Q,
     F,
@@ -43,7 +47,7 @@ from weasyprint import HTML
 import logging
 from django.views.decorators.http import require_GET, require_POST
 from shelves.forms import HomeLibraryQuickAddForm, QuickAddShelfForm
-from shelves.models import BookProgress, ShelfItem, HomeLibraryEntry, ProgressAnnotation
+from shelves.models import BookProgress, ShelfItem, HomeLibraryEntry, ProgressAnnotation, PurchaseList, PurchaseListItem
 from shelves.services import (
     DEFAULT_READ_SHELF,
     DEFAULT_READING_SHELF,
@@ -62,13 +66,59 @@ from reading_clubs.models import ReadingClub
 from .models import Author, Book, BookEditRequest, Genre, Rating, ISBNModel
 from .forms import BookEditRequestForm, BookForm, RatingForm
 from .services import EditionRegistrationResult, register_book_edition
-from .api_clients import isbndb_client
-from .utils import enhance_cover_url_for_pdf, normalize_isbn, yo_equivalent_iregex
+from .api_clients import google_books_client, isbndb_client
+from .utils import (
+    build_book_search_filter,
+    enhance_cover_url_for_pdf,
+    normalize_isbn,
+    yo_equivalent_iregex,
+)
 
 
 logger = logging.getLogger(__name__)
 
 ISBNDB_MISSING_KEY_ERROR = "Поиск через ISBNdb временно недоступен: API-ключ не настроен."
+
+
+def _external_search_provider_name() -> str:
+    provider = str(getattr(settings, "BOOK_EXTERNAL_SEARCH_PROVIDER", "google") or "google").strip().lower()
+    if provider not in {"google", "isbndb"}:
+        return "google"
+    return provider
+
+
+def _external_search_provider_label() -> str:
+    return "ISBNdb" if _external_search_provider_name() == "isbndb" else "Google Books"
+
+
+def _search_external_books(
+    *,
+    title: str | None,
+    author: str | None,
+    isbn: str | None,
+    limit: int,
+):
+    provider = _external_search_provider_name()
+    if provider == "isbndb":
+        if not getattr(isbndb_client, "api_key", ""):
+            return [], ISBNDB_MISSING_KEY_ERROR
+        return (
+            isbndb_client.search(
+                title=title,
+                author=author,
+                isbn=isbn,
+                limit=limit,
+            ),
+            None,
+        )
+
+    results = google_books_client.search(
+        title=title,
+        author=author,
+        isbn=isbn,
+        limit=limit,
+    )
+    return results, google_books_client.last_error if not results else None
 
 
 def _yo_equivalent_variants(query: str) -> list[str]:
@@ -80,7 +130,11 @@ def _yo_equivalent_variants(query: str) -> list[str]:
 
 def _with_rating_stats(queryset):
     rating_stats = (
-        Rating.objects.filter(book=OuterRef("pk"))
+        Rating.objects.filter(
+            book=OuterRef("pk"),
+            book__visibility=Book.Visibility.PUBLIC,
+            book__is_hidden_by_admin=False,
+        )
         .values("book")
         .annotate(
             avg_score=Avg("score"),
@@ -101,7 +155,11 @@ def _with_rating_stats(queryset):
 
 def _genre_book_count_subquery():
     return (
-        Book.genres.through.objects.filter(genre_id=OuterRef("pk"))
+        Book.genres.through.objects.filter(
+            genre_id=OuterRef("pk"),
+            book__visibility=Book.Visibility.PUBLIC,
+            book__is_hidden_by_admin=False,
+        )
         .values("genre_id")
         .annotate(total=Count("book_id", distinct=True))
         .values("genre_id", "total")
@@ -110,7 +168,8 @@ def _genre_book_count_subquery():
 
 
 def _isbn_query(value: Optional[str]) -> str:
-    return normalize_isbn(value)
+    normalized = normalize_isbn(value)
+    return normalized if len(normalized) in (10, 13) else ""
 
 
 def _book_cover_url(book: Book) -> str:
@@ -140,11 +199,134 @@ def _absolute_cover_url(request, book: Book) -> str | None:
 
 
 SHELF_BOOKS_LIMIT = 14
-POPULAR_GENRE_SHELVES_LIMIT = 4
+DISCOVERY_SHELF_BOOKS_LIMIT = int(
+    getattr(settings, "BOOK_LIST_DISCOVERY_SHELF_BOOKS_LIMIT", 20)
+)
+DISCOVERY_GENRE_SHELF_NAMES = (
+    "Фэнтези",
+    "Детектив",
+    "Зарубежная литература",
+    "Роман",
+    "Проза",
+    "Зарубежное фэнтези",
+    "Мистика",
+    "Современные любовные романы",
+    "Young adult",
+    "Русское фэнтези",
+)
+DISCOVERY_GENRE_SHELF_ORDER = {
+    name.casefold(): index for index, name in enumerate(DISCOVERY_GENRE_SHELF_NAMES)
+}
+POPULAR_GENRE_SHELVES_LIMIT = 3
 BOOK_LIST_RECENT_DISCOVERY_CACHE_KEY = "books:book_list:discover:recent:v1"
-BOOK_LIST_POPULAR_DISCOVERY_CACHE_KEY = "books:book_list:discover:popular:v1"
-BOOK_LIST_RECENT_DISCOVERY_CACHE_TIMEOUT = 300
-BOOK_LIST_POPULAR_DISCOVERY_CACHE_TIMEOUT = 60 * 60 * 24
+BOOK_LIST_POPULAR_DISCOVERY_CACHE_KEY = "books:book_list:discover:popular:v4"
+BOOK_LIST_POPULAR_DISCOVERY_SCHEMA_VERSION = 4
+BOOK_LIST_RECENT_DISCOVERY_CACHE_TIMEOUT = int(
+    getattr(settings, "BOOK_LIST_RECENT_DISCOVERY_CACHE_TIMEOUT", 60 * 30)
+)
+BOOK_LIST_POPULAR_DISCOVERY_CACHE_TIMEOUT = int(
+    getattr(settings, "BOOK_LIST_POPULAR_DISCOVERY_CACHE_TIMEOUT", 60 * 60 * 24)
+)
+BOOK_LIST_POPULAR_DISCOVERY_JSON_PATH = Path(
+    getattr(
+        settings,
+        "BOOK_LIST_POPULAR_DISCOVERY_JSON_PATH",
+        settings.BASE_DIR / "var" / "book_list_popular_discovery.json",
+    )
+)
+
+
+def _compact_popular_discovery_payload(payload: dict[str, object]) -> dict[str, object]:
+    """Keep only the lightweight popular shelves that are safe to serve from JSON."""
+
+    shelves = payload.get("shelves")
+    if not isinstance(shelves, list):
+        return {
+            **payload,
+            "shelves": [],
+            "schema_version": BOOK_LIST_POPULAR_DISCOVERY_SCHEMA_VERSION,
+            "shelf_books_limit": DISCOVERY_SHELF_BOOKS_LIMIT,
+            "genre_shelves_limit": POPULAR_GENRE_SHELVES_LIMIT,
+        }
+
+    popular_title = "Популярные сейчас".casefold()
+    genre_titles = {name.casefold() for name in DISCOVERY_GENRE_SHELF_NAMES}
+    popular_shelves: list[dict[str, object]] = []
+    genre_shelves: list[dict[str, object]] = []
+
+    for shelf in shelves:
+        if not isinstance(shelf, dict):
+            continue
+
+        title = str(shelf.get("title") or "").casefold()
+        if title == popular_title and not popular_shelves:
+            compact_shelf = dict(shelf)
+            books = compact_shelf.get("books")
+            if isinstance(books, list):
+                compact_shelf["books"] = books[:DISCOVERY_SHELF_BOOKS_LIMIT]
+            popular_shelves.append(compact_shelf)
+            continue
+
+        if title in genre_titles and len(genre_shelves) < POPULAR_GENRE_SHELVES_LIMIT:
+            compact_shelf = dict(shelf)
+            books = compact_shelf.get("books")
+            if isinstance(books, list):
+                compact_shelf["books"] = books[:DISCOVERY_SHELF_BOOKS_LIMIT]
+            genre_shelves.append(compact_shelf)
+
+    return {
+        **payload,
+        "shelves": popular_shelves + genre_shelves,
+        "schema_version": BOOK_LIST_POPULAR_DISCOVERY_SCHEMA_VERSION,
+        "shelf_books_limit": DISCOVERY_SHELF_BOOKS_LIMIT,
+        "genre_shelves_limit": POPULAR_GENRE_SHELVES_LIMIT,
+    }
+
+
+def save_book_list_popular_discovery_snapshot(payload: dict[str, object]) -> Path:
+    """Persist precomputed popular discovery shelves for fast catalog rendering."""
+
+    payload = _compact_popular_discovery_payload(payload)
+    BOOK_LIST_POPULAR_DISCOVERY_JSON_PATH.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = BOOK_LIST_POPULAR_DISCOVERY_JSON_PATH.with_suffix(
+        f"{BOOK_LIST_POPULAR_DISCOVERY_JSON_PATH.suffix}.tmp"
+    )
+    temporary_path.write_text(
+        json.dumps(payload, ensure_ascii=False, cls=DjangoJSONEncoder),
+        encoding="utf-8",
+    )
+    temporary_path.replace(BOOK_LIST_POPULAR_DISCOVERY_JSON_PATH)
+    return BOOK_LIST_POPULAR_DISCOVERY_JSON_PATH
+
+
+def load_book_list_popular_discovery_snapshot() -> dict[str, object] | None:
+    """Read precomputed popular discovery shelves, if an admin generated them."""
+
+    try:
+        if not BOOK_LIST_POPULAR_DISCOVERY_JSON_PATH.exists():
+            return None
+        payload = json.loads(BOOK_LIST_POPULAR_DISCOVERY_JSON_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        logger.exception(
+            "Could not read book list discovery snapshot from %s.",
+            BOOK_LIST_POPULAR_DISCOVERY_JSON_PATH,
+        )
+        return None
+
+    if not isinstance(payload, dict):
+        return None
+
+    if payload.get("schema_version") != BOOK_LIST_POPULAR_DISCOVERY_SCHEMA_VERSION:
+        return None
+
+    compact_payload = _compact_popular_discovery_payload(payload)
+    shelves = compact_payload.get("shelves")
+    if not isinstance(shelves, list):
+        return None
+    if len(shelves) > POPULAR_GENRE_SHELVES_LIMIT + 1:
+        return None
+
+    return compact_payload
 
 
 def _serialize_book_for_shelf(
@@ -210,56 +392,84 @@ def _serialize_book_for_shelf(
 
 
 def _popular_genres_for_discovery(popular_window) -> list[Genre]:
-    """Return the top active discovery genres for the last 30 days."""
+    """Return the top configured discovery genres by completed books."""
 
-    genre_stats = list(
-        BookProgress.objects.filter(
-            updated_at__gte=popular_window,
-            book__genres__isnull=False,
-        )
-        .values("book__genres")
-        .annotate(reader_count=Count("user", distinct=True))
-        .filter(reader_count__gt=0)
-        .order_by("-reader_count", "book__genres__name")[:POPULAR_GENRE_SHELVES_LIMIT]
-    )
+    genre_filter = Q()
+    for genre_name in DISCOVERY_GENRE_SHELF_NAMES:
+        genre_filter |= Q(name__iexact=genre_name)
 
-    if not genre_stats:
+    if not genre_filter.children:
         return []
 
-    genre_ids = [entry["book__genres"] for entry in genre_stats]
-    reader_count_by_genre_id = {
-        entry["book__genres"]: int(entry["reader_count"] or 0)
+    genres = list(
+        Genre.objects.filter(genre_filter)
+        .distinct()
+        .only("id", "name", "slug")
+    )
+    if not genres:
+        return []
+
+    genre_ids = [genre.pk for genre in genres]
+    popular_since = popular_window.date() if hasattr(popular_window, "date") else popular_window
+    genre_stats = list(
+        BookProgress.objects.filter(
+            finished_at__gte=popular_since,
+            book__visibility=Book.Visibility.PUBLIC,
+            book__is_hidden_by_admin=False,
+            book__genres__in=genre_ids,
+        )
+        .values("book__genres")
+        .annotate(finished_reader_count=Count("user", distinct=True))
+    )
+    finished_reader_count_by_genre_id = {
+        entry["book__genres"]: int(entry["finished_reader_count"] or 0)
         for entry in genre_stats
     }
-    genre_by_id = {
-        genre.pk: genre
-        for genre in Genre.objects.filter(pk__in=genre_ids).only("id", "name", "slug")
-    }
 
-    popular_genres: list[Genre] = []
-    for genre_id in genre_ids:
-        genre = genre_by_id.get(genre_id)
-        if not genre:
-            continue
+    for genre in genres:
         setattr(
             genre,
-            "recent_reader_count",
-            reader_count_by_genre_id.get(genre_id, 0),
+            "recent_finished_reader_count",
+            finished_reader_count_by_genre_id.get(genre.pk, 0),
         )
-        popular_genres.append(genre)
 
-    return popular_genres
+    genres = [
+        genre for genre in genres
+        if int(getattr(genre, "recent_finished_reader_count", 0) or 0) > 0
+    ]
+    genres.sort(
+        key=lambda genre: (
+            -int(getattr(genre, "recent_finished_reader_count", 0) or 0),
+            DISCOVERY_GENRE_SHELF_ORDER.get(
+                (genre.name or "").casefold(),
+                len(DISCOVERY_GENRE_SHELF_NAMES),
+            ),
+        )
+    )
+
+    return genres[:POPULAR_GENRE_SHELVES_LIMIT]
 
 
 def _book_list_querysets():
     base_qs = (
-        Book.objects.all()
-        .select_related("audio")
-        .prefetch_related("authors", "genres", "publisher", "isbn")
+        Book.objects.public()
+        .only(
+            "id",
+            "title",
+            "cover",
+            "cover_thumbnail",
+            "created_at",
+            "edition_group_key",
+            "audio_id",
+        )
+        .prefetch_related(
+            Prefetch("authors", queryset=Author.objects.only("id", "name").order_by("name"))
+        )
     )
 
     group_leader_subquery = (
-        Book.objects.filter(edition_group_key=OuterRef("edition_group_key"))
+        Book.objects.public()
+        .filter(edition_group_key=OuterRef("edition_group_key"))
         .order_by("pk")
         .values("pk")[:1]
     )
@@ -293,11 +503,11 @@ def build_book_list_discovery_payload(
         recent_cutoff = now - timedelta(days=10)
         recent_books = list(
             annotated_books.filter(created_at__gte=recent_cutoff)
-            .order_by("-created_at", "-pk")[:SHELF_BOOKS_LIMIT]
+            .order_by("-created_at", "-pk")[:DISCOVERY_SHELF_BOOKS_LIMIT]
         )
         if not recent_books and total_books:
             recent_books = list(
-                annotated_books.order_by("-created_at", "-pk")[:SHELF_BOOKS_LIMIT]
+                annotated_books.order_by("-created_at", "-pk")[:DISCOVERY_SHELF_BOOKS_LIMIT]
             )
         if recent_books:
             recent_serialized_books = []
@@ -333,17 +543,23 @@ def build_book_list_discovery_payload(
     if include_popular:
         popular_window = now - timedelta(days=30)
         popular_stats = list(
-            BookProgress.objects.filter(updated_at__gte=popular_window)
+            BookProgress.objects.filter(
+                updated_at__gte=popular_window,
+                book__visibility=Book.Visibility.PUBLIC,
+                book__is_hidden_by_admin=False,
+            )
             .values("book")
             .annotate(reader_count=Count("user", distinct=True))
             .values("book", "reader_count")
-            .order_by("-reader_count", "book")[: SHELF_BOOKS_LIMIT * 3]
+            .order_by("-reader_count", "book")[: DISCOVERY_SHELF_BOOKS_LIMIT * 3]
         )
 
         recent_reader_count_queryset = (
             BookProgress.objects.filter(
                 book=OuterRef("pk"),
                 updated_at__gte=popular_window,
+                book__visibility=Book.Visibility.PUBLIC,
+                book__is_hidden_by_admin=False,
             )
             .values("book")
             .annotate(reader_count=Count("user", distinct=True))
@@ -366,7 +582,7 @@ def build_book_list_discovery_payload(
                 popular_book_map[pk]
                 for pk in popular_ids
                 if pk in popular_book_map
-            ][:SHELF_BOOKS_LIMIT]
+            ][:DISCOVERY_SHELF_BOOKS_LIMIT]
             if ordered_popular_books:
                 popular_serialized_books: list[dict[str, object]] = []
                 for book in ordered_popular_books:
@@ -412,16 +628,16 @@ def build_book_list_discovery_payload(
                         output_field=IntegerField(),
                     )
                 )
-                .order_by("-recent_reader_count", "-rating_count", "title")[:SHELF_BOOKS_LIMIT]
+                .order_by("-recent_reader_count", "-rating_count", "title")[:DISCOVERY_SHELF_BOOKS_LIMIT]
             )
             if not top_books:
                 continue
 
-            genre_reader_count = int(getattr(genre, "recent_reader_count", 0) or 0)
-            if genre_reader_count:
+            genre_finished_reader_count = int(getattr(genre, "recent_finished_reader_count", 0) or 0)
+            if genre_finished_reader_count:
                 subtitle = (
-                    f"{genre_reader_count} "
-                    f"{_russian_plural(genre_reader_count, ('читатель', 'читателя', 'читателей'))} за 30 дней"
+                    f"Прочитано за 30 дней: {genre_finished_reader_count} "
+                    f"{_russian_plural(genre_finished_reader_count, ('читатель', 'читателя', 'читателей'))}"
                 )
             else:
                 subtitle = "Популярный жанр сообщества."
@@ -551,7 +767,8 @@ def _matching_books_for_isbns(isbn_values: list[str]) -> list[dict[str, object]]
         return []
 
     books = (
-        Book.objects.filter(isbn__in=matched_isbns)
+        Book.objects.public()
+        .filter(isbn__in=matched_isbns)
         .distinct()
         .prefetch_related("isbn")
     )
@@ -614,6 +831,18 @@ class BookLookupQueryError(ValueError):
     """Raised when a lookup request lacks searchable parameters."""
 
 
+def _parse_lookup_limit(value: str | None, default: int) -> int:
+    try:
+        if value is None:
+            return default
+        parsed = int(value)
+        if parsed <= 0:
+            return default
+        return parsed
+    except (TypeError, ValueError):
+        return default
+
+
 def _perform_book_lookup(
     *,
     title: str,
@@ -628,20 +857,21 @@ def _perform_book_lookup(
     normalized_title = (title or "").strip()
     normalized_author = (author or "").strip()
     isbn = _isbn_query(isbn_raw)
+    external_provider = _external_search_provider_name()
 
     if not any([normalized_title, normalized_author, isbn]):
         raise BookLookupQueryError("Укажите название, автора или ISBN.")
 
     cache_key = (
-        "books:lookup:"
+        "books:lookup:v6:"
         f"{normalized_title.casefold()}:{normalized_author.casefold()}:{isbn}:"
-        f"{int(force_external)}:{max(0, int(local_limit))}:{max(1, int(external_limit))}"
+        f"{external_provider}:{int(force_external)}:{max(0, int(local_limit))}:{max(1, int(external_limit))}"
     )
     cached_payload = cache.get(cache_key)
     if cached_payload is not None:
         return cached_payload
 
-    qs = Book.objects.all().prefetch_related(
+    qs = Book.objects.public().prefetch_related(
         Prefetch("authors", queryset=Author.objects.only("id", "name").order_by("name")),
         Prefetch("isbn", queryset=ISBNModel.objects.only("id", "isbn", "isbn13")),
     )
@@ -667,7 +897,7 @@ def _perform_book_lookup(
         qs = qs.filter(combined_filter)
 
     local_results = []
-    for book in qs.distinct()[: max(1, local_limit)]:
+    for book in qs.distinct()[: max(0, int(local_limit))]:
         isbn_candidates: list[str] = []
         isbn_entries = list(book.isbn.all())
         for entry in isbn_entries:
@@ -693,21 +923,19 @@ def _perform_book_lookup(
 
     external_results = []
     external_error = None
-    can_use_isbndb = bool(getattr(isbndb_client, "api_key", ""))
-    if not can_use_isbndb:
-        external_error = ISBNDB_MISSING_KEY_ERROR
-    else:
+    should_fetch_external = force_external or not local_results
+    if should_fetch_external:
         try:
-            search_results = isbndb_client.search(
+            search_results, external_error = _search_external_books(
                 title=normalized_title or None,
                 author=normalized_author or None,
                 isbn=isbn or None,
                 limit=max(1, external_limit),
             )
         except Exception as exc:  # pragma: no cover - defensive logging
-            logger.exception("ISBNdb lookup failed: %s", exc)
+            logger.exception("%s lookup failed: %s", external_provider, exc)
             search_results = []
-            external_error = "Не удалось получить данные от ISBNdb. Попробуйте позже."
+            external_error = "Не удалось получить данные из внешнего поиска. Попробуйте позже."
         else:
             for item in search_results:
                 external_results.append(_serialize_external_item(item))
@@ -721,6 +949,8 @@ def _perform_book_lookup(
         "local_results": local_results,
         "external_results": external_results,
         "external_error": external_error,
+        "external_provider": external_provider,
+        "external_provider_label": _external_search_provider_label(),
         "force_external": force_external,
     }
     cache.set(cache_key, payload, 600)
@@ -730,13 +960,21 @@ def _perform_book_lookup(
 @login_required
 @require_GET
 def book_lookup(request):
-    force_external = str(request.GET.get("force_external", "")).lower() in {"1", "true", "yes"}
+    force_external = str(
+        request.GET.get("force_external")
+        or request.GET.get("external")
+        or ""
+    ).lower() in {"1", "true", "yes"}
+    local_limit = request.GET.get("limit")
+    external_limit = request.GET.get("external_limit")
     try:
         payload = _perform_book_lookup(
             title=request.GET.get("title", ""),
             author=request.GET.get("author", ""),
             isbn_raw=request.GET.get("isbn"),
             force_external=force_external,
+            local_limit=_parse_lookup_limit(local_limit, 10),
+            external_limit=_parse_lookup_limit(external_limit, 15),
         )
     except BookLookupQueryError as exc:
         return JsonResponse({"error": str(exc)}, status=400)
@@ -746,20 +984,13 @@ def book_lookup(request):
 
 @require_GET
 def book_lookup_api(request):
-    force_external = str(request.GET.get("force_external", "")).lower() in {"1", "true", "yes"}
+    force_external = str(
+        request.GET.get("force_external")
+        or request.GET.get("external")
+        or ""
+    ).lower() in {"1", "true", "yes"}
     local_limit = request.GET.get("limit")
     external_limit = request.GET.get("external_limit")
-
-    def _parse_limit(value: str | None, default: int) -> int:
-        try:
-            if value is None:
-                return default
-            parsed = int(value)
-            if parsed <= 0:
-                return default
-            return parsed
-        except (TypeError, ValueError):
-            return default
 
     try:
         payload = _perform_book_lookup(
@@ -767,8 +998,8 @@ def book_lookup_api(request):
             author=request.GET.get("author", ""),
             isbn_raw=request.GET.get("isbn"),
             force_external=force_external,
-            local_limit=_parse_limit(local_limit, 10),
-            external_limit=_parse_limit(external_limit, 10),
+            local_limit=_parse_lookup_limit(local_limit, 10),
+            external_limit=_parse_lookup_limit(external_limit, 10),
         )
     except BookLookupQueryError as exc:
         return JsonResponse({"error": str(exc)}, status=400)
@@ -806,7 +1037,8 @@ def _find_books_with_same_title_and_authors(title, authors):
         return []
 
     candidates = (
-        Book.objects.filter(title__iexact=normalized_title)
+        Book.objects.public()
+        .filter(title__iexact=normalized_title)
         .prefetch_related("authors", "isbn", "publisher")
     )
 
@@ -922,24 +1154,15 @@ def book_list(request):
         total_books = leader_books.count()
         qs = annotated_books.order_by(*sort_definitions[active_sort]["order"])
         if q:
-            search_variants = _yo_equivalent_variants(q)[:3]
-            search_ids_cache_key = f"books:book_list:search_ids:v2:{q.casefold()}"
+            search_ids_cache_key = f"books:book_list:search_ids:v3:{q.casefold()}"
             matched_ids = cache.get(search_ids_cache_key)
 
             if matched_ids is None:
-                search_filter = Q()
-                for variant in search_variants:
-                    search_filter |= (
-                        Q(title__icontains=variant)
-                        | Q(authors__name__icontains=variant)
-                    )
-
-                isbn_query = normalize_isbn(q)
-                if isbn_query and len(isbn_query) in (10, 13):
-                    search_filter |= Q(isbn__isbn=isbn_query) | Q(isbn__isbn13=isbn_query)
-
                 matched_ids = list(
-                    Book.objects.filter(search_filter).values_list("id", flat=True).distinct()[:1000]
+                    Book.objects.public()
+                    .filter(build_book_search_filter(q))
+                    .values_list("id", flat=True)
+                    .distinct()[:1000]
                 )
                 cache.set(search_ids_cache_key, matched_ids, 300)
 
@@ -972,10 +1195,16 @@ def book_list(request):
                 }
             )
 
-        if q and page_obj:
+        if q and page_obj is not None:
             isbn_candidate = normalize_isbn(q)
             has_valid_isbn = len(isbn_candidate) in (10, 13)
-            should_fetch_external = True
+            external_requested = str(
+                request.GET.get("external")
+                or request.GET.get("force_external")
+                or ""
+            ).lower() in {"1", "true", "yes"}
+            has_local_results = bool(page_obj.paginator.count)
+            should_fetch_external = external_requested or not has_local_results
 
             if should_fetch_external:
                 normalized_query = q.casefold()
@@ -1033,13 +1262,16 @@ def book_list(request):
                 annotated_books=annotated_books,
                 include_popular=False,
             )
-        cache.set(
+            cache.set(
                 BOOK_LIST_RECENT_DISCOVERY_CACHE_KEY,
                 recent_discovery_payload,
                 timeout=BOOK_LIST_RECENT_DISCOVERY_CACHE_TIMEOUT,
             )
 
-        popular_discovery_payload = cache.get(BOOK_LIST_POPULAR_DISCOVERY_CACHE_KEY)
+        popular_discovery_payload = load_book_list_popular_discovery_snapshot()
+        if popular_discovery_payload is None:
+            popular_discovery_payload = cache.get(BOOK_LIST_POPULAR_DISCOVERY_CACHE_KEY)
+
         if popular_discovery_payload is None:
             popular_discovery_payload = build_book_list_discovery_payload(
                 leader_books=leader_books,
@@ -1051,6 +1283,7 @@ def book_list(request):
                 popular_discovery_payload,
                 timeout=BOOK_LIST_POPULAR_DISCOVERY_CACHE_TIMEOUT,
             )
+            save_book_list_popular_discovery_snapshot(popular_discovery_payload)
 
         total_books = int(recent_discovery_payload.get("total_books", 0) or 0)
         discovery_shelves = deepcopy(recent_discovery_payload.get("shelves", []))
@@ -1087,6 +1320,7 @@ def book_list(request):
              "sort_options": sort_options,
             "external_suggestions": external_suggestions,
             "external_error": external_error,
+            "external_provider_label": _external_search_provider_label(),
             "show_external_results": show_external_results,
             "total_books": total_books,
             "view_mode": view_mode,
@@ -1141,7 +1375,7 @@ def genre_detail(request, slug):
         active_sort = "recent"
 
     base_qs = _with_rating_stats(
-        genre.books.prefetch_related(
+        Book.objects.public().filter(genres=genre).prefetch_related(
             Prefetch("authors", queryset=Author.objects.order_by("name")),
             Prefetch("genres", queryset=Genre.objects.only("id", "name", "slug")),
         )
@@ -1257,6 +1491,15 @@ def author_detail(request, slug):
     if active_sort not in sort_definitions:
         active_sort = "recent"
 
+    page_values = request.GET.getlist("page")
+    query_string = request.META.get("QUERY_STRING", "")
+    if len(page_values) > 1 or len(query_string) > 800:
+        page_candidate = page_values[-1] if page_values else "1"
+        canonical_params = {"page": page_candidate or "1"}
+        if active_sort != "recent":
+            canonical_params["sort"] = active_sort
+        return redirect(f"{request.path}?{urlencode(canonical_params)}")
+
     base_qs = _with_rating_stats(
         author.books_author.prefetch_related(
             Prefetch("authors", queryset=Author.objects.order_by("name")),
@@ -1314,6 +1557,7 @@ def author_detail(request, slug):
             "sort_options": sort_options,
             "active_sort": active_sort,
             "want_shelf_id": want_shelf_id,
+            "pagination_query": preserved_query.urlencode(),
         },
     )
 
@@ -1321,39 +1565,8 @@ def author_detail(request, slug):
 @require_GET
 def author_tracker_pdf(request, slug):
     author = get_object_or_404(Author, slug=slug)
-
-    books_qs = author.books_author.order_by("title")
-    books = [
-        {
-            "title": book.title or "Без названия",
-            "series": book.series,
-            "series_order": book.series_order,
-            "cover_url": enhance_cover_url_for_pdf(_absolute_cover_url(request, book)),
-        }
-        for book in books_qs
-    ]
-
-    html_string = render_to_string(
-        "books/author_tracker_pdf.html",
-        {
-            "author": author,
-            "books": books,
-            "total_books": len(books),
-        },
-    )
-
-    html = HTML(
-        string=html_string,
-        base_url=request.build_absolute_uri("/"),
-        encoding="utf-8",
-    )
-
-    pdf_file = html.write_pdf()
-
-    filename = f"{slugify(author.name) or author.slug}-tracker.pdf"
-    response = HttpResponse(pdf_file, content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="{filename}"'
-    return response
+    messages.info(request, "Печать трекера автора временно отключена.")
+    return redirect("author_detail", slug=author.slug)
 
 
 def _update_home_library(
@@ -1447,7 +1660,7 @@ def _update_home_library(
 
 def book_detail(request, pk):
     book = get_object_or_404(
-        Book.objects.prefetch_related(
+        Book.objects.visible_to_user(request.user).prefetch_related(
             Prefetch("authors", queryset=Author.objects.order_by("name")),
             "genres",
             "publisher",
@@ -1456,7 +1669,12 @@ def book_detail(request, pk):
         ),
         pk=pk
     )
-    ratings = book.ratings.select_related("user").order_by("-id")  # последние сверху
+    if book.is_publicly_visible:
+        ratings = book.ratings.select_related("user").order_by("-id")  # последние сверху
+    elif request.user.is_authenticated:
+        ratings = book.ratings.filter(user=request.user).select_related("user").order_by("-id")
+    else:
+        ratings = book.ratings.none()
     rating_summary = book.get_rating_summary()
 
     home_library_form: HomeLibraryQuickAddForm | None = None
@@ -1471,9 +1689,16 @@ def book_detail(request, pk):
     read_shelf_ids_str: list[str] = []
     read_shelf_name_tokens: list[str] = []
     edit_request_form: BookEditRequestForm | None = None
+    purchase_lists = []
 
     if request.user.is_authenticated:
         edit_request_form = BookEditRequestForm()
+        purchase_lists = list(
+            PurchaseList.objects
+            .filter(user=request.user)
+            .annotate(books_count=Count("items", distinct=True))
+            .order_by("title", "id")
+        )
         home_library_shelf = get_home_library_shelf(request.user)
         home_library_shelf_id = getattr(home_library_shelf, "id", None)
         home_library_item = (
@@ -1504,6 +1729,41 @@ def book_detail(request, pk):
                     "Спасибо! Мы передали вашу просьбу администратору.",
                 )
                 return redirect("book_detail", pk=book.pk)
+
+        is_purchase_list_action = (
+            request.method == "POST"
+            and request.POST.get("action") == "purchase-list-add"
+        )
+        if is_purchase_list_action:
+            purchase_list_id = (request.POST.get("purchase_list") or "").strip()
+            title = (request.POST.get("purchase_list_title") or "").strip()
+            note = (request.POST.get("note") or "").strip()
+            purchase_list = None
+            if purchase_list_id:
+                purchase_list = get_object_or_404(
+                    PurchaseList,
+                    pk=purchase_list_id,
+                    user=request.user,
+                )
+            else:
+                purchase_list, _ = PurchaseList.objects.get_or_create(
+                    user=request.user,
+                    title=title or "Будущие покупки",
+                )
+            item, created = PurchaseListItem.objects.get_or_create(
+                purchase_list=purchase_list,
+                book=book,
+                defaults={"note": note},
+            )
+            if not created and note and item.note != note:
+                item.note = note
+                item.save(update_fields=["note"])
+            purchase_list.save(update_fields=["updated_at"])
+            if created:
+                messages.success(request, f"«{book.title}» добавлена в список «{purchase_list.title}».")
+            else:
+                messages.info(request, f"«{book.title}» уже есть в списке «{purchase_list.title}».")
+            return redirect("book_detail", pk=book.pk)
 
         is_quick_add_action = (
             request.method == "POST"
@@ -2094,7 +2354,9 @@ def book_detail(request, pk):
     for genre in book.genres.all():
         related_qs = (
             _with_rating_stats(
-                genre.books.exclude(pk=book.pk)
+                Book.objects.public()
+                .filter(genres=genre)
+                .exclude(pk=book.pk)
                 .prefetch_related(
                     Prefetch("authors", queryset=Author.objects.order_by("name"))
                 )
@@ -2143,18 +2405,35 @@ def book_detail(request, pk):
         "upcoming": [],
         "past": [],
     }
-    reading_clubs_qs = (
-        ReadingClub.objects.filter(book=book)
-        .select_related("creator")
-        .prefetch_related("participants__user")
-        .with_message_count()
-    )
+    if book.is_publicly_visible:
+        reading_clubs_qs = (
+            ReadingClub.objects.filter(book=book)
+            .select_related("creator")
+            .prefetch_related("participants__user")
+            .with_message_count()
+        )
+    else:
+        reading_clubs_qs = ReadingClub.objects.none()
 
     for club in reading_clubs_qs:
         club.set_prefetched_message_count(club.message_count)
         reading_clubs_by_status[club.status].append(club)
 
     authors_line = ", ".join(book.authors.order_by("name").values_list("name", flat=True)[:2])
+    age_rating_value = (book.age_rating or "").strip()
+    book_age_warning_required = (
+        not age_rating_value
+        or age_rating_value.replace(" ", "").startswith("18")
+    )
+    book_age_warning_text = (
+        "ВОЗРАСТНОЕ ОГРАНИЧЕНИЕ 18+. НАСТОЯЩАЯ ИНФОРМАЦИЯ (ОПИСАНИЕ КНИГИ) "
+        "МОЖЕТ КАСАТЬСЯ ДЕЯТЕЛЬНОСТИ ИНОСТРАННОГО АГЕНТА ЛИБО СОДЕРЖАТЬ "
+        "УПОМИНАНИЯ НАРКОТИЧЕСКИХ СРЕДСТВ, ЕСЛИ ТАКОВЫЕ ИМЕЮТСЯ В ПРОИЗВЕДЕНИИ. "
+        "НЕЗАКОННОЕ ПОТРЕБЛЕНИЕ НАРКОТИЧЕСКИХ СРЕДСТВПРИЧИНЯЕТ ВРЕД ЗДОРОВЬЮ, "
+        "ИХ НЕЗАКОННЫЙ ОБОРОТ ЗАПРЕЩЕН. Книга помечена как 18+ или пользователь "
+        "при добавлении книги не указал возрастное ограничение, мы не предоставляем "
+        "и сами не имеем доступ к содержанию книги."
+    )
 
     return render(request, "books/book_detail.html", {
         "book": book,
@@ -2175,11 +2454,15 @@ def book_detail(request, pk):
         "active_publisher_name": active_publisher_name,
         "book_quick_facts": book_quick_facts,
         "book_metadata": book_metadata,
+        "book_age_warning_required": book_age_warning_required,
+        "book_age_warning_text": book_age_warning_text,
+        "book_is_publicly_visible": book.is_publicly_visible,
         "home_library_form": home_library_form,
         "home_library_item": home_library_item,
         "home_library_entry": home_library_entry,
         "home_library_edit_url": home_library_edit_url,
         "home_library_shelf_id": home_library_shelf_id,
+        "purchase_lists": purchase_lists,
         "default_shelf_status": default_shelf_status,
         "quick_add_form": quick_add_form,
         "quick_add_is_read_shelf_selected": quick_add_is_read_shelf_selected,
@@ -2274,6 +2557,8 @@ def book_create(request):
                             force_new=True,
                             isbn_metadata=isbn_metadata,
                             submitted_by=submitted_by_user,
+                            owner=request.user,
+                            visibility=Book.Visibility.PRIVATE,
                         )
                         _notify_about_registration(request, result)
                         return redirect("book_detail", pk=result.book.pk)
@@ -2310,6 +2595,8 @@ def book_create(request):
                             target_book=selected_book,
                             isbn_metadata=isbn_metadata,
                             submitted_by=submitted_by_user,
+                            owner=request.user,
+                            visibility=Book.Visibility.PRIVATE,
                         )
                         
                         _notify_about_registration(request, result)
@@ -2334,6 +2621,8 @@ def book_create(request):
                     force_new=False,
                     isbn_metadata=isbn_metadata,
                     submitted_by=submitted_by_user,
+                    owner=request.user,
+                    visibility=Book.Visibility.PRIVATE,
                 )
 
                 _notify_about_registration(request, result)
@@ -2349,12 +2638,13 @@ def book_create(request):
         "duplicate_resolution": duplicate_resolution,
         "prefill_data": prefill_data,
         "genre_suggestions": genre_suggestions,
+        "external_provider_label": _external_search_provider_label(),
     }
     return render(request, "books/book_form.html", context)
 
 @login_required
 def book_edit(request, pk):
-    book = get_object_or_404(Book, pk=pk)
+    book = get_object_or_404(Book.objects.visible_to_user(request.user), pk=pk)
     user = request.user
 
     has_model_permission = user.has_perm("books.change_book")
@@ -2388,7 +2678,7 @@ def book_edit(request, pk):
 
 @login_required
 def rate_book(request, pk):
-    book = get_object_or_404(Book, pk=pk)
+    book = get_object_or_404(Book.objects.visible_to_user(request.user), pk=pk)
     if request.method == "POST":
         form = RatingForm(request.POST, user=request.user)
         if form.is_valid():
@@ -2406,9 +2696,10 @@ def rate_book(request, pk):
                     existing_read_date = added_at.date()
                 elif isinstance(added_at, date):
                     existing_read_date = added_at
-            if rating.review and str(rating.review).strip():
+            if rating.review and str(rating.review).strip() and book.is_publicly_visible:
                 award_for_review(request.user, rating)
-            ReadBeforeBuyGame.handle_review(request.user, book, rating.review)
+            if book.is_publicly_visible:
+                ReadBeforeBuyGame.handle_review(request.user, book, rating.review)
             move_book_to_read_shelf(request.user, book, read_date=existing_read_date)
             pdf_url = reverse("book_review_pdf", args=[book.pk])
             print_url = reverse("book_review_print", args=[book.pk])
@@ -2431,7 +2722,7 @@ def book_review_pdf(request, pk):
     """
     try:
         book = get_object_or_404(
-            Book.objects.prefetch_related("authors", "genres", "publisher"),
+            Book.objects.visible_to_user(request.user).prefetch_related("authors", "genres", "publisher"),
             pk=pk,
         )
         rating = get_object_or_404(Rating, book=book, user=request.user)
@@ -2528,7 +2819,7 @@ def book_review_print(request, pk):
     Генерация HTML версии отзыва о книге (существующий функционал)
     """
     book = get_object_or_404(
-        Book.objects.prefetch_related("authors", "genres", "publisher"),
+        Book.objects.visible_to_user(request.user).prefetch_related("authors", "genres", "publisher"),
         pk=pk,
     )
     rating = get_object_or_404(Rating, book=book, user=request.user)

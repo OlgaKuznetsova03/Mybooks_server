@@ -15,6 +15,7 @@ from django.views.generic import DetailView, ListView, TemplateView
 from django.views.generic.edit import CreateView, FormView, UpdateView
 
 from accounts.services import charge_feature_access, InsufficientCoinsError
+from books.models import Book
 from games.models import BookExchangeOffer
 from reading_clubs.models import ReadingParticipant
 from reading_clubs.services import get_unread_discussion_topics
@@ -52,6 +53,31 @@ from .models import (
 )
 
 User = get_user_model()
+
+PUBLIC_BOOK_FILTER = {
+    "book__visibility": Book.Visibility.PUBLIC,
+    "book__is_hidden_by_admin": False,
+}
+PUBLIC_OFFER_BOOK_FILTER = {
+    "offer__book__visibility": Book.Visibility.PUBLIC,
+    "offer__book__is_hidden_by_admin": False,
+}
+
+
+def _public_optional_book_q(prefix: str = "book") -> Q:
+    return (
+        Q(**{f"{prefix}__isnull": True})
+        | Q(
+            **{
+                f"{prefix}__visibility": Book.Visibility.PUBLIC,
+                f"{prefix}__is_hidden_by_admin": False,
+            }
+        )
+    )
+
+
+def _public_optional_offer_book_q() -> Q:
+    return Q(offer__isnull=True) | Q(**PUBLIC_OFFER_BOOK_FILTER)
 
 
 def _user_is_blogger(user: User) -> bool:
@@ -344,6 +370,7 @@ class OfferListView(ListView):
             .get_queryset()
             .select_related("author", "book")
             .prefetch_related("expected_platforms")
+            .filter(**PUBLIC_BOOK_FILTER)
         )
         q = self.request.GET.get("q")
         if q:
@@ -367,6 +394,7 @@ class OfferListView(ListView):
             pending_count = AuthorOfferResponse.objects.filter(
                 offer__author=user,
                 status=AuthorOfferResponse.Status.PENDING,
+                **PUBLIC_OFFER_BOOK_FILTER,
             ).count()
             context["pending_offer_responses_count"] = pending_count
         else:
@@ -414,6 +442,7 @@ class OfferDetailView(DetailView):
             .get_queryset()
             .select_related("author", "book")
             .prefetch_related("expected_platforms")
+            .filter(**PUBLIC_BOOK_FILTER)
         )
     
     def get_context_data(self, **kwargs):
@@ -500,7 +529,10 @@ class OfferRespondView(LoginRequiredMixin, FormView):
     form_class = AuthorOfferResponseForm
 
     def dispatch(self, request, *args, **kwargs):
-        self.offer = get_object_or_404(AuthorOffer, pk=kwargs["pk"])
+        self.offer = get_object_or_404(
+            AuthorOffer.objects.filter(**PUBLIC_BOOK_FILTER),
+            pk=kwargs["pk"],
+        )
         if self.offer.author_id == request.user.id:
             messages.error(request, _("Вы не можете откликнуться на собственное предложение."))
             return redirect("collaborations:offer_detail", pk=self.offer.pk)
@@ -567,6 +599,7 @@ class OfferResponseListView(LoginRequiredMixin, ListView):
             .get_queryset()
             .select_related("offer", "respondent")
             .filter(offer__author=self.request.user)
+            .filter(**PUBLIC_OFFER_BOOK_FILTER)
         )
         status = self.request.GET.get("status")
         if status in dict(AuthorOfferResponse.Status.choices):
@@ -575,7 +608,9 @@ class OfferResponseListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        qs = AuthorOfferResponse.objects.filter(offer__author=self.request.user)
+        qs = AuthorOfferResponse.objects.filter(offer__author=self.request.user).filter(
+            **PUBLIC_OFFER_BOOK_FILTER
+        )
         status_counts = {
             item["status"]: item["total"]
             for item in (
@@ -608,8 +643,8 @@ class OfferResponseDetailView(LoginRequiredMixin, View):
     def dispatch(self, request, *args, **kwargs):
         self.response = get_object_or_404(
             AuthorOfferResponse.objects.select_related(
-                "offer", "offer__author", "respondent"
-            ),
+                "offer", "offer__book", "offer__author", "respondent"
+            ).filter(**PUBLIC_OFFER_BOOK_FILTER),
             pk=kwargs["pk"],
         )
         if not self.response.is_participant(request.user):
@@ -693,7 +728,9 @@ class OfferResponseAcceptView(LoginRequiredMixin, FormView):
 
     def dispatch(self, request, *args, **kwargs):
         self.response = get_object_or_404(
-            AuthorOfferResponse.objects.select_related("offer", "respondent"),
+            AuthorOfferResponse.objects.select_related("offer", "offer__book", "respondent").filter(
+                **PUBLIC_OFFER_BOOK_FILTER
+            ),
             pk=kwargs["pk"],
         )
         if self.response.offer.author_id != request.user.id:
@@ -781,7 +818,9 @@ class OfferResponseAcceptView(LoginRequiredMixin, FormView):
 class OfferResponseDeclineView(LoginRequiredMixin, View):
     def post(self, request, pk: int):
         response = get_object_or_404(
-            AuthorOfferResponse.objects.select_related("offer", "respondent"),
+            AuthorOfferResponse.objects.select_related("offer", "offer__book", "respondent").filter(
+                **PUBLIC_OFFER_BOOK_FILTER
+            ),
             pk=pk,
         )
         if response.offer.author_id != request.user.id:
@@ -828,7 +867,9 @@ class OfferResponseWithdrawView(LoginRequiredMixin, View):
 
     def post(self, request, pk: int):
         response = get_object_or_404(
-            AuthorOfferResponse.objects.select_related("offer", "respondent"),
+            AuthorOfferResponse.objects.select_related("offer", "offer__book", "respondent").filter(
+                **PUBLIC_OFFER_BOOK_FILTER
+            ),
             pk=pk,
             respondent=request.user,
         )
@@ -868,6 +909,7 @@ class BloggerRequestResponseListView(LoginRequiredMixin, ListView):
             .get_queryset()
             .select_related("request", "responder", "book")
             .filter(request__blogger=self.request.user)
+            .filter(_public_optional_book_q("book"))
             .order_by("-created_at")
         )
         status = self.request.GET.get("status")
@@ -877,7 +919,9 @@ class BloggerRequestResponseListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        qs = BloggerRequestResponse.objects.filter(request__blogger=self.request.user)
+        qs = BloggerRequestResponse.objects.filter(request__blogger=self.request.user).filter(
+            _public_optional_book_q("book")
+        )
         status_counts = {
             item["status"]: item["total"]
             for item in (
@@ -888,9 +932,9 @@ class BloggerRequestResponseListView(LoginRequiredMixin, ListView):
             )
         }
         unread_ids = set(
-            BloggerRequestResponse.objects.unread_for(self.request.user).values_list(
-                "id", flat=True
-            )
+            BloggerRequestResponse.objects.unread_for(self.request.user)
+            .filter(_public_optional_book_q("book"))
+            .values_list("id", flat=True)
         )
         context.update(
             {
@@ -917,7 +961,7 @@ class BloggerRequestResponseDetailView(LoginRequiredMixin, View):
         self.response = get_object_or_404(
             BloggerRequestResponse.objects.select_related(
                 "request", "request__blogger", "responder", "book"
-            ),
+            ).filter(_public_optional_book_q("book")),
             pk=kwargs["pk"],
         )
         if not self.response.is_participant(request.user):
@@ -996,7 +1040,9 @@ class BloggerRequestResponseAcceptView(LoginRequiredMixin, FormView):
 
     def dispatch(self, request, *args, **kwargs):
         self.response = get_object_or_404(
-            BloggerRequestResponse.objects.select_related("request", "responder", "book"),
+            BloggerRequestResponse.objects.select_related("request", "responder", "book").filter(
+                _public_optional_book_q("book")
+            ),
             pk=kwargs["pk"],
         )
         if self.response.request.blogger_id != request.user.id:
@@ -1084,7 +1130,9 @@ class BloggerRequestResponseAcceptView(LoginRequiredMixin, FormView):
 class BloggerRequestResponseDeclineView(LoginRequiredMixin, View):
     def post(self, request, pk: int):
         response = get_object_or_404(
-            BloggerRequestResponse.objects.select_related("request", "responder"),
+            BloggerRequestResponse.objects.select_related("request", "responder", "book").filter(
+                _public_optional_book_q("book")
+            ),
             pk=pk,
         )
         if response.request.blogger_id != request.user.id:
@@ -1132,7 +1180,9 @@ class BloggerRequestResponseWithdrawView(LoginRequiredMixin, View):
 
     def post(self, request, pk: int):
         response = get_object_or_404(
-            BloggerRequestResponse.objects.select_related("request", "responder"),
+            BloggerRequestResponse.objects.select_related("request", "responder", "book").filter(
+                _public_optional_book_q("book")
+            ),
             pk=pk,
             responder=request.user,
         )
@@ -1157,7 +1207,9 @@ class CollaborationApprovalView(LoginRequiredMixin, FormView):
 
     def dispatch(self, request, *args, **kwargs):
         self.collaboration = get_object_or_404(
-            Collaboration.objects.select_related("author", "partner", "offer", "request"),
+            Collaboration.objects.select_related("author", "partner", "offer", "request").filter(
+                _public_optional_offer_book_q()
+            ),
             pk=kwargs["pk"],
         )
         if not self.collaboration.is_participant(request.user):
@@ -1238,31 +1290,33 @@ class CollaborationNotificationsView(LoginRequiredMixin, TemplateView):
         pending_offer_responses = AuthorOfferResponse.objects.filter(
             offer__author=user,
             status=AuthorOfferResponse.Status.PENDING,
-        ).select_related("offer", "respondent")
+        ).filter(**PUBLIC_OFFER_BOOK_FILTER).select_related("offer", "respondent")
 
         pending_blogger_request_responses = BloggerRequestResponse.objects.filter(
             request__blogger=user,
             status=BloggerRequestResponse.Status.PENDING,
-        ).select_related("request", "responder", "book")
+        ).filter(_public_optional_book_q("book")).select_related("request", "responder", "book")
 
         pending_partner_collaborations = Collaboration.objects.filter(
             partner=user,
             author_approved=True,
             partner_approved=False,
             status__in=[Collaboration.Status.NEGOTIATION, Collaboration.Status.ACTIVE],
-        ).select_related("author", "partner", "offer", "request")
+        ).filter(_public_optional_offer_book_q()).select_related("author", "partner", "offer", "request")
 
         pending_author_collaborations = Collaboration.objects.filter(
             author=user,
             partner_approved=True,
             author_approved=False,
             status__in=[Collaboration.Status.NEGOTIATION, Collaboration.Status.ACTIVE],
-        ).select_related("author", "partner", "offer", "request")
+        ).filter(_public_optional_offer_book_q()).select_related("author", "partner", "offer", "request")
 
         pending_reading_participants = (
             ReadingParticipant.objects.filter(
                 reading__creator=user,
                 status=ReadingParticipant.Status.PENDING,
+                reading__book__visibility=Book.Visibility.PUBLIC,
+                reading__book__is_hidden_by_admin=False,
             )
             .select_related("reading", "user")
             .order_by("-joined_at")
@@ -1272,6 +1326,8 @@ class CollaborationNotificationsView(LoginRequiredMixin, TemplateView):
             BookExchangeOffer.objects.filter(
                 challenge__user=user,
                 status=BookExchangeOffer.Status.PENDING,
+                book__visibility=Book.Visibility.PUBLIC,
+                book__is_hidden_by_admin=False,
             )
             .select_related("challenge", "challenge__game", "offered_by", "book")
             .order_by("-created_at")
@@ -1279,18 +1335,21 @@ class CollaborationNotificationsView(LoginRequiredMixin, TemplateView):
 
         unread_offer_threads = (
             AuthorOfferResponse.objects.unread_for(user)
+            .filter(**PUBLIC_OFFER_BOOK_FILTER)
             .select_related("offer", "offer__author", "respondent")
             .order_by("-last_activity_at")
         )
 
         unread_blogger_request_threads = (
             BloggerRequestResponse.objects.unread_for(user)
+            .filter(_public_optional_book_q("book"))
             .select_related("request", "request__blogger", "responder", "book")
             .order_by("-last_activity_at")
         )
 
         unread_collaborations = (
             Collaboration.objects.unread_for(user)
+            .filter(_public_optional_offer_book_q())
             .select_related("author", "partner", "offer", "request")
             .order_by("-last_activity_at")
         )
@@ -1342,7 +1401,7 @@ class BloggerRequestListView(ListView):
             pending_count = BloggerRequestResponse.objects.filter(
                 request__blogger=user,
                 status=BloggerRequestResponse.Status.PENDING,
-            ).count()
+            ).filter(_public_optional_book_q("book")).count()
             context["pending_request_responses_count"] = pending_count
         else:
             context["show_response_inbox"] = False
@@ -1582,6 +1641,7 @@ class CollaborationListView(LoginRequiredMixin, ListView):
             Collaboration.objects.filter(
                 Q(author=self.request.user) | Q(partner=self.request.user)
             )
+            .filter(_public_optional_offer_book_q())
             .select_related("author", "partner", "offer", "request")
             .order_by("-created_at")
         )
@@ -1591,12 +1651,14 @@ class CollaborationListView(LoginRequiredMixin, ListView):
         user = self.request.user
         offer_responses = (
             AuthorOfferResponse.objects.filter(respondent=user)
+            .filter(**PUBLIC_OFFER_BOOK_FILTER)
             .exclude(status=AuthorOfferResponse.Status.ACCEPTED)
             .select_related("offer", "offer__author")
             .order_by("-created_at")
         )
         blogger_request_responses = (
             BloggerRequestResponse.objects.filter(responder=user)
+            .filter(_public_optional_book_q("book"))
             .exclude(status=BloggerRequestResponse.Status.ACCEPTED)
             .select_related("request", "request__blogger", "book")
             .order_by("-created_at")
@@ -1623,6 +1685,7 @@ class CollaborationDetailView(LoginRequiredMixin, View):
     def get_object(self, pk: int) -> Collaboration:
         return get_object_or_404(
             Collaboration.objects.select_related("author", "partner", "offer", "request")
+            .filter(_public_optional_offer_book_q())
             .prefetch_related("messages__author"),
             pk=pk,
         )

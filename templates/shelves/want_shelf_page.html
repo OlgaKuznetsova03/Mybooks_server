@@ -1,11 +1,16 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Полка «Хочу прочитать»{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/random-book-picker.css' %}">{% endblock %}
 {% block content %}
 <div class="container py-4">
   <!-- Заголовок -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex justify-content-between align-items-center gap-2 mb-4">
     <h1 class="h3">{{ shelf.name }}</h1>
-    <a class="btn btn-outline-secondary" href="{% url 'my_profile' %}">← Назад</a>
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary" type="button" data-random-book-picker data-shelf="want_to_read">Случайная книга · 10 монет</button>
+      <a class="btn btn-outline-secondary" href="{% url 'my_profile' %}">← Назад</a>
+    </div>
   </div>
 
   <!-- Интерактивная сортировка -->
@@ -105,4 +110,5 @@ document.addEventListener('DOMContentLoaded', function() {
   transform: scale(0.95);
 }
 </style>
+<script src="{% static 'js/random-book-picker.js' %}"></script>
 {% endblock %}

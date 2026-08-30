@@ -43,12 +43,33 @@
         • {{ post.created_at|date:"d M" }}
       {% endif %}
       
-      {% if can_post %}
+      {% if can_post or request.user.is_authenticated and post.author_id != request.user.id %}
         <div class="chat-message__menu">
-          <a href="{% url 'reading_clubs:topic_detail' reading.slug topic.pk %}?reply_to={{ post.pk }}#reply-form" 
+          {% if can_post %}
+          <a href="{% url 'reading_clubs:topic_detail' reading.slug topic.pk %}?reply_to={{ post.pk }}#reply-form"
              class="chat-message__reply-btn" title="Ответить">
             <i class="bi bi-reply"></i>
           </a>
+          {% endif %}
+          {% if request.user.is_authenticated and post.author_id != request.user.id %}
+            {% if post.pk in reported_post_ids %}
+              <button type="button" class="chat-message__report-btn" disabled title="Жалоба отправлена" aria-label="Жалоба отправлена">
+                <i class="bi bi-flag-fill"></i>
+              </button>
+            {% else %}
+              <button type="button"
+                      class="chat-message__report-btn"
+                      title="Пожаловаться"
+                      aria-label="Пожаловаться на сообщение"
+                      data-bs-toggle="modal"
+                      data-bs-target="#messageReportModal"
+                      data-report-url="{% url 'reading_clubs:post_report' reading.slug topic.pk post.pk %}"
+                      data-report-author="{{ post.author.get_full_name|default:post.author.username|escape }}"
+                      data-report-text="{{ post.content|truncatechars:120|escape }}">
+                <i class="bi bi-flag"></i>
+              </button>
+            {% endif %}
+          {% endif %}
         </div>
       {% endif %}
     </div>

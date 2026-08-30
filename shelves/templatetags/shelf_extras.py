@@ -123,6 +123,54 @@ def coalesce(value: Any, fallback: Any):
 
 
 @register.filter
+def shelf_total_count(shelf: Any, fallback_items: Any = None) -> int:
+    """Return a shelf total count, falling back to rendered items."""
+
+    for attr_name in ("profile_items_count", "items_count", "book_count"):
+        value = getattr(shelf, attr_name, None)
+        if value is not None:
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                return 0
+
+    if fallback_items is None:
+        return 0
+
+    try:
+        return len(fallback_items)
+    except TypeError:
+        pass
+
+    count = getattr(fallback_items, "count", None)
+    if callable(count):
+        try:
+            return int(count())
+        except (TypeError, ValueError):
+            return 0
+
+    return 0
+
+
+@register.filter
+def shelf_display_items(shelf: Any):
+    """Return prepared shelf preview items, falling back to the related manager."""
+
+    if hasattr(shelf, "profile_preview_items"):
+        return getattr(shelf, "profile_preview_items")
+
+    items = getattr(shelf, "items", None)
+    if items is None:
+        return []
+
+    all_method = getattr(items, "all", None)
+    if callable(all_method):
+        return all_method()
+
+    return items
+
+
+@register.filter
 def ru_pluralize(value, forms: str = "книга,книги,книг") -> str:
     """Return the correct Russian plural form for ``value``.
 

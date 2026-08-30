@@ -17,9 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
-  {% if not user.profile.has_active_premium %}
-    <script src="https://yandex.ru/ads/system/context.js" async></script>
-  {% endif %}
+  <script>window.yaContextCb = window.yaContextCb || [];</script>
 
   {% block theme_colors %}
   <!-- Базовая цветовая тема сайта -->
@@ -447,18 +445,16 @@
 
   <!-- Брендовые стили проекта -->
   <link href="{% static 'books/styles.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
+  <link href="{% static 'config/site-refresh.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
 
   {% block extra_css %}{% endblock %}
-<head><!-- Yandex.RTB -->
-<script>window.yaContextCb=window.yaContextCb||[]</script>
-<script src="https://yandex.ru/ads/system/context.js" async></script>
   {% block extra_schema %}{% endblock %}
 </head>
 
 <body class="bg-body{% block body_class %}{% endblock %}">
 
 <!-- ===== NAVBAR + OFFCANVAS ===== -->
-<nav class="navbar navbar-expand-lg bg-body border-bottom sticky-top">
+<nav class="navbar navbar-expand-lg bg-body border-bottom sticky-top site-header">
   <div class="container align-items-center">
 
     <!-- Гамбургер (всегда виден) -->
@@ -485,10 +481,12 @@
 
     <!-- Горизонтальное меню (десктоп) -->
     <ul class="navbar-nav me-auto d-none d-lg-flex">
-      <li class="nav-item"><a class="nav-link" href="{% url 'book_list' %}">Книги</a></li>
-      <li class="nav-item"><a class="nav-link" href="{% url 'shelves:reading_feed' %}">Лента</a></li>
-      <li class="nav-item"><a class="nav-link" href="{% url 'shelves:reading_now' %}">Читаю</a></li>
-      <li class="nav-item"><a class="nav-link" href="{% url 'premium_overview' %}">Премиум</a></li>
+      <li class="nav-item"><a class="nav-link" href="{% url 'book_list' %}">&#1050;&#1085;&#1080;&#1075;&#1080;</a></li>
+      <li class="nav-item"><a class="nav-link" href="{% url 'shelves:reading_feed' %}">&#1051;&#1077;&#1085;&#1090;&#1072;</a></li>
+      <li class="nav-item"><a class="nav-link" href="{% url 'reading_communities_overview' %}">&#1057;&#1063;</a></li>
+      <li class="nav-item"><a class="nav-link" href="{% url 'games:index' %}">&#1048;&#1075;&#1088;&#1099;</a></li>
+      <li class="nav-item"><a class="nav-link" href="{% url 'collaborations:offer_list' %}">&#1057;&#1086;&#1090;&#1088;&#1091;&#1076;&#1085;&#1080;&#1095;&#1077;&#1089;&#1090;&#1074;&#1086;</a></li>
+      <li class="nav-item"><a class="nav-link" href="{% url 'premium_overview' %}">&#1055;&#1088;&#1077;&#1084;&#1080;&#1091;&#1084;</a></li>
     </ul>
 
     <!-- Поиск (десктоп) -->
@@ -685,7 +683,9 @@
 </script>
 <!-- ===== /NAVBAR + OFFCANVAS ===== -->
 
-<main class="container py-4">
+{% include "includes/site_ad_banner.html" %}
+
+<main class="container py-4 site-main">
   {% if messages %}
     <div class="mb-4">
       {% for message in messages %}
@@ -718,28 +718,12 @@
   {% block content %}{% endblock %}
 </main>
 
-<div class="border-top bg-body-tertiary">
-  <div class="container py-3">
-    <div id="yandex_rtb_R-A-1780994-1" class="yandex-ads-banner"></div>
-  </div>
-</div>
-
-<script>
-  window.yaContextCb = window.yaContextCb || [];
-  window.yaContextCb.push(() => {
-    if (window.Ya && Ya.Context && Ya.Context.AdvManager) {
-      Ya.Context.AdvManager.render({
-        blockId: "R-A-1780994-1",
-        renderTo: "yandex_rtb_R-A-1780994-1",
-        horizontalAlign: true,
-      });
-    }
-  });
-</script>
-
 <footer class="border-top py-3 small text-muted bg-body">
-  <div class="container d-flex justify-content-between">
+  <div class="container d-flex justify-content-between align-items-center gap-2 flex-wrap">
     <div>© {% now "Y" %} Калейдоскоп Книг</div>
+    <div><a class="text-muted" href="{% url 'rules' %}">Правила</a></div>
+    <div><a class="text-muted" href="{% url 'privacy_policy' %}">Конфиденциальность</a></div>
+    <div><a class="text-muted" href="{% url 'account_deletion' %}">Удалить аккаунт</a></div>
     <div><a class="text-muted" href="mailto:info@kalejdoskopknig.ru">Связаться</a></div>
     <div>Кузнецов С.В.</div>
     <div>ИНН: 774391787507</div>
@@ -853,17 +837,5 @@
 </script>
 
 {% block extra_js %}{% endblock %}
-{% if not user.profile.has_active_premium %}
-  <!-- Yandex.RTB R-A-17641153-1 -->
-<script>
-  window.yaContextCb.push(() => {
-      Ya.Context.AdvManager.render({
-          "blockId": "R-A-17641153-1",
-          "type": "floorAd",
-          "platform": "desktop"
-      })
-    })
-</script>
-{% endif %}
 </body>
 </html>

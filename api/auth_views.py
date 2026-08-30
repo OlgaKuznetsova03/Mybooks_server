@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 from accounts.forms import EmailAuthenticationForm, SignUpForm
 
 from .authentication import issue_mobile_token
+from .models import MobileAuthToken
 
 
 def _user_payload(user) -> dict[str, object]:
@@ -131,7 +132,7 @@ class AuthLogoutView(APIView):
 
     def post(self, request, *args, **kwargs):
         auth_obj = getattr(request, "auth", None)
-        if isinstance(auth_obj, Token):
+        if isinstance(auth_obj, (MobileAuthToken, Token)):
             auth_obj.delete()
 
         logout(request)

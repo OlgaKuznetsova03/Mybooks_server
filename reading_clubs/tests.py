@@ -6,7 +6,13 @@ from django.test import TestCase
 from django.urls import reverse
 
 from books.models import Book, Author, Genre
-from .models import DiscussionPost, ReadingClub, ReadingNorm, ReadingParticipant
+from .models import (
+    DiscussionPost,
+    DiscussionPostReport,
+    ReadingClub,
+    ReadingNorm,
+    ReadingParticipant,
+)
 
 User = get_user_model()
 
@@ -162,3 +168,60 @@ class ReadingTopicDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         posts = list(response.context["posts"])
         self.assertEqual([post.pk for post in posts], [parent.pk, reply.pk])
+
+
+class DiscussionPostReportViewTests(TestCase):
+    def setUp(self):
+        author = Author.objects.create(name="Автор")
+        genre = Genre.objects.create(name="Жанр")
+        book = Book.objects.create(title="Книга")
+        book.authors.add(author)
+        book.genres.add(genre)
+        self.creator = User.objects.create_user(username="creator", password="pass12345")
+        self.reader = User.objects.create_user(username="reader", password="pass12345")
+        self.reading = ReadingClub.objects.create(
+            book=book,
+            creator=self.creator,
+            title="Чтение",
+            start_date=date.today(),
+        )
+        self.topic = ReadingNorm.objects.create(
+            reading=self.reading,
+            title="Глава 1",
+            order=1,
+            discussion_opens_at=date.today(),
+        )
+        self.post = DiscussionPost.objects.create(
+            topic=self.topic,
+            author=self.creator,
+            content="Сообщение для проверки",
+        )
+
+    def test_authenticated_user_can_report_foreign_post_once(self):
+        self.client.login(username="reader", password="pass12345")
+        url = reverse(
+            "reading_clubs:post_report",
+            args=[self.reading.slug, self.topic.pk, self.post.pk],
+        )
+
+        first_response = self.client.post(url, {"reason": "spam", "details": "Реклама"})
+        second_response = self.client.post(url, {"reason": "spam", "details": "Повтор"})
+
+        self.assertEqual(first_response.status_code, 302)
+        self.assertEqual(second_response.status_code, 302)
+        self.assertEqual(DiscussionPostReport.objects.count(), 1)
+        report = DiscussionPostReport.objects.get()
+        self.assertEqual(report.reported_user, self.creator)
+        self.assertEqual(report.content_snapshot, self.post.content)
+
+    def test_user_cannot_report_own_post(self):
+        self.client.login(username="creator", password="pass12345")
+        url = reverse(
+            "reading_clubs:post_report",
+            args=[self.reading.slug, self.topic.pk, self.post.pk],
+        )
+
+        response = self.client.post(url, {"reason": "other"})
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(DiscussionPostReport.objects.exists())
